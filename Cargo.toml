@@ -1,0 +1,20 @@
+[package]
+name = "whippyunits"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quote = "1.0"
+proc-macro2 = "1.0"
+syn = { version = "2.0", features = ["full"] }
+libm = "0.2"
+
+[lib]
+name = "whippyunits"
+path = "src/lib.rs"
+
+[profile.dev]
+incremental = false
+
+[profile.release]
+incremental = false 
