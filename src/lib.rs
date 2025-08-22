@@ -1,6 +1,8 @@
 #![no_std]
+#![feature(custom_inner_attributes)]
 #![feature(generic_const_exprs)]
 #![feature(adt_const_params)]
+#![rustfmt::skip]
 
 extern crate alloc;
 
@@ -16,29 +18,29 @@ use core::ops::{Add, Div, Mul, Sub};
 // ============================================================================
 
 // Bias constant to make all exponents non-negative for storage
-const MILLIMETER_SCALE: isize = 1;
-const METER_SCALE: isize = 0;
-const KILOMETER_SCALE: isize = 1;
-const LENGTH_UNUSED: isize = isize::MAX;
+pub const MILLIMETER_SCALE: isize = 1;
+pub const METER_SCALE: isize = 0;
+pub const KILOMETER_SCALE: isize = 1;
+pub const LENGTH_UNUSED: isize = isize::MAX;
 
-const MILLIGRAM_SCALE: isize = -1;
-const GRAM_SCALE: isize = 0;
-const KILOGRAM_SCALE: isize = 1;
-const MASS_UNUSED: isize = isize::MAX;
+pub const MILLIGRAM_SCALE: isize = -1;
+pub const GRAM_SCALE: isize = 0;
+pub const KILOGRAM_SCALE: isize = 1;
+pub const MASS_UNUSED: isize = isize::MAX;
 
-const MILLISECOND_SCALE_ORDER: isize = -1;
-const MILLISECOND_SCALE_P2: isize = -3;
-const MILLISECOND_SCALE_P3: isize = 0;
-const MILLISECOND_SCALE_P5: isize = -3;
-const SECOND_SCALE_ORDER: isize = 0;
-const SECOND_SCALE_P2: isize = 0;
-const SECOND_SCALE_P3: isize = 0;
-const SECOND_SCALE_P5: isize = 0;
-const MINUTE_SCALE_ORDER: isize = 1;
-const MINUTE_SCALE_P2: isize = 2;
-const MINUTE_SCALE_P3: isize = 1;
-const MINUTE_SCALE_P5: isize = 1;
-const TIME_UNUSED: isize = isize::MAX;
+pub const MILLISECOND_SCALE_ORDER: isize = -1;
+pub const MILLISECOND_SCALE_P2: isize = -3;
+pub const MILLISECOND_SCALE_P3: isize = 0;
+pub const MILLISECOND_SCALE_P5: isize = -3;
+pub const SECOND_SCALE_ORDER: isize = 0;
+pub const SECOND_SCALE_P2: isize = 0;
+pub const SECOND_SCALE_P3: isize = 0;
+pub const SECOND_SCALE_P5: isize = 0;
+pub const MINUTE_SCALE_ORDER: isize = 1;
+pub const MINUTE_SCALE_P2: isize = 2;
+pub const MINUTE_SCALE_P3: isize = 1;
+pub const MINUTE_SCALE_P5: isize = 1;
+pub const TIME_UNUSED: isize = isize::MAX;
 
 // ============================================================================
 // Core Types and Enums
@@ -219,11 +221,11 @@ fn build_unit_strings<
 }
 
 impl<
-        const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
-        const MASS_EXPONENT: isize, const MASS_SCALE: isize,
-        const TIME_EXPONENT: isize, const TIME_P2: isize, const TIME_P3: isize, const TIME_P5: isize, const TIME_SCALE_ORDER: isize,
-        const RESCALE_BEHAVIOR: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR: CancelledScaleBehavior,
-    > fmt::Display
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE: isize,
+    const TIME_EXPONENT: isize, const TIME_P2: isize, const TIME_P3: isize, const TIME_P5: isize, const TIME_SCALE_ORDER: isize,
+    const RESCALE_BEHAVIOR: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR: CancelledScaleBehavior,
+> fmt::Display
     for Quantity<
         LENGTH_EXPONENT, LENGTH_SCALE,
         MASS_EXPONENT, MASS_SCALE,
@@ -432,7 +434,7 @@ pub const fn pow5(exp: isize) -> f64 {
     }
 }
 
-const fn length_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
+pub const fn length_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
     let diff: isize = (from - to) * exponent;
     const UNUSED: isize = LENGTH_UNUSED;
     match (from, to) {
@@ -441,7 +443,7 @@ const fn length_conversion_factor(from: isize, to: isize, exponent: isize) -> f6
     }
 }
 
-const fn mass_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
+pub const fn mass_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
     let diff: isize = (from - to) * exponent;
     const UNUSED: isize = MASS_UNUSED;
     match (from, to) {
@@ -450,7 +452,7 @@ const fn mass_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 
     }
 }
 
-const fn time_conversion_factor(
+pub const fn time_conversion_factor(
     from_p2: isize, from_p3: isize, from_p5: isize,
     to_p2: isize, to_p3: isize, to_p5: isize,
     exponent: isize,
@@ -465,7 +467,7 @@ const fn time_conversion_factor(
         | (_, _, UNUSED, _, _, _)
         | (_, _, _, UNUSED, _, _)
         | (_, _, _, _, UNUSED, _)
-        | (_, _, _, _, _, UNUSED) => 1.0, // unused scales are represented by 0; should never happen
+        | (_, _, _, _, _, UNUSED) => 1.0, // should never happen
         _ => pow2(diff_p2) * pow3(diff_p3) * pow5(diff_p5),
     }
 }
@@ -621,10 +623,10 @@ const fn max_time_scale(
 // Helper functions to determine result scales based on rescale behavior and cancellation behavior
 pub const fn result_length_scale(
     scale1: isize, scale2: isize,
-    rescale_behavior: RescaleBehavior, cancellation_behavior: CancelledScaleBehavior,
+    rescale_behavior: RescaleBehavior, cancelled_scale_behavior: CancelledScaleBehavior,
     exponent: isize,
 ) -> isize {
-    match cancellation_behavior {
+    match cancelled_scale_behavior {
         CancelledScaleBehavior::Forget if exponent == 0 => LENGTH_UNUSED, // revert to unused scale sentinal value
         _ => match rescale_behavior {
             RescaleBehavior::SmallerWins => min_length_scale(scale1, scale2),
@@ -637,10 +639,10 @@ pub const fn result_length_scale(
 
 pub const fn result_mass_scale(
     scale1: isize, scale2: isize,
-    rescale_behavior: RescaleBehavior, cancellation_behavior: CancelledScaleBehavior,
+    rescale_behavior: RescaleBehavior, cancelled_scale_behavior: CancelledScaleBehavior,
     exponent: isize,
 ) -> isize {
-    match cancellation_behavior {
+    match cancelled_scale_behavior {
         CancelledScaleBehavior::Forget if exponent == 0 => MASS_UNUSED, // revert to unused scale sentinal value
         _ => match rescale_behavior {
             RescaleBehavior::SmallerWins => min_mass_scale(scale1, scale2),
@@ -655,10 +657,10 @@ pub const fn result_time_scale(
     which_prime: isize,
     p2_1: isize, p3_1: isize, p5_1: isize, order_1: isize,
     p2_2: isize, p3_2: isize, p5_2: isize, order_2: isize,
-    rescale_behavior: RescaleBehavior, cancellation_behavior: CancelledScaleBehavior,
+    rescale_behavior: RescaleBehavior, cancelled_scale_behavior: CancelledScaleBehavior,
     exponent: isize,
 ) -> isize {
-    match cancellation_behavior {
+    match cancelled_scale_behavior {
         CancelledScaleBehavior::Forget if exponent == 0 => TIME_UNUSED, // revert to unused scale sentinal value
         _ => match rescale_behavior {
             RescaleBehavior::SmallerWins => min_time_scale(
@@ -680,6 +682,33 @@ pub const fn result_time_scale(
             },
             RescaleBehavior::Strict => TIME_UNUSED, // strict rescale behavior means this should never be reached
         },
+    }
+}
+
+pub const fn time_scale_2(order: isize) -> isize {
+    match order {
+        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P2,
+        SECOND_SCALE_ORDER => SECOND_SCALE_P2,
+        MINUTE_SCALE_ORDER => MINUTE_SCALE_P2,
+        _ => 0, // TODO: handle this better
+    }
+}
+
+pub const fn time_scale_3(order: isize) -> isize {
+    match order {
+        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P3,
+        SECOND_SCALE_ORDER => SECOND_SCALE_P3,
+        MINUTE_SCALE_ORDER => MINUTE_SCALE_P3,
+        _ => 0, // TODO: handle this better
+    }
+}
+
+pub const fn time_scale_5(order: isize) -> isize {
+    match order {
+        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P5,
+        SECOND_SCALE_ORDER => SECOND_SCALE_P5,
+        MINUTE_SCALE_ORDER => MINUTE_SCALE_P5,
+        _ => 0, // TODO: handle this better
     }
 }
 
@@ -961,400 +990,6 @@ where
     }
 }
 
-// ============================================================================
-// Extension Traits for Natural Syntax
-// ============================================================================
 
-type Millimeter = Quantity<
-    1, MILLIMETER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Meter = Quantity<
-    1, METER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Kilometer = Quantity<
-    1, KILOMETER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-
-type Milligram = Quantity<
-    0, LENGTH_UNUSED,
-    1, MILLIGRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Gram = Quantity<
-    0, LENGTH_UNUSED,
-    1, GRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Kilogram = Quantity<
-    0, LENGTH_UNUSED,
-    1, KILOGRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-
-type Millisecond = Quantity<
-    0, LENGTH_UNUSED,
-    0, MASS_UNUSED,
-    1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5, MILLISECOND_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Second = Quantity<
-    0, LENGTH_UNUSED,
-    0, MASS_UNUSED,
-    1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5, SECOND_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-type Minute = Quantity<
-    0, LENGTH_UNUSED,
-    0, MASS_UNUSED,
-    1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5, MINUTE_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
->;
-
-pub trait LengthExt {
-    fn meters(self) -> Meter;
-    fn millimeters(self) -> Millimeter;
-    fn kilometers(self) -> Kilometer;
-}
-
-impl LengthExt for f64 {
-    fn meters(self) -> Meter {
-        Quantity::new(self)
-    }
-
-    fn millimeters(self) -> Millimeter {
-        Quantity::new(self)
-    }
-
-    fn kilometers(self) -> Kilometer {
-        Quantity::new(self)
-    }
-}
-
-impl LengthExt for i32 {
-    fn meters(self) -> Meter {
-        Quantity::new(self as f64)
-    }
-
-    fn millimeters(self) -> Millimeter {
-        Quantity::new(self as f64)
-    }
-
-    fn kilometers(self) -> Kilometer {
-        Quantity::new(self as f64)
-    }
-}
-
-pub trait MassExt {
-    fn kilograms(self) -> Kilogram;
-    fn milligrams(self) -> Milligram;
-    fn grams(self) -> Gram;
-}
-
-impl MassExt for f64 {
-    fn milligrams(self) -> Milligram {
-        Quantity::new(self)
-    }
-
-    fn grams(self) -> Gram {
-        Quantity::new(self)
-    }
-
-    fn kilograms(self) -> Kilogram {
-        Quantity::new(self)
-    }
-}
-
-impl MassExt for i32 {
-    fn milligrams(self) -> Milligram {
-        Quantity::new(self as f64)
-    }
-
-    fn grams(self) -> Gram {
-        Quantity::new(self as f64)
-    }
-
-    fn kilograms(self) -> Kilogram {
-        Quantity::new(self as f64)
-    }
-}
-
-pub trait TimeExt {
-    fn milliseconds(self) -> Millisecond;
-    fn seconds(self) -> Second;
-    fn minutes(self) -> Minute;
-}
-
-impl TimeExt for f64 {
-    fn milliseconds(self) -> Millisecond {
-        Quantity::new(self)
-    }
-
-    fn seconds(self) -> Second {
-        Quantity::new(self)
-    }
-
-    fn minutes(self) -> Minute {
-        Quantity::new(self)
-    }
-}
-
-impl TimeExt for i32 {
-    fn milliseconds(self) -> Millisecond {
-        Quantity::new(self as f64)
-    }
-
-    fn seconds(self) -> Second {
-        Quantity::new(self as f64)
-    }
-
-    fn minutes(self) -> Minute {
-        Quantity::new(self as f64)
-    }
-}
-
-// ============================================================================
-// Scoped Preferences Macro
-// ============================================================================
-
-// #[macro_export]
-// macro_rules! set_unit_preferences {
-//     ($length_scale:path, $mass_scale:path, $time_p2:expr, $time_p3:expr, $time_p5:expr, $rescale_behavior:path, $cancellation_behavior:path) => {
-//         // Generate type aliases
-//         type Length = Quantity<1, { $length_scale }, 0, { MassScale::Unused }, 0, 0, 0, 0, { $rescale_behavior }, { $cancellation_behavior }>;
-//         type Mass = Quantity<0, { LengthScale::Unused }, 1, { $mass_scale }, 0, 0, 0, 0, { $rescale_behavior }, { $cancellation_behavior }>;
-//         type Time = Quantity<0, { LengthScale::Unused }, 0, { MassScale::Unused }, 1, $time_p2, $time_p3, $time_p5, { $rescale_behavior }, { $cancellation_behavior }>;
-
-//         // Generate local extension traits
-//         trait ScopedExtensions {
-//             fn meters(self) -> Length;
-//             fn kilograms(self) -> Mass;
-//             fn seconds(self) -> Time;
-//         }
-
-//         impl ScopedExtensions for f64 {
-//             fn meters(self) -> Length {
-//                 // Convert from declared unit to storage unit
-//                 let factor = match $length_scale {
-//                     LengthScale::Millimeter => 1000.0,
-//                     LengthScale::Meter => 1.0,
-//                     LengthScale::Kilometer => 0.001,
-//                     LengthScale::Unused => 1.0, // Shouldn't happen in practice
-//                 };
-//                 Length::new(self * factor)
-//             }
-//             fn kilograms(self) -> Mass {
-//                 let factor = match $mass_scale {
-//                     MassScale::Milligram => 1_000_000.0,
-//                     MassScale::Gram => 1000.0,
-//                     MassScale::Kilogram => 1.0,
-//                     MassScale::Unused => 1.0, // Shouldn't happen in practice
-//                 };
-//                 Mass::new(self * factor)
-//             }
-//             fn seconds(self) -> Time {
-//                 // Convert from seconds to the target time scale
-//                 let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                 Time::new(self * factor)
-//             }
-//         }
-
-//         impl ScopedExtensions for i32 {
-//             fn meters(self) -> Length {
-//                 let factor = match $length_scale {
-//                     LengthScale::Millimeter => 1000.0,
-//                     LengthScale::Meter => 1.0,
-//                     LengthScale::Kilometer => 0.001,
-//                     LengthScale::Unused => 1.0, // Shouldn't happen in practice
-//                 };
-//                 Length::new((self as f64) * factor)
-//             }
-//             fn kilograms(self) -> Mass {
-//                 let factor = match $mass_scale {
-//                     MassScale::Milligram => 1_000_000.0,
-//                     MassScale::Gram => 1000.0,
-//                     MassScale::Kilogram => 1.0,
-//                     MassScale::Unused => 1.0, // Shouldn't happen in practice
-//                 };
-//                 Mass::new((self as f64) * factor)
-//             }
-//             fn seconds(self) -> Time {
-//                 let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                 Time::new((self as f64) * factor)
-//             }
-//         }
-//     };
-// }
-
-// // ============================================================================
-// // Attribute-Style Unit Preferences Macro
-// // ============================================================================
-
-// #[macro_export]
-// macro_rules! unit_preferences {
-//     (
-//         $length_scale:path, $mass_scale:path, $time_p2:expr, $time_p3:expr, $time_p5:expr,
-//         $rescale_behavior:path, $cancelled_scale_behavior:path,
-//         fn $fn_name:ident($($fn_args:tt)*) -> $ret_type:ty {
-//             $($fn_body:tt)*
-//         }
-//     ) => {
-//         fn $fn_name($($fn_args)*) -> $ret_type {
-//             // Generate type aliases for this function scope
-//             type Length = Quantity<1, { $length_scale }, 0, { MassScale::Unused }, 0, 0, 0, 0, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-//             type Mass = Quantity<0, { LengthScale::Unused }, 1, { $mass_scale }, 0, 0, 0, 0, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-//             type Time = Quantity<0, { LengthScale::Unused }, 0, { MassScale::Unused }, 1, $time_p2, $time_p3, $time_p5, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-
-//             // Generate scoped extension traits
-//             trait ScopedExtensions {
-//                 fn meters(self) -> Length;
-//                 fn kilograms(self) -> Mass;
-//                 fn seconds(self) -> Time;
-//             }
-
-//             impl ScopedExtensions for f64 {
-//                 fn meters(self) -> Length {
-//                     let factor = match $length_scale {
-//                         LengthScale::Millimeter => 1000.0,
-//                         LengthScale::Meter => 1.0,
-//                         LengthScale::Kilometer => 0.001,
-//                         LengthScale::Unused => 1.0,
-//                     };
-//                     Length::new(self * factor)
-//                 }
-//                 fn kilograms(self) -> Mass {
-//                     let factor = match $mass_scale {
-//                         MassScale::Milligram => 1_000_000.0,
-//                         MassScale::Gram => 1000.0,
-//                         MassScale::Kilogram => 1.0,
-//                         MassScale::Unused => 1.0,
-//                     };
-//                     Mass::new(self * factor)
-//                 }
-//                 fn seconds(self) -> Time {
-//                     let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                     Time::new(self * factor)
-//                 }
-//             }
-
-//             impl ScopedExtensions for i32 {
-//                 fn meters(self) -> Length {
-//                     let factor = match $length_scale {
-//                         LengthScale::Millimeter => 1000.0,
-//                         LengthScale::Meter => 1.0,
-//                         LengthScale::Kilometer => 0.001,
-//                         LengthScale::Unused => 1.0,
-//                     };
-//                     Length::new((self as f64) * factor)
-//                 }
-//                 fn kilograms(self) -> Mass {
-//                     let factor = match $mass_scale {
-//                         MassScale::Milligram => 1_000_000.0,
-//                         MassScale::Gram => 1000.0,
-//                         MassScale::Kilogram => 1.0,
-//                         MassScale::Unused => 1.0,
-//                     };
-//                     Mass::new((self as f64) * factor)
-//                 }
-//                 fn seconds(self) -> Time {
-//                     let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                     Time::new((self as f64) * factor)
-//                 }
-//             }
-
-//             // Execute the function body
-//             $($fn_body)*
-//         }
-//     };
-// }
-
-// // ============================================================================
-// // Function-Scoped Preferences Macro
-// // ============================================================================
-
-// #[macro_export]
-// macro_rules! with_unit_preferences {
-//     (
-//         $length_scale:path, $mass_scale:path, $time_p2:expr, $time_p3:expr, $time_p5:expr,
-//         $rescale_behavior:path, $cancelled_scale_behavior:path,
-//         $($body:tt)*
-//     ) => {
-//         {
-//             // Generate type aliases for this scope
-//             type Length = whippyunits::Quantity<1, { $length_scale }, 0, { whippyunits::MassScale::Unused }, 0, 0, 0, 0, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-//             type Mass = whippyunits::Quantity<0, { whippyunits::LengthScale::Unused }, 1, { $mass_scale }, 0, 0, 0, 0, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-//             type Time = whippyunits::Quantity<0, { whippyunits::LengthScale::Unused }, 0, { whippyunits::MassScale::Unused }, 1, $time_p2, $time_p3, $time_p5, { $rescale_behavior }, { $cancelled_scale_behavior }>;
-
-//             // Generate scoped extension traits
-//             trait ScopedExtensions {
-//                 fn meters(self) -> Length;
-//                 fn kilograms(self) -> Mass;
-//                 fn seconds(self) -> Time;
-//             }
-
-//             impl ScopedExtensions for f64 {
-//                 fn meters(self) -> Length {
-//                     let factor = match $length_scale {
-//                         LengthScale::Millimeter => 1000.0,
-//                         LengthScale::Meter => 1.0,
-//                         LengthScale::Kilometer => 0.001,
-//                         LengthScale::Unused => 1.0,
-//                     };
-//                     Length::new(self * factor)
-//                 }
-//                 fn kilograms(self) -> Mass {
-//                     let factor = match $mass_scale {
-//                         MassScale::Milligram => 1_000_000.0,
-//                         MassScale::Gram => 1000.0,
-//                         MassScale::Kilogram => 1.0,
-//                         MassScale::Unused => 1.0,
-//                     };
-//                     Mass::new(self * factor)
-//                 }
-//                 fn seconds(self) -> Time {
-//                     let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                     Time::new(self * factor)
-//                 }
-//             }
-
-//             impl ScopedExtensions for i32 {
-//                 fn meters(self) -> Length {
-//                     let factor = match $length_scale {
-//                         LengthScale::Millimeter => 1000.0,
-//                         LengthScale::Meter => 1.0,
-//                         LengthScale::Kilometer => 0.001,
-//                         LengthScale::Unused => 1.0,
-//                     };
-//                     Length::new((self as f64) * factor)
-//                 }
-//                 fn kilograms(self) -> Mass {
-//                     let factor = match $mass_scale {
-//                         MassScale::Milligram => 1_000_000.0,
-//                         MassScale::Gram => 1000.0,
-//                         MassScale::Kilogram => 1.0,
-//                         MassScale::Unused => 1.0,
-//                     };
-//                     Mass::new((self as f64) * factor)
-//                 }
-//                 fn seconds(self) -> Time {
-//                     let factor = whippyunits::pow2($time_p2) * whippyunits::pow3($time_p3) * whippyunits::pow5($time_p5);
-//                     Time::new((self as f64) * factor)
-//                 }
-//             }
-
-//             // Execute the function body
-//             $($body)*
-//         }
-//     };
-// }
+pub mod default_declarators;
+pub mod scoped_preferences;

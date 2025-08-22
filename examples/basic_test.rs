@@ -1,7 +1,13 @@
 use whippyunits::*;
 
 fn main() {
-    println!("Testing basic functionality with bias approach");
+    set_unit_preferences!(
+        MILLIMETER_SCALE,
+        MILLIGRAM_SCALE,
+        MILLISECOND_SCALE_ORDER,
+        { RescaleBehavior::Strict },
+        { CancelledScaleBehavior::Forget }
+    );
 
     // Test basic quantity creation and display
     let distance1 = 5.0.meters();
