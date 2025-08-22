@@ -20,19 +20,16 @@ macro_rules! set_unit_preferences {
             1, $length_scale,
             0, MASS_UNUSED,
             0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-            $rescale_behavior, $cancelled_scale_behavior
         >;
         type Mass = Quantity<
             0, LENGTH_UNUSED, 
             1, $mass_scale,
             0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-            $rescale_behavior, $cancelled_scale_behavior
         >;
         type Time = Quantity<
             0, LENGTH_UNUSED,
             0, MASS_UNUSED, 
             1, { time_scale_2($time_scale_order) }, { time_scale_3($time_scale_order) }, { time_scale_5($time_scale_order) }, $time_scale_order, 
-            $rescale_behavior, $cancelled_scale_behavior
         >;
 
         // Generate local extension traits

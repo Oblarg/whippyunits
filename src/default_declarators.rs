@@ -8,57 +8,48 @@ type Millimeter = Quantity<
     1, MILLIMETER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Meter = Quantity<
     1, METER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Kilometer = Quantity<
     1, KILOMETER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 
 type Milligram = Quantity<
     0, LENGTH_UNUSED,
     1, MILLIGRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Gram = Quantity<
     0, LENGTH_UNUSED,
     1, GRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Kilogram = Quantity<
     0, LENGTH_UNUSED,
     1, KILOGRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 
 type Millisecond = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5, MILLISECOND_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Second = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5, SECOND_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 type Minute = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5, MINUTE_SCALE_ORDER,
-    { RescaleBehavior::Strict }, { CancelledScaleBehavior::Retain },
 >;
 
 pub trait LengthExt {
