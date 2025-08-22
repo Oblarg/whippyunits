@@ -60,7 +60,7 @@ pub enum CancelledScaleBehavior {
 }
 
 // ============================================================================
-// Main Quantity Type
+// Quantity Type
 // ============================================================================
 
 #[derive(Clone, Copy)]
@@ -709,115 +709,244 @@ pub const fn time_scale_5(order: isize) -> isize {
     }
 }
 
-// ============================================================================
-// Dimension constraint checking trait
-// ============================================================================
-
-trait DimensionsMatch<
-    const L1: isize,
-    const L2: isize,
-    const M1: isize,
-    const M2: isize,
-    const T1: isize,
-    const T2: isize,
->
-{
-}
-impl<const L: isize, const M: isize, const T: isize> DimensionsMatch<L, L, M, M, T, T> for () {}
-
-trait RescaleBehaviorsMatch<const B1: RescaleBehavior, const B2: RescaleBehavior> {}
-impl<const B: RescaleBehavior> RescaleBehaviorsMatch<B, B> for () {}
-
-trait CancelledScaleBehaviorsMatch<
-    const B1: CancelledScaleBehavior,
-    const B2: CancelledScaleBehavior,
->
-{
-}
-impl<const B: CancelledScaleBehavior> CancelledScaleBehaviorsMatch<B, B> for () {}
-
 trait IsIsize<const S: isize> {}
 impl<const S: isize> IsIsize<S> for () {}
+
+// ============================================================================
+// Conversions
+// ============================================================================
+
+const fn rescale_value<
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_FROM: isize, const LENGTH_SCALE_TO: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE_FROM: isize, const MASS_SCALE_TO: isize,
+    const TIME_EXPONENT: isize, const TIME_P2_FROM: isize, const TIME_P3_FROM: isize, const TIME_P5_FROM: isize,
+                                const TIME_P2_TO: isize, const TIME_P3_TO: isize, const TIME_P5_TO: isize,
+>(quantity: f64) -> f64 {
+    let factor = aggregate_conversion_factor(
+        LENGTH_EXPONENT, LENGTH_SCALE_FROM, LENGTH_SCALE_TO,
+        MASS_EXPONENT, MASS_SCALE_FROM, MASS_SCALE_TO,
+        TIME_EXPONENT, TIME_P2_FROM, TIME_P3_FROM, TIME_P5_FROM, TIME_P2_TO, TIME_P3_TO, TIME_P5_TO,
+    );
+    quantity * factor
+}
+
+pub fn rescale<
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_FROM: isize, const LENGTH_SCALE_TO: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE_FROM: isize, const MASS_SCALE_TO: isize,
+    const TIME_EXPONENT: isize, const TIME_P2_FROM: isize, const TIME_P3_FROM: isize, const TIME_P5_FROM: isize, const TIME_SCALE_ORDER_FROM: isize,
+                                const TIME_P2_TO: isize, const TIME_P3_TO: isize, const TIME_P5_TO: isize, const TIME_SCALE_ORDER_TO: isize,
+    const RESCALE_BEHAVIOR_FROM: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR_FROM: CancelledScaleBehavior,
+    const RESCALE_BEHAVIOR_TO: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR_TO: CancelledScaleBehavior,
+> (
+    quantity: Quantity<
+        LENGTH_EXPONENT, LENGTH_SCALE_FROM,
+        MASS_EXPONENT, MASS_SCALE_FROM,
+        TIME_EXPONENT, TIME_P2_FROM, TIME_P3_FROM, TIME_P5_FROM, TIME_SCALE_ORDER_FROM,
+        RESCALE_BEHAVIOR_FROM, CANCELLED_SCALE_BEHAVIOR_FROM,
+    >,
+) -> Quantity<
+    LENGTH_EXPONENT, LENGTH_SCALE_TO,
+    MASS_EXPONENT, MASS_SCALE_TO,
+    TIME_EXPONENT, TIME_P2_TO, TIME_P3_TO, TIME_P5_TO, TIME_SCALE_ORDER_TO,
+    RESCALE_BEHAVIOR_TO, CANCELLED_SCALE_BEHAVIOR_TO,
+> {
+    let result_value = rescale_value::<
+        LENGTH_EXPONENT, LENGTH_SCALE_FROM, LENGTH_SCALE_TO,
+        MASS_EXPONENT, MASS_SCALE_FROM, MASS_SCALE_TO,
+        TIME_EXPONENT, TIME_P2_FROM, TIME_P3_FROM, TIME_P5_FROM, TIME_P2_TO, TIME_P3_TO, TIME_P5_TO,
+    >(quantity.value);
+    Quantity::new(result_value)
+}
 
 // ============================================================================
 // Arithmetic Operations
 // ============================================================================
 
+// ============================================================================
+// Quantity-Scalar Arithmetic Operations
+// ============================================================================
+
+
 impl<
-    const LENGTH_EXPONENT1: isize, const LENGTH_SCALE1: isize,
-    const MASS_EXPONENT1: isize, const MASS_SCALE1: isize,
-    const TIME_EXPONENT1: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE: isize,
+    const TIME_EXPONENT: isize, const TIME_P2: isize, const TIME_P3: isize, const TIME_P5: isize, const TIME_SCALE_ORDER: isize,
+    const RESCALE_BEHAVIOR: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR: CancelledScaleBehavior,
+>
+    Mul<Quantity<
+        LENGTH_EXPONENT, LENGTH_SCALE,
+        MASS_EXPONENT, MASS_SCALE,
+        TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
+        RESCALE_BEHAVIOR, CANCELLED_SCALE_BEHAVIOR,
+    >> for f64
+{
+    type Output = Quantity<
+        LENGTH_EXPONENT, LENGTH_SCALE,
+        MASS_EXPONENT, MASS_SCALE,
+        TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
+        RESCALE_BEHAVIOR, CANCELLED_SCALE_BEHAVIOR,
+    >;
+
+    fn mul(self: f64, other: Self::Output) -> Self::Output {
+        let result_value = self * other.value;
+        Self::Output::new(result_value)
+    }
+}
+
+
+// ============================================================================
+// Scalar-Quantity Arithmetic Operations
+// ============================================================================
+
+
+// ============================================================================
+// Quantity-Quantity Arithmetic Operations
+// ============================================================================
+
+impl<
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE1: isize, const LENGTH_SCALE2: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE1: isize, const MASS_SCALE2: isize,
+    const TIME_EXPONENT: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
+                                const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
     const RESCALE_BEHAVIOR1: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR1: CancelledScaleBehavior,
-    const LENGTH_EXPONENT2: isize, const LENGTH_SCALE2: isize,
-    const MASS_EXPONENT2: isize, const MASS_SCALE2: isize,
-    const TIME_EXPONENT2: isize, const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
     const RESCALE_BEHAVIOR2: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR2: CancelledScaleBehavior,
 >
     Add<
         Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
+            LENGTH_EXPONENT, LENGTH_SCALE2,
+            MASS_EXPONENT, MASS_SCALE2,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
             RESCALE_BEHAVIOR2, CANCELLED_SCALE_BEHAVIOR2,
         >,
     >
     for Quantity<
-        LENGTH_EXPONENT1, LENGTH_SCALE1,
-        MASS_EXPONENT1, MASS_SCALE1,
-        TIME_EXPONENT1, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
+        LENGTH_EXPONENT, LENGTH_SCALE1,
+        MASS_EXPONENT, MASS_SCALE1,
+        TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
         RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
     >
 where
-    (): DimensionsMatch<LENGTH_EXPONENT1, LENGTH_EXPONENT2, MASS_EXPONENT1, MASS_EXPONENT2, TIME_EXPONENT1, TIME_EXPONENT2>,
-    (): RescaleBehaviorsMatch<RESCALE_BEHAVIOR1, RESCALE_BEHAVIOR2>,
-    (): CancelledScaleBehaviorsMatch<CANCELLED_SCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR2>,
-    (): IsIsize<{ result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT1) }>,
-    (): IsIsize<{ result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT1) }>,
-    (): IsIsize<{ result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) }>,
-    (): IsIsize<{ result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) }>,
-    (): IsIsize<{ result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) }>,
-    (): IsIsize<{ result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) }>,
+    (): IsIsize<{ result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT) }>,
+    (): IsIsize<{ result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
 {
     type Output = Quantity<
-        LENGTH_EXPONENT1,
-        { result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT1) },
-        MASS_EXPONENT1,
-        { result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT1) },
-        TIME_EXPONENT1,
-        { result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) },
-        { result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) },
-        { result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) },
-        { result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1) },
+        LENGTH_EXPONENT,
+        { result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT) },
+        MASS_EXPONENT,
+        { result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT) },
+        TIME_EXPONENT,
+        { result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
         RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
     >;
 
     fn add(
         self,
         other: Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
+            LENGTH_EXPONENT, LENGTH_SCALE2,
+            MASS_EXPONENT, MASS_SCALE2,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
             RESCALE_BEHAVIOR2, CANCELLED_SCALE_BEHAVIOR2,
         >,
     ) -> Self::Output {
-        let result_length_scale = result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT1);
-        let result_mass_scale = result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT1);
-        let result_time_p2 = result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1);
-        let result_time_p3 = result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1);
-        let result_time_p5 = result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT1);
+        let result_length_scale = result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT);
+        let result_mass_scale = result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT);
+        let result_time_p2 = result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
+        let result_time_p3 = result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
+        let result_time_p5 = result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
        
         let factor1 = aggregate_conversion_factor(
-            LENGTH_EXPONENT1,LENGTH_SCALE1, result_length_scale,
-            MASS_EXPONENT1,MASS_SCALE1, result_mass_scale,
-            TIME_EXPONENT1,TIME_P2_1, TIME_P3_1, TIME_P5_1, result_time_p2, result_time_p3, result_time_p5,
+            LENGTH_EXPONENT, LENGTH_SCALE1, result_length_scale,
+            MASS_EXPONENT, MASS_SCALE1, result_mass_scale,
+            TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, result_time_p2, result_time_p3, result_time_p5,
         );
         let factor2 = aggregate_conversion_factor(
-            LENGTH_EXPONENT2,LENGTH_SCALE2, result_length_scale,
-            MASS_EXPONENT2,MASS_SCALE2, result_mass_scale,
-            TIME_EXPONENT2,TIME_P2_2, TIME_P3_2, TIME_P5_2, result_time_p2, result_time_p3, result_time_p5,
+            LENGTH_EXPONENT, LENGTH_SCALE2, result_length_scale,
+            MASS_EXPONENT, MASS_SCALE2, result_mass_scale,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, result_time_p2, result_time_p3, result_time_p5,
         );
 
         let result_value = self.value * factor1 + other.value * factor2;
+        Quantity::new(result_value)
+    }
+}
+
+impl<
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE1: isize, const LENGTH_SCALE2: isize,
+    const MASS_EXPONENT: isize, const MASS_SCALE1: isize, const MASS_SCALE2: isize,
+    const TIME_EXPONENT: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
+                                const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
+    const RESCALE_BEHAVIOR1: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR1: CancelledScaleBehavior,
+    const RESCALE_BEHAVIOR2: RescaleBehavior, const CANCELLED_SCALE_BEHAVIOR2: CancelledScaleBehavior,
+>
+    Sub<
+        Quantity<
+            LENGTH_EXPONENT, LENGTH_SCALE2,
+            MASS_EXPONENT, MASS_SCALE2,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
+            RESCALE_BEHAVIOR2, CANCELLED_SCALE_BEHAVIOR2,
+        >,
+    >
+    for Quantity<
+        LENGTH_EXPONENT, LENGTH_SCALE1,
+        MASS_EXPONENT, MASS_SCALE1,
+        TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
+        RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
+    >
+where
+    (): IsIsize<{ result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT) }>,
+    (): IsIsize<{ result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+    (): IsIsize<{ result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) }>,
+{
+    type Output = Quantity<
+        LENGTH_EXPONENT,
+        { result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT) },
+        MASS_EXPONENT,
+        { result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT) },
+        TIME_EXPONENT,
+        { result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        { result_time_scale(0, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT) },
+        RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
+    >;
+
+    fn sub(
+        self,
+        other: Quantity<
+            LENGTH_EXPONENT, LENGTH_SCALE2,
+            MASS_EXPONENT, MASS_SCALE2,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
+            RESCALE_BEHAVIOR2, CANCELLED_SCALE_BEHAVIOR2,
+        >,
+    ) -> Self::Output {
+        let result_length_scale = result_length_scale(LENGTH_SCALE1, LENGTH_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, LENGTH_EXPONENT);
+        let result_mass_scale = result_mass_scale(MASS_SCALE1, MASS_SCALE2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, MASS_EXPONENT);
+        let result_time_p2 = result_time_scale(2, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
+        let result_time_p3 = result_time_scale(3, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
+        let result_time_p5 = result_time_scale(5, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2, RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1, TIME_EXPONENT);
+       
+        let factor1 = aggregate_conversion_factor(
+            LENGTH_EXPONENT, LENGTH_SCALE1, result_length_scale,
+            MASS_EXPONENT, MASS_SCALE1, result_mass_scale,
+            TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, result_time_p2, result_time_p3, result_time_p5,
+        );
+        let factor2 = aggregate_conversion_factor(
+            LENGTH_EXPONENT, LENGTH_SCALE2, result_length_scale,
+            MASS_EXPONENT, MASS_SCALE2, result_mass_scale,
+            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, result_time_p2, result_time_p3, result_time_p5,
+        );
+
+        let result_value = self.value * factor1 - other.value * factor2;
         Quantity::new(result_value)
     }
 }
@@ -847,8 +976,6 @@ impl<
         RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
     >
 where
-    (): RescaleBehaviorsMatch<RESCALE_BEHAVIOR1, RESCALE_BEHAVIOR2>,
-    (): CancelledScaleBehaviorsMatch<CANCELLED_SCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR2>,
     (): IsIsize<{ LENGTH_EXPONENT1 + LENGTH_EXPONENT2 }>,
     (): IsIsize<{ MASS_EXPONENT1 + MASS_EXPONENT2 }>,
     (): IsIsize<{ TIME_EXPONENT1 + TIME_EXPONENT2 }>,
@@ -931,8 +1058,6 @@ impl<
         RESCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR1,
     >
 where
-    (): RescaleBehaviorsMatch<RESCALE_BEHAVIOR1, RESCALE_BEHAVIOR2>,
-    (): CancelledScaleBehaviorsMatch<CANCELLED_SCALE_BEHAVIOR1, CANCELLED_SCALE_BEHAVIOR2>,
     (): IsIsize<{ LENGTH_EXPONENT1 - LENGTH_EXPONENT2 }>,
     (): IsIsize<{ MASS_EXPONENT1 - MASS_EXPONENT2 }>,
     (): IsIsize<{ TIME_EXPONENT1 - TIME_EXPONENT2 }>,

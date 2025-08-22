@@ -29,7 +29,7 @@ macro_rules! set_unit_preferences {
             $rescale_behavior, $cancelled_scale_behavior
         >;
         type Time = Quantity<
-            0, LENGTH_UNUSED, 
+            0, LENGTH_UNUSED,
             0, MASS_UNUSED, 
             1, { time_scale_2($time_scale_order) }, { time_scale_3($time_scale_order) }, { time_scale_5($time_scale_order) }, $time_scale_order, 
             $rescale_behavior, $cancelled_scale_behavior
