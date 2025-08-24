@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use regex::Regex;
 
 /// Macro to format the bracket notation consistently across different contexts
@@ -29,6 +29,20 @@ mod integration_test;
 
 #[cfg(test)]
 mod minimal_hover_test;
+
+#[cfg(test)]
+mod inlay_hint_test;
+
+#[cfg(test)]
+mod inlay_hint_refresh_test;
+
+#[cfg(test)]
+mod refresh_resolve_test;
+
+#[cfg(test)]
+mod semantic_tokens_format_test;
+
+pub mod inlay_hint_processor;
 
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
@@ -85,20 +99,36 @@ pub struct HoverContentItem {
 pub struct LspProxy {
     type_converter: WhippyUnitsTypeConverter,
     display_config: DisplayConfig,
+    inlay_hint_processor: inlay_hint_processor::InlayHintProcessor,
 }
 
 impl LspProxy {
     pub fn new() -> Self {
+        let display_config = DisplayConfig::default();
+        // Create a non-verbose config for inlay hints
+        let inlay_hint_config = DisplayConfig {
+            verbose: false,
+            unicode: true,
+            include_raw: false,
+        };
         Self {
             type_converter: WhippyUnitsTypeConverter::new(),
-            display_config: DisplayConfig::default(),
+            display_config: display_config.clone(),
+            inlay_hint_processor: inlay_hint_processor::InlayHintProcessor::with_config(inlay_hint_config),
         }
     }
 
     pub fn with_config(display_config: DisplayConfig) -> Self {
+        // Create a non-verbose config for inlay hints
+        let inlay_hint_config = DisplayConfig {
+            verbose: false,
+            unicode: display_config.unicode,
+            include_raw: false,
+        };
         Self {
             type_converter: WhippyUnitsTypeConverter::new(),
-            display_config,
+            display_config: display_config.clone(),
+            inlay_hint_processor: inlay_hint_processor::InlayHintProcessor::with_config(inlay_hint_config),
         }
     }
 
@@ -111,11 +141,35 @@ impl LspProxy {
         // Parse the JSON payload
         let mut lsp_msg: LspMessage = serde_json::from_str(&json_payload)?;
         
+
+        
         // Check if this is a hover response
         if let Some(result) = &lsp_msg.result {
             if let Some(hover_content) = self.extract_hover_content(result) {
                 let improved_content = self.improve_hover_content(hover_content);
                 lsp_msg.result = Some(serde_json::to_value(improved_content)?);
+            }
+        }
+        
+        // Check if this is a refresh notification
+        if self.is_refresh_notification(&lsp_msg) {
+            eprintln!("*** INTERCEPTING REFRESH NOTIFICATION ***");
+            // Pass through refresh notifications unchanged - they're notifications, not requests
+            // The client should respond to this by re-requesting inlay hints
+        }
+        
+        // Check if this is a resolve request
+        if self.is_resolve_request(&lsp_msg) {
+            eprintln!("*** INTERCEPTING RESOLVE REQUEST ***");
+            // Pass through resolve requests unchanged - we'll intercept the response
+        }
+        
+        // Check if this is an inlay hint response (including resolve responses)
+        if let Some(result) = &lsp_msg.result {
+            if self.is_inlay_hint_response(&lsp_msg) {
+                eprintln!("*** INTERCEPTING INLAY HINT RESPONSE ***");
+                let improved_result = self.process_inlay_hint_result(result)?;
+                lsp_msg.result = Some(improved_result);
             }
         }
         
@@ -128,6 +182,24 @@ impl LspProxy {
     /// Process an outgoing LSP message (from editor to rust-analyzer)
     /// This expects a complete LSP message with Content-Length header
     pub fn process_outgoing(&self, message: &str) -> Result<String, anyhow::Error> {
+        // Parse the LSP message format
+        let json_payload = self.extract_json_payload(message)?;
+        
+        // Parse the JSON payload
+        let lsp_msg: LspMessage = serde_json::from_str(&json_payload)?;
+        
+        // Check if this is a refresh notification (from client to server)
+        if self.is_refresh_notification(&lsp_msg) {
+            eprintln!("*** INTERCEPTING OUTGOING REFRESH NOTIFICATION ***");
+            // Pass through refresh notifications unchanged
+        }
+        
+        // Check if this is a resolve request (from client to server)
+        if self.is_resolve_request(&lsp_msg) {
+            eprintln!("*** INTERCEPTING OUTGOING RESOLVE REQUEST ***");
+            // Pass through resolve requests unchanged
+        }
+        
         // For now, just pass through outgoing messages unchanged
         // We could add logging or other processing here
         Ok(message.to_string())
@@ -174,6 +246,113 @@ impl LspProxy {
             }
         }
         hover
+    }
+
+    /// Check if this is an inlay hint related message
+    fn is_inlay_hint_message(&self, lsp_msg: &LspMessage) -> bool {
+        // Check if the method is any inlay hint related method
+        if let Some(method) = &lsp_msg.method {
+            if method == "textDocument/inlayHint" ||
+               method == "inlayHint/resolve" ||
+               method == "workspace/inlayHint/refresh" {
+                return true;
+            }
+        }
+        
+        // Check if the result contains inlay hint data structure (for responses)
+        if let Some(result) = &lsp_msg.result {
+            // Check if result is an array (typical for inlay hints)
+            if result.is_array() {
+                // Check if any item in the array has inlay hint structure
+                if let Some(array) = result.as_array() {
+                    for item in array {
+                        if let Some(item_obj) = item.as_object() {
+                            if item_obj.contains_key("position") && item_obj.contains_key("label") {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+
+    /// Check if this is an inlay hint response (has result with inlay hint data)
+    fn is_inlay_hint_response(&self, lsp_msg: &LspMessage) -> bool {
+        // Check if the result contains inlay hint data structure
+        if let Some(result) = &lsp_msg.result {
+            // Check if result is an array (typical for inlay hint requests)
+            if result.is_array() {
+                // Check if any item in the array has inlay hint structure
+                if let Some(array) = result.as_array() {
+                    for item in array {
+                        if let Some(item_obj) = item.as_object() {
+                            if item_obj.contains_key("position") && item_obj.contains_key("label") {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check if result is an object (typical for inlay hint resolve responses)
+            if result.is_object() {
+                if let Some(obj) = result.as_object() {
+                    if obj.contains_key("position") && obj.contains_key("label") {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+
+    /// Check if this is a refresh notification
+    fn is_refresh_notification(&self, lsp_msg: &LspMessage) -> bool {
+        if let Some(method) = &lsp_msg.method {
+            method == "workspace/inlayHint/refresh"
+        } else {
+            false
+        }
+    }
+
+    /// Check if this is a resolve request
+    fn is_resolve_request(&self, lsp_msg: &LspMessage) -> bool {
+        if let Some(method) = &lsp_msg.method {
+            method == "inlayHint/resolve"
+        } else {
+            false
+        }
+    }
+
+    /// Process inlay hint result to pretty-print whippyunits types
+    fn process_inlay_hint_result(&self, result: &Value) -> Result<Value, anyhow::Error> {
+        // Create a full message structure for the inlay hint processor
+        let full_message = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result
+        });
+        
+        // Convert to string for processing
+        let message_str = serde_json::to_string(&full_message)?;
+        
+        // Process the inlay hint response using our instance processor
+        let processed_str = self.inlay_hint_processor.process_inlay_hint_response(&message_str)?;
+        
+        // Parse back to Value
+        let processed_value: Value = serde_json::from_str(&processed_str)?;
+        
+        // Extract just the result part (remove the jsonrpc wrapper)
+        if let Some(processed_result) = processed_value.get("result") {
+            Ok(processed_result.clone())
+        } else {
+            // If no result field, return the original
+            Ok(result.clone())
+        }
     }
 }
 
@@ -782,14 +961,14 @@ struct QuantityParams {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_type_conversion() {
         let converter = WhippyUnitsTypeConverter::new();
-        let result = converter.convert_quantity_type("Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>");
-        assert!(result.is_some());
-        let converted = result.unwrap();
-        assert!(converted.contains("meter"));
+        let converted = converter.convert_types_in_text("Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>");
+        println!("Converted output: '{}'", converted);
+        assert!(converted.contains("m"));
     }
 
     #[test]
@@ -797,7 +976,187 @@ mod tests {
         let converter = WhippyUnitsTypeConverter::new();
         let text = "let x: Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0> = 5.0.meters();";
         let converted = converter.convert_types_in_text(text);
-        assert!(converted.contains("Quantity<"));
-        assert!(converted.contains("meter"));
+        println!("Converted text: '{}'", converted);
+        // The Quantity type should be converted to "m", so we shouldn't expect "Quantity<" anymore
+        assert!(!converted.contains("Quantity<"));
+        assert!(converted.contains("m"));
+    }
+
+    #[test]
+    fn test_inlay_hint_integration() {
+        let proxy = LspProxy::new();
+        
+        // Create a mock inlay hint response
+        let inlay_hint_response = json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": [
+                {
+                    "position": {"line": 12, "character": 17},
+                    "label": [
+                        {"value": ": "},
+                        {
+                            "value": "Quantity",
+                            "location": {
+                                "uri": "file://test.rs",
+                                "range": {
+                                    "start": {"line": 1, "character": 0},
+                                    "end": {"line": 1, "character": 8}
+                                }
+                            }
+                        },
+                        {"value": "<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>"}
+                    ],
+                    "kind": 1
+                }
+            ]
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&inlay_hint_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let result_array = processed_value["result"].as_array().unwrap();
+        let hint = &result_array[0];
+        let label_array = hint["label"].as_array().unwrap();
+        
+        // Should have 2 parts now (removed generic params)
+        assert_eq!(label_array.len(), 2);
+        
+        // First part should be ": "
+        assert_eq!(label_array[0]["value"], ": ");
+        
+        // Second part should be pretty-printed and have location preserved
+        let second_part = &label_array[1];
+        let pretty_value = second_part["value"].as_str().unwrap();
+        
+        // Should contain the pretty-printed type
+        assert!(pretty_value.contains("m"));
+        
+        // Should preserve the location for click-to-source
+        assert!(second_part.get("location").is_some());
+        
+        // Verify the conversion worked
+        assert!(pretty_value.contains("m"));
+    }
+
+    #[test]
+    fn test_hover_tooltip_processing() {
+        let proxy = LspProxy::new();
+        
+        // Create a mock hover response
+        let hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+                "contents": [
+                    {
+                        "language": "rust",
+                        "value": "let x: Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0> = 5.0.meters();"
+                    }
+                ]
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"][0];
+        let value = contents["value"].as_str().unwrap();
+        
+        // Should contain the pretty-printed type
+        assert!(value.contains("m"));
+        // Should not contain the verbose Quantity type
+        assert!(!value.contains("Quantity<"));
+        
+        println!("Hover tooltip converted to: '{}'", value);
+    }
+
+    #[test]
+    fn test_inlay_hint_unresolved_types() {
+        let proxy = LspProxy::new();
+        
+        // Create a mock inlay hint response with unresolved types
+        let inlay_hint_response = json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": [
+                {
+                    "position": {"line": 12, "character": 17},
+                    "label": [
+                        {"value": ": "},
+                        {
+                            "value": "Quantity",
+                            "location": {
+                                "uri": "file://test.rs",
+                                "range": {
+                                    "start": {"line": 1, "character": 0},
+                                    "end": {"line": 1, "character": 8}
+                                }
+                            }
+                        },
+                        {"value": "<1, 9223372036854775807, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
+                    ],
+                    "kind": 1
+                }
+            ]
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&inlay_hint_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let result_array = processed_value["result"].as_array().unwrap();
+        let hint = &result_array[0];
+        let label_array = hint["label"].as_array().unwrap();
+        
+        // Should have 2 parts now (removed generic params)
+        assert_eq!(label_array.len(), 2);
+        
+        // First part should be ": "
+        assert_eq!(label_array[0]["value"], ": ");
+        
+        // Second part should be pretty-printed and have location preserved
+        let second_part = &label_array[1];
+        let pretty_value = second_part["value"].as_str().unwrap();
+        
+        // Should contain the unresolved type indicator
+        assert!(pretty_value.contains("Unresolved"));
+        
+        // Should preserve the location for click-to-source
+        assert!(second_part.get("location").is_some());
+        
+        println!("Unresolved type converted to: '{}'", pretty_value);
     }
 }

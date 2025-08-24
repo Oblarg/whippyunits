@@ -16,7 +16,7 @@ fn main() {
     println!("========================================================\n");
     
     // Configure for verbose Unicode mode (State 3)
-    let config = DisplayConfig { verbose: true, unicode: true };
+    let config = DisplayConfig { verbose: true, unicode: true, include_raw: false };
     println!("Configuration: verbose=true, unicode=true\n");
     
     for (i, test_input) in test_inputs.iter().enumerate() {

@@ -438,11 +438,8 @@ async fn test_real_hover_with_basic_test() -> Result<()> {
                                 // Debug: Let's see what our type converter is doing
                                 let converter = WhippyUnitsTypeConverter::new();
                                 let test_type = "Quantity<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>";
-                                if let Some(converted) = converter.convert_quantity_type(test_type) {
-                                    println!("DEBUG: Type conversion test: {} -> {}", test_type, converted);
-                                } else {
-                                    println!("DEBUG: Type conversion failed for: {}", test_type);
-                                }
+                                let converted = converter.convert_types_in_text(test_type);
+                                println!("DEBUG: Type conversion test: {} -> {}", test_type, converted);
                                 
                                 // Debug: Let's also test the text conversion directly
                                 let hover_text = "\n```rust\nlet distance2: Quantity<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>\n```\n\n---\n\nsize = 8, align = 0x8, no Drop";
