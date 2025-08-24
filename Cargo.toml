@@ -8,6 +8,7 @@ quote = "1.0"
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
+whippyunits-unit-macro = { path = "./unit-macro" }
 
 [lib]
 name = "whippyunits"

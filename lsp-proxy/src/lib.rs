@@ -367,9 +367,13 @@ impl WhippyUnitsTypeConverter {
 
     /// Convert types in text with display configuration
     pub fn convert_types_in_text_with_config(&self, text: &str, config: &DisplayConfig) -> String {
-        // Check for truly unresolved types with _ placeholders
-        if text.contains('_') {
-            return self.generate_ambiguous_matches(text, config);
+        // Check for truly unresolved types with _ placeholders in Quantity types only
+        let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
+        if let Some(caps) = quantity_regex.captures(text) {
+            let quantity_part = &caps[0];
+            if quantity_part.contains('_') {
+                return self.generate_ambiguous_matches(text, config);
+            }
         }
         
         // Check for partially resolved types (mix of specific values and sentinel values)
@@ -828,104 +832,164 @@ impl WhippyUnitsTypeConverter {
                 let mut units = Vec::new();
                 
                 // Length dimension (index 0: exp, 1: scale)
-                // Prune if exponent is 0 OR scale is MAX (dimension not involved)
                 let length_exp = params[0].parse::<isize>().ok();
                 let length_scale = params[1].parse::<isize>().ok();
                 let length_scale_is_max = length_scale == Some(isize::MAX);
                 
-                if length_exp != Some(0) && !length_scale_is_max {
+                if length_exp != Some(0) {
                     if let Some(exp) = length_exp {
                         if let Some(scale) = length_scale {
+                            if !length_scale_is_max {
+                                // Resolved scale - show unit
+                                let unit = match scale {
+                                    -1 => "mm",
+                                    0 => "m",
+                                    1 => "km",
+                                    _ => "m", // fallback
+                                };
+                                if exp == 1 {
+                                    units.push(unit.to_string());
+                                } else {
+                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
+                                }
+                            } else {
+                                // Unresolved scale - show dimension name
+                                if exp == 1 {
+                                    units.push("Length".to_string());
+                                } else {
+                                    units.push(format!("Length{}", self.to_unicode_superscript(exp)));
+                                }
+                            }
+                        } else {
+                            // Unresolved scale - show dimension name
+                            if exp == 1 {
+                                units.push("Length".to_string());
+                            } else {
+                                units.push(format!("Length{}", self.to_unicode_superscript(exp)));
+                            }
+                        }
+                    } else if let Some(scale) = length_scale {
+                        if !length_scale_is_max {
+                            // Resolved scale but unresolved exponent
                             let unit = match scale {
                                 -1 => "mm",
                                 0 => "m",
                                 1 => "km",
                                 _ => "m", // fallback
                             };
-                            if exp == 1 {
-                                units.push(unit.to_string());
-                            } else {
-                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                            }
+                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
                         } else {
-                            units.push(format!("m{}", self.to_unicode_superscript(exp)));
+                            // Both scale and exponent unresolved
+                            units.push(format!("Length{}", self.superscript_question_mark()));
                         }
-                    } else if let Some(scale) = length_scale {
-                        let unit = match scale {
-                            -1 => "mm",
-                            0 => "m",
-                            1 => "km",
-                            _ => "m", // fallback
-                        };
-                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
                     }
                 }
                 
                 // Mass dimension (index 2: exp, 3: scale)
-                // Prune if exponent is 0 OR scale is MAX (dimension not involved)
                 let mass_exp = params[2].parse::<isize>().ok();
                 let mass_scale = params[3].parse::<isize>().ok();
                 let mass_scale_is_max = mass_scale == Some(isize::MAX);
                 
-                if mass_exp != Some(0) && !mass_scale_is_max {
+                if mass_exp != Some(0) {
                     if let Some(exp) = mass_exp {
                         if let Some(scale) = mass_scale {
+                            if !mass_scale_is_max {
+                                // Resolved scale - show unit
+                                let unit = match scale {
+                                    -1 => "mg",
+                                    0 => "g",
+                                    1 => "kg",
+                                    _ => "g", // fallback
+                                };
+                                if exp == 1 {
+                                    units.push(unit.to_string());
+                                } else {
+                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
+                                }
+                            } else {
+                                // Unresolved scale - show dimension name
+                                if exp == 1 {
+                                    units.push("Mass".to_string());
+                                } else {
+                                    units.push(format!("Mass{}", self.to_unicode_superscript(exp)));
+                                }
+                            }
+                        } else {
+                            // Unresolved scale - show dimension name
+                            if exp == 1 {
+                                units.push("Mass".to_string());
+                            } else {
+                                units.push(format!("Mass{}", self.to_unicode_superscript(exp)));
+                            }
+                        }
+                    } else if let Some(scale) = mass_scale {
+                        if !mass_scale_is_max {
+                            // Resolved scale but unresolved exponent
                             let unit = match scale {
                                 -1 => "mg",
                                 0 => "g",
                                 1 => "kg",
                                 _ => "g", // fallback
                             };
-                            if exp == 1 {
-                                units.push(unit.to_string());
-                            } else {
-                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                            }
+                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
                         } else {
-                            units.push(format!("g{}", self.to_unicode_superscript(exp)));
+                            // Both scale and exponent unresolved
+                            units.push(format!("Mass{}", self.superscript_question_mark()));
                         }
-                    } else if let Some(scale) = mass_scale {
-                        let unit = match scale {
-                            -1 => "mg",
-                            0 => "g",
-                            1 => "kg",
-                            _ => "g", // fallback
-                        };
-                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
                     }
                 }
                 
                 // Time dimension (index 4: exp, 8: scale_order)
-                // Prune if exponent is 0 OR scale_order is MAX (dimension not involved)
                 let time_exp = params[4].parse::<isize>().ok();
                 let time_scale_order = params[8].parse::<isize>().ok();
                 let time_scale_is_max = time_scale_order == Some(isize::MAX);
                 
-                if time_exp != Some(0) && !time_scale_is_max {
+                if time_exp != Some(0) {
                     if let Some(exp) = time_exp {
                         if let Some(scale_order) = time_scale_order {
+                            if !time_scale_is_max {
+                                // Resolved scale - show unit
+                                let unit = match scale_order {
+                                    -1 => "ms",
+                                    0 => "s",
+                                    1 => "min",
+                                    _ => "s", // fallback
+                                };
+                                if exp == 1 {
+                                    units.push(unit.to_string());
+                                } else {
+                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
+                                }
+                            } else {
+                                // Unresolved scale - show dimension name
+                                if exp == 1 {
+                                    units.push("Time".to_string());
+                                } else {
+                                    units.push(format!("Time{}", self.to_unicode_superscript(exp)));
+                                }
+                            }
+                        } else {
+                            // Unresolved scale - show dimension name
+                            if exp == 1 {
+                                units.push("Time".to_string());
+                            } else {
+                                units.push(format!("Time{}", self.to_unicode_superscript(exp)));
+                            }
+                        }
+                    } else if let Some(scale_order) = time_scale_order {
+                        if !time_scale_is_max {
+                            // Resolved scale but unresolved exponent
                             let unit = match scale_order {
                                 -1 => "ms",
                                 0 => "s",
                                 1 => "min",
                                 _ => "s", // fallback
                             };
-                            if exp == 1 {
-                                units.push(unit.to_string());
-                            } else {
-                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                            }
+                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
                         } else {
-                            units.push(format!("s{}", self.to_unicode_superscript(exp)));
+                            // Both scale and exponent unresolved
+                            units.push(format!("Time{}", self.superscript_question_mark()));
                         }
-                    } else if let Some(scale_order) = time_scale_order {
-                        let unit = match scale_order {
-                            -1 => "ms",
-                            0 => "s",
-                            1 => "min",
-                            _ => "s", // fallback
-                        };
-                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
                     }
                 }
                 

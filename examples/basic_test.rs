@@ -2,6 +2,11 @@ use whippyunits::*;
 use whippyunits::arithmetic::*;
 use core::ops::{Add, Div, Mul, Sub};
 
+// Include the generated declarative macro
+mod generated_unit_macro {
+    include!("../src/generated_unit_macro.rs");
+}
+
 fn main() {
     set_unit_preferences!(
         MILLIMETER_SCALE,
@@ -21,14 +26,14 @@ fn main() {
     // Try to add them
     println!("Attempting to add distances...");
     let result = distance1 + distance2;
-    
+
     println!("Result: {}", result);
     println!("Expected: 8.0 m");
     println!("Result debug: {:?}", result);
 
     // Try to multiply them
     println!("Attempting to multiply distances...");
-    let result2 = distance1 * distance2;
+    let result2: unit!(mm^2) = distance1 * distance2;
     println!("Result2: {}", result2);
     println!("Expected: 15.0 m^2");
     println!("Result2 debug: {:?}", result2);

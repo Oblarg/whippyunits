@@ -6,6 +6,7 @@ use crate::{
     min_length_scale,
     min_mass_scale,
     min_time_scale,
+    left_hand_wins_scale,
     IsIsize,
 };
 

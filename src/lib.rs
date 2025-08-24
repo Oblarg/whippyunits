@@ -283,14 +283,16 @@ impl<
         // Write debug output with value up front
         write!(f, "({}) ", self.value)?;
         write!(f, "Quantity<{}>", unit_str)?;
+        let length_scale_str = if LENGTH_SCALE == isize::MAX {
+            "MAX".to_string()
+        } else {
+            LENGTH_SCALE.to_string()
+        };
         write!(
             f,
             " Length: Exponent {} [Scale Index {}; {}], ",
             LENGTH_EXPONENT,
-            match LENGTH_SCALE {
-                isize::MAX => "MAX",
-                _ => &LENGTH_SCALE.to_string(),
-            },
+            length_scale_str,
             match LENGTH_SCALE {
                 MILLIMETER_SCALE => "millimeter",
                 METER_SCALE => "meter",
@@ -299,14 +301,16 @@ impl<
                 _ => "unknown",
             }
         )?;
+        let mass_scale_str = if MASS_SCALE == isize::MAX {
+            "MAX".to_string()
+        } else {
+            MASS_SCALE.to_string()
+        };
         write!(
             f,
             "Mass: Exponent {} [Scale Index {}; {}], ",
             MASS_EXPONENT,
-            match MASS_SCALE {
-                isize::MAX => "MAX",
-                _ => &MASS_SCALE.to_string(),
-            },
+            mass_scale_str,
             match MASS_SCALE {
                 MILLIGRAM_SCALE => "milligram",
                 GRAM_SCALE => "gram",
@@ -315,22 +319,28 @@ impl<
                 _ => "unknown",
             }
         )?;
+        let time_p2_str = if TIME_P2 == isize::MAX {
+            "MAX".to_string()
+        } else {
+            TIME_P2.to_string()
+        };
+        let time_p3_str = if TIME_P3 == isize::MAX {
+            "MAX".to_string()
+        } else {
+            TIME_P3.to_string()
+        };
+        let time_p5_str = if TIME_P5 == isize::MAX {
+            "MAX".to_string()
+        } else {
+            TIME_P5.to_string()
+        };
         write!(
             f,
             "Time: Exponent {} [Prime Factors p2:{}, p3:{}, p5:{}; {}], ",
             TIME_EXPONENT,
-            match TIME_P2 {
-                isize::MAX => "MAX",
-                _ => &TIME_P2.to_string(),
-            },
-            match TIME_P3 {
-                isize::MAX => "MAX",
-                _ => &TIME_P3.to_string(),
-            },
-            match TIME_P5 {
-                isize::MAX => "MAX",
-                _ => &TIME_P5.to_string(),
-            },
+            time_p2_str,
+            time_p3_str,
+            time_p5_str,
             match TIME_SCALE_ORDER {
                 MILLISECOND_SCALE_ORDER => "millisecond",
                 SECOND_SCALE_ORDER => "second",
@@ -461,7 +471,14 @@ pub const fn time_conversion_factor(
 // Rescale Behavior Functions
 // ============================================================================
 
-const fn min_length_scale(a: isize, b: isize) -> isize {
+pub const fn left_hand_wins_scale(a: isize, b: isize) -> isize {
+    match (a, b) {
+        (LENGTH_UNUSED, _) => b,
+        _ => a,
+    }
+}
+
+pub const fn min_length_scale(a: isize, b: isize) -> isize {
     match (a, b) {
         // unused scales have no opinion on scale selection
         (LENGTH_UNUSED, _) => b,
@@ -476,7 +493,7 @@ const fn min_length_scale(a: isize, b: isize) -> isize {
     }
 }
 
-const fn max_length_scale(a: isize, b: isize) -> isize {
+pub const fn max_length_scale(a: isize, b: isize) -> isize {
     match (a, b) {
         // unused scales have no opinion on scale selection
         (LENGTH_UNUSED, _) => b,
@@ -491,7 +508,7 @@ const fn max_length_scale(a: isize, b: isize) -> isize {
     }
 }
 
-const fn min_mass_scale(a: isize, b: isize) -> isize {
+pub const fn min_mass_scale(a: isize, b: isize) -> isize {
     match (a, b) {
         // unused scales have no opinion on scale selection
         (MASS_UNUSED, _) => b,
@@ -506,7 +523,7 @@ const fn min_mass_scale(a: isize, b: isize) -> isize {
     }
 }
 
-const fn max_mass_scale(a: isize, b: isize) -> isize {
+pub const fn max_mass_scale(a: isize, b: isize) -> isize {
     match (a, b) {
         // unused scales have no opinion on scale selection
         (MASS_UNUSED, _) => b,
@@ -521,7 +538,7 @@ const fn max_mass_scale(a: isize, b: isize) -> isize {
     }
 }
 
-const fn min_time_scale(
+pub const fn min_time_scale(
     which_prime: isize,
     p2_1: isize, p3_1: isize, p5_1: isize, order_1: isize,
     p2_2: isize, p3_2: isize, p5_2: isize, order_2: isize,
@@ -564,7 +581,7 @@ const fn min_time_scale(
     }
 }
 
-const fn max_time_scale(
+pub const fn max_time_scale(
     which_prime: isize,
     p2_1: isize, p3_1: isize, p5_1: isize, order_1: isize,
     p2_2: isize, p3_2: isize, p5_2: isize, order_2: isize,
@@ -679,4 +696,7 @@ pub mod scoped_preferences;
 #[macro_use]
 pub mod arithmetic;
 pub mod api;
+
+// Re-export the proc macro
+pub use whippyunits_unit_macro::proc_unit;
 

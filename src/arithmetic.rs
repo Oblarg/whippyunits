@@ -441,11 +441,21 @@ macro_rules! mul_div_interface {
             (): IsIsize<{ LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }>,
             (): IsIsize<{ MASS_EXPONENT1 $log_op MASS_EXPONENT2 }>,
             (): IsIsize<{ TIME_EXPONENT1 $log_op TIME_EXPONENT2 }>,
+            (): IsIsize<{ left_hand_wins_scale(LENGTH_SCALE1, LENGTH_SCALE2) }>,
+            (): IsIsize<{ left_hand_wins_scale(MASS_SCALE1, MASS_SCALE2) }>,
+            (): IsIsize<{ left_hand_wins_scale(TIME_P2_1, TIME_P2_2) }>,
+            (): IsIsize<{ left_hand_wins_scale(TIME_P3_1, TIME_P3_2) }>,
+            (): IsIsize<{ left_hand_wins_scale(TIME_P5_1, TIME_P5_2) }>,
+            (): IsIsize<{ left_hand_wins_scale(TIME_SCALE_ORDER1, TIME_SCALE_ORDER2) }>,
         {
             type Output = Quantity<
-                { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, LENGTH_SCALE1,
-                { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, MASS_SCALE1,
-                { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
+                { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, { left_hand_wins_scale(LENGTH_SCALE1, LENGTH_SCALE2) },
+                { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { left_hand_wins_scale(MASS_SCALE1, MASS_SCALE2) },
+                { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, 
+                { left_hand_wins_scale(TIME_P2_1, TIME_P2_2) },
+                { left_hand_wins_scale(TIME_P3_1, TIME_P3_2) },
+                { left_hand_wins_scale(TIME_P5_1, TIME_P5_2) },
+                { left_hand_wins_scale(TIME_SCALE_ORDER1, TIME_SCALE_ORDER2) },
             >;
 
             fn $fn(
@@ -457,9 +467,12 @@ macro_rules! mul_div_interface {
                 >,
             ) -> Self::Output {
                 Quantity::<
-                    { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, LENGTH_SCALE1,
-                    { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, MASS_SCALE1,
-                    { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
+                    { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, { left_hand_wins_scale(LENGTH_SCALE1, LENGTH_SCALE2) },
+                    { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { left_hand_wins_scale(MASS_SCALE1, MASS_SCALE2) },
+                    { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, { left_hand_wins_scale(TIME_P2_1, TIME_P2_2) },
+                    { left_hand_wins_scale(TIME_P3_1, TIME_P3_2) },
+                    { left_hand_wins_scale(TIME_P5_1, TIME_P5_2) },
+                    { left_hand_wins_scale(TIME_SCALE_ORDER1, TIME_SCALE_ORDER2) },
                 >::new(self.value $op (other.value * aggregate_conversion_factor(
                     LENGTH_EXPONENT2, LENGTH_SCALE2, LENGTH_SCALE1,
                     MASS_EXPONENT2, MASS_SCALE2, MASS_SCALE1,
