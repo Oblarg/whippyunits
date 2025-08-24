@@ -17,7 +17,7 @@ use core::ops::{Add, Div, Mul, Sub};
 // Constants
 // ============================================================================
 
-pub const MILLIMETER_SCALE: isize = 1;
+pub const MILLIMETER_SCALE: isize = -1;
 pub const METER_SCALE: isize = 0;
 pub const KILOMETER_SCALE: isize = 1;
 pub const LENGTH_UNUSED: isize = isize::MAX;
@@ -49,7 +49,6 @@ pub const TIME_UNUSED: isize = isize::MAX;
 pub enum RescaleBehavior {
     SmallerWins,
     LeftHandWins,
-    LargerWins,
     Strict,
 }
 
@@ -62,7 +61,6 @@ pub enum CancelledScaleBehavior {
 // ============================================================================
 // Quantity Type
 // ============================================================================
-
 #[derive(Clone, Copy)]
 pub struct Quantity<
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
@@ -350,20 +348,20 @@ impl<
 // ============================================================================
 
 const fn aggregate_conversion_factor(
-    length_exponent: isize, length_scale: isize, to_length_scale: isize,
-    mass_exponent: isize, mass_scale: isize, to_mass_scale: isize,
-    time_exponent: isize, time_p2: isize, time_p3: isize, time_p5: isize, to_time_p2: isize, to_time_p3: isize, to_time_p5: isize,
+    length_exponent: isize, from_length_scale: isize, to_length_scale: isize,
+    mass_exponent: isize, from_mass_scale: isize, to_mass_scale: isize,
+    time_exponent: isize, from_time_p2: isize, from_time_p3: isize, from_time_p5: isize, to_time_p2: isize, to_time_p3: isize, to_time_p5: isize,
 ) -> f64 {
     length_conversion_factor(
-        length_scale * length_exponent,
+        from_length_scale * length_exponent,
         to_length_scale * length_exponent,
         length_exponent,
     ) * mass_conversion_factor(
-        mass_scale * mass_exponent,
+        from_mass_scale * mass_exponent,
         to_mass_scale * mass_exponent,
         mass_exponent,
     ) * time_conversion_factor(
-        time_p2 * time_exponent, time_p3 * time_exponent, time_p5 * time_exponent,
+        from_time_p2 * time_exponent, from_time_p3 * time_exponent, from_time_p5 * time_exponent,
         to_time_p2 * time_exponent, to_time_p3 * time_exponent, to_time_p5 * time_exponent,
         time_exponent,
     )
@@ -669,252 +667,16 @@ pub fn rescale<
     MASS_EXPONENT, MASS_SCALE_TO,
     TIME_EXPONENT, TIME_P2_TO, TIME_P3_TO, TIME_P5_TO, TIME_SCALE_ORDER_TO,
 > {
-    let result_value = rescale_value::<
+    Quantity::new(rescale_value::<
         LENGTH_EXPONENT, LENGTH_SCALE_FROM, LENGTH_SCALE_TO,
         MASS_EXPONENT, MASS_SCALE_FROM, MASS_SCALE_TO,
         TIME_EXPONENT, TIME_P2_FROM, TIME_P3_FROM, TIME_P5_FROM, TIME_P2_TO, TIME_P3_TO, TIME_P5_TO,
-    >(quantity.value);
-    Quantity::new(result_value)
+    >(quantity.value))
 }
-
-// ============================================================================
-// Arithmetic Operations
-// ============================================================================
-
-// ============================================================================
-// Quantity-Scalar Arithmetic Operations
-// ============================================================================
-
-
-impl<
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
-    const MASS_EXPONENT: isize, const MASS_SCALE: isize,
-    const TIME_EXPONENT: isize, const TIME_P2: isize, const TIME_P3: isize, const TIME_P5: isize, const TIME_SCALE_ORDER: isize,
->
-    Mul<Quantity<
-        LENGTH_EXPONENT, LENGTH_SCALE,
-        MASS_EXPONENT, MASS_SCALE,
-        TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
-    >> for f64
-{
-    type Output = Quantity<
-        LENGTH_EXPONENT, LENGTH_SCALE,
-        MASS_EXPONENT, MASS_SCALE,
-        TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
-    >;
-
-    fn mul(self: f64, other: Self::Output) -> Self::Output {
-        let result_value = self * other.value;
-        Self::Output::new(result_value)
-    }
-}
-
-
-// ============================================================================
-// Scalar-Quantity Arithmetic Operations
-// ============================================================================
-
-
-// ============================================================================
-// Quantity-Quantity Arithmetic Operations
-// ============================================================================
-
-impl<
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE1: isize, const LENGTH_SCALE2: isize,
-    const MASS_EXPONENT: isize, const MASS_SCALE1: isize, const MASS_SCALE2: isize,
-    const TIME_EXPONENT: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
-                                const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
->
-    Add<
-        Quantity<
-            LENGTH_EXPONENT, LENGTH_SCALE2,
-            MASS_EXPONENT, MASS_SCALE2,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2
-        >,
-    >
-    for Quantity<
-        LENGTH_EXPONENT, LENGTH_SCALE1,
-        MASS_EXPONENT, MASS_SCALE1,
-        TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1
-    >
-{
-    type Output = Self;
-
-    fn add(
-        self,
-        other: Quantity<
-            LENGTH_EXPONENT, LENGTH_SCALE2,
-            MASS_EXPONENT, MASS_SCALE2,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    ) -> Self::Output {
-        let factor2 = aggregate_conversion_factor(
-            LENGTH_EXPONENT, LENGTH_SCALE2, LENGTH_SCALE1,
-            MASS_EXPONENT, MASS_SCALE2, MASS_SCALE1,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_P2_1, TIME_P3_1, TIME_P5_1,
-        );
-
-        let result_value = self.value + other.value * factor2;
-        Quantity::new(result_value)
-    }
-}
-
-impl<
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE1: isize, const LENGTH_SCALE2: isize,
-    const MASS_EXPONENT: isize, const MASS_SCALE1: isize, const MASS_SCALE2: isize,
-    const TIME_EXPONENT: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
-                                const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
->
-    Sub<
-        Quantity<
-            LENGTH_EXPONENT, LENGTH_SCALE2,
-            MASS_EXPONENT, MASS_SCALE2,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    >
-    for Quantity<
-        LENGTH_EXPONENT, LENGTH_SCALE1,
-        MASS_EXPONENT, MASS_SCALE1,
-        TIME_EXPONENT, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
-    >
-{
-    type Output = Self;
-    
-    fn sub(
-        self,
-        other: Quantity<
-            LENGTH_EXPONENT, LENGTH_SCALE2,
-            MASS_EXPONENT, MASS_SCALE2,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    ) -> Self::Output {
-        let factor2 = aggregate_conversion_factor(
-            LENGTH_EXPONENT, LENGTH_SCALE2, LENGTH_SCALE1,
-            MASS_EXPONENT, MASS_SCALE2, MASS_SCALE1,
-            TIME_EXPONENT, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_P2_1, TIME_P3_1, TIME_P5_1,
-        );
-
-        let result_value = self.value - other.value * factor2;
-        Quantity::new(result_value)
-    }
-}
-
-impl<
-    const LENGTH_EXPONENT1: isize, const LENGTH_SCALE1: isize,
-    const MASS_EXPONENT1: isize, const MASS_SCALE1: isize,
-    const TIME_EXPONENT1: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
-    const LENGTH_EXPONENT2: isize, const LENGTH_SCALE2: isize,
-    const MASS_EXPONENT2: isize, const MASS_SCALE2: isize,
-    const TIME_EXPONENT2: isize, const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
->
-    Mul<
-        Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    >
-    for Quantity<
-        LENGTH_EXPONENT1, LENGTH_SCALE1,
-        MASS_EXPONENT1, MASS_SCALE1,
-        TIME_EXPONENT1, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
-    >
-where
-    (): IsIsize<{ LENGTH_EXPONENT1 + LENGTH_EXPONENT2 }>,
-    (): IsIsize<{ MASS_EXPONENT1 + MASS_EXPONENT2 }>,
-    (): IsIsize<{ TIME_EXPONENT1 + TIME_EXPONENT2 }>,
-{
-    type Output = Quantity<
-        { LENGTH_EXPONENT1 + LENGTH_EXPONENT2 },
-        LENGTH_SCALE1,
-        { MASS_EXPONENT1 + MASS_EXPONENT2 },
-        MASS_SCALE1,
-        { TIME_EXPONENT1 + TIME_EXPONENT2 },
-        TIME_P2_1,
-        TIME_P3_1,
-        TIME_P5_1,
-        TIME_SCALE_ORDER1,
-    >;
-
-    fn mul(
-        self,
-        other: Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    ) -> Self::Output {
-        let conversion_factor = aggregate_conversion_factor(
-            LENGTH_EXPONENT2, LENGTH_SCALE2, LENGTH_SCALE1,
-            MASS_EXPONENT2, MASS_SCALE2, MASS_SCALE1,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_P2_1, TIME_P3_1, TIME_P5_1,
-        );
-
-        let result_value = self.value * other.value * conversion_factor;
-        Quantity::new(result_value)
-    }
-}
-
-// ============================================================================
-// Division Implementation
-// ============================================================================
-
-impl<
-    const LENGTH_EXPONENT1: isize, const LENGTH_SCALE1: isize,
-    const MASS_EXPONENT1: isize, const MASS_SCALE1: isize,
-    const TIME_EXPONENT1: isize, const TIME_P2_1: isize, const TIME_P3_1: isize, const TIME_P5_1: isize, const TIME_SCALE_ORDER1: isize,
-    const LENGTH_EXPONENT2: isize, const LENGTH_SCALE2: isize,
-    const MASS_EXPONENT2: isize, const MASS_SCALE2: isize,
-    const TIME_EXPONENT2: isize, const TIME_P2_2: isize, const TIME_P3_2: isize, const TIME_P5_2: isize, const TIME_SCALE_ORDER2: isize,
->
-    Div<
-        Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-        >,
-    >
-    for Quantity<
-        LENGTH_EXPONENT1, LENGTH_SCALE1,
-        MASS_EXPONENT1, MASS_SCALE1,
-        TIME_EXPONENT1, TIME_P2_1, TIME_P3_1, TIME_P5_1, TIME_SCALE_ORDER1,
-    >
-where
-    (): IsIsize<{ LENGTH_EXPONENT1 - LENGTH_EXPONENT2 }>,
-    (): IsIsize<{ MASS_EXPONENT1 - MASS_EXPONENT2 }>,
-    (): IsIsize<{ TIME_EXPONENT1 - TIME_EXPONENT2 }>,
-{
-    type Output = Quantity<
-        { LENGTH_EXPONENT1 - LENGTH_EXPONENT2 },
-        LENGTH_SCALE1,
-        { MASS_EXPONENT1 - MASS_EXPONENT2 },
-        MASS_SCALE1,
-        { TIME_EXPONENT1 - TIME_EXPONENT2 },
-        TIME_P2_1,
-        TIME_P3_1,
-        TIME_P5_1,
-        TIME_SCALE_ORDER1,
-    >;
-
-    fn div(
-        self,
-        other: Quantity<
-            LENGTH_EXPONENT2, LENGTH_SCALE2,
-            MASS_EXPONENT2, MASS_SCALE2,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_SCALE_ORDER2,
-            >,
-    ) -> Self::Output {
-        let factor = aggregate_conversion_factor(
-            LENGTH_EXPONENT2, LENGTH_SCALE2, LENGTH_SCALE1,
-            MASS_EXPONENT2, MASS_SCALE2, MASS_SCALE1,
-            TIME_EXPONENT2, TIME_P2_2, TIME_P3_2, TIME_P5_2, TIME_P2_1, TIME_P3_1, TIME_P5_1,
-        );
-
-        let result_value = self.value / other.value / factor;
-        Quantity::new(result_value)
-    }
-}
-
 
 pub mod default_declarators;
 pub mod scoped_preferences;
+#[macro_use]
+pub mod arithmetic;
+pub mod api;
+

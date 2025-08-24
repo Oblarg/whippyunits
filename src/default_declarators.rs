@@ -4,49 +4,49 @@ use crate::*;
 // Extension Traits for Natural Syntax
 // ============================================================================
 
-type Millimeter = Quantity<
+pub type Millimeter = Quantity<
     1, MILLIMETER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
-type Meter = Quantity<
+pub type Meter = Quantity<
     1, METER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
-type Kilometer = Quantity<
+pub type Kilometer = Quantity<
     1, KILOMETER_SCALE,
     0, MASS_UNUSED,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
 
-type Milligram = Quantity<
+pub type Milligram = Quantity<
     0, LENGTH_UNUSED,
     1, MILLIGRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
-type Gram = Quantity<
+pub type Gram = Quantity<
     0, LENGTH_UNUSED,
     1, GRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
-type Kilogram = Quantity<
+pub type Kilogram = Quantity<
     0, LENGTH_UNUSED,
     1, KILOGRAM_SCALE,
     0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
 
-type Millisecond = Quantity<
+pub type Millisecond = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5, MILLISECOND_SCALE_ORDER,
 >;
-type Second = Quantity<
+pub type Second = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5, SECOND_SCALE_ORDER,
 >;
-type Minute = Quantity<
+pub type Minute = Quantity<
     0, LENGTH_UNUSED,
     0, MASS_UNUSED,
     1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5, MINUTE_SCALE_ORDER,

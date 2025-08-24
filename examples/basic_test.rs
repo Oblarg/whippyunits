@@ -1,12 +1,12 @@
 use whippyunits::*;
+use whippyunits::arithmetic::*;
+use core::ops::{Add, Div, Mul, Sub};
 
 fn main() {
     set_unit_preferences!(
         MILLIMETER_SCALE,
         MILLIGRAM_SCALE,
-        MILLISECOND_SCALE_ORDER,
-        { RescaleBehavior::Strict },
-        { CancelledScaleBehavior::Forget }
+        MILLISECOND_SCALE_ORDER
     );
 
     // Test basic quantity creation and display
@@ -21,6 +21,7 @@ fn main() {
     // Try to add them
     println!("Attempting to add distances...");
     let result = distance1 + distance2;
+    
     println!("Result: {}", result);
     println!("Expected: 8.0 m");
     println!("Result debug: {:?}", result);
