@@ -17,7 +17,6 @@ struct UnitMetadata {
     short_name: String,
     long_name: String,
     dimension: String,
-    is_base_unit: bool,
     exponential_scale: i32,
 }
 
@@ -30,7 +29,6 @@ struct TimeUnitMetadata {
     short_name: String,
     long_name: String,
     dimension: String,
-    is_base_unit: bool,
     exponential_scales: [(i32, i32); 3], // [(prime_factor, exponent), ...]
 }
 
@@ -45,7 +43,6 @@ fn get_length_units() -> Vec<UnitMetadata> {
             short_name: "mm".to_string(),
             long_name: "millimeter".to_string(),
             dimension: "Length".to_string(),
-            is_base_unit: false,
             exponential_scale: 1000,
         },
         UnitMetadata {
@@ -53,7 +50,6 @@ fn get_length_units() -> Vec<UnitMetadata> {
             short_name: "m".to_string(),
             long_name: "meter".to_string(),
             dimension: "Length".to_string(),
-            is_base_unit: true,
             exponential_scale: 1000,
         },
         UnitMetadata {
@@ -61,7 +57,6 @@ fn get_length_units() -> Vec<UnitMetadata> {
             short_name: "km".to_string(),
             long_name: "kilometer".to_string(),
             dimension: "Length".to_string(),
-            is_base_unit: false,
             exponential_scale: 1000,
         },
     ]
@@ -74,7 +69,6 @@ fn get_mass_units() -> Vec<UnitMetadata> {
             short_name: "mg".to_string(),
             long_name: "milligram".to_string(),
             dimension: "Mass".to_string(),
-            is_base_unit: false,
             exponential_scale: 1000,
         },
         UnitMetadata {
@@ -82,7 +76,6 @@ fn get_mass_units() -> Vec<UnitMetadata> {
             short_name: "g".to_string(),
             long_name: "gram".to_string(),
             dimension: "Mass".to_string(),
-            is_base_unit: false,
             exponential_scale: 1000,
         },
         UnitMetadata {
@@ -90,7 +83,6 @@ fn get_mass_units() -> Vec<UnitMetadata> {
             short_name: "kg".to_string(),
             long_name: "kilogram".to_string(),
             dimension: "Mass".to_string(),
-            is_base_unit: true,
             exponential_scale: 1000,
         },
     ]
@@ -106,7 +98,6 @@ fn get_time_units() -> Vec<TimeUnitMetadata> {
             short_name: "ms".to_string(),
             long_name: "millisecond".to_string(),
             dimension: "Time".to_string(),
-            is_base_unit: false,
             exponential_scales: [(2, -3), (3, 0), (5, -3)],
         },
         TimeUnitMetadata {
@@ -117,7 +108,6 @@ fn get_time_units() -> Vec<TimeUnitMetadata> {
             short_name: "s".to_string(),
             long_name: "second".to_string(),
             dimension: "Time".to_string(),
-            is_base_unit: true,
             exponential_scales: [(2, 0), (3, 0), (5, 0)],
         },
         TimeUnitMetadata {
@@ -128,7 +118,6 @@ fn get_time_units() -> Vec<TimeUnitMetadata> {
             short_name: "min".to_string(),
             long_name: "minute".to_string(),
             dimension: "Time".to_string(),
-            is_base_unit: false,
             exponential_scales: [(2, 2), (3, 1), (5, 1)],
         },
     ]

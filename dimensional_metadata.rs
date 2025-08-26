@@ -26,8 +26,6 @@ pub struct UnitMetadata {
     pub long_name: &'static str,
     /// Which dimension this unit belongs to
     pub dimension: Dimension,
-    /// Whether this unit is the base unit for its dimension (used for conversions)
-    pub is_base_unit: bool,
     /// The exponential scale for this unit (e.g., 1000 for length/mass units)
     pub exponential_scale: isize,
 }
@@ -43,7 +41,6 @@ pub const LENGTH_UNITS: &[UnitMetadata] = &[
         short_name: "mm",
         long_name: "millimeter",
         dimension: Dimension::Length,
-        is_base_unit: false,
         exponential_scale: 1000, // 1000^scale_value
     },
     UnitMetadata {
@@ -51,7 +48,6 @@ pub const LENGTH_UNITS: &[UnitMetadata] = &[
         short_name: "m",
         long_name: "meter",
         dimension: Dimension::Length,
-        is_base_unit: true,
         exponential_scale: 1000, // 1000^scale_value
     },
     UnitMetadata {
@@ -59,7 +55,6 @@ pub const LENGTH_UNITS: &[UnitMetadata] = &[
         short_name: "km",
         long_name: "kilometer",
         dimension: Dimension::Length,
-        is_base_unit: false,
         exponential_scale: 1000, // 1000^scale_value
     },
 ];
@@ -71,7 +66,6 @@ pub const MASS_UNITS: &[UnitMetadata] = &[
         short_name: "mg",
         long_name: "milligram",
         dimension: Dimension::Mass,
-        is_base_unit: false,
         exponential_scale: 1000, // 1000^scale_value
     },
     UnitMetadata {
@@ -79,7 +73,6 @@ pub const MASS_UNITS: &[UnitMetadata] = &[
         short_name: "g",
         long_name: "gram",
         dimension: Dimension::Mass,
-        is_base_unit: false,
         exponential_scale: 1000, // 1000^scale_value
     },
     UnitMetadata {
@@ -87,7 +80,6 @@ pub const MASS_UNITS: &[UnitMetadata] = &[
         short_name: "kg",
         long_name: "kilogram",
         dimension: Dimension::Mass,
-        is_base_unit: true,
         exponential_scale: 1000, // 1000^scale_value
     },
 ];
@@ -103,7 +95,6 @@ pub const TIME_UNITS: &[TimeUnitMetadata] = &[
         short_name: "ms",
         long_name: "millisecond",
         dimension: Dimension::Time,
-        is_base_unit: false,
         exponential_scales: [(2, -3), (3, 0), (5, -3)], // [(prime_factor, exponent), ...]
     },
     TimeUnitMetadata {
@@ -114,7 +105,6 @@ pub const TIME_UNITS: &[TimeUnitMetadata] = &[
         short_name: "s",
         long_name: "second",
         dimension: Dimension::Time,
-        is_base_unit: true,
         exponential_scales: [(2, 0), (3, 0), (5, 0)], // [(prime_factor, exponent), ...]
     },
     TimeUnitMetadata {
@@ -125,7 +115,6 @@ pub const TIME_UNITS: &[TimeUnitMetadata] = &[
         short_name: "min",
         long_name: "minute",
         dimension: Dimension::Time,
-        is_base_unit: false,
         exponential_scales: [(2, 2), (3, 1), (5, 1)], // [(prime_factor, exponent), ...]
     },
 ];
@@ -140,7 +129,6 @@ pub struct TimeUnitMetadata {
     pub short_name: &'static str,
     pub long_name: &'static str,
     pub dimension: Dimension,
-    pub is_base_unit: bool,
     /// The exponential scales for time units, mapping prime factors to their exponents
     pub exponential_scales: [(isize, isize); 3], // [(prime_factor, exponent), ...]
 }
@@ -254,82 +242,6 @@ pub const fn time_long_name(scale_order: isize) -> &'static str {
         None => "unknown",
     }
 }
-
-// ============================================================================
-// Conversion Helper Functions
-// ============================================================================
-
-/// Get conversion factor for length unit
-pub const fn length_conversion_factor(from_scale: isize, to_scale: isize, value: f64) -> f64 {
-    let from_factor = match find_length_unit(from_scale) {
-        Some(unit) => unit.conversion_factor,
-        None => 1.0,
-    };
-    let to_factor = match find_length_unit(to_scale) {
-        Some(unit) => unit.conversion_factor,
-        None => 1.0,
-    };
-    value * from_factor / to_factor
-}
-
-/// Get conversion factor for mass unit
-pub const fn mass_conversion_factor(from_scale: isize, to_scale: isize, value: f64) -> f64 {
-    let from_factor = match find_mass_unit(from_scale) {
-        Some(unit) => unit.conversion_factor,
-        None => 1.0,
-    };
-    let to_factor = match find_mass_unit(to_scale) {
-        Some(unit) => unit.conversion_factor,
-        None => 1.0,
-    };
-    value * from_factor / to_factor
-}
-
-/// Get conversion factor for time unit
-pub const fn time_conversion_factor(
-    from_p2: isize,
-    from_p3: isize,
-    from_p5: isize,
-    to_p2: isize,
-    to_p3: isize,
-    to_p5: isize,
-    value: f64,
-) -> f64 {
-    // This would need to be implemented based on your time conversion logic
-    // For now, returning the value unchanged
-    value
-}
-
-// ============================================================================
-// Constants Generated from Metadata
-// ============================================================================
-
-// These constants can be generated from the metadata arrays above
-// They maintain backward compatibility with existing code
-
-pub const MILLIMETER_SCALE: isize = -1;
-pub const METER_SCALE: isize = 0;
-pub const KILOMETER_SCALE: isize = 1;
-pub const LENGTH_UNUSED: isize = isize::MAX;
-
-pub const MILLIGRAM_SCALE: isize = -1;
-pub const GRAM_SCALE: isize = 0;
-pub const KILOGRAM_SCALE: isize = 1;
-pub const MASS_UNUSED: isize = isize::MAX;
-
-pub const MILLISECOND_SCALE_ORDER: isize = -1;
-pub const MILLISECOND_SCALE_P2: isize = -3;
-pub const MILLISECOND_SCALE_P3: isize = 0;
-pub const MILLISECOND_SCALE_P5: isize = -3;
-pub const SECOND_SCALE_ORDER: isize = 0;
-pub const SECOND_SCALE_P2: isize = 0;
-pub const SECOND_SCALE_P3: isize = 0;
-pub const SECOND_SCALE_P5: isize = 0;
-pub const MINUTE_SCALE_ORDER: isize = 1;
-pub const MINUTE_SCALE_P2: isize = 2;
-pub const MINUTE_SCALE_P3: isize = 1;
-pub const MINUTE_SCALE_P5: isize = 1;
-pub const TIME_UNUSED: isize = isize::MAX;
 
 // ============================================================================
 // Validation Functions
