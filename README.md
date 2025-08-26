@@ -97,10 +97,3 @@ cargo test
 ./cargo-nightly build
 ./cargo-nightly test
 ```
-
-### Manual Toolchain Override
-
-If you need to manually override the toolchain, you can use:
-```bash
-PATH="/Users/emichaelbarnettgmail.com/.rustup/toolchains/nightly-aarch64-apple-darwin/bin:$PATH" cargo build
-```
