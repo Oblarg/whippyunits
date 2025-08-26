@@ -10,4 +10,4 @@ use crate::{
     IsIsize,
 };
 
-generate_arithmetic_ops!(LeftHandWins);
+// generate_arithmetic_ops!(LeftHandWins);

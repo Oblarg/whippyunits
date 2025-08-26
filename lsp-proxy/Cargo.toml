@@ -18,7 +18,5 @@ shellexpand = "3.0"
 name = "lsp-proxy"
 path = "src/main.rs"
 
-[[example]]
-name = "ambiguous_demo"
-path = "examples/ambiguous_demo.rs"
+
 

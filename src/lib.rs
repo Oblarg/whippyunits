@@ -12,34 +12,7 @@ use alloc::vec::Vec;
 use core::f64;
 use core::marker::ConstParamTy;
 use core::ops::{Add, Div, Mul, Sub};
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-pub const MILLIMETER_SCALE: isize = -1;
-pub const METER_SCALE: isize = 0;
-pub const KILOMETER_SCALE: isize = 1;
-pub const LENGTH_UNUSED: isize = isize::MAX;
-
-pub const MILLIGRAM_SCALE: isize = -1;
-pub const GRAM_SCALE: isize = 0;
-pub const KILOGRAM_SCALE: isize = 1;
-pub const MASS_UNUSED: isize = isize::MAX;
-
-pub const MILLISECOND_SCALE_ORDER: isize = -1;
-pub const MILLISECOND_SCALE_P2: isize = -3;
-pub const MILLISECOND_SCALE_P3: isize = 0;
-pub const MILLISECOND_SCALE_P5: isize = -3;
-pub const SECOND_SCALE_ORDER: isize = 0;
-pub const SECOND_SCALE_P2: isize = 0;
-pub const SECOND_SCALE_P3: isize = 0;
-pub const SECOND_SCALE_P5: isize = 0;
-pub const MINUTE_SCALE_ORDER: isize = 1;
-pub const MINUTE_SCALE_P2: isize = 2;
-pub const MINUTE_SCALE_P3: isize = 1;
-pub const MINUTE_SCALE_P5: isize = 1;
-pub const TIME_UNUSED: isize = isize::MAX;
+use crate::generated_constants::*;
 
 // ============================================================================
 // Core Types and Enums
@@ -92,6 +65,31 @@ impl<
 
 use core::fmt;
 
+// Helper to convert number to Unicode superscript
+fn to_unicode_superscript(n: i32) -> String {
+    if n == 1 {
+        return "".to_string(); // No superscript for 1
+    }
+    
+    n.to_string()
+        .chars()
+        .map(|c| match c {
+            '0' => '⁰',
+            '1' => '¹',
+            '2' => '²',
+            '3' => '³',
+            '4' => '⁴',
+            '5' => '⁵',
+            '6' => '⁶',
+            '7' => '⁷',
+            '8' => '⁸',
+            '9' => '⁹',
+            '-' => '⁻',
+            _ => c,
+        })
+        .collect()
+}
+
 // Helper function to build unit strings for both Display and Debug
 fn build_unit_strings<
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE: isize,
@@ -100,6 +98,7 @@ fn build_unit_strings<
 >(
     use_long_names: bool,
     separate_numerator_denominator: bool,
+    use_unicode: bool,
 ) -> (Vec<String>, Vec<String>) {
     let mut numerator_units: Vec<String> = Vec::new();
     let mut denominator_units: Vec<String> = Vec::new();
@@ -108,6 +107,9 @@ fn build_unit_strings<
     let push_unit = |vec: &mut Vec<String>, name: &str, exp: i32| {
         if exp == 1 {
             vec.push(name.to_string());
+        } else if use_unicode {
+            let superscript = to_unicode_superscript(exp);
+            vec.push(format!("{}{}", name, superscript));
         } else {
             vec.push(format!("{}^{}", name, exp));
         }
@@ -234,11 +236,11 @@ impl<
             LENGTH_EXPONENT, LENGTH_SCALE,
             MASS_EXPONENT, MASS_SCALE,
             TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
-        >(false, false);
+        >(false, false, true);
 
         // If we have units, add them
         if !numerator_units.is_empty() {
-            write!(f, " {}", numerator_units.join("⋅"))?;
+            write!(f, " {}", numerator_units.join("·"))?;
         }
 
         Ok(())
@@ -262,22 +264,36 @@ impl<
             LENGTH_EXPONENT, LENGTH_SCALE,
             MASS_EXPONENT, MASS_SCALE,
             TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER,
-        >(true, true);
+        >(false, false, true);
 
-        // Build unit string
-        let unit_str = if !numerator_units.is_empty() || !denominator_units.is_empty() {
-            let mut s = String::new();
-            if !numerator_units.is_empty() {
-                s.push_str(&format!("({})", numerator_units.join(" ⋅ ")));
+        // Build compact unit string with Unicode superscripts
+        let mut all_units = Vec::new();
+        all_units.extend(numerator_units);
+        
+        // Add denominator units with negative exponents
+        for unit in denominator_units {
+            // Extract the base unit name and exponent
+            if let Some(caret_pos) = unit.find('^') {
+                let base = &unit[..caret_pos];
+                let exp_str = &unit[caret_pos + 1..];
+                if let Ok(exp) = exp_str.parse::<i32>() {
+                    // Convert to negative exponent
+                    if exp == 1 {
+                        all_units.push(format!("{}{}", base, to_unicode_superscript(-1)));
+                    } else {
+                        all_units.push(format!("{}{}", base, to_unicode_superscript(-exp)));
+                    }
+                }
             } else {
-                s.push_str("(1)");
+                // Unit with exponent 1, convert to negative
+                all_units.push(format!("{}{}", unit, to_unicode_superscript(-1)));
             }
-            if !denominator_units.is_empty() {
-                s.push_str(&format!(" / ({})", denominator_units.join(" ⋅ ")));
-            }
-            s
+        }
+
+        let unit_str = if all_units.is_empty() {
+            "dimensionless".to_string()
         } else {
-            "(1)".to_string()
+            all_units.join("·")
         };
 
         // Write debug output with value up front
@@ -375,96 +391,6 @@ const fn aggregate_conversion_factor(
         to_time_p2 * time_exponent, to_time_p3 * time_exponent, to_time_p5 * time_exponent,
         time_exponent,
     )
-}
-
-const fn pow1000(exp: isize) -> f64 {
-    match exp {
-        0 => 1.0,
-        1 => 1000.0,
-        2 => 1000000.0,
-        3 => 1000000000.0,
-        -1 => 0.001,
-        -2 => 0.000001,
-        -3 => 0.000000001,
-        _ => 1.0, // we'll only test small values during prototyping
-    }
-}
-
-pub const fn pow2(exp: isize) -> f64 {
-    match exp {
-        0 => 1.0,
-        1 => 2.0,
-        2 => 4.0,
-        3 => 8.0,
-        -1 => 0.5,
-        -2 => 0.25,
-        -3 => 0.125,
-        _ => 1.0, // we'll only test small values during prototyping
-    }
-}
-
-pub const fn pow3(exp: isize) -> f64 {
-    match exp {
-        0 => 1.0,
-        1 => 3.0,
-        2 => 9.0,
-        3 => 27.0,
-        -1 => 1.0 / 3.0,
-        -2 => 1.0 / 9.0,
-        -3 => 1.0 / 27.0,
-        _ => 1.0, // we'll only test small values during prototyping
-    }
-}
-
-pub const fn pow5(exp: isize) -> f64 {
-    match exp {
-        0 => 1.0,
-        1 => 5.0,
-        2 => 25.0,
-        3 => 125.0,
-        -1 => 0.2,
-        -2 => 0.04,
-        -3 => 0.008,
-        _ => 1.0, // we'll only test small values during prototyping
-    }
-}
-
-pub const fn length_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
-    let diff: isize = (from - to) * exponent;
-    const UNUSED: isize = LENGTH_UNUSED;
-    match (from, to) {
-        (UNUSED, _) | (_, UNUSED) => 1.0, // unused scales are represented by 0; should never happen
-        _ => pow1000(diff),
-    }
-}
-
-pub const fn mass_conversion_factor(from: isize, to: isize, exponent: isize) -> f64 {
-    let diff: isize = (from - to) * exponent;
-    const UNUSED: isize = MASS_UNUSED;
-    match (from, to) {
-        (UNUSED, _) | (_, UNUSED) => 1.0, // unused scales are represented by 0; should never happen
-        _ => pow1000(diff),
-    }
-}
-
-pub const fn time_conversion_factor(
-    from_p2: isize, from_p3: isize, from_p5: isize,
-    to_p2: isize, to_p3: isize, to_p5: isize,
-    exponent: isize,
-) -> f64 {
-    let diff_p2: isize = (from_p2 - to_p2) * exponent;
-    let diff_p3: isize = (from_p3 - to_p3) * exponent;
-    let diff_p5: isize = (from_p5 - to_p5) * exponent;
-    const UNUSED: isize = TIME_UNUSED;
-    match (from_p2, from_p3, from_p5, to_p2, to_p3, to_p5) {
-        (UNUSED, _, _, _, _, _)
-        | (_, UNUSED, _, _, _, _)
-        | (_, _, UNUSED, _, _, _)
-        | (_, _, _, UNUSED, _, _)
-        | (_, _, _, _, UNUSED, _)
-        | (_, _, _, _, _, UNUSED) => 1.0, // should never happen
-        _ => pow2(diff_p2) * pow3(diff_p3) * pow5(diff_p5),
-    }
 }
 
 // ============================================================================
@@ -620,34 +546,7 @@ pub const fn max_time_scale(
     }
 }
 
-pub const fn time_scale_2(order: isize) -> isize {
-    match order {
-        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P2,
-        SECOND_SCALE_ORDER => SECOND_SCALE_P2,
-        MINUTE_SCALE_ORDER => MINUTE_SCALE_P2,
-        _ => 0, // TODO: handle this better
-    }
-}
-
-pub const fn time_scale_3(order: isize) -> isize {
-    match order {
-        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P3,
-        SECOND_SCALE_ORDER => SECOND_SCALE_P3,
-        MINUTE_SCALE_ORDER => MINUTE_SCALE_P3,
-        _ => 0, // TODO: handle this better
-    }
-}
-
-pub const fn time_scale_5(order: isize) -> isize {
-    match order {
-        MILLISECOND_SCALE_ORDER => MILLISECOND_SCALE_P5,
-        SECOND_SCALE_ORDER => SECOND_SCALE_P5,
-        MINUTE_SCALE_ORDER => MINUTE_SCALE_P5,
-        _ => 0, // TODO: handle this better
-    }
-}
-
-trait IsIsize<const S: isize> {}
+pub trait IsIsize<const S: isize> {}
 impl<const S: isize> IsIsize<S> for () {}
 
 // ============================================================================
@@ -696,6 +595,7 @@ pub mod scoped_preferences;
 #[macro_use]
 pub mod arithmetic;
 pub mod api;
+pub mod generated_constants;
 
 // Re-export the proc macro
 pub use whippyunits_unit_macro::proc_unit;

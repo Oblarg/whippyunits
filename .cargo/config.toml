@@ -1,0 +1,2 @@
+[build]
+rustc = "/Users/emichaelbarnettgmail.com/.rustup/toolchains/nightly-aarch64-apple-darwin/bin/rustc"

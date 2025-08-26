@@ -1,4 +1,7 @@
+#![feature(generic_const_exprs)]
+
 use whippyunits::*;
+use whippyunits::generated_constants::*;
 use whippyunits::arithmetic::*;
 use core::ops::{Add, Div, Mul, Sub};
 
@@ -13,6 +16,7 @@ fn main() {
         MILLIGRAM_SCALE,
         MILLISECOND_SCALE_ORDER
     );
+    
 
     // Test basic quantity creation and display
     let distance1 = 5.0.meters();
@@ -33,14 +37,14 @@ fn main() {
 
     // Try to multiply them
     println!("Attempting to multiply distances...");
-    let result2: unit!(mm^2) = distance1 * distance2;
+    let result2 = distance1 * distance2;
     println!("Result2: {}", result2);
     println!("Expected: 15.0 m^2");
     println!("Result2 debug: {:?}", result2);
 
     // Try to divide the result by the second distance
     println!("Attempting to divide the result by the second distance...");
-    let result3 = result2 / distance2;
+    let result3= result2 / distance2;
     println!("Result3: {}", result3);
     println!("Expected: 5.0 m");
     println!("Result3 debug: {:?}", result3);

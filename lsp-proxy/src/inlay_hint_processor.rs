@@ -63,13 +63,31 @@ impl InlayHintProcessor {
 
     /// Process a single inlay hint object (for resolve responses)
     fn process_single_hint_object(&self, hint_obj: &mut serde_json::Map<String, Value>) -> Result<()> {
-        // Get the label array from the object
-        if let Some(label) = hint_obj.get_mut("label") {
-            if let Some(label_array) = label.as_array_mut() {
-                // Check if this hint contains a whippyunits type
-                if self.contains_whippyunits_type(label_array) {
+        // Check if this hint contains a whippyunits type first
+        let has_whippyunits = if let Some(label) = hint_obj.get("label") {
+            if let Some(label_array) = label.as_array() {
+                self.contains_whippyunits_type(label_array)
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if has_whippyunits {
+            // First, check if this is an unresolved type that needs a seeded unit macro
+            let needs_seeded_macro = self.is_unresolved_type(hint_obj);
+            
+            // Get the label array from the object and process it
+            if let Some(label) = hint_obj.get_mut("label") {
+                if let Some(label_array) = label.as_array_mut() {
                     self.convert_whippyunits_hint(label_array)?;
                 }
+            }
+            
+            // Now add the seeded unit macro if needed
+            if needs_seeded_macro {
+                self.add_seeded_unit_macro_text_edit(hint_obj)?;
             }
         }
         Ok(())
@@ -142,6 +160,161 @@ impl InlayHintProcessor {
         }
         
         Ok(())
+    }
+
+
+
+    /// Check if this is an unresolved type that could benefit from a seeded unit macro
+    fn is_unresolved_type(&self, hint_obj: &serde_json::Map<String, Value>) -> bool {
+        // Look for unresolved types in the label
+        if let Some(label) = hint_obj.get("label") {
+            if let Some(label_array) = label.as_array() {
+                for part in label_array {
+                    if let Some(value) = part.get("value") {
+                        if let Some(text) = value.as_str() {
+                            // Check for unresolved patterns
+                            if text.contains("9223372036854775807") || text.contains("_") {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    /// Add a seeded unit macro text edit to the hint
+    fn add_seeded_unit_macro_text_edit(&self, hint_obj: &mut serde_json::Map<String, Value>) -> Result<()> {
+        // Generate the seeded unit macro text
+        let seeded_text = self.generate_seeded_unit_macro(hint_obj)?;
+        
+        // Extract position before any mutable borrows
+        let position = if let Some(pos) = hint_obj.get("position") {
+            pos.clone()
+        } else {
+            return Ok(());
+        };
+        
+        // Replace existing textEdits with our seeded unit macro
+        if let Some(existing_text_edits) = hint_obj.get_mut("textEdits") {
+            if let Some(text_edits_array) = existing_text_edits.as_array_mut() {
+                // Clear existing text edits and add our seeded one
+                text_edits_array.clear();
+                
+                // Get the range from the first existing text edit (if any)
+                let range = if let Some(first_edit) = text_edits_array.first() {
+                    if let Some(range) = first_edit.get("range") {
+                        range.clone()
+                    } else {
+                        // Fallback: use position as range
+                        json!({
+                            "start": position,
+                            "end": position
+                        })
+                    }
+                } else {
+                    // No existing text edits, use position as range
+                    json!({
+                        "start": position,
+                        "end": position
+                    })
+                };
+                
+                // Add our seeded unit macro text edit
+                let text_edit = json!({
+                    "range": range,
+                    "newText": seeded_text
+                });
+                text_edits_array.push(text_edit);
+            }
+        } else {
+            // No existing textEdits, create new array
+            let range = json!({
+                "start": position,
+                "end": position
+            });
+            
+            let text_edit = json!({
+                "range": range,
+                "newText": seeded_text
+            });
+            hint_obj.insert("textEdits".to_string(), json!([text_edit]));
+        }
+
+        Ok(())
+    }
+
+    /// Generate a seeded unit macro based on the unresolved type
+    fn generate_seeded_unit_macro(&self, hint_obj: &serde_json::Map<String, Value>) -> Result<String> {
+        // We need to reconstruct the original unresolved type from the pretty-printed version
+        // Look for the pretty-printed type in the label
+        let mut pretty_type = String::new();
+        
+        if let Some(label) = hint_obj.get("label") {
+            if let Some(label_array) = label.as_array() {
+                for part in label_array {
+                    if let Some(value) = part.get("value") {
+                        if let Some(text) = value.as_str() {
+                            // Skip the ": " part
+                            if text != ": " {
+                                pretty_type.push_str(text);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Convert the pretty-printed type to a unit! macro format
+        let unit_macro = format!("unit!({})", self.convert_pretty_type_to_unit_macro(&pretty_type));
+        
+        // Return just the type annotation with the unit! macro
+        Ok(format!(": {}", unit_macro))
+    }
+
+    /// Convert pretty-printed type to unit! macro format
+    fn convert_pretty_type_to_unit_macro(&self, pretty_type: &str) -> String {
+        // Remove the "Unresolved type - " prefix if present
+        let clean_type = if pretty_type.starts_with("Unresolved type - ") {
+            &pretty_type[18..] // Skip "Unresolved type - "
+        } else {
+            pretty_type
+        };
+        
+        // Convert pretty-printed types like "mmˀ" to unit macro format like "mm^"
+        // Remove the ? and place cursor after the caret
+        clean_type
+            .replace("ˀ", "^")  // Replace superscript question mark with just ^
+            .replace("⁻", "^-")  // Replace superscript minus with ^-
+            .replace("¹", "^1")  // Replace superscript 1 with ^1
+            .replace("²", "^2")  // Replace superscript 2 with ^2
+            .replace("³", "^3")  // Replace superscript 3 with ^3
+            .replace("⁴", "^4")  // Replace superscript 4 with ^4
+            .replace("⁵", "^5")  // Replace superscript 5 with ^5
+            .replace("⁶", "^6")  // Replace superscript 6 with ^6
+            .replace("⁷", "^7")  // Replace superscript 7 with ^7
+            .replace("⁸", "^8")  // Replace superscript 8 with ^8
+            .replace("⁹", "^9")  // Replace superscript 9 with ^9
+            .replace("⁰", "^0")  // Replace superscript 0 with ^0
+    }
+
+    /// Convert unresolved type to unit! macro format
+    fn convert_to_unit_macro_format(&self, unresolved_type: &str) -> String {
+        // This is a simplified conversion - could be enhanced with more sophisticated parsing
+        if unresolved_type.contains("9223372036854775807") {
+            // Replace unresolved parts with placeholders
+            unresolved_type
+                .replace("9223372036854775807", "?")
+                .replace("Quantity<", "")
+                .replace(">", "")
+                .replace(", ", " * ")
+                .replace(" * 0", "") // Remove zero exponents
+                .replace(" * 1", "") // Remove unit exponents
+                .replace(" * ?", "?") // Clean up unresolved placeholders
+        } else {
+            unresolved_type.to_string()
+        }
     }
 }
 

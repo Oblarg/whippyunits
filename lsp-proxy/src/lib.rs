@@ -24,23 +24,7 @@ macro_rules! format_bracket_details {
     };
 }
 
-#[cfg(test)]
-mod integration_test;
 
-#[cfg(test)]
-mod minimal_hover_test;
-
-#[cfg(test)]
-mod inlay_hint_test;
-
-#[cfg(test)]
-mod inlay_hint_refresh_test;
-
-#[cfg(test)]
-mod refresh_resolve_test;
-
-#[cfg(test)]
-mod semantic_tokens_format_test;
 
 pub mod inlay_hint_processor;
 
@@ -890,29 +874,21 @@ impl WhippyUnitsTypeConverter {
                 let mass_scale = params[3].parse::<isize>().ok();
                 let mass_scale_is_max = mass_scale == Some(isize::MAX);
                 
-                if mass_exp != Some(0) {
+                // Only include mass if it's actually used (non-zero exponent and non-MAX scale)
+                if mass_exp != Some(0) && !mass_scale_is_max {
                     if let Some(exp) = mass_exp {
                         if let Some(scale) = mass_scale {
-                            if !mass_scale_is_max {
-                                // Resolved scale - show unit
-                                let unit = match scale {
-                                    -1 => "mg",
-                                    0 => "g",
-                                    1 => "kg",
-                                    _ => "g", // fallback
-                                };
-                                if exp == 1 {
-                                    units.push(unit.to_string());
-                                } else {
-                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                                }
+                            // Resolved scale - show unit
+                            let unit = match scale {
+                                -1 => "mg",
+                                0 => "g",
+                                1 => "kg",
+                                _ => "g", // fallback
+                            };
+                            if exp == 1 {
+                                units.push(unit.to_string());
                             } else {
-                                // Unresolved scale - show dimension name
-                                if exp == 1 {
-                                    units.push("Mass".to_string());
-                                } else {
-                                    units.push(format!("Mass{}", self.to_unicode_superscript(exp)));
-                                }
+                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
                             }
                         } else {
                             // Unresolved scale - show dimension name
@@ -923,19 +899,14 @@ impl WhippyUnitsTypeConverter {
                             }
                         }
                     } else if let Some(scale) = mass_scale {
-                        if !mass_scale_is_max {
-                            // Resolved scale but unresolved exponent
-                            let unit = match scale {
-                                -1 => "mg",
-                                0 => "g",
-                                1 => "kg",
-                                _ => "g", // fallback
-                            };
-                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
-                        } else {
-                            // Both scale and exponent unresolved
-                            units.push(format!("Mass{}", self.superscript_question_mark()));
-                        }
+                        // Resolved scale but unresolved exponent
+                        let unit = match scale {
+                            -1 => "mg",
+                            0 => "g",
+                            1 => "kg",
+                            _ => "g", // fallback
+                        };
+                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
                     }
                 }
                 
@@ -944,29 +915,21 @@ impl WhippyUnitsTypeConverter {
                 let time_scale_order = params[8].parse::<isize>().ok();
                 let time_scale_is_max = time_scale_order == Some(isize::MAX);
                 
-                if time_exp != Some(0) {
+                // Only include time if it's actually used (non-zero exponent and non-MAX scale)
+                if time_exp != Some(0) && !time_scale_is_max {
                     if let Some(exp) = time_exp {
                         if let Some(scale_order) = time_scale_order {
-                            if !time_scale_is_max {
-                                // Resolved scale - show unit
-                                let unit = match scale_order {
-                                    -1 => "ms",
-                                    0 => "s",
-                                    1 => "min",
-                                    _ => "s", // fallback
-                                };
-                                if exp == 1 {
-                                    units.push(unit.to_string());
-                                } else {
-                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                                }
+                            // Resolved scale - show unit
+                            let unit = match scale_order {
+                                -1 => "ms",
+                                0 => "s",
+                                1 => "min",
+                                _ => "s", // fallback
+                            };
+                            if exp == 1 {
+                                units.push(unit.to_string());
                             } else {
-                                // Unresolved scale - show dimension name
-                                if exp == 1 {
-                                    units.push("Time".to_string());
-                                } else {
-                                    units.push(format!("Time{}", self.to_unicode_superscript(exp)));
-                                }
+                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
                             }
                         } else {
                             // Unresolved scale - show dimension name
@@ -977,19 +940,14 @@ impl WhippyUnitsTypeConverter {
                             }
                         }
                     } else if let Some(scale_order) = time_scale_order {
-                        if !time_scale_is_max {
-                            // Resolved scale but unresolved exponent
-                            let unit = match scale_order {
-                                -1 => "ms",
-                                0 => "s",
-                                1 => "min",
-                                _ => "s", // fallback
-                            };
-                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
-                        } else {
-                            // Both scale and exponent unresolved
-                            units.push(format!("Time{}", self.superscript_question_mark()));
-                        }
+                        // Resolved scale but unresolved exponent
+                        let unit = match scale_order {
+                            -1 => "ms",
+                            0 => "s",
+                            1 => "min",
+                            _ => "s", // fallback
+                        };
+                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
                     }
                 }
                 

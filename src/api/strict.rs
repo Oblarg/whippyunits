@@ -4,4 +4,4 @@ use crate::{
     Quantity, IsIsize, aggregate_conversion_factor,
 };
 
-// generate_arithmetic_ops!(Strict);
+generate_arithmetic_ops!(Strict);

@@ -3,6 +3,7 @@ use core::ops::{Add, Div, Mul, Sub};
 use crate::{
     Quantity, IsIsize,
 };
+use crate::generated_constants::*;
 
 // ============================================================================
 // Arithmetic Operations
@@ -178,13 +179,13 @@ macro_rules! mul_div_output_type {
             { $length_exponent1 $op $length_exponent2 }, { min_length_scale($length_scale_1, $length_scale_2) },
             { $mass_exponent1 $op $mass_exponent2 }, { min_mass_scale($mass_scale_1, $mass_scale_2) },
             { $time_exponent1 $op $time_exponent2 }, { min_time_scale(2, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, $time_scale_order_1, 
-                                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
-                                               { min_time_scale(3, $time_scale_p3_1, $time_scale_p3_1, $time_scale_p5_1, $time_scale_order_1,
-                                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
-                                               { min_time_scale(5, $time_scale_p5_1, $time_scale_p5_1, $time_scale_p5_1, $time_scale_order_1,
-                                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
-                                               { min_time_scale(0, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, $time_scale_order_1,
-                                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
+                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
+                                                     { min_time_scale(3, $time_scale_p3_1, $time_scale_p3_1, $time_scale_p5_1, $time_scale_order_1,
+                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
+                                                     { min_time_scale(5, $time_scale_p5_1, $time_scale_p5_1, $time_scale_p5_1, $time_scale_order_1,
+                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
+                                                     { min_time_scale(0, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, $time_scale_order_1,
+                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2, $time_scale_order_2) },
         >
     };
 }
@@ -215,6 +216,7 @@ macro_rules! add_sub_interface {
             >
             for Quantity<
                 LENGTH_EXPONENT, LENGTH_SCALE,
+                
                 MASS_EXPONENT, MASS_SCALE,
                 TIME_EXPONENT, TIME_P2, TIME_P3, TIME_P5, TIME_SCALE_ORDER
             >
