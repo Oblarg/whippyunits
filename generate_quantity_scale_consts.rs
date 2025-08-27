@@ -8,119 +8,26 @@ use std::fs;
 const MAX_DIMENSIONALITY: i32 = 3;
 
 // ============================================================================
-// Unit Metadata Structures (copied from dimensional_metadata.rs)
+// Import dimensional metadata
 // ============================================================================
 
-#[derive(Debug, Clone)]
-struct UnitMetadata {
-    scale_value: i32,
-    short_name: String,
-    long_name: String,
-    dimension: String,
-    exponential_scale: i32,
-}
-
-#[derive(Debug, Clone)]
-struct TimeUnitMetadata {
-    scale_order: i32,
-    p2: i32,
-    p3: i32,
-    p5: i32,
-    short_name: String,
-    long_name: String,
-    dimension: String,
-    exponential_scales: [(i32, i32); 3], // [(prime_factor, exponent), ...]
-}
+mod dimensional_metadata;
+use dimensional_metadata::{UnitMetadata, TimeUnitMetadata, LENGTH_UNITS, MASS_UNITS, TIME_UNITS};
 
 // ============================================================================
-// Unit Definitions (copied from dimensional_metadata.rs)
+// Unit Metadata Access Functions
 // ============================================================================
 
-fn get_length_units() -> Vec<UnitMetadata> {
-    vec![
-        UnitMetadata {
-            scale_value: -1,
-            short_name: "mm".to_string(),
-            long_name: "millimeter".to_string(),
-            dimension: "Length".to_string(),
-            exponential_scale: 1000,
-        },
-        UnitMetadata {
-            scale_value: 0,
-            short_name: "m".to_string(),
-            long_name: "meter".to_string(),
-            dimension: "Length".to_string(),
-            exponential_scale: 1000,
-        },
-        UnitMetadata {
-            scale_value: 1,
-            short_name: "km".to_string(),
-            long_name: "kilometer".to_string(),
-            dimension: "Length".to_string(),
-            exponential_scale: 1000,
-        },
-    ]
+fn get_length_units() -> &'static [UnitMetadata] {
+    LENGTH_UNITS
 }
 
-fn get_mass_units() -> Vec<UnitMetadata> {
-    vec![
-        UnitMetadata {
-            scale_value: -1,
-            short_name: "mg".to_string(),
-            long_name: "milligram".to_string(),
-            dimension: "Mass".to_string(),
-            exponential_scale: 1000,
-        },
-        UnitMetadata {
-            scale_value: 0,
-            short_name: "g".to_string(),
-            long_name: "gram".to_string(),
-            dimension: "Mass".to_string(),
-            exponential_scale: 1000,
-        },
-        UnitMetadata {
-            scale_value: 1,
-            short_name: "kg".to_string(),
-            long_name: "kilogram".to_string(),
-            dimension: "Mass".to_string(),
-            exponential_scale: 1000,
-        },
-    ]
+fn get_mass_units() -> &'static [UnitMetadata] {
+    MASS_UNITS
 }
 
-fn get_time_units() -> Vec<TimeUnitMetadata> {
-    vec![
-        TimeUnitMetadata {
-            scale_order: -1,
-            p2: -3,
-            p3: 0,
-            p5: -3,
-            short_name: "ms".to_string(),
-            long_name: "millisecond".to_string(),
-            dimension: "Time".to_string(),
-            exponential_scales: [(2, -3), (3, 0), (5, -3)],
-        },
-        TimeUnitMetadata {
-            scale_order: 0,
-            p2: 0,
-            p3: 0,
-            p5: 0,
-            short_name: "s".to_string(),
-            long_name: "second".to_string(),
-            dimension: "Time".to_string(),
-            exponential_scales: [(2, 0), (3, 0), (5, 0)],
-        },
-        TimeUnitMetadata {
-            scale_order: 1,
-            p2: 2,
-            p3: 1,
-            p5: 1,
-            short_name: "min".to_string(),
-            long_name: "minute".to_string(),
-            dimension: "Time".to_string(),
-            exponential_scales: [(2, 2), (3, 1), (5, 1)],
-        },
-    ]
+fn get_time_units() -> &'static [TimeUnitMetadata] {
+    TIME_UNITS
 }
 
 // ============================================================================
@@ -135,8 +42,8 @@ fn generate_length_constants() -> String {
     output.push_str("// Length Scale Constants (Auto-generated)\n");
     output.push_str("// ============================================================================\n\n");
     
-    for unit in &units {
-        let const_name = match unit.short_name.as_str() {
+    for unit in units {
+        let const_name = match unit.short_name {
             "mm" => "MILLIMETER_SCALE",
             "m" => "METER_SCALE", 
             "km" => "KILOMETER_SCALE",
@@ -158,8 +65,8 @@ fn generate_mass_constants() -> String {
     output.push_str("// Mass Scale Constants (Auto-generated)\n");
     output.push_str("// ============================================================================\n\n");
     
-    for unit in &units {
-        let const_name = match unit.short_name.as_str() {
+    for unit in units {
+        let const_name = match unit.short_name {
             "mg" => "MILLIGRAM_SCALE",
             "g" => "GRAM_SCALE",
             "kg" => "KILOGRAM_SCALE",
@@ -181,8 +88,8 @@ fn generate_time_constants() -> String {
     output.push_str("// Time Scale Constants (Auto-generated)\n");
     output.push_str("// ============================================================================\n\n");
     
-    for unit in &units {
-        let base_name = match unit.short_name.as_str() {
+    for unit in units {
+        let base_name = match unit.short_name {
             "ms" => "MILLISECOND",
             "s" => "SECOND",
             "min" => "MINUTE",
@@ -294,10 +201,10 @@ fn collect_single_scale_dimensions() -> Vec<(&'static str, i32, &'static str)> {
     let mass_units = get_mass_units();
     
     if let Some(unit) = length_units.first() {
-        dimensions.push(("Length", unit.exponential_scale, "LENGTH_UNUSED"));
+        dimensions.push(("Length", unit.exponential_scale as i32, "LENGTH_UNUSED"));
     }
     if let Some(unit) = mass_units.first() {
-        dimensions.push(("Mass", unit.exponential_scale, "MASS_UNUSED"));
+        dimensions.push(("Mass", unit.exponential_scale as i32, "MASS_UNUSED"));
     }
     
     dimensions
@@ -308,7 +215,7 @@ fn collect_multi_scale_dimensions() -> Vec<(&'static str, Vec<(i32, i32)>, &'sta
     
     let time_units = get_time_units();
     if let Some(unit) = time_units.first() {
-        dimensions.push(("Time", unit.exponential_scales.to_vec(), "TIME_UNUSED"));
+        dimensions.push(("Time", unit.exponential_scales.iter().map(|&(p, e)| (p as i32, e as i32)).collect(), "TIME_UNUSED"));
     }
     
     dimensions
@@ -414,7 +321,7 @@ fn generate_time_scale_helper_functions() -> String {
     output.push_str("pub const fn time_scale_2(scale_order: isize) -> isize {\n");
     output.push_str("    match scale_order {\n");
     let time_units = get_time_units();
-    for unit in &time_units {
+    for unit in time_units {
         output.push_str(&format!("        {} => {},\n", unit.scale_order, unit.p2));
     }
     output.push_str("        _ => isize::MAX,\n");
@@ -423,7 +330,7 @@ fn generate_time_scale_helper_functions() -> String {
     
     output.push_str("pub const fn time_scale_3(scale_order: isize) -> isize {\n");
     output.push_str("    match scale_order {\n");
-    for unit in &time_units {
+    for unit in time_units {
         output.push_str(&format!("        {} => {},\n", unit.scale_order, unit.p3));
     }
     output.push_str("        _ => isize::MAX,\n");
@@ -432,7 +339,7 @@ fn generate_time_scale_helper_functions() -> String {
     
     output.push_str("pub const fn time_scale_5(scale_order: isize) -> isize {\n");
     output.push_str("    match scale_order {\n");
-    for unit in &time_units {
+    for unit in time_units {
         output.push_str(&format!("        {} => {},\n", unit.scale_order, unit.p5));
     }
     output.push_str("        _ => isize::MAX,\n");
@@ -453,7 +360,7 @@ fn generate_display_functions() -> String {
     output.push_str("pub const fn length_short_name(scale: isize) -> &'static str {\n");
     output.push_str("    match scale {\n");
     let length_units = get_length_units();
-    for unit in &length_units {
+    for unit in length_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_value, unit.short_name));
     }
     output.push_str("        _ => \"unknown\",\n");
@@ -462,7 +369,7 @@ fn generate_display_functions() -> String {
     
     output.push_str("pub const fn length_long_name(scale: isize) -> &'static str {\n");
     output.push_str("    match scale {\n");
-    for unit in &length_units {
+    for unit in length_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_value, unit.long_name));
     }
     output.push_str("        _ => \"unknown\",\n");
@@ -473,7 +380,7 @@ fn generate_display_functions() -> String {
     output.push_str("pub const fn mass_short_name(scale: isize) -> &'static str {\n");
     output.push_str("    match scale {\n");
     let mass_units = get_mass_units();
-    for unit in &mass_units {
+    for unit in mass_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_value, unit.short_name));
     }
     output.push_str("        _ => \"unknown\",\n");
@@ -482,7 +389,7 @@ fn generate_display_functions() -> String {
     
     output.push_str("pub const fn mass_long_name(scale: isize) -> &'static str {\n");
     output.push_str("    match scale {\n");
-    for unit in &mass_units {
+    for unit in mass_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_value, unit.long_name));
     }
     output.push_str("        _ => \"unknown\",\n");
@@ -493,7 +400,7 @@ fn generate_display_functions() -> String {
     output.push_str("pub const fn time_short_name(scale_order: isize) -> &'static str {\n");
     output.push_str("    match scale_order {\n");
     let time_units = get_time_units();
-    for unit in &time_units {
+    for unit in time_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_order, unit.short_name));
     }
     output.push_str("        _ => \"unknown\",\n");
@@ -502,7 +409,7 @@ fn generate_display_functions() -> String {
     
     output.push_str("pub const fn time_long_name(scale_order: isize) -> &'static str {\n");
     output.push_str("    match scale_order {\n");
-    for unit in &time_units {
+    for unit in time_units {
         output.push_str(&format!("        {} => \"{}\",\n", unit.scale_order, unit.long_name));
     }
     output.push_str("        _ => \"unknown\",\n");

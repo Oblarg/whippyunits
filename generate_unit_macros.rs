@@ -2,29 +2,11 @@ use std::collections::HashMap;
 use std::fs;
 
 // ============================================================================
-// Unit Metadata Structures (copied from dimensional_metadata.rs)
+// Import dimensional metadata
 // ============================================================================
 
-#[derive(Debug, Clone, PartialEq)]
-struct UnitMetadata {
-    scale_value: i32,
-    short_name: String,
-    long_name: String,
-    dimension: String,
-    conversion_factor: f64,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct TimeUnitMetadata {
-    scale_order: i32,
-    p2: i32,
-    p3: i32,
-    p5: i32,
-    short_name: String,
-    long_name: String,
-    dimension: String,
-    conversion_factor: f64,
-}
+mod dimensional_metadata;
+use dimensional_metadata::{UnitMetadata, TimeUnitMetadata, LENGTH_UNITS, MASS_UNITS, TIME_UNITS};
 
 #[derive(Debug, Clone)]
 struct UnitParams {
@@ -75,94 +57,19 @@ impl UnitParams {
 }
 
 // ============================================================================
-// Unit Metadata Functions (copied from dimensional_metadata.rs)
+// Unit Metadata Access Functions
 // ============================================================================
 
-fn get_length_units() -> Vec<UnitMetadata> {
-    vec![
-        UnitMetadata {
-            scale_value: -1,
-            short_name: "mm".to_string(),
-            long_name: "millimeter".to_string(),
-            dimension: "Length".to_string(),
-            conversion_factor: 0.001,
-        },
-        UnitMetadata {
-            scale_value: 0,
-            short_name: "m".to_string(),
-            long_name: "meter".to_string(),
-            dimension: "Length".to_string(),
-            conversion_factor: 1.0,
-        },
-        UnitMetadata {
-            scale_value: 1,
-            short_name: "km".to_string(),
-            long_name: "kilometer".to_string(),
-            dimension: "Length".to_string(),
-            conversion_factor: 1000.0,
-        },
-    ]
+fn get_length_units() -> &'static [UnitMetadata] {
+    LENGTH_UNITS
 }
 
-fn get_mass_units() -> Vec<UnitMetadata> {
-    vec![
-        UnitMetadata {
-            scale_value: -1,
-            short_name: "mg".to_string(),
-            long_name: "milligram".to_string(),
-            dimension: "Mass".to_string(),
-            conversion_factor: 0.001,
-        },
-        UnitMetadata {
-            scale_value: 0,
-            short_name: "g".to_string(),
-            long_name: "gram".to_string(),
-            dimension: "Mass".to_string(),
-            conversion_factor: 0.001,
-        },
-        UnitMetadata {
-            scale_value: 1,
-            short_name: "kg".to_string(),
-            long_name: "kilogram".to_string(),
-            dimension: "Mass".to_string(),
-            conversion_factor: 1.0,
-        },
-    ]
+fn get_mass_units() -> &'static [UnitMetadata] {
+    MASS_UNITS
 }
 
-fn get_time_units() -> Vec<TimeUnitMetadata> {
-    vec![
-        TimeUnitMetadata {
-            scale_order: -1,
-            p2: -3,
-            p3: 0,
-            p5: -3,
-            short_name: "ms".to_string(),
-            long_name: "millisecond".to_string(),
-            dimension: "Time".to_string(),
-            conversion_factor: 0.001,
-        },
-        TimeUnitMetadata {
-            scale_order: 0,
-            p2: 0,
-            p3: 0,
-            p5: 0,
-            short_name: "s".to_string(),
-            long_name: "second".to_string(),
-            dimension: "Time".to_string(),
-            conversion_factor: 1.0,
-        },
-        TimeUnitMetadata {
-            scale_order: 1,
-            p2: 2,
-            p3: 1,
-            p5: 1,
-            short_name: "min".to_string(),
-            long_name: "minute".to_string(),
-            dimension: "Time".to_string(),
-            conversion_factor: 60.0,
-        },
-    ]
+fn get_time_units() -> &'static [TimeUnitMetadata] {
+    TIME_UNITS
 }
 
 // ============================================================================
@@ -197,16 +104,16 @@ fn combine_units(unit1: &UnitParams, unit2: &UnitParams, operation: &str) -> Uni
     }
 }
 
-fn build_units_from_metadata() -> HashMap<String, UnitParams> {
-    let mut units: HashMap<String, UnitParams> = HashMap::new();
+fn build_units_from_metadata() -> HashMap<&'static str, UnitParams> {
+    let mut units: HashMap<&'static str, UnitParams> = HashMap::new();
     
     // Add length units
     for unit in get_length_units() {
         units.insert(
-            unit.short_name.clone(),
+            unit.short_name,
             UnitParams::new(
                 1, // length exponent
-                unit.scale_value,
+                unit.scale_value as i32,
                 0, // mass exponent
                 i32::MAX, // mass scale (unused)
                 0, // time exponent
@@ -221,12 +128,12 @@ fn build_units_from_metadata() -> HashMap<String, UnitParams> {
     // Add mass units
     for unit in get_mass_units() {
         units.insert(
-            unit.short_name.clone(),
+            unit.short_name,
             UnitParams::new(
                 0, // length exponent
                 i32::MAX, // length scale (unused)
                 1, // mass exponent
-                unit.scale_value,
+                unit.scale_value as i32,
                 0, // time exponent
                 i32::MAX, // time p2 (unused)
                 i32::MAX, // time p3 (unused)
@@ -239,17 +146,17 @@ fn build_units_from_metadata() -> HashMap<String, UnitParams> {
     // Add time units
     for unit in get_time_units() {
         units.insert(
-            unit.short_name.clone(),
+            unit.short_name,
             UnitParams::new(
                 0, // length exponent
                 i32::MAX, // length scale (unused)
                 0, // mass exponent
                 i32::MAX, // mass scale (unused)
                 1, // time exponent
-                unit.p2,
-                unit.p3,
-                unit.p5,
-                unit.scale_order,
+                unit.p2 as i32,
+                unit.p3 as i32,
+                unit.p5 as i32,
+                unit.scale_order as i32,
             )
         );
     }
@@ -291,9 +198,9 @@ fn generate_velocity_pattern(length_unit: &UnitMetadata, time_unit: &TimeUnitMet
 
 fn generate_acceleration_pattern(length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp", length_unit.scale_value,
+        "$exp", length_unit.scale_value as i32,
         "0", i32::MAX,
-        "-$exp", time_unit.p2, time_unit.p3, time_unit.p5, time_unit.scale_order
+        "-$exp", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
     );
     
     format!(
@@ -306,9 +213,9 @@ fn generate_acceleration_pattern(length_unit: &UnitMetadata, time_unit: &TimeUni
 
 fn generate_force_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp", length_unit.scale_value,
-        "$exp", mass_unit.scale_value,
-        "-$exp", time_unit.p2, time_unit.p3, time_unit.p5, time_unit.scale_order
+        "$exp", length_unit.scale_value as i32,
+        "$exp", mass_unit.scale_value as i32,
+        "-$exp", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
     );
     
     format!(
@@ -322,9 +229,9 @@ fn generate_force_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, 
 
 fn generate_energy_power_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp1", length_unit.scale_value,
-        "$exp1", mass_unit.scale_value,
-        "-$exp2", time_unit.p2, time_unit.p3, time_unit.p5, time_unit.scale_order
+        "$exp1", length_unit.scale_value as i32,
+        "$exp1", mass_unit.scale_value as i32,
+        "-$exp2", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
     );
     
     format!(
@@ -377,7 +284,7 @@ fn generate_time_unit_with_exponent_pattern(unit: &TimeUnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
         "0", i32::MAX,
         "0", i32::MAX,
-        "$exp", unit.p2, unit.p3, unit.p5, unit.scale_order
+        "$exp", unit.p2 as i32, unit.p3 as i32, unit.p5 as i32, unit.scale_order as i32
     );
     
     format!(
@@ -446,13 +353,13 @@ fn generate_macro_patterns() -> Vec<String> {
     // Length units with dynamic exponents
     patterns.push("    // Length units with dynamic exponents".to_string());
     for unit in get_length_units() {
-        patterns.push(generate_unit_with_exponent_pattern(&unit.short_name, unit.scale_value));
+        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_value as i32));
     }
     
     // Mass units with dynamic exponents
     patterns.push("    // Mass units with dynamic exponents".to_string());
     for unit in get_mass_units() {
-        patterns.push(generate_unit_with_exponent_pattern(&unit.short_name, unit.scale_value));
+        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_value as i32));
     }
     
     // Time units with dynamic exponents
@@ -475,8 +382,8 @@ fn generate_macro_patterns() -> Vec<String> {
     for unit1 in get_length_units() {
         for unit2 in get_length_units() {
             if unit1.short_name <= unit2.short_name {  // Avoid duplicates
-                let params = combine_units(&units[&unit1.short_name], &units[&unit2.short_name], "*");
-                patterns.push(generate_compound_unit_pattern(&unit1.short_name, &unit2.short_name, &params));
+                let params = combine_units(&units[unit1.short_name], &units[unit2.short_name], "*");
+                patterns.push(generate_compound_unit_pattern(unit1.short_name, unit2.short_name, &params));
             }
         }
     }
@@ -485,8 +392,8 @@ fn generate_macro_patterns() -> Vec<String> {
     patterns.push("    // Mass × Time".to_string());
     for mass_unit in get_mass_units() {
         for time_unit in get_time_units() {
-            let params = combine_units(&units[&mass_unit.short_name], &units[&time_unit.short_name], "*");
-            patterns.push(generate_compound_unit_pattern(&mass_unit.short_name, &time_unit.short_name, &params));
+            let params = combine_units(&units[mass_unit.short_name], &units[time_unit.short_name], "*");
+            patterns.push(generate_compound_unit_pattern(mass_unit.short_name, time_unit.short_name, &params));
         }
     }
     
@@ -501,8 +408,8 @@ fn generate_macro_patterns() -> Vec<String> {
     
     for length_unit in get_length_units() {
         for time_unit in get_time_units() {
-            let params = combine_units(&units[&length_unit.short_name], &units[&time_unit.short_name], "/");
-            patterns.push(generate_velocity_pattern(&length_unit, &time_unit, &params));
+            let params = combine_units(&units[length_unit.short_name], &units[time_unit.short_name], "/");
+            patterns.push(generate_velocity_pattern(length_unit, time_unit, &params));
         }
     }
     
@@ -585,9 +492,9 @@ fn generate_macro_patterns() -> Vec<String> {
     for length_unit1 in get_length_units() {
         for length_unit2 in get_length_units() {
             for time_unit in get_time_units() {
-                let temp_params = combine_units(&units[&length_unit1.short_name], &units[&length_unit2.short_name], "*");
-                let final_params = combine_units(&temp_params, &units[&time_unit.short_name], "/");
-                patterns.push(generate_complex_compound_pattern(&length_unit1.short_name, &length_unit2.short_name, &time_unit.short_name, &final_params));
+                let temp_params = combine_units(&units[length_unit1.short_name], &units[length_unit2.short_name], "*");
+                let final_params = combine_units(&temp_params, &units[time_unit.short_name], "/");
+                patterns.push(generate_complex_compound_pattern(length_unit1.short_name, length_unit2.short_name, time_unit.short_name, &final_params));
             }
         }
     }
@@ -596,9 +503,9 @@ fn generate_macro_patterns() -> Vec<String> {
     for mass_unit1 in get_mass_units() {
         for mass_unit2 in get_mass_units() {
             for time_unit in get_time_units() {
-                let temp_params = combine_units(&units[&mass_unit1.short_name], &units[&mass_unit2.short_name], "*");
-                let final_params = combine_units(&temp_params, &units[&time_unit.short_name], "/");
-                patterns.push(generate_complex_compound_pattern(&mass_unit1.short_name, &mass_unit2.short_name, &time_unit.short_name, &final_params));
+                let temp_params = combine_units(&units[mass_unit1.short_name], &units[mass_unit2.short_name], "*");
+                let final_params = combine_units(&temp_params, &units[time_unit.short_name], "/");
+                patterns.push(generate_complex_compound_pattern(mass_unit1.short_name, mass_unit2.short_name, time_unit.short_name, &final_params));
             }
         }
     }
@@ -607,9 +514,9 @@ fn generate_macro_patterns() -> Vec<String> {
     for time_unit1 in get_time_units() {
         for time_unit2 in get_time_units() {
             for time_unit3 in get_time_units() {
-                let temp_params = combine_units(&units[&time_unit1.short_name], &units[&time_unit2.short_name], "*");
-                let final_params = combine_units(&temp_params, &units[&time_unit3.short_name], "/");
-                patterns.push(generate_complex_compound_pattern(&time_unit1.short_name, &time_unit2.short_name, &time_unit3.short_name, &final_params));
+                let temp_params = combine_units(&units[time_unit1.short_name], &units[time_unit2.short_name], "*");
+                let final_params = combine_units(&temp_params, &units[time_unit3.short_name], "/");
+                patterns.push(generate_complex_compound_pattern(time_unit1.short_name, time_unit2.short_name, time_unit3.short_name, &final_params));
             }
         }
     }
