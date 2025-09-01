@@ -1,0 +1,220 @@
+use whippyunits::scale_conversion::rescale;
+use whippyunits::default_declarators::*;
+use whippyunits::quantity_type::Quantity;
+
+// ============================================================================
+// Addition and Subtraction Tests
+// ============================================================================
+
+#[test]
+fn test_addition_same_scale() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Same scale addition should work
+    let result = m1 + 3.0.meters();
+    assert_eq!(result.value, 8.0);
+    
+    let result = s1 + 10.0.seconds();
+    assert_eq!(result.value, 40.0);
+}
+
+#[test]
+fn test_subtraction_same_scale() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Same scale subtraction should work
+    let result: unit!(m) = m1 - 2.0.meters();
+    assert_eq!(result.value, 3.0);
+    
+    let result: unit!(s) = s1 - 5.0.seconds();
+    assert_eq!(result.value, 25.0);
+}
+
+// ============================================================================
+// Multiplication and Division Tests
+// ============================================================================
+
+#[test]
+fn test_multiplication_same_scale() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Same scale multiplication should work
+    let result: unit!(m) = m1 * 2.0;
+    assert_eq!(result.value, 10.0);
+    
+    let result: unit!(s) = s1 * 3.0;
+    assert_eq!(result.value, 90.0);
+}
+
+#[test]
+fn test_division_same_scale() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Same scale division should work
+    let result: unit!(m) = m1 / 2.0;
+    assert_eq!(result.value, 2.5);
+    
+    let result: unit!(s) = s1 / 3.0;
+    assert_eq!(result.value, 10.0);
+}
+
+#[test]
+fn test_quantity_multiplication() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Multiplying quantities should combine dimensions
+    let result: unit!(m * s) = m1 * s1;
+    // Result should be length * time = distance * time
+    assert_eq!(result.value, 150.0); // 5m * 30s = 150 m·s
+}
+
+#[test]
+fn test_quantity_division() {
+    let m1 = 5.0.meters();
+    let s1 = 30.0.seconds();
+    
+    // Dividing quantities should combine dimensions
+    let result: unit!(m / s) = m1 / s1;
+    // Result should be length / time = velocity
+    assert_eq!(result.value, 5.0 / 30.0); // 5m / 30s = 0.166... m/s
+}
+
+#[test]
+fn test_scalar_quantity_multiplication() {
+    let m1 = 5.0.meters();
+    
+    // Scalar * Quantity should work
+    let result: unit!(m) = 3.0 * m1;
+    assert_eq!(result.value, 15.0);
+    
+    // Quantity * Scalar should work
+    let result: unit!(m) = m1 * 4.0;
+    assert_eq!(result.value, 20.0);
+}
+
+#[test]
+fn test_scalar_quantity_division() {
+    let m1 = 5.0.meters();
+    
+    // Quantity / Scalar should work
+    let result: unit!(m) = m1 / 2.0;
+    assert_eq!(result.value, 2.5);
+    
+    // Scalar / Quantity should work (inverts dimensions)
+    let result: unit!(1 / m) = 10.0 / m1;
+    assert_eq!(result.value, 2.0); // 10 / 5m = 2 m^-1
+}
+
+// ============================================================================
+// Rescale Tests
+// ============================================================================
+
+#[test]
+fn test_rescale_length() {
+    let m1 = 5.0.meters();
+    
+    // Rescale from meters to kilometers
+    let result: Kilometer = rescale(m1);
+    assert_eq!(result.value, 0.005); // 5m = 0.005km
+    
+    // Rescale from meters to millimeters
+    let result: Millimeter = rescale(m1);
+    assert_eq!(result.value, 5000.0); // 5m = 5000mm
+}
+
+#[test]
+fn test_rescale_mass() {    
+    // Rescale from grams to kilograms
+    let result: Kilogram = rescale(100.0.grams());
+    assert_eq!(result.value, 0.1); // 100g = 0.1kg
+    
+    // Rescale from grams to milligrams
+    let result: Milligram = rescale(100.0.grams());
+    assert_eq!(result.value, 100000.0); // 100g = 100000mg
+}
+
+#[test]
+fn test_rescale_time() {
+    let s1 = 30.0.seconds();
+    
+    // Rescale from seconds to minutes
+    let result: Minute = rescale(s1);
+    assert_eq!(result.value, 0.5); // 30s = 0.5min
+    
+    // Rescale from seconds to milliseconds
+    let result: Millisecond = rescale(s1);
+    assert_eq!(result.value, 30000.0); // 30s = 30000ms
+}
+
+// ============================================================================
+// Edge Cases and Error Handling Tests
+// ============================================================================
+
+#[test]
+fn test_zero_quantities() {
+    let zero_m = 0.0.meters();
+    let zero_s = 0.0.seconds();
+    
+    // Addition with zero
+    let result = zero_m + 5.0.meters();
+    assert_eq!(result.value, 5.0);
+    
+    // Multiplication with zero
+    let result = zero_m * 10.0;
+    assert_eq!(result.value, 0.0);
+    
+    // Division by zero should panic (Rust behavior)
+    // This test documents the expected behavior
+}
+
+#[test]
+fn test_negative_quantities() {
+    let neg_m = (-3.0).meters();
+    let pos_m = 5.0.meters();
+    
+    // Addition with negative
+    let result = neg_m + pos_m;
+    assert_eq!(result.value, 2.0);
+    
+    // Subtraction with negative
+    let result = pos_m - neg_m;
+    assert_eq!(result.value, 8.0);
+    
+    // Multiplication with negative
+    let result = neg_m * 2.0;
+    assert_eq!(result.value, -6.0);
+}
+
+#[test]
+fn test_large_numbers() {
+    let large_m = 1000000.0.meters();
+    let small_m = 0.000001.meters();
+    
+    // Addition with large numbers
+    let result = large_m + small_m;
+    assert_eq!(result.value, 1000000.000001);
+    
+    // Multiplication with large numbers
+    let result = large_m * 2.0;
+    assert_eq!(result.value, 2000000.0);
+}
+
+// ============================================================================
+// Integration Tests
+// ============================================================================
+
+#[test]
+fn test_chain_operations() {
+    let m1 = 5.0.meters();
+    
+    // Chain multiple operations
+    let result = m1 + m1 - 2.0.meters() * 3.0 / 2.0;
+    // 5m + 5m - (2m * 3) / 2 = 10m - 3m = 7m
+    assert_eq!(result.value, 7.0);
+}
+

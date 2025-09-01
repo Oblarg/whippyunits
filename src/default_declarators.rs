@@ -1,6 +1,21 @@
 use crate::quantity_type::Quantity;
 use crate::constants::*;
 
+#[cfg(feature = "strict")]
+const MASS_UNUSED: isize = 0;
+#[cfg(feature = "strict")]
+const LENGTH_UNUSED: isize = 0;
+#[cfg(feature = "strict")]
+const TIME_UNUSED: isize = 0;
+
+#[cfg(not(feature = "strict"))]
+const MASS_UNUSED: isize = isize::MAX;
+#[cfg(not(feature = "strict"))]
+const LENGTH_UNUSED: isize = isize::MAX;
+#[cfg(not(feature = "strict"))]
+const TIME_UNUSED: isize = isize::MAX;
+
+
 // ============================================================================
 // Extension Traits for Natural Syntax
 // ============================================================================
@@ -157,9 +172,9 @@ impl TimeExt for i32 {
 
 #[cfg(feature = "strict")]
 define_unit_macro!(
-    KILOGRAM_SCALE_P10,
-    METER_SCALE_P10,
-    SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5
+    0,
+    0,
+    0, 0, 0
 );
 
 #[cfg(not(feature = "strict"))]
@@ -168,3 +183,5 @@ define_unit_macro!(
     { isize::MAX },
     { isize::MAX }, { isize::MAX }, { isize::MAX }
 );
+
+pub use unit;

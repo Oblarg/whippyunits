@@ -10,6 +10,9 @@ syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
 whippyunits-unit-macro = { path = "./unit-macro" }
 
+[dev-dependencies]
+trybuild = "1.0"
+
 [features]
 default = ["strict"]
 strict = []

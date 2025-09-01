@@ -25,7 +25,7 @@ fn main() {
     }
 
     // Test basic quantity creation and display
-    let distance1: unit!(mm) = 5.0.meters();
+    let distance1 = 5.0.meters();
     let distance2: impl Length = 3.0.meters();
 
     println!("Distance1: {}", distance1);

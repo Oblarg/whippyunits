@@ -216,7 +216,7 @@ pub fn pretty_print_quantity(
         result.push_str("; [");
         result.push_str(&format!("mass{}", to_unicode_superscript(mass_exponent, true)));
         if mass_scale_p10 == isize::MAX {
-            result.push_str("(10unused)");
+            result.push_str("(unused)");
         } else if mass_scale_p10 == isize::MIN {
             result.push_str("(10ˀ)");
         } else {
@@ -224,36 +224,42 @@ pub fn pretty_print_quantity(
         }
         result.push_str(&format!(", length{}", to_unicode_superscript(length_exponent, true)));
         if length_scale_p10 == isize::MAX {
-            result.push_str("(10unused)");
+            result.push_str("(unused)");
         } else if length_scale_p10 == isize::MIN {
             result.push_str("(10ˀ)");
         } else {
             result.push_str(&format!("(10{})", to_unicode_superscript(length_scale_p10, false)));
         }
         result.push_str(&format!(", time{}", to_unicode_superscript(time_exponent, true)));
-        result.push_str("(2");
-        if time_scale_p2 == isize::MAX {
-            result.push_str("unused");
-        } else if time_scale_p2 == isize::MIN {
-            result.push_str("ˀ");
+        // Check if all time scales are unused
+        if time_scale_p2 == isize::MAX && time_scale_p3 == isize::MAX && time_scale_p5 == isize::MAX {
+            result.push_str("(unused)");
         } else {
-            result.push_str(&to_unicode_superscript(time_scale_p2, false));
-        }
-        result.push_str(", 3");
-        if time_scale_p3 == isize::MAX {
-            result.push_str("unused");
-        } else if time_scale_p3 == isize::MIN {
-            result.push_str("ˀ");
-        } else {
-            result.push_str(&to_unicode_superscript(time_scale_p3, false));
-        }
-        result.push_str(", 5");
-        if time_scale_p5 == isize::MAX {
-            result.push_str("unused");
-        } else if time_scale_p5 == isize::MIN {
-            result.push_str("ˀ");
-        } else {
-            result.push_str(&to_unicode_superscript(time_scale_p5, false));
+            result.push_str("(2");
+            if time_scale_p2 == isize::MAX {
+                result.push_str("unused");
+            } else if time_scale_p2 == isize::MIN {
+                result.push_str("ˀ");
+            } else {
+                result.push_str(&to_unicode_superscript(time_scale_p2, false));
+            }
+            result.push_str(", 3");
+            if time_scale_p3 == isize::MAX {
+                result.push_str("unused");
+            } else if time_scale_p3 == isize::MIN {
+                result.push_str("ˀ");
+            } else {
+                result.push_str(&to_unicode_superscript(time_scale_p3, false));
+            }
+            result.push_str(", 5");
+            if time_scale_p5 == isize::MAX {
+                result.push_str("unused");
+            } else if time_scale_p5 == isize::MIN {
+                result.push_str("ˀ");
+            } else {
+                result.push_str(&to_unicode_superscript(time_scale_p5, false));
+            }
+            result.push_str(")");
         }
         result.push_str(")]");
     }

@@ -11,6 +11,7 @@ macro_rules! define_unit_macro {
         $length_unused:expr,
         $time_unused_p2:expr, $time_unused_p3:expr, $time_unused_p5:expr
     ) => {
+        #[macro_export]
         macro_rules! unit {
             // ============================================================================
             // SINGLE UNITS (Base units)
@@ -65,6 +66,58 @@ macro_rules! define_unit_macro {
                     > };
 
             // ============================================================================
+            // INVERSE UNITS (1 / unit)
+            // ============================================================================
+            // Inverse mass units
+            (1/mg) => { crate::Quantity<
+                        -1, 6,
+                        0, $length_unused,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            (1/g) => { crate::Quantity<
+                        -1, 3,
+                        0, $length_unused,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            (1/kg) => { crate::Quantity<
+                        -1, 0,
+                        0, $length_unused,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            // Inverse length units
+            (1/mm) => { crate::Quantity<
+                        0, $mass_unused,
+                        -1, 3,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            (1/m) => { crate::Quantity<
+                        0, $mass_unused,
+                        -1, 0,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            (1/km) => { crate::Quantity<
+                        0, $mass_unused,
+                        -1, -3,
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                    > };
+            // Inverse time units
+            (1/ms) => { crate::Quantity<
+                        0, $mass_unused,
+                        0, $length_unused,
+                        -1, 3, 0, 3
+                    > };
+            (1/s) => { crate::Quantity<
+                        0, $mass_unused,
+                        0, $length_unused,
+                        -1, 0, 0, 0
+                    > };
+            (1/min) => { crate::Quantity<
+                        0, $mass_unused,
+                        0, $length_unused,
+                        -1, -2, -1, -1
+                    > };
+
+            // ============================================================================
             // UNITS WITH EXPONENTS (Squared, cubed, etc.)
             // ============================================================================
             // Mass units with dynamic exponents
@@ -114,6 +167,58 @@ macro_rules! define_unit_macro {
                             0, $mass_unused,
                             0, $length_unused,
                             $exp, 2, 1, 1
+                        > };
+
+            // ============================================================================
+            // INVERSE UNITS WITH EXPONENTS (1 / unit^exp)
+            // ============================================================================
+            // Inverse mass units with dynamic exponents
+            (1/mg^$exp:tt) => { crate::Quantity<
+                            -$exp, 6,
+                            0, $length_unused,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            (1/g^$exp:tt) => { crate::Quantity<
+                            -$exp, 3,
+                            0, $length_unused,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            (1/kg^$exp:tt) => { crate::Quantity<
+                            -$exp, 0,
+                            0, $length_unused,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            // Inverse length units with dynamic exponents
+            (1/mm^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            -$exp, 3,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            (1/m^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            -$exp, 0,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            (1/km^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            -$exp, -3,
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        > };
+            // Inverse time units with dynamic exponents
+            (1/ms^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            0, $length_unused,
+                            -$exp, 3, 0, 3
+                        > };
+            (1/s^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            0, $length_unused,
+                            -$exp, 0, 0, 0
+                        > };
+            (1/min^$exp:tt) => { crate::Quantity<
+                            0, $mass_unused,
+                            0, $length_unused,
+                            -$exp, -2, -1, -1
                         > };
 
             // ============================================================================

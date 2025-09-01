@@ -75,9 +75,6 @@ impl InlayHintProcessor {
         };
 
         if has_whippyunits {
-            // First, check if this is an unresolved type that needs a seeded unit macro
-            let needs_seeded_macro = self.is_unresolved_type(hint_obj);
-            
             // Get the label array from the object and process it
             if let Some(label) = hint_obj.get_mut("label") {
                 if let Some(label_array) = label.as_array_mut() {
@@ -85,10 +82,8 @@ impl InlayHintProcessor {
                 }
             }
             
-            // Now add the seeded unit macro if needed
-            if needs_seeded_macro {
-                self.add_seeded_unit_macro_text_edit(hint_obj)?;
-            }
+            // Always add the unit! macro completion, regardless of resolution state
+            self.add_seeded_unit_macro_text_edit(hint_obj)?;
         }
         Ok(())
     }
@@ -187,9 +182,9 @@ impl InlayHintProcessor {
         false
     }
 
-    /// Add a seeded unit macro text edit to the hint
+    /// Add a unit! macro text edit to the hint
     fn add_seeded_unit_macro_text_edit(&self, hint_obj: &mut serde_json::Map<String, Value>) -> Result<()> {
-        // Generate the seeded unit macro text
+        // Generate the unit! macro text
         let seeded_text = self.generate_seeded_unit_macro(hint_obj)?;
         
         // Extract position before any mutable borrows
@@ -202,7 +197,7 @@ impl InlayHintProcessor {
         // Replace existing textEdits with our seeded unit macro
         if let Some(existing_text_edits) = hint_obj.get_mut("textEdits") {
             if let Some(text_edits_array) = existing_text_edits.as_array_mut() {
-                // Clear existing text edits and add our seeded one
+                // Clear existing text edits and add our unit! macro one
                 text_edits_array.clear();
                 
                 // Get the range from the first existing text edit (if any)
@@ -224,7 +219,7 @@ impl InlayHintProcessor {
                     })
                 };
                 
-                // Add our seeded unit macro text edit
+                // Add our unit! macro text edit
                 let text_edit = json!({
                     "range": range,
                     "newText": seeded_text
