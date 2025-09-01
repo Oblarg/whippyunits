@@ -1,96 +1,62 @@
-use crate::*;
-use crate::generated_constants::*;
+use crate::quantity_type::Quantity;
+use crate::constants::*;
 
 // ============================================================================
 // Extension Traits for Natural Syntax
 // ============================================================================
 
-pub type Millimeter = Quantity<
-    1, MILLIMETER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
->;
-pub type Meter = Quantity<
-    1, METER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
->;
-pub type Kilometer = Quantity<
-    1, KILOMETER_SCALE,
-    0, MASS_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
->;
-
 pub type Milligram = Quantity<
+    1, MILLIGRAM_SCALE_P10,
     0, LENGTH_UNUSED,
-    1, MILLIGRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
 pub type Gram = Quantity<
+    1, GRAM_SCALE_P10,
     0, LENGTH_UNUSED,
-    1, GRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
 pub type Kilogram = Quantity<
+    1, KILOGRAM_SCALE_P10,
     0, LENGTH_UNUSED,
-    1, KILOGRAM_SCALE,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+>;
+
+pub type Millimeter = Quantity<
+    0, MASS_UNUSED,
+    1, MILLIMETER_SCALE_P10,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+>;
+pub type Meter = Quantity<
+    0, MASS_UNUSED,
+    1, METER_SCALE_P10,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+>;
+pub type Kilometer = Quantity<
+    0, MASS_UNUSED,
+    1, KILOMETER_SCALE_P10,
+    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
 >;
 
 pub type Millisecond = Quantity<
-    0, LENGTH_UNUSED,
     0, MASS_UNUSED,
-    1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5, MILLISECOND_SCALE_ORDER,
+    0, LENGTH_UNUSED,
+    1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5,
 >;
 pub type Second = Quantity<
-    0, LENGTH_UNUSED,
     0, MASS_UNUSED,
-    1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5, SECOND_SCALE_ORDER,
+    0, LENGTH_UNUSED,
+    1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5,
 >;
 pub type Minute = Quantity<
-    0, LENGTH_UNUSED,
     0, MASS_UNUSED,
-    1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5, MINUTE_SCALE_ORDER,
+    0, LENGTH_UNUSED,
+    1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5,
 >;
 
-pub trait LengthExt {
-    fn meters(self) -> Meter;
-    fn millimeters(self) -> Millimeter;
-    fn kilometers(self) -> Kilometer;
-}
-
-impl LengthExt for f64 {
-    fn meters(self) -> Meter {
-        Quantity::new(self)
-    }
-
-    fn millimeters(self) -> Millimeter {
-        Quantity::new(self)
-    }
-
-    fn kilometers(self) -> Kilometer {
-        Quantity::new(self)
-    }
-}
-
-impl LengthExt for i32 {
-    fn meters(self) -> Meter {
-        Quantity::new(self as f64)
-    }
-
-    fn millimeters(self) -> Millimeter {
-        Quantity::new(self as f64)
-    }
-
-    fn kilometers(self) -> Kilometer {
-        Quantity::new(self as f64)
-    }
-}
-
 pub trait MassExt {
-    fn kilograms(self) -> Kilogram;
     fn milligrams(self) -> Milligram;
     fn grams(self) -> Gram;
+    fn kilograms(self) -> Kilogram;
 }
 
 impl MassExt for f64 {
@@ -117,6 +83,40 @@ impl MassExt for i32 {
     }
 
     fn kilograms(self) -> Kilogram {
+        Quantity::new(self as f64)
+    }
+}
+
+pub trait LengthExt {
+    fn millimeters(self) -> Millimeter;
+    fn meters(self) -> Meter;
+    fn kilometers(self) -> Kilometer;
+}
+
+impl LengthExt for f64 {
+    fn millimeters(self) -> Millimeter {
+        Quantity::new(self)
+    }
+
+    fn meters(self) -> Meter {
+        Quantity::new(self)
+    }
+
+    fn kilometers(self) -> Kilometer {
+        Quantity::new(self)
+    }
+}
+
+impl LengthExt for i32 {
+    fn millimeters(self) -> Millimeter {
+        Quantity::new(self as f64)
+    }
+
+    fn meters(self) -> Meter {
+        Quantity::new(self as f64)
+    }
+
+    fn kilometers(self) -> Kilometer {
         Quantity::new(self as f64)
     }
 }
@@ -154,3 +154,17 @@ impl TimeExt for i32 {
         Quantity::new(self as f64)
     }
 }
+
+#[cfg(feature = "strict")]
+define_unit_macro!(
+    KILOGRAM_SCALE_P10,
+    METER_SCALE_P10,
+    SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5
+);
+
+#[cfg(not(feature = "strict"))]
+define_unit_macro!(
+    { isize::MAX },
+    { isize::MAX },
+    { isize::MAX }, { isize::MAX }, { isize::MAX }
+);

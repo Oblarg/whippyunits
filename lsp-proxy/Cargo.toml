@@ -13,6 +13,7 @@ log = "0.4"
 env_logger = "0.10"
 tempfile = "3.0"
 shellexpand = "3.0"
+whippyunits = { path = ".." }
 
 [[bin]]
 name = "lsp-proxy"

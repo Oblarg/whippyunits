@@ -2,19 +2,21 @@ use std::collections::HashMap;
 use std::fs;
 
 // ============================================================================
-// Import dimensional metadata
+// Import data sources and shared utilities
 // ============================================================================
 
-mod dimensional_metadata;
-use dimensional_metadata::{UnitMetadata, TimeUnitMetadata, LENGTH_UNITS, MASS_UNITS, TIME_UNITS};
+mod unit_data;
+mod generator_utils;
+use unit_data::{UnitMetadata, LENGTH_UNITS, MASS_UNITS, TIME_UNITS};
+// Removed unused import
 
 #[derive(Debug, Clone)]
 struct UnitParams {
-    length_exp: i32,
+    length_exp: isize,
     length_scale: String,
-    mass_exp: i32,
+    mass_exp: isize,
     mass_scale: String,
-    time_exp: i32,
+    time_exp: isize,
     time_p2: String,
     time_p3: String,
     time_p5: String,
@@ -23,26 +25,26 @@ struct UnitParams {
 
 impl UnitParams {
     fn new(
-        length_exp: i32,
-        length_scale: i32,
-        mass_exp: i32,
-        mass_scale: i32,
-        time_exp: i32,
-        time_p2: i32,
-        time_p3: i32,
-        time_p5: i32,
-        time_scale_order: i32,
+        length_exp: isize,
+        length_scale: isize,
+        mass_exp: isize,
+        mass_scale: isize,
+        time_exp: isize,
+        time_p2: isize,
+        time_p3: isize,
+        time_p5: isize,
+        time_scale_order: isize,
     ) -> Self {
         Self {
             length_exp,
-            length_scale: if length_scale == i32::MAX { "9223372036854775807".to_string() } else { length_scale.to_string() },
+            length_scale: if length_scale == isize::MAX { "9223372036854775807".to_string() } else { length_scale.to_string() },
             mass_exp,
-            mass_scale: if mass_scale == i32::MAX { "9223372036854775807".to_string() } else { mass_scale.to_string() },
+            mass_scale: if mass_scale == isize::MAX { "9223372036854775807".to_string() } else { mass_scale.to_string() },
             time_exp,
-            time_p2: if time_p2 == i32::MAX { "9223372036854775807".to_string() } else { time_p2.to_string() },
-            time_p3: if time_p3 == i32::MAX { "9223372036854775807".to_string() } else { time_p3.to_string() },
-            time_p5: if time_p5 == i32::MAX { "9223372036854775807".to_string() } else { time_p5.to_string() },
-            time_scale_order: if time_scale_order == i32::MAX { "9223372036854775807".to_string() } else { time_scale_order.to_string() },
+            time_p2: if time_p2 == isize::MAX { "9223372036854775807".to_string() } else { time_p2.to_string() },
+            time_p3: if time_p3 == isize::MAX { "9223372036854775807".to_string() } else { time_p3.to_string() },
+            time_p5: if time_p5 == isize::MAX { "9223372036854775807".to_string() } else { time_p5.to_string() },
+            time_scale_order: if time_scale_order == isize::MAX { "9223372036854775807".to_string() } else { time_scale_order.to_string() },
         }
     }
 
@@ -68,7 +70,7 @@ fn get_mass_units() -> &'static [UnitMetadata] {
     MASS_UNITS
 }
 
-fn get_time_units() -> &'static [TimeUnitMetadata] {
+fn get_time_units() -> &'static [UnitMetadata] {
     TIME_UNITS
 }
 
@@ -113,14 +115,14 @@ fn build_units_from_metadata() -> HashMap<&'static str, UnitParams> {
             unit.short_name,
             UnitParams::new(
                 1, // length exponent
-                unit.scale_value as i32,
+                unit.scale_order as isize,
                 0, // mass exponent
-                i32::MAX, // mass scale (unused)
+                isize::MAX, // mass scale (unused)
                 0, // time exponent
-                i32::MAX, // time p2 (unused)
-                i32::MAX, // time p3 (unused)
-                i32::MAX, // time p5 (unused)
-                i32::MAX, // time scale order (unused)
+                isize::MAX, // time p2 (unused)
+                isize::MAX, // time p3 (unused)
+                isize::MAX, // time p5 (unused)
+                isize::MAX, // time scale order (unused)
             )
         );
     }
@@ -131,14 +133,14 @@ fn build_units_from_metadata() -> HashMap<&'static str, UnitParams> {
             unit.short_name,
             UnitParams::new(
                 0, // length exponent
-                i32::MAX, // length scale (unused)
+                isize::MAX, // length scale (unused)
                 1, // mass exponent
-                unit.scale_value as i32,
+                unit.scale_order as isize,
                 0, // time exponent
-                i32::MAX, // time p2 (unused)
-                i32::MAX, // time p3 (unused)
-                i32::MAX, // time p5 (unused)
-                i32::MAX, // time scale order (unused)
+                isize::MAX, // time p2 (unused)
+                isize::MAX, // time p3 (unused)
+                isize::MAX, // time p5 (unused)
+                isize::MAX, // time scale order (unused)
             )
         );
     }
@@ -149,14 +151,14 @@ fn build_units_from_metadata() -> HashMap<&'static str, UnitParams> {
             unit.short_name,
             UnitParams::new(
                 0, // length exponent
-                i32::MAX, // length scale (unused)
+                isize::MAX, // length scale (unused)
                 0, // mass exponent
-                i32::MAX, // mass scale (unused)
+                isize::MAX, // mass scale (unused)
                 1, // time exponent
-                unit.p2 as i32,
-                unit.p3 as i32,
-                unit.p5 as i32,
-                unit.scale_order as i32,
+                unit.p2() as isize,
+                unit.p3() as isize,
+                unit.p5() as isize,
+                unit.scale_order as isize,
             )
         );
     }
@@ -170,24 +172,31 @@ fn build_units_from_metadata() -> HashMap<&'static str, UnitParams> {
 
 fn generate_quantity_type_with_exponents(
     length_exp: &str,
-    length_scale: i32,
+    length_scale: isize,
     mass_exp: &str,
-    mass_scale: i32,
+    mass_scale: isize,
     time_exp: &str,
-    time_p2: i32,
-    time_p3: i32,
-    time_p5: i32,
-    time_scale_order: i32,
+    time_p2: isize,
+    time_p3: isize,
+    time_p5: isize,
+    time_scale_order: isize,
 ) -> String {
+    let length_scale_str = if length_scale == isize::MAX { "9223372036854775807" } else { &length_scale.to_string() };
+    let mass_scale_str = if mass_scale == isize::MAX { "9223372036854775807" } else { &mass_scale.to_string() };
+    let time_p2_str = if time_p2 == isize::MAX { "9223372036854775807" } else { &time_p2.to_string() };
+    let time_p3_str = if time_p3 == isize::MAX { "9223372036854775807" } else { &time_p3.to_string() };
+    let time_p5_str = if time_p5 == isize::MAX { "9223372036854775807" } else { &time_p5.to_string() };
+    let time_scale_order_str = if time_scale_order == isize::MAX { "9223372036854775807" } else { &time_scale_order.to_string() };
+    
     format!(
         "crate::Quantity<\n                {}, {},\n                {}, {},\n                {}, {}, {}, {}, {}\n            >",
-        length_exp, length_scale,
-        mass_exp, mass_scale,
-        time_exp, time_p2, time_p3, time_p5, time_scale_order
+        length_exp, length_scale_str,
+        mass_exp, mass_scale_str,
+        time_exp, time_p2_str, time_p3_str, time_p5_str, time_scale_order_str
     )
 }
 
-fn generate_velocity_pattern(length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata, params: &UnitParams) -> String {
+fn generate_velocity_pattern(length_unit: &UnitMetadata, time_unit: &UnitMetadata, params: &UnitParams) -> String {
     format!(
         "    ({} / {}) => {{ {} }};",
         length_unit.short_name,
@@ -196,11 +205,11 @@ fn generate_velocity_pattern(length_unit: &UnitMetadata, time_unit: &TimeUnitMet
     )
 }
 
-fn generate_acceleration_pattern(length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
+fn generate_acceleration_pattern(length_unit: &UnitMetadata, time_unit: &UnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp", length_unit.scale_value as i32,
-        "0", i32::MAX,
-        "-$exp", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
+        "$exp", length_unit.scale_order as isize,
+        "0", isize::MAX,
+        "-$exp", time_unit.p2() as isize, time_unit.p3() as isize, time_unit.p5() as isize, time_unit.scale_order() as isize
     );
     
     format!(
@@ -211,11 +220,11 @@ fn generate_acceleration_pattern(length_unit: &UnitMetadata, time_unit: &TimeUni
     )
 }
 
-fn generate_force_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
+fn generate_force_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &UnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp", length_unit.scale_value as i32,
-        "$exp", mass_unit.scale_value as i32,
-        "-$exp", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
+        "$exp", length_unit.scale_order as isize,
+        "$exp", mass_unit.scale_order as isize,
+        "-$exp", time_unit.p2() as isize, time_unit.p3() as isize, time_unit.p5() as isize, time_unit.scale_order() as isize
     );
     
     format!(
@@ -227,11 +236,11 @@ fn generate_force_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, 
     )
 }
 
-fn generate_energy_power_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &TimeUnitMetadata) -> String {
+fn generate_energy_power_pattern(mass_unit: &UnitMetadata, length_unit: &UnitMetadata, time_unit: &UnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp1", length_unit.scale_value as i32,
-        "$exp1", mass_unit.scale_value as i32,
-        "-$exp2", time_unit.p2 as i32, time_unit.p3 as i32, time_unit.p5 as i32, time_unit.scale_order as i32
+        "$exp1", length_unit.scale_order as isize,
+        "$exp1", mass_unit.scale_order as isize,
+        "-$exp2", time_unit.p2() as isize, time_unit.p3() as isize, time_unit.p5() as isize, time_unit.scale_order() as isize
     );
     
     format!(
@@ -266,11 +275,11 @@ fn generate_single_unit_pattern(unit_name: &str, params: &UnitParams) -> String 
     )
 }
 
-fn generate_unit_with_exponent_pattern(unit_name: &str, scale_value: i32) -> String {
+fn generate_unit_with_exponent_pattern(unit_name: &str, scale_order: isize) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "$exp", scale_value,
-        "0", i32::MAX,
-        "0", i32::MAX, i32::MAX, i32::MAX, i32::MAX
+        "$exp", scale_order,
+        "0", isize::MAX,
+        "0", isize::MAX, isize::MAX, isize::MAX, isize::MAX
     );
     
     format!(
@@ -280,11 +289,11 @@ fn generate_unit_with_exponent_pattern(unit_name: &str, scale_value: i32) -> Str
     )
 }
 
-fn generate_time_unit_with_exponent_pattern(unit: &TimeUnitMetadata) -> String {
+fn generate_time_unit_with_exponent_pattern(unit: &UnitMetadata) -> String {
     let quantity_type = generate_quantity_type_with_exponents(
-        "0", i32::MAX,
-        "0", i32::MAX,
-        "$exp", unit.p2 as i32, unit.p3 as i32, unit.p5 as i32, unit.scale_order as i32
+        "0", isize::MAX,
+        "0", isize::MAX,
+        "$exp", unit.p2() as isize, unit.p3() as isize, unit.p5() as isize, unit.scale_order() as isize
     );
     
     format!(
@@ -353,13 +362,13 @@ fn generate_macro_patterns() -> Vec<String> {
     // Length units with dynamic exponents
     patterns.push("    // Length units with dynamic exponents".to_string());
     for unit in get_length_units() {
-        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_value as i32));
+        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_order as isize));
     }
     
     // Mass units with dynamic exponents
     patterns.push("    // Mass units with dynamic exponents".to_string());
     for unit in get_mass_units() {
-        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_value as i32));
+        patterns.push(generate_unit_with_exponent_pattern(unit.short_name, unit.scale_order as isize));
     }
     
     // Time units with dynamic exponents
@@ -558,7 +567,7 @@ fn main() {
     let pattern_count = output.lines().filter(|line| line.contains("=>")).count();
     
     // Write to file
-    fs::write("src/generated_unit_macro.rs", &output).expect("Failed to write file");
+    fs::write("../src/generated_unit_macro.rs", &output).expect("Failed to write file");
     
     println!("✅ Generated src/generated_unit_macro.rs");
     println!("📊 Generated {} patterns", pattern_count);

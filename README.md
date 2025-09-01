@@ -59,6 +59,31 @@ let sumInMillimeters = meters + millimeters.rescale();
 type Energy = unit!(kg * m^2 / s^2);
 ```
 
+## Scale-Generic Calculations
+
+Functions can be generic over unit scales while maintaining dimensional safety:
+
+```rust
+use core::ops::Mul;
+use whippyunits::dimension_traits::*;
+
+// dimension trait Length indicates a scale-generic length value
+fn Area<D1: Length, D2: Length>(d1: D1, d2: D2) -> <D1 as Mul<D2>>::Output
+where
+    D1: Mul<D2>,
+{
+    d1 * d2
+}
+
+// Works with any length units
+let area = Area(5.0.meters(), 3.0.meters()); // 15.0 m²
+// deterministically autorescales if units mismatch and semantics allow it
+// e.g., under left-hand-wins...
+let area = Area(5.0.meters(), 3000.0.millimeters()); // 15.0 m² (converted)
+// under 'strict' (compile error if rescale omitted)...
+let area = Area(5.0.meters(), rescale(3000.0.millimeters())); // 15.0 m² (converted)
+```
+
 ## Requirements
 
 - Rust nightly (for const generics support)

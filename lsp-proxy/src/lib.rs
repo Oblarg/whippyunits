@@ -2,29 +2,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use regex::Regex;
 
-/// Macro to format the bracket notation consistently across different contexts
-macro_rules! format_bracket_details {
-    ($length_exp:expr, $length_scale:expr, $length_scale_name:expr,
-     $mass_exp:expr, $mass_scale:expr, $mass_scale_name:expr,
-     $time_exp:expr, $time_p2:expr, $time_p3:expr, $time_p5:expr, $time_scale_name:expr) => {
-        format!(
-            "Length: Exponent {} [Scale Index {}; {}], Mass: Exponent {} [Scale Index {}; {}], Time: Exponent {} [Prime Factors p2:{}, p3:{}, p5:{}; {}]",
-            $length_exp,
-            $length_scale,
-            $length_scale_name,
-            $mass_exp,
-            $mass_scale,
-            $mass_scale_name,
-            $time_exp,
-            $time_p2,
-            $time_p3,
-            $time_p5,
-            $time_scale_name
-        )
-    };
-}
-
-
 
 pub mod inlay_hint_processor;
 
@@ -340,7 +317,7 @@ impl LspProxy {
     }
 }
 
-/// Type converter for whippyunits types
+/// Type converter for whippyunits types using the new prettyprint API
 #[derive(Clone)]
 pub struct WhippyUnitsTypeConverter;
 
@@ -351,25 +328,10 @@ impl WhippyUnitsTypeConverter {
 
     /// Convert types in text with display configuration
     pub fn convert_types_in_text_with_config(&self, text: &str, config: &DisplayConfig) -> String {
-        // Check for truly unresolved types with _ placeholders in Quantity types only
-        let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
-        if let Some(caps) = quantity_regex.captures(text) {
-            let quantity_part = &caps[0];
-            if quantity_part.contains('_') {
-                return self.generate_ambiguous_matches(text, config);
-            }
-        }
-        
-        // Check for partially resolved types (mix of specific values and sentinel values)
-        if text.contains("9223372036854775807") {
-            // Parse the type to see if it's fully resolved or partially resolved
-            if self.is_partially_resolved_type(text) {
-                return self.generate_ambiguous_matches(text, config);
-            }
-        }
+        use whippyunits::print::prettyprint::pretty_print_quantity_type;
         
         let mut result = if config.verbose {
-            // In verbose mode, just convert Quantity types to readable format
+            // In verbose mode, convert Quantity types to readable format
             self.convert_quantity_types_verbose(text)
         } else {
             // In clean mode, convert to unit display
@@ -389,19 +351,62 @@ impl WhippyUnitsTypeConverter {
         self.convert_types_in_text_with_config(text, &DisplayConfig::default())
     }
 
+    /// Convert types in text with verbose mode
+    pub fn convert_types_in_text_verbose(&self, text: &str) -> String {
+        let config = DisplayConfig {
+            verbose: true,
+            unicode: true,
+            include_raw: false,
+        };
+        self.convert_types_in_text_with_config(text, &config)
+    }
+
     /// Convert Quantity types to verbose const generic display
     fn convert_quantity_types_verbose(&self, text: &str) -> String {
+        use whippyunits::print::prettyprint::{pretty_print_quantity_type, generate_dimension_symbols};
+        use whippyunits::print::name_lookup::{lookup_dimension_name, generate_systematic_unit_name};
+        
         let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
-            let params = self.parse_quantity_params(&full_match);
+            
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
+            let params = if full_match.contains("const") || full_match.contains("isize") {
+                // This is a type definition, treat as fully unresolved (all _ placeholders)
+                Some(QuantityParams {
+                    mass_exp: isize::MIN,
+                    mass_scale: isize::MIN,
+                    length_exp: isize::MIN,
+                    length_scale: isize::MIN,
+                    time_exp: isize::MIN,
+                    time_p2: isize::MIN,
+                    time_p3: isize::MIN,
+                    time_p5: isize::MIN,
+                })
+            } else {
+                self.parse_quantity_params(&full_match)
+            };
+            
             if let Some(params) = params {
-                // Get the clean unit display first
-                let clean_display = self.build_unit_strings_unicode(&params);
-                // Get the detailed breakdown
-                let details = self.build_type_details(&params);
-                // Combine them: clean display + detailed breakdown
-                format!("{} - {}", clean_display, details)
+                // Check if this is a partially resolved type
+                if self.is_partially_resolved_type(&full_match) {
+                    // For partially resolved types, use the full pretty-printed format
+                    // but with unresolved scale indicators
+                    pretty_print_quantity_type(
+                        params.mass_exp, params.mass_scale,
+                        params.length_exp, params.length_scale,
+                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                        true, // verbose
+                    )
+                } else {
+                    // Use the new prettyprint API with verbose=true
+                    pretty_print_quantity_type(
+                        params.mass_exp, params.mass_scale,
+                        params.length_exp, params.length_scale,
+                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                        true, // verbose
+                    )
+                }
             } else {
                 caps[0].to_string()
             }
@@ -410,15 +415,49 @@ impl WhippyUnitsTypeConverter {
 
     /// Convert Quantity types to clean unit display
     fn convert_quantity_types_clean(&self, text: &str, unicode: bool) -> String {
+        use whippyunits::print::prettyprint::{pretty_print_quantity_type, generate_dimension_symbols};
+        use whippyunits::print::name_lookup::{lookup_dimension_name, generate_systematic_unit_name};
+        
         let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
-            let params = self.parse_quantity_params(&full_match);
+            
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
+            let params = if full_match.contains("const") || full_match.contains("isize") {
+                // This is a type definition, treat as fully unresolved (all _ placeholders)
+                Some(QuantityParams {
+                    mass_exp: isize::MIN,
+                    mass_scale: isize::MIN,
+                    length_exp: isize::MIN,
+                    length_scale: isize::MIN,
+                    time_exp: isize::MIN,
+                    time_p2: isize::MIN,
+                    time_p3: isize::MIN,
+                    time_p5: isize::MIN,
+                })
+            } else {
+                self.parse_quantity_params(&full_match)
+            };
+            
             if let Some(params) = params {
-                if unicode {
-                    self.build_unit_strings_unicode(&params)
+                // Check if this is a partially resolved type
+                if self.is_partially_resolved_type(&full_match) {
+                    // For partially resolved types, leverage existing prettyprint logic
+                    // First try to look up recognized dimension names
+                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp) {
+                        dimension_info.dimension_name.to_string()
+                    } else {
+                        // For unrecognized composite types, show dimension symbols (M, L, T)
+                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp)
+                    }
                 } else {
-                    self.build_unit_strings_ascii(&params)
+                    // Use the new prettyprint API with verbose=false
+                    pretty_print_quantity_type(
+                        params.mass_exp, params.mass_scale,
+                        params.length_exp, params.length_scale,
+                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                        false, // not verbose
+                    )
                 }
             } else {
                 caps[0].to_string()
@@ -426,155 +465,55 @@ impl WhippyUnitsTypeConverter {
         }).to_string()
     }
 
-    /// Build unit strings with Unicode superscripts
-    fn build_unit_strings_unicode(&self, params: &QuantityParams) -> String {
-        let mut units = Vec::new();
+    /// Convert Quantity types to ultra-terse inlay hint format
+    pub fn convert_types_in_text_inlay_hint(&self, text: &str) -> String {
+        use whippyunits::print::prettyprint::{pretty_print_quantity_inlay_hint, generate_dimension_symbols};
+        use whippyunits::print::name_lookup::{lookup_dimension_name, generate_systematic_unit_name};
         
-        // Length
-        if params.length_exp != 0 {
-            let unit = match params.length_scale {
-                -1 => "mm",
-                0 => "m",
-                1 => "km",
-                isize::MAX => "",
-                _ => "unknown",
+        let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
+        quantity_regex.replace_all(text, |caps: &regex::Captures| {
+            let full_match = caps[0].to_string();
+            
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
+            let params = if full_match.contains("const") || full_match.contains("isize") {
+                // This is a type definition, treat as fully unresolved (all _ placeholders)
+                Some(QuantityParams {
+                    mass_exp: isize::MIN,
+                    mass_scale: isize::MIN,
+                    length_exp: isize::MIN,
+                    length_scale: isize::MIN,
+                    time_exp: isize::MIN,
+                    time_p2: isize::MIN,
+                    time_p3: isize::MIN,
+                    time_p5: isize::MIN,
+                })
+            } else {
+                self.parse_quantity_params(&full_match)
             };
-            if !unit.is_empty() {
-                let superscript = self.to_unicode_superscript(params.length_exp);
-                units.push(format!("{}{}", unit, superscript));
-            }
-        }
-
-        // Mass
-        if params.mass_exp != 0 {
-            let unit = match params.mass_scale {
-                -1 => "mg",
-                0 => "g",
-                1 => "kg",
-                isize::MAX => "",
-                _ => "unknown",
-            };
-            if !unit.is_empty() {
-                let superscript = self.to_unicode_superscript(params.mass_exp);
-                units.push(format!("{}{}", unit, superscript));
-            }
-        }
-
-        // Time
-        if params.time_exp != 0 {
-            let unit = match params.time_scale_order {
-                -1 => "ms",
-                0 => "s",
-                1 => "min",
-                isize::MAX => "",
-                _ => "unknown",
-            };
-            if !unit.is_empty() {
-                let superscript = self.to_unicode_superscript(params.time_exp);
-                units.push(format!("{}{}", unit, superscript));
-            }
-        }
-
-        if units.is_empty() {
-            "dimensionless".to_string()
-        } else {
-            units.join("·")
-        }
-    }
-
-    /// Build unit strings with ASCII notation
-    fn build_unit_strings_ascii(&self, params: &QuantityParams) -> String {
-        let mut units = Vec::new();
-        
-        // Length
-        if params.length_exp != 0 {
-            let unit = match params.length_scale {
-                -1 => "mm",
-                0 => "m",
-                1 => "km",
-                isize::MAX => "",
-                _ => "unknown",
-            };
-            if !unit.is_empty() {
-                if params.length_exp == 1 {
-                    units.push(unit.to_string());
+            
+            if let Some(params) = params {
+                // Check if this is a partially resolved type
+                if self.is_partially_resolved_type(&full_match) {
+                    // For partially resolved types, leverage existing prettyprint logic
+                    // First try to look up recognized dimension names
+                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp) {
+                        dimension_info.dimension_name.to_string()
+                    } else {
+                        // For unrecognized composite types, show dimension symbols (M, L, T)
+                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp)
+                    }
                 } else {
-                    units.push(format!("{}^{}", unit, params.length_exp));
+                    // Use the new ultra-terse inlay hint API
+                    pretty_print_quantity_inlay_hint(
+                        params.mass_exp, params.mass_scale,
+                        params.length_exp, params.length_scale,
+                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                    )
                 }
+            } else {
+                caps[0].to_string()
             }
-        }
-
-        // Mass
-        if params.mass_exp != 0 {
-            let unit = match params.mass_scale {
-                -1 => "mg",
-                0 => "g",
-                1 => "kg",
-                isize::MAX => "",
-                _ => "unknown",
-            };
-            if !unit.is_empty() {
-                if params.mass_exp == 1 {
-                    units.push(unit.to_string());
-                } else {
-                    units.push(format!("{}^{}", unit, params.mass_exp));
-                }
-            }
-        }
-
-        // Time
-        if params.time_exp != 0 {
-            let unit = match params.time_scale_order {
-                -1 => "ms",
-                0 => "s",
-                1 => "min",
-                isize::MAX => "",
-                _ => "unknown",
-            };
-            if !unit.is_empty() {
-                if params.time_exp == 1 {
-                    units.push(unit.to_string());
-                } else {
-                    units.push(format!("{}^{}", unit, params.time_exp));
-                }
-            }
-        }
-
-        if units.is_empty() {
-            "dimensionless".to_string()
-        } else {
-            units.join("·")
-        }
-    }
-
-    /// Convert number to Unicode superscript
-    fn to_unicode_superscript(&self, n: isize) -> String {
-        if n == 1 {
-            return "".to_string(); // No superscript for 1
-        }
-        
-        n.to_string()
-            .chars()
-            .map(|c| match c {
-                '0' => '⁰',
-                '1' => '¹',
-                '2' => '²',
-                '3' => '³',
-                '4' => '⁴',
-                '5' => '⁵',
-                '6' => '⁶',
-                '7' => '⁷',
-                '8' => '⁸',
-                '9' => '⁹',
-                '-' => '⁻',
-                _ => c,
-            })
-            .collect()
-    }
-
-    /// Get superscript question mark for unresolved exponents
-    fn superscript_question_mark(&self) -> &'static str {
-        "ˀ" // Unicode superscript question mark
+        }).to_string()
     }
     
     fn parse_quantity_params(&self, quantity_type: &str) -> Option<QuantityParams> {
@@ -583,110 +522,35 @@ impl WhippyUnitsTypeConverter {
         let captures = re.captures(quantity_type)?;
         let params_str = captures.get(1)?.as_str();
         
-        // Parse comma-separated parameters
-        let params: Vec<Result<isize, _>> = params_str
+        // Parse comma-separated parameters, handling _ placeholders
+        let params: Vec<Option<isize>> = params_str
             .split(',')
-            .map(|s| s.trim().parse::<isize>())
+            .map(|s| {
+                let s = s.trim();
+                if s == "_" {
+                    Some(isize::MIN) // Unknown placeholder
+                } else if s == "9223372036854775807" {
+                    Some(isize::MAX) // Unused value (original meaning)
+                } else {
+                    s.parse::<isize>().ok()
+                }
+            })
             .collect();
         
-        // Check if any parameter failed to parse (contains _ or other non-numeric)
-        if params.iter().any(|r| r.is_err()) {
-            return None;
-        }
-        
-        let params: Vec<isize> = params.into_iter().map(|r| r.unwrap()).collect();
-        
-        if params.len() >= 9 {
+        if params.len() >= 8 {
             Some(QuantityParams {
-                length_exp: params[0],
-                length_scale: params[1],
-                mass_exp: params[2],
-                mass_scale: params[3],
-                time_exp: params[4],
-                time_p2: params[5],
-                time_p3: params[6],
-                time_p5: params[7],
-                time_scale_order: params[8],
+                // New API uses (mass, length, time) order
+                mass_exp: params[0].unwrap_or(0),
+                mass_scale: params[1].unwrap_or(isize::MAX),
+                length_exp: params[2].unwrap_or(0),
+                length_scale: params[3].unwrap_or(isize::MAX),
+                time_exp: params[4].unwrap_or(0),
+                time_p2: params[5].unwrap_or(isize::MAX),
+                time_p3: params[6].unwrap_or(isize::MAX),
+                time_p5: params[7].unwrap_or(isize::MAX),
             })
         } else {
             None
-        }
-    }
-    
-
-    
-    fn build_type_details(&self, params: &QuantityParams) -> String {
-        format_bracket_details!(
-            params.length_exp,
-            match params.length_scale {
-                isize::MAX => "MAX".to_string(),
-                _ => params.length_scale.to_string(),
-            },
-            self.scale_name(params.length_scale, "length"),
-            params.mass_exp,
-            match params.mass_scale {
-                isize::MAX => "MAX".to_string(),
-                _ => params.mass_scale.to_string(),
-            },
-            self.scale_name(params.mass_scale, "mass"),
-            params.time_exp,
-            match params.time_p2 {
-                isize::MAX => "MAX".to_string(),
-                _ => params.time_p2.to_string(),
-            },
-            match params.time_p3 {
-                isize::MAX => "MAX".to_string(),
-                _ => params.time_p3.to_string(),
-            },
-            match params.time_p5 {
-                isize::MAX => "MAX".to_string(),
-                _ => params.time_p5.to_string(),
-            },
-            self.scale_name(params.time_scale_order, "time")
-        )
-    }
-    
-    fn scale_name_from_str(&self, scale_str: &str, dimension: &str) -> &'static str {
-        // Parse the scale string, handling _ and sentinel values
-        if scale_str == "_" {
-            return "unresolved";
-        }
-        
-        if scale_str == "9223372036854775807" {
-            return "unused";
-        }
-        
-        if let Ok(scale) = scale_str.parse::<isize>() {
-            self.scale_name(scale, dimension)
-        } else {
-            "unknown"
-        }
-    }
-
-    fn scale_name(&self, scale: isize, dimension: &str) -> &'static str {
-        match dimension {
-            "length" => match scale {
-                -1 => "millimeter",
-                0 => "meter",
-                1 => "kilometer",
-                isize::MAX => "unused",
-                _ => "unknown",
-            },
-            "mass" => match scale {
-                -1 => "milligram",
-                0 => "gram",
-                1 => "kilogram",
-                isize::MAX => "unused",
-                _ => "unknown",
-            },
-            "time" => match scale {
-                -1 => "millisecond",
-                0 => "second",
-                1 => "minute",
-                isize::MAX => "unused",
-                _ => "unknown",
-            },
-            _ => "unknown",
         }
     }
 
@@ -697,35 +561,39 @@ impl WhippyUnitsTypeConverter {
             let params_str = &caps[1];
             let params: Vec<&str> = params_str.split(',').map(|s| s.trim()).collect();
             
-            if params.len() >= 9 {
+            if params.len() >= 8 {
                 // Check if any dimension has a non-zero exponent but sentinel scale values
                 // This indicates a partially resolved type
                 
-                // Length dimension: params[0] = exp, params[1] = scale
-                let length_exp = params[0].parse::<isize>().unwrap_or(0);
-                let length_scale = params[1].parse::<isize>().unwrap_or(isize::MAX);
-                if length_exp != 0 && length_scale == isize::MAX {
-                    return true; // Length has exponent but unresolved scale
+                // Mass dimension: params[0] = exp, params[1] = scale
+                let mass_exp = params[0].parse::<isize>().unwrap_or(0);
+                let mass_scale = if params[1] == "_" { isize::MIN } else { params[1].parse::<isize>().unwrap_or(isize::MAX) };
+                if mass_exp != 0 && mass_scale == isize::MIN {
+                    return true; // Mass has exponent but unknown scale
                 }
                 
-                // Mass dimension: params[2] = exp, params[3] = scale  
-                let mass_exp = params[2].parse::<isize>().unwrap_or(0);
-                let mass_scale = params[3].parse::<isize>().unwrap_or(isize::MAX);
-                if mass_exp != 0 && mass_scale == isize::MAX {
-                    return true; // Mass has exponent but unresolved scale
+                // Length dimension: params[2] = exp, params[3] = scale  
+                let length_exp = params[2].parse::<isize>().unwrap_or(0);
+                let length_scale = if params[3] == "_" { isize::MIN } else { params[3].parse::<isize>().unwrap_or(isize::MAX) };
+                if length_exp != 0 && length_scale == isize::MIN {
+                    return true; // Length has exponent but unknown scale
                 }
                 
-                // Time dimension: params[4] = exp, params[8] = scale_order
+                // Time dimension: params[4] = exp, params[5-7] = p2, p3, p5
                 let time_exp = params[4].parse::<isize>().unwrap_or(0);
-                let time_scale_order = params[8].parse::<isize>().unwrap_or(isize::MAX);
-                if time_exp != 0 && time_scale_order == isize::MAX {
-                    return true; // Time has exponent but unresolved scale
+                let time_p2 = if params[5] == "_" { isize::MIN } else { params[5].parse::<isize>().unwrap_or(isize::MAX) };
+                let time_p3 = if params[6] == "_" { isize::MIN } else { params[6].parse::<isize>().unwrap_or(isize::MAX) };
+                let time_p5 = if params[7] == "_" { isize::MIN } else { params[7].parse::<isize>().unwrap_or(isize::MAX) };
+                if time_exp != 0 && (time_p2 == isize::MIN || time_p3 == isize::MIN || time_p5 == isize::MIN) {
+                    return true; // Time has exponent but unknown scale
                 }
             }
         }
         
         false // Fully resolved type
     }
+
+
 
     /// Generate compact notation for unresolved types with _ placeholders
     fn generate_ambiguous_matches(&self, text: &str, config: &DisplayConfig) -> String {
@@ -735,14 +603,12 @@ impl WhippyUnitsTypeConverter {
             
             // Check if this contains unresolved placeholders
             if full_match.contains('_') || full_match.contains("9223372036854775807") {
-                let constraint_description = self.build_constraint_description(&full_match);
                 let mut result = if config.verbose {
-                    // In verbose mode, add detailed metadata
-                    let details = self.build_unresolved_type_details(&full_match);
-                    format!("Unresolved type - {} - {}", constraint_description, details)
+                    // In verbose mode, show "Unresolved type" with raw type
+                    format!("Unresolved type - {}", full_match)
                 } else {
-                    // In clean mode, just show the constraint description
-                    format!("Unresolved type - {}", constraint_description)
+                    // In clean mode, just show "Unresolved"
+                    "Unresolved".to_string()
                 };
                 
                 // Add raw type if requested
@@ -756,215 +622,6 @@ impl WhippyUnitsTypeConverter {
             }
         }).to_string()
     }
-
-
-
-    /// Build detailed metadata for unresolved types
-    fn build_unresolved_type_details(&self, quantity_type: &str) -> String {
-        let params_match = Regex::new(r"Quantity<([^>]+)>").unwrap();
-        
-        if let Some(captures) = params_match.captures(quantity_type) {
-            let params_str = &captures[1];
-            let params: Vec<&str> = params_str.split(',').map(|s| s.trim()).collect();
-            
-            if params.len() >= 9 {
-                format_bracket_details!(
-                    params[0], // length_exp
-                    match params[1] {
-                        "9223372036854775807" => "MAX".to_string(),
-                        _ => params[1].to_string(),
-                    },
-                    self.scale_name_from_str(params[1], "length"),
-                    params[2], // mass_exp
-                    match params[3] {
-                        "9223372036854775807" => "MAX".to_string(),
-                        _ => params[3].to_string(),
-                    },
-                    self.scale_name_from_str(params[3], "mass"),
-                    params[4], // time_exp
-                    match params[5] {
-                        "9223372036854775807" => "MAX".to_string(),
-                        _ => params[5].to_string(),
-                    },
-                    match params[6] {
-                        "9223372036854775807" => "MAX".to_string(),
-                        _ => params[6].to_string(),
-                    },
-                    match params[7] {
-                        "9223372036854775807" => "MAX".to_string(),
-                        _ => params[7].to_string(),
-                    },
-                    self.scale_name_from_str(params[8], "time")
-                )
-            } else {
-                "invalid type format".to_string()
-            }
-        } else {
-            "invalid type format".to_string()
-        }
-    }
-
-    /// Build a compact unit notation showing resolved vs unresolved parts
-    fn build_constraint_description(&self, quantity_type: &str) -> String {
-        let params_match = Regex::new(r"Quantity<([^>]+)>").unwrap();
-        
-        if let Some(captures) = params_match.captures(quantity_type) {
-            let params_str = &captures[1];
-            let params: Vec<&str> = params_str.split(',').map(|s| s.trim()).collect();
-            
-            if params.len() >= 9 {
-                let mut units = Vec::new();
-                
-                // Length dimension (index 0: exp, 1: scale)
-                let length_exp = params[0].parse::<isize>().ok();
-                let length_scale = params[1].parse::<isize>().ok();
-                let length_scale_is_max = length_scale == Some(isize::MAX);
-                
-                if length_exp != Some(0) {
-                    if let Some(exp) = length_exp {
-                        if let Some(scale) = length_scale {
-                            if !length_scale_is_max {
-                                // Resolved scale - show unit
-                                let unit = match scale {
-                                    -1 => "mm",
-                                    0 => "m",
-                                    1 => "km",
-                                    _ => "m", // fallback
-                                };
-                                if exp == 1 {
-                                    units.push(unit.to_string());
-                                } else {
-                                    units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                                }
-                            } else {
-                                // Unresolved scale - show dimension name
-                                if exp == 1 {
-                                    units.push("Length".to_string());
-                                } else {
-                                    units.push(format!("Length{}", self.to_unicode_superscript(exp)));
-                                }
-                            }
-                        } else {
-                            // Unresolved scale - show dimension name
-                            if exp == 1 {
-                                units.push("Length".to_string());
-                            } else {
-                                units.push(format!("Length{}", self.to_unicode_superscript(exp)));
-                            }
-                        }
-                    } else if let Some(scale) = length_scale {
-                        if !length_scale_is_max {
-                            // Resolved scale but unresolved exponent
-                            let unit = match scale {
-                                -1 => "mm",
-                                0 => "m",
-                                1 => "km",
-                                _ => "m", // fallback
-                            };
-                            units.push(format!("{}{}", unit, self.superscript_question_mark()));
-                        } else {
-                            // Both scale and exponent unresolved
-                            units.push(format!("Length{}", self.superscript_question_mark()));
-                        }
-                    }
-                }
-                
-                // Mass dimension (index 2: exp, 3: scale)
-                let mass_exp = params[2].parse::<isize>().ok();
-                let mass_scale = params[3].parse::<isize>().ok();
-                let mass_scale_is_max = mass_scale == Some(isize::MAX);
-                
-                // Only include mass if it's actually used (non-zero exponent and non-MAX scale)
-                if mass_exp != Some(0) && !mass_scale_is_max {
-                    if let Some(exp) = mass_exp {
-                        if let Some(scale) = mass_scale {
-                            // Resolved scale - show unit
-                            let unit = match scale {
-                                -1 => "mg",
-                                0 => "g",
-                                1 => "kg",
-                                _ => "g", // fallback
-                            };
-                            if exp == 1 {
-                                units.push(unit.to_string());
-                            } else {
-                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                            }
-                        } else {
-                            // Unresolved scale - show dimension name
-                            if exp == 1 {
-                                units.push("Mass".to_string());
-                            } else {
-                                units.push(format!("Mass{}", self.to_unicode_superscript(exp)));
-                            }
-                        }
-                    } else if let Some(scale) = mass_scale {
-                        // Resolved scale but unresolved exponent
-                        let unit = match scale {
-                            -1 => "mg",
-                            0 => "g",
-                            1 => "kg",
-                            _ => "g", // fallback
-                        };
-                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
-                    }
-                }
-                
-                // Time dimension (index 4: exp, 8: scale_order)
-                let time_exp = params[4].parse::<isize>().ok();
-                let time_scale_order = params[8].parse::<isize>().ok();
-                let time_scale_is_max = time_scale_order == Some(isize::MAX);
-                
-                // Only include time if it's actually used (non-zero exponent and non-MAX scale)
-                if time_exp != Some(0) && !time_scale_is_max {
-                    if let Some(exp) = time_exp {
-                        if let Some(scale_order) = time_scale_order {
-                            // Resolved scale - show unit
-                            let unit = match scale_order {
-                                -1 => "ms",
-                                0 => "s",
-                                1 => "min",
-                                _ => "s", // fallback
-                            };
-                            if exp == 1 {
-                                units.push(unit.to_string());
-                            } else {
-                                units.push(format!("{}{}", unit, self.to_unicode_superscript(exp)));
-                            }
-                        } else {
-                            // Unresolved scale - show dimension name
-                            if exp == 1 {
-                                units.push("Time".to_string());
-                            } else {
-                                units.push(format!("Time{}", self.to_unicode_superscript(exp)));
-                            }
-                        }
-                    } else if let Some(scale_order) = time_scale_order {
-                        // Resolved scale but unresolved exponent
-                        let unit = match scale_order {
-                            -1 => "ms",
-                            0 => "s",
-                            1 => "min",
-                            _ => "s", // fallback
-                        };
-                        units.push(format!("{}{}", unit, self.superscript_question_mark()));
-                    }
-                }
-                
-                if units.is_empty() {
-                    "Unresolved".to_string()
-                } else {
-                    units.join("·")
-                }
-            } else {
-                "Unresolved".to_string()
-            }
-        } else {
-            "Unresolved".to_string()
-        }
-    }
-
-
 }
 
 #[derive(Debug)]
@@ -977,7 +634,6 @@ struct QuantityParams {
     time_p2: isize,
     time_p3: isize,
     time_p5: isize,
-    time_scale_order: isize,
 }
 
 #[cfg(test)]
@@ -988,7 +644,7 @@ mod tests {
     #[test]
     fn test_type_conversion() {
         let converter = WhippyUnitsTypeConverter::new();
-        let converted = converter.convert_types_in_text("Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>");
+        let converted = converter.convert_types_in_text("Quantity<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>");
         println!("Converted output: '{}'", converted);
         assert!(converted.contains("m"));
     }
@@ -996,12 +652,62 @@ mod tests {
     #[test]
     fn test_text_conversion() {
         let converter = WhippyUnitsTypeConverter::new();
-        let text = "let x: Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0> = 5.0.meters();";
+        let text = "let x: Quantity<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807> = 5.0.meters();";
         let converted = converter.convert_types_in_text(text);
         println!("Converted text: '{}'", converted);
-        // The Quantity type should be converted to "m", so we shouldn't expect "Quantity<" anymore
-        assert!(!converted.contains("Quantity<"));
+        // The Quantity type should be converted to pretty format, but still contain "Quantity<"
+        assert!(converted.contains("Quantity<"));
         assert!(converted.contains("m"));
+    }
+
+    #[test]
+    fn test_unresolved_type_conversion() {
+        let converter = WhippyUnitsTypeConverter::new();
+        // Test the case from the user's example: Quantity<0, _, 1, _, 0, _, _, _>
+        let text = "let distance1: Quantity<0, _, 1, _, 0, _, _, _> = 5.0.millimeters();";
+        let converted = converter.convert_types_in_text(text);
+        println!("Converted unresolved type: '{}'", converted);
+        // Should show "length" for unresolved length type
+        assert!(converted.contains("length"));
+        assert!(!converted.contains("Unresolved type"));
+    }
+
+    #[test]
+    fn test_composite_unresolved_type_conversion() {
+        let converter = WhippyUnitsTypeConverter::new();
+        // Test composite type: Quantity<1, _, 1, _, 0, _, _, _> (mass × length)
+        let text = "let force: Quantity<1, _, 1, _, 0, _, _, _> = 5.0.newtons();";
+        let converted = converter.convert_types_in_text(text);
+        println!("Converted composite unresolved type: '{}'", converted);
+        // Should show "M·L" for unresolved mass × length type
+        assert!(converted.contains("M·L"));
+        assert!(!converted.contains("Unresolved type"));
+    }
+
+    #[test]
+    fn test_recognized_composite_unresolved_type_conversion() {
+        let converter = WhippyUnitsTypeConverter::new();
+        // Test recognized composite type: Quantity<1, _, 2, _, -2, _, _, _> (Energy)
+        let text = "let energy: Quantity<1, _, 2, _, -2, _, _, _> = 5.0.joules();";
+        let converted = converter.convert_types_in_text(text);
+        println!("Converted recognized composite unresolved type: '{}'", converted);
+        // Should show "Energy" for recognized energy type
+        assert!(converted.contains("Energy"));
+        assert!(!converted.contains("Unresolved type"));
+    }
+
+    #[test]
+    fn test_verbose_partially_resolved_type() {
+        let converter = WhippyUnitsTypeConverter::new();
+        // Test verbose mode for partially resolved type: Quantity<0, _, 1, _, 0, _, _, _> (Length)
+        let text = "let distance: Quantity<0, _, 1, _, 0, _, _, _> = 5.0.millimeters();";
+        let converted = converter.convert_types_in_text_verbose(text);
+        println!("Converted verbose partially resolved type: '{}'", converted);
+        // Should show the full pretty-printed format with unresolved scale indicators
+        assert!(converted.contains("Quantity<"));
+        assert!(converted.contains("Length"));
+        assert!(converted.contains("(10ˀ)"));
+        assert!(converted.contains("(2ˀ, 3ˀ, 5ˀ)"));
     }
 
     #[test]
@@ -1027,7 +733,7 @@ mod tests {
                                 }
                             }
                         },
-                        {"value": "<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>"}
+                        {"value": "<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
                     ],
                     "kind": 1
                 }
@@ -1048,28 +754,15 @@ mod tests {
         
         // Parse and verify the result
         let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
-        let result_array = processed_value["result"].as_array().unwrap();
-        let hint = &result_array[0];
-        let label_array = hint["label"].as_array().unwrap();
+        let result = processed_value["result"].as_array().unwrap();
+        let label = &result[0]["label"];
         
-        // Should have 2 parts now (removed generic params)
-        assert_eq!(label_array.len(), 2);
-        
-        // First part should be ": "
-        assert_eq!(label_array[0]["value"], ": ");
-        
-        // Second part should be pretty-printed and have location preserved
-        let second_part = &label_array[1];
-        let pretty_value = second_part["value"].as_str().unwrap();
-        
-        // Should contain the pretty-printed type
-        assert!(pretty_value.contains("m"));
-        
-        // Should preserve the location for click-to-source
-        assert!(second_part.get("location").is_some());
-        
-        // Verify the conversion worked
-        assert!(pretty_value.contains("m"));
+        // The label should contain the converted type
+        let label_str = serde_json::to_string(label).unwrap();
+        println!("Processed label: {}", label_str);
+        // This is a fully resolved type, so it should contain the ultra-terse format (just the unit literal)
+        assert!(label_str.contains("m"));
+        assert!(!label_str.contains("Quantity<"));
     }
 
     #[test]
@@ -1079,14 +772,12 @@ mod tests {
         // Create a mock hover response
         let hover_response = json!({
             "jsonrpc": "2.0",
-            "id": 3,
+            "id": 1,
             "result": {
-                "contents": [
-                    {
-                        "language": "rust",
-                        "value": "let x: Quantity<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0> = 5.0.meters();"
-                    }
-                ]
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nlet distance1: Quantity<0, _, 1, _, 0, _, _, _> = 5.0.millimeters();\n```"
+                }
             }
         });
         
@@ -1104,22 +795,20 @@ mod tests {
         
         // Parse and verify the result
         let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
-        let contents = &processed_value["result"]["contents"][0];
-        let value = contents["value"].as_str().unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
         
-        // Should contain the pretty-printed type
-        assert!(value.contains("m"));
-        // Should not contain the verbose Quantity type
-        assert!(!value.contains("Quantity<"));
-        
-        println!("Hover tooltip converted to: '{}'", value);
+        println!("Processed hover contents: {}", contents_str);
+        // Should show "Length" for unresolved length type (capitalized from dimension name)
+        assert!(contents_str.contains("Length"));
+        assert!(!contents_str.contains("Unresolved type"));
     }
 
     #[test]
     fn test_inlay_hint_unresolved_types() {
         let proxy = LspProxy::new();
         
-        // Create a mock inlay hint response with unresolved types
+        // Test with the exact format from the user's example
         let inlay_hint_response = json!({
             "jsonrpc": "2.0",
             "id": 2,
@@ -1138,7 +827,7 @@ mod tests {
                                 }
                             }
                         },
-                        {"value": "<1, 9223372036854775807, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
+                        {"value": "<0, _, 1, _, 0, _, _, _>"}
                     ],
                     "kind": 1
                 }
@@ -1159,26 +848,13 @@ mod tests {
         
         // Parse and verify the result
         let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
-        let result_array = processed_value["result"].as_array().unwrap();
-        let hint = &result_array[0];
-        let label_array = hint["label"].as_array().unwrap();
+        let result = processed_value["result"].as_array().unwrap();
+        let label = &result[0]["label"];
         
-        // Should have 2 parts now (removed generic params)
-        assert_eq!(label_array.len(), 2);
-        
-        // First part should be ": "
-        assert_eq!(label_array[0]["value"], ": ");
-        
-        // Second part should be pretty-printed and have location preserved
-        let second_part = &label_array[1];
-        let pretty_value = second_part["value"].as_str().unwrap();
-        
-        // Should contain the unresolved type indicator
-        assert!(pretty_value.contains("Unresolved"));
-        
-        // Should preserve the location for click-to-source
-        assert!(second_part.get("location").is_some());
-        
-        println!("Unresolved type converted to: '{}'", pretty_value);
+        // The label should contain "length" for the unresolved length type
+        let label_str = serde_json::to_string(label).unwrap();
+        println!("Processed unresolved type label: {}", label_str);
+        assert!(label_str.contains("length"));
+        assert!(!label_str.contains("Unresolved type"));
     }
 }

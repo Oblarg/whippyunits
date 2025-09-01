@@ -138,8 +138,11 @@ impl InlayHintProcessor {
             // Construct the full type string
             let full_type = format!("Quantity{}", generic_params);
             
-            // Convert to pretty format using the display configuration
-            let pretty_type = self.converter.convert_types_in_text_with_config(&full_type, &self.display_config);
+            // For inlay hints, use the ultra-terse format that shows only the unit literal
+            let pretty_type = self.converter.convert_types_in_text_inlay_hint(&full_type);
+            
+            // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
+            let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
             
             // Replace the "Quantity" part with the pretty version
             // Preserve the location information if it exists
@@ -299,6 +302,23 @@ impl InlayHintProcessor {
             .replace("⁰", "^0")  // Replace superscript 0 with ^0
     }
 
+    /// Prune ^1 exponents from inlay hint display while keeping meaningful exponents
+    fn prune_inlay_hint_exponents(&self, pretty_type: &str) -> String {
+        // In our pretty-printed output, we use Unicode superscripts like ¹, ², ³, etc.
+        // We want to remove ¹ (superscript 1) but keep all other superscripts
+        // Note: ⁻¹ is a single Unicode character for "superscript negative one"
+        // We need to handle this specially to avoid breaking it
+        let mut result = pretty_type.to_string();
+        
+        // First, replace ⁻¹ with ⁻ (superscript minus) to preserve the negative sign
+        result = result.replace("⁻¹", "⁻");
+        
+        // Then remove standalone ¹
+        result = result.replace("¹", "");
+        
+        result
+    }
+
     /// Convert unresolved type to unit! macro format
     fn convert_to_unit_macro_format(&self, unresolved_type: &str) -> String {
         // This is a simplified conversion - could be enhanced with more sophisticated parsing
@@ -359,7 +379,7 @@ mod tests {
                     }
                 }
             }),
-            json!({"value": "<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>"})
+            json!({"value": "<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"})
         ];
         
         processor.convert_whippyunits_hint(&mut label_array).unwrap();
@@ -398,7 +418,7 @@ mod tests {
                                 }
                             }
                         },
-                        {"value": "<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>"}
+                        {"value": "<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
                     ],
                     "kind": 1,
                     "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
@@ -440,7 +460,7 @@ mod tests {
                                 }
                             }
                         },
-                        {"value": "<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
+                        {"value": "<0, 9223372036854775807, 1, -1, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
                     ],
                     "kind": 1,
                     "paddingLeft": false,
@@ -496,5 +516,25 @@ mod tests {
         println!("Original: Quantity<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>");
         println!("Pretty: '{}'", pretty_value);
         println!("Pretty value length: {}", pretty_value.len());
+    }
+
+    #[test]
+    fn test_inlay_hint_exponent_pruning() {
+        let processor = InlayHintProcessor::new();
+        
+        // Test that ^1 exponents are pruned but meaningful exponents are preserved
+        let test_cases = vec![
+            ("mm¹", "mm"),           // ^1 should be removed
+            ("mm²", "mm²"),          // ^2 should be preserved
+            ("mm³", "mm³"),          // ^3 should be preserved
+            ("mm⁻¹", "mm⁻"),         // ^-1 becomes ^- (the 1 is removed)
+            ("m¹s²", "ms²"),         // ^1 should be removed, ^2 preserved
+            ("kg¹m²s⁻²", "kgm²s⁻²"), // ^1 should be removed, others preserved
+        ];
+        
+        for (input, expected) in test_cases {
+            let result = processor.prune_inlay_hint_exponents(input);
+            assert_eq!(result, expected, "Failed for input: {}", input);
+        }
     }
 }

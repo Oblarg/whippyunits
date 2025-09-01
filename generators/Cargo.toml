@@ -1,0 +1,32 @@
+[package]
+name = "whippyunits-generators"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generate_arithmetic"
+path = "generate_arithmetic.rs"
+
+[[bin]]
+name = "generate_quantity_type"
+path = "generate_quantity_type.rs"
+
+        [[bin]]
+        name = "generate_dimension_traits"
+        path = "generate_dimension_traits.rs"
+
+        [[bin]]
+        name = "generate_dimension_structs"
+        path = "generate_dimension_structs.rs"
+
+[[bin]]
+name = "generate_prettyprint"
+path = "generate_prettyprint.rs"
+
+[[bin]]
+name = "generate_unit_macros"
+path = "generate_unit_macros.rs"
+
+[[bin]]
+name = "generate_quantity_scale_consts"
+path = "generate_quantity_scale_consts.rs"

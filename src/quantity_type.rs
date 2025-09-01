@@ -1,0 +1,86 @@
+// Auto-generated Quantity type definition
+// Generated from dimensional_metadata.rs
+// DO NOT EDIT - This file is auto-generated
+
+use std::f64;
+use std::ops::{Add, Div, Mul, Sub};
+
+#[derive(Clone, Copy)]
+pub struct Quantity<
+    const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
+    const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+> {
+    pub value: f64,
+}
+
+impl<
+    const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
+    const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+>
+    Quantity<
+        MASS_EXPONENT, MASS_SCALE_P10,
+        LENGTH_EXPONENT, LENGTH_SCALE_P10,
+        TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+    >
+{
+    pub fn new(value: f64) -> Self {
+        Self { value }
+    }
+}
+
+// ============================================================================
+// Display and Debug Implementations
+// ============================================================================
+
+use std::fmt;
+use crate::print::prettyprint::pretty_print_quantity_value;
+
+impl<
+    const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
+    const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+>
+    fmt::Display
+    for Quantity<
+        MASS_EXPONENT, MASS_SCALE_P10,
+        LENGTH_EXPONENT, LENGTH_SCALE_P10,
+        TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+    >
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pretty = pretty_print_quantity_value(
+            self.value,
+            MASS_EXPONENT, MASS_SCALE_P10,
+            LENGTH_EXPONENT, LENGTH_SCALE_P10,
+            TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+            false, // Non-verbose mode for Display
+        );
+        write!(f, "{}", pretty)
+    }
+}
+
+impl<
+    const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
+    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
+    const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+>
+    fmt::Debug
+    for Quantity<
+        MASS_EXPONENT, MASS_SCALE_P10,
+        LENGTH_EXPONENT, LENGTH_SCALE_P10,
+        TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+    >
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pretty = pretty_print_quantity_value(
+            self.value,
+            MASS_EXPONENT, MASS_SCALE_P10,
+            LENGTH_EXPONENT, LENGTH_SCALE_P10,
+            TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+            true, // Verbose mode for Debug
+        );
+        write!(f, "{}", pretty)
+    }
+}
