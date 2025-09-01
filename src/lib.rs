@@ -1,33 +1,16 @@
-#![feature(custom_inner_attributes)]
 #![feature(generic_const_exprs)]
-#![feature(adt_const_params)]
 #![feature(trait_alias)]
-#![rustfmt::skip]
 
 use std::format;
 use std::string::{String, ToString};
 use std::vec::Vec;
 use std::f64;
-use std::marker::ConstParamTy;
 use std::ops::{Add, Div, Mul, Sub};
 use crate::constants::*;
 
 // ============================================================================
 // Core Types and Enums
 // ============================================================================
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ConstParamTy)]
-pub enum RescaleBehavior {
-    SmallerWins,
-    LeftHandWins,
-    Strict,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ConstParamTy)]
-pub enum CancelledScaleBehavior {
-    Retain, // Keep the storage scales even when dimensions are cancelled
-    Forget, // Automatically convert to Unused when exponent becomes 0
-}
 
 pub trait IsIsize<const S: isize> {}
 impl<const S: isize> IsIsize<S> for () {}
