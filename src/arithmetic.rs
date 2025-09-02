@@ -138,14 +138,14 @@ macro_rules! add_sub_output_type {
                             $time_scale_p2_2:ident, $time_scale_p3_2:ident, $time_scale_p5_2:ident,
     ) => {
         Quantity::<
-            $length_exponent, { min_length_scale($length_scale_p10_1, $length_scale_p10_2) },
-            $mass_exponent, { min_mass_scale($mass_scale_p10_1, $mass_scale_p10_2) },
-            $time_exponent, { min_time_scale(2, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
-                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
-                            { min_time_scale(3, $time_scale_p3_1, $time_scale_p3_1, $time_scale_p5_1, 
-                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
-                            { min_time_scale(5, $time_scale_p5_1, $time_scale_p5_1, $time_scale_p5_1, 
-                                              $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) }
+            $length_exponent, { min_length_scale($length_exponent, $length_scale_p10_1, $length_exponent, $length_scale_p10_2) },
+            $mass_exponent, { min_mass_scale($mass_exponent, $mass_scale_p10_1, $mass_exponent, $mass_scale_p10_2) },
+            $time_exponent, { min_time_scale(2, $time_exponent, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                              $time_exponent, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                            { min_time_scale(3, $time_exponent, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                              $time_exponent, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                            { min_time_scale(5, $time_exponent, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                              $time_exponent, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) }
         >
     };
 }
@@ -180,16 +180,16 @@ macro_rules! mul_div_output_type {
         $time_exponent2:ident, $time_scale_p2_2:ident, $time_scale_p3_2:ident, $time_scale_p5_2:ident,
     ) => {
         Quantity::<
-            { $mass_exponent1 $op $mass_exponent2 }, { min_mass_scale($mass_scale_p10_1, $mass_scale_p10_2) },
-            { $length_exponent1 $op $length_exponent2 }, { min_length_scale($length_scale_p10_1, $length_scale_p10_2) },
-            { $time_exponent1 $op $time_exponent2 }, { min_time_scale(2, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
-                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
-                                                     { min_time_scale(3, $time_scale_p3_1, $time_scale_p3_1, $time_scale_p5_1, 
-                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
-                                                     { min_time_scale(5, $time_scale_p5_1, $time_scale_p5_1, $time_scale_p5_1, 
-                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
-                                                     { min_time_scale(0, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
-                                                                      $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                        { $mass_exponent1 $op $mass_exponent2 }, { min_mass_scale($mass_exponent1, $mass_scale_p10_1, $mass_exponent2, $mass_scale_p10_2) },
+            { $length_exponent1 $op $length_exponent2 }, { min_length_scale($length_exponent1, $length_scale_p10_1, $length_exponent2, $length_scale_p10_2) },
+            { $time_exponent1 $op $time_exponent2 }, { min_time_scale(2, $time_exponent1, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                                      $time_exponent2, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                                             { min_time_scale(3, $time_exponent1, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                                      $time_exponent2, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                                             { min_time_scale(5, $time_exponent1, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                                      $time_exponent2, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
+                                             { min_time_scale(0, $time_exponent1, $time_scale_p2_1, $time_scale_p3_1, $time_scale_p5_1, 
+                                                      $time_exponent2, $time_scale_p2_2, $time_scale_p3_2, $time_scale_p5_2) },
         >
     };
 }
@@ -301,24 +301,24 @@ macro_rules! add_sub_interface {
                 TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
             >
         where
-            (): IsIsize<{ min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) }>,
-            (): IsIsize<{ min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2) }>,
-            (): IsIsize<{ min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-            (): IsIsize<{ min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-            (): IsIsize<{ min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) }>,
+            (): IsIsize<{ min_length_scale(LENGTH_EXPONENT, LENGTH_SCALE_P10_1, LENGTH_EXPONENT, LENGTH_SCALE_P10_2) }>,
+            (): IsIsize<{ min_time_scale(2, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                               TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(3, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                               TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                               TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
         {
             type Output = Quantity<
-                MASS_EXPONENT, { min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) },
-                LENGTH_EXPONENT, { min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2) },
-                TIME_EXPONENT, { min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                   TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
-                               { min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                   TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
-                               { min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                   TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                MASS_EXPONENT, { min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) },
+                LENGTH_EXPONENT, { min_length_scale(LENGTH_EXPONENT, LENGTH_SCALE_P10_1, LENGTH_EXPONENT, LENGTH_SCALE_P10_2) },
+                TIME_EXPONENT, { min_time_scale(2, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                   TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                               { min_time_scale(3, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                   TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                               { min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                   TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
                             >;
 
             fn $fn(
@@ -329,14 +329,14 @@ macro_rules! add_sub_interface {
                     TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
                 >,
             ) -> Self::Output {
-                let result_mass_scale_p10 = min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2);
-                let result_length_scale_p10 = min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2);
-                let result_time_scale_p2 = min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
-                let result_time_scale_p3 = min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
-                let result_time_scale_p5 = min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_mass_scale_p10 = min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2);
+                let result_length_scale_p10 = min_length_scale(LENGTH_EXPONENT, LENGTH_SCALE_P10_1, LENGTH_EXPONENT, LENGTH_SCALE_P10_2);
+                let result_time_scale_p2 = min_time_scale(2, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_time_scale_p3 = min_time_scale(3, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_time_scale_p5 = min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
                 
                 let factor1 = aggregate_conversion_factor(
                     LENGTH_EXPONENT, LENGTH_SCALE_P10_1, result_length_scale_p10,
@@ -509,28 +509,28 @@ macro_rules! mul_div_interface {
             (): IsIsize<{ MASS_EXPONENT1 $log_op MASS_EXPONENT2 }>,
             (): IsIsize<{ LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }>,
             (): IsIsize<{ TIME_EXPONENT1 $log_op TIME_EXPONENT2 }>,
-            (): IsIsize<{ min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2) }>,
-            (): IsIsize<{ min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) }>,
-            (): IsIsize<{ min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                            TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-            (): IsIsize<{ min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                            TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-            (): IsIsize<{ min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                            TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-            (): IsIsize<{ min_time_scale(0, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                            TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_length_scale(LENGTH_EXPONENT1, LENGTH_SCALE_P10_1, LENGTH_EXPONENT2, LENGTH_SCALE_P10_2) }>,
+            (): IsIsize<{ min_mass_scale(MASS_EXPONENT1, MASS_SCALE_P10_1, MASS_EXPONENT2, MASS_SCALE_P10_2) }>,
+            (): IsIsize<{ min_time_scale(2, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                            TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(3, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                            TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(5, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                            TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(0, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                            TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
         {
             type Output = Quantity<
-                { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) },
-                { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, { min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2) },
-                { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, { min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
-                                                           { min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
-                                                           { min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
-                                                           { min_time_scale(0, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                                               TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { min_mass_scale(MASS_EXPONENT1, MASS_SCALE_P10_1, MASS_EXPONENT2, MASS_SCALE_P10_2) },
+                { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, { min_length_scale(LENGTH_EXPONENT1, LENGTH_SCALE_P10_1, LENGTH_EXPONENT2, LENGTH_SCALE_P10_2) },
+                { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, { min_time_scale(2, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                                               TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                                                           { min_time_scale(3, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                                               TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                                                           { min_time_scale(5, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                                               TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                                                           { min_time_scale(0, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                                               TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
             >;
 
             fn $fn(
@@ -541,14 +541,14 @@ macro_rules! mul_div_interface {
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
                 >,
             ) -> Self::Output {
-                let result_mass_scale_p10 = min_mass_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2);
-                let result_length_scale_p10 = min_length_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2);
-                let result_time_scale_p2 = min_time_scale(2, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
-                let result_time_scale_p3 = min_time_scale(3, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
-                let result_time_scale_p5 = min_time_scale(5, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
-                                                    TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_mass_scale_p10 = min_mass_scale(MASS_EXPONENT1, MASS_SCALE_P10_1, MASS_EXPONENT2, MASS_SCALE_P10_2);
+                let result_length_scale_p10 = min_length_scale(LENGTH_EXPONENT1, LENGTH_SCALE_P10_1, LENGTH_EXPONENT2, LENGTH_SCALE_P10_2);
+                let result_time_scale_p2 = min_time_scale(2, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_time_scale_p3 = min_time_scale(3, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
+                let result_time_scale_p5 = min_time_scale(5, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
+                                                    TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2);
                 
                 let factor1 = aggregate_conversion_factor(
                     MASS_EXPONENT1, MASS_SCALE_P10_1, result_mass_scale_p10,

@@ -5,6 +5,8 @@ use regex::Regex;
 
 pub mod inlay_hint_processor;
 
+
+
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
 pub struct DisplayConfig {
@@ -112,6 +114,8 @@ impl LspProxy {
             }
         }
         
+
+        
         // Check if this is a refresh notification
         if self.is_refresh_notification(&lsp_msg) {
             eprintln!("*** INTERCEPTING REFRESH NOTIFICATION ***");
@@ -198,47 +202,496 @@ impl LspProxy {
     fn improve_hover_content(&self, mut hover: HoverContent) -> HoverContent {
         match &mut hover.contents {
             HoverContents::Single(item) => {
-                item.value = self.type_converter.convert_types_in_text_with_config(&item.value, &self.display_config);
+                let original_text = item.value.clone();
+                // Apply transformations in sequence, but only if they haven't been applied already
+                let mut processed_text = item.value.clone();
+                
+                // Only apply rescale transformation if not already processed
+                if !processed_text.contains("rescale(") {
+                    processed_text = self.transform_rescale_signature(&processed_text);
+                }
+                
+                // Only apply trait signature transformation if not already processed
+                if !processed_text.contains("impl Add for") && !processed_text.contains("impl Sub for") && 
+                   !processed_text.contains("impl Mul<") && !processed_text.contains("impl Div<") {
+                    processed_text = self.transform_add_trait_signature(&processed_text);
+                }
+                
+                // Always apply type conversion as the final step
+                processed_text = self.type_converter.convert_types_in_text_with_config_and_original(&processed_text, &self.display_config, &original_text);
+                
+                item.value = processed_text;
             }
             HoverContents::Multiple(items) => {
                 for item in items {
-                    item.value = self.type_converter.convert_types_in_text_with_config(&item.value, &self.display_config);
+                    let original_text = item.value.clone();
+                    // Apply transformations in sequence, but only if they haven't been applied already
+                    let mut processed_text = item.value.clone();
+                    
+                    // Only apply rescale transformation if not already processed
+                    if !processed_text.contains("rescale(") {
+                        processed_text = self.transform_rescale_signature(&processed_text);
+                    }
+                    
+                    // Only apply trait signature transformation if not already processed
+                    if !processed_text.contains("impl Add for") && !processed_text.contains("impl Sub for") && 
+                       !processed_text.contains("impl Mul<") && !processed_text.contains("impl Div<") {
+                        processed_text = self.transform_add_trait_signature(&processed_text);
+                    }
+                    
+                    // Always apply type conversion as the final step
+                    processed_text = self.type_converter.convert_types_in_text_with_config_and_original(&processed_text, &self.display_config, &original_text);
+                    
+                    item.value = processed_text;
                 }
             }
         }
         hover
     }
 
-    /// Check if this is an inlay hint related message
-    fn is_inlay_hint_message(&self, lsp_msg: &LspMessage) -> bool {
-        // Check if the method is any inlay hint related method
-        if let Some(method) = &lsp_msg.method {
-            if method == "textDocument/inlayHint" ||
-               method == "inlayHint/resolve" ||
-               method == "workspace/inlayHint/refresh" {
-                return true;
-            }
-        }
+    /// Transform the rescale function signature to be more readable
+    fn transform_rescale_signature(&self, text: &str) -> String {
+        // Look for the rescale function signature pattern
+        // The actual signature has const generic parameters and complex Quantity types
+        // Pattern: pub fn rescale<const PARAMS...>(quantity: Quantity<...>) -> Quantity<...>
+        // We need a more robust regex that can handle the complex generic parameters
         
-        // Check if the result contains inlay hint data structure (for responses)
-        if let Some(result) = &lsp_msg.result {
-            // Check if result is an array (typical for inlay hints)
-            if result.is_array() {
-                // Check if any item in the array has inlay hint structure
-                if let Some(array) = result.as_array() {
-                    for item in array {
-                        if let Some(item_obj) = item.as_object() {
-                            if item_obj.contains_key("position") && item_obj.contains_key("label") {
-                                return true;
-                            }
+        // The issue with the old regex is that [^>]+ stops at the first >, but we have nested
+        // Quantity<...> types that contain > characters. We need to handle this differently.
+        
+        // First, let's try to find the rescale function and extract the parts we need
+        if text.contains("pub fn rescale<") {
+            // We need to find where the generic parameters end and replace the entire signature
+            // Look for the pattern: pub fn rescale<...>(quantity: ...) -> ...
+            // We need to find the first > that's not part of a nested type
+            
+            let mut depth = 0;
+            let mut generic_end = None;
+            
+            // Start from the opening < after "pub fn rescale<"
+            let search_start = text.find("pub fn rescale<").unwrap() + "pub fn rescale<".len();
+            
+            for (i, ch) in text[search_start..].char_indices() {
+                match ch {
+                    '<' => depth += 1,
+                    '>' => {
+                        if depth == 0 {
+                            generic_end = Some(search_start + i);
+                            break;
+                        }
+                        depth -= 1;
+                    }
+                    _ => {}
+                }
+            }
+            
+            if let Some(generic_end) = generic_end {
+                // Find the opening parenthesis
+                if let Some(param_start) = text[generic_end..].find('(') {
+                    let param_start = generic_end + param_start;
+                    
+                    // Find the closing parenthesis
+                    if let Some(param_end) = text[param_start..].find(')') {
+                        let param_end = param_start + param_end;
+                        
+                        // Find the return type arrow
+                        if let Some(arrow_start) = text[param_end..].find(" -> ") {
+                            let arrow_start = param_end + arrow_start;
+                            
+                            // Find the end of the return type (before the next { or newline)
+                            let return_end = text[arrow_start..].find('{').unwrap_or_else(|| {
+                                text[arrow_start..].find('\n').unwrap_or(text.len() - arrow_start)
+                            });
+                            let return_end = arrow_start + return_end;
+                            
+                            // Extract the actual parameter and return types (the parts that were pretty-printed)
+                            // The parameter type is in "quantity: Quantity<...>", not in the generic params
+                            let param_type_start = text[param_start..].find("quantity: ").unwrap_or(0) + param_start + "quantity: ".len();
+                            let param_type_end = param_end;
+                            let param_type = &text[param_type_start..param_type_end];
+                            
+                            let return_type = &text[arrow_start + 4..return_end];
+                            
+                            // Now construct the simplified signature that keeps the meaningful type info
+                            let before = &text[..text.find("pub fn rescale<").unwrap()];
+                            let after = &text[return_end..];
+                            let simplified = format!("pub fn rescale<const FROM: {}, const TO: {}>(quantity: FROM) -> TO", param_type, return_type);
+                            
+                            return format!("{}{}{}", before, simplified, after);
                         }
                     }
                 }
             }
         }
         
-        false
+        text.to_string()
     }
+
+    /// Transform the Add/Sub/Mul/Div trait implementation signatures to be more readable
+    fn transform_add_trait_signature(&self, text: &str) -> String {
+        // Only process text that contains trait implementations
+        if !text.contains("impl<") || (!text.contains("for Quantity<") && !text.contains("for f64")) {
+            return text.to_string();
+        }
+
+        // Look for specific trait patterns and simplify them
+        let mut result = text.to_string();
+        
+        // Pattern 1: impl<const PARAMS...> Add for Quantity<...>
+        if result.contains("impl<") && result.contains("Add for") {
+            result = self.simplify_trait_signature(&result, "Add", "Add for");
+        }
+        
+        // Pattern 2: impl<const PARAMS...> Sub for Quantity<...>
+        if result.contains("impl<") && result.contains("Sub for") {
+            result = self.simplify_trait_signature(&result, "Sub", "Sub for");
+        }
+        
+
+        
+        // Pattern 3: impl<const PARAMS...> Mul<f64> for Quantity<...> (scalar multiplication)
+        if result.contains("impl<") && result.contains("Mul<f64>") && result.contains("for Quantity<") {
+            eprintln!("DEBUG: Pattern 3 matched - scalar Mul<f64>");
+            result = self.simplify_scalar_signature(&result, "Mul");
+        }
+        
+        // Pattern 4: impl<const PARAMS...> Div<f64> for Quantity<...> (scalar division)
+        if result.contains("impl<") && result.contains("Div<f64>") && result.contains("for Quantity<") {
+            result = self.simplify_scalar_signature(&result, "Div");
+        }
+        
+        // Pattern 5: impl<const PARAMS...> Mul for f64 (reverse scalar multiplication: f64 * Quantity)
+        if result.contains("impl<") && result.contains("Mul for") && result.contains("for f64") {
+            result = self.simplify_reverse_scalar_signature(&result, "Mul");
+        }
+        
+        // Pattern 6: impl<const PARAMS...> Div for f64 (reverse scalar division: f64 / Quantity)
+        if result.contains("impl<") && result.contains("Div for") && result.contains("for f64") {
+            result = self.simplify_reverse_scalar_signature(&result, "Div");
+        }
+        
+        // Pattern 7: impl<const PARAMS...> Mul for Quantity<...> (ambiguous case - check function signature)
+        if result.contains("impl<") && result.contains("Mul for") && !result.contains("Mul<") && !result.contains("Mul<f64>") && !result.contains("for f64") {
+            eprintln!("DEBUG: Pattern 7 matched - ambiguous Mul for");
+            // Check if this is actually a Quantity-Quantity multiplication by looking at the function signature
+            if result.contains("fn mul(self, other: Quantity<") {
+                eprintln!("DEBUG: Pattern 7 - Quantity-Quantity case");
+                result = self.simplify_mul_div_signature(&result, "Mul");
+            } else if result.contains("fn mul(self, other: f64)") {
+                eprintln!("DEBUG: Pattern 7 - scalar case");
+                // This is a scalar multiplication
+                result = self.simplify_scalar_signature(&result, "Mul");
+            } else {
+                eprintln!("DEBUG: Pattern 7 - default case");
+                // Default to quantity-quantity multiplication for impl<...> Mul for Quantity<...>
+                result = self.simplify_mul_div_signature(&result, "Mul");
+            }
+        }
+        
+        // Pattern 8: impl<const PARAMS...> Div for Quantity<...> (ambiguous case - check function signature)
+        if result.contains("impl<") && result.contains("Div for") && !result.contains("Div<") && !result.contains("Div<f64>") && !result.contains("for f64") {
+            // Check if this is actually a Quantity-Quantity division by looking at the function signature
+            if result.contains("fn div(self, other: Quantity<") {
+                result = self.simplify_mul_div_signature(&result, "Div");
+            } else if result.contains("fn div(self, other: f64)") {
+                // This is a scalar division
+                result = self.simplify_scalar_signature(&result, "Div");
+            } else {
+                // Default to quantity-quantity division for impl<...> Div for Quantity<...>
+                result = self.simplify_mul_div_signature(&result, "Div");
+            }
+        }
+        
+        result
+    }
+    
+    /// Generic helper to find where clause position and determine where to cut off the text
+    fn find_where_clause_boundary(&self, search_text: &str) -> Option<usize> {
+        // Look for "where " or "where\n" - these are the common patterns in hover text
+        search_text.find("where ")
+            .or_else(|| search_text.find("where\n"))
+    }
+
+    /// Helper function to simplify Add/Sub trait signatures
+    fn simplify_trait_signature(&self, text: &str, trait_name: &str, trait_pattern: &str) -> String {
+        if let Some(impl_start) = text.find("impl<") {
+            if let Some(trait_start) = text[impl_start..].find(trait_pattern) {
+                let trait_start = impl_start + trait_start;
+                
+                // Find the end of the trait type, stopping before any where clause or function body
+                let search_text = &text[trait_start..];
+                
+                // Use the generic helper to find where clause boundary
+                let where_pos = self.find_where_clause_boundary(search_text);
+                
+                let brace_pos = search_text.find('{');
+                let newline_pos = search_text.find('\n');
+                
+                let type_end = trait_start + match (where_pos, brace_pos, newline_pos) {
+                    (Some(w), Some(b), Some(n)) => w.min(b).min(n),
+                    (Some(w), Some(b), None) => w.min(b),
+                    (Some(w), None, Some(n)) => w.min(n),
+                    (None, Some(b), Some(n)) => b.min(n),
+                    (Some(w), None, None) => w,
+                    (None, Some(b), None) => b,
+                    (None, None, Some(n)) => n,
+                    (None, None, None) => search_text.len(),
+                };
+                
+                // Extract the type after the trait
+                let trait_type = &text[trait_start + trait_pattern.len()..type_end];
+                
+                // Create simplified signature
+                let simplified = format!("impl {} for {}", trait_name, trait_type);
+                
+                // If there's a where clause, don't include anything after the trait type
+                // If no where clause, include everything after the type
+                if where_pos.is_some() {
+                    // Stop at the where clause - don't include anything after
+                    return format!("{}{}", &text[..impl_start], simplified);
+                } else {
+                    // No where clause, include everything after the type
+                    let after = &text[type_end..];
+                    return format!("{}{}{}", &text[..impl_start], simplified, after);
+                }
+            }
+        }
+        text.to_string()
+    }
+    
+    /// Helper function to simplify Mul/Div trait signatures with Quantity parameters
+    fn simplify_mul_div_signature(&self, text: &str, trait_name: &str) -> String {
+        if let Some(impl_start) = text.find("impl<") {
+            // Handle the real case: impl<const PARAMS...> Mul for Quantity<...>
+            if let Some(trait_start) = text[impl_start..].find(trait_name) {
+                let trait_start = impl_start + trait_start;
+                
+                // Find "for Quantity<" after the trait name
+                if let Some(for_start) = text[trait_start..].find("for Quantity<") {
+                    let for_start = trait_start + for_start;
+                    
+                    // Find the end of the Quantity type
+                    let search_text = &text[for_start..];
+                    
+                    // Use the generic helper to find where clause boundary
+                    let where_pos = self.find_where_clause_boundary(search_text);
+                    
+                    let brace_pos = search_text.find('{');
+                    let newline_pos = search_text.find('\n');
+                    
+                    let type_end = for_start + match (where_pos, brace_pos, newline_pos) {
+                        (Some(w), Some(b), Some(n)) => w.min(b).min(n),
+                        (Some(w), Some(b), None) => w.min(b),
+                        (Some(w), None, Some(n)) => w.min(n),
+                        (None, Some(b), Some(n)) => b.min(n),
+                        (Some(w), None, None) => w,
+                        (None, Some(b), None) => b,
+                        (None, None, Some(n)) => n,
+                        (None, None, None) => search_text.len(),
+                    };
+                    
+                    let trait_type = &text[for_start + "for ".len()..type_end];
+                    
+                    // For quantity-quantity operations, show the actual types
+                    let simplified = format!("impl {} for {}", trait_name, trait_type);
+                    
+                    // Strip the where clause but keep the function definition
+                    if where_pos.is_some() {
+                        // Include everything from the trait type to the where clause (which includes the function)
+                        let where_start = for_start + where_pos.unwrap();
+                        let after = &text[type_end..where_start];
+                        return format!("{}{}{}", &text[..impl_start], simplified, after);
+                    } else {
+                        // No where clause, include everything after the type
+                        let after = &text[type_end..];
+                        return format!("{}{}{}", &text[..impl_start], simplified, after);
+                    }
+                }
+            }
+        }
+        text.to_string()
+    }
+    
+    /// Helper function to simplify scalar Mul/Div trait signatures
+    fn simplify_scalar_signature(&self, text: &str, trait_name: &str) -> String {
+        if let Some(impl_start) = text.find("impl<") {
+            // Look for both patterns: "Mul<f64> for" and "Mul for"
+            let trait_pattern1 = format!("{}<f64> for", trait_name);
+            let trait_pattern2 = format!("{} for", trait_name);
+            
+            let trait_start = if let Some(start) = text[impl_start..].find(&trait_pattern1) {
+                Some(impl_start + start)
+            } else if let Some(start) = text[impl_start..].find(&trait_pattern2) {
+                Some(impl_start + start)
+            } else {
+                None
+            };
+            
+            if let Some(trait_start) = trait_start {
+                // Find the end of the trait type
+                let search_text = &text[trait_start..];
+                
+                // Use the generic helper to find where clause boundary
+                let where_pos = self.find_where_clause_boundary(search_text);
+                
+                let brace_pos = search_text.find('{');
+                let newline_pos = search_text.find('\n');
+                
+                let type_end = trait_start + match (where_pos, brace_pos, newline_pos) {
+                    (Some(w), Some(b), Some(n)) => w.min(b).min(n),
+                    (Some(w), Some(b), None) => w.min(b),
+                    (Some(w), None, Some(n)) => w.min(n),
+                    (None, Some(b), Some(n)) => b.min(n),
+                    (Some(w), None, None) => w,
+                    (None, Some(b), None) => b,
+                    (None, None, Some(n)) => n,
+                    (None, None, None) => search_text.len(),
+                };
+                
+                // Extract the type after the trait
+                // Handle both "Mul<f64> for" and "Mul for" patterns
+                let trait_type = if text[trait_start..].starts_with(&trait_pattern1) {
+                    &text[trait_start + trait_pattern1.len() + 1..type_end] // +1 for space
+                } else {
+                    &text[trait_start + trait_pattern2.len() + 1..type_end] // +1 for space
+                };
+                
+                // Create simplified signature for scalar operations
+                let simplified = format!("impl {}<f64> for {}", trait_name, trait_type);
+                
+                // If there's a where clause, don't include anything after the trait type
+                // If no where clause, include everything after the type
+                if where_pos.is_some() {
+                    // Stop at the where clause - don't include anything after
+                    return format!("{}{}", &text[..impl_start], simplified);
+                } else {
+                    // No where clause, include everything after the type
+                    let after = &text[type_end..];
+                    return format!("{}{}{}", &text[..impl_start], simplified, after);
+                }
+            }
+        }
+        text.to_string()
+    }
+    
+    /// Helper function to simplify reverse scalar Mul/Div trait signatures (f64 * Quantity)
+    fn simplify_reverse_scalar_signature(&self, text: &str, trait_name: &str) -> String {
+        if let Some(impl_start) = text.find("impl<") {
+            let trait_pattern = format!("{} for", trait_name);
+            
+            if let Some(trait_start) = text[impl_start..].find(&trait_pattern) {
+                let trait_start = impl_start + trait_start;
+                
+                // Find the end of the trait type
+                let search_text = &text[trait_start..];
+                
+                // Use the generic helper to find where clause boundary
+                let where_pos = self.find_where_clause_boundary(search_text);
+                
+                let brace_pos = search_text.find('{');
+                let newline_pos = search_text.find('\n');
+                
+                let type_end = trait_start + match (where_pos, brace_pos, newline_pos) {
+                    (Some(w), Some(b), Some(n)) => w.min(b).min(n),
+                    (Some(w), Some(b), None) => w.min(b),
+                    (Some(w), None, Some(n)) => w.min(n),
+                    (None, Some(b), Some(n)) => b.min(n),
+                    (Some(w), None, None) => w,
+                    (None, Some(b), None) => b,
+                    (None, None, Some(n)) => n,
+                    (None, None, None) => search_text.len(),
+                };
+                
+                // Extract the type after the trait
+                let trait_type = &text[trait_start + trait_pattern.len() + 1..type_end]; // +1 for space
+                
+                // Create simplified signature for reverse scalar operations
+                let simplified = format!("impl {}<Quantity<...>> for {}", trait_name, trait_type);
+                
+                // Strip the where clause but keep the function definition
+                if where_pos.is_some() {
+                    // Include everything from the trait type to the where clause (which includes the function)
+                    let where_start = trait_start + where_pos.unwrap();
+                    let after = &text[type_end..where_start];
+                    return format!("{}{}{}", &text[..impl_start], simplified, after);
+                } else {
+                    // No where clause, include everything after the type
+                    let after = &text[type_end..];
+                    return format!("{}{}{}", &text[..impl_start], simplified, after);
+                }
+            }
+        }
+        text.to_string()
+    }
+
+    /// Extract a quantity type from generic parameters based on the scale suffix
+    fn extract_quantity_type(&self, generic_params: &str, scale_suffix: &str) -> String {
+        // Parse the generic parameters to extract values
+        let mut mass_exp = 0;
+        let mut mass_scale = 0;
+        let mut length_exp = 0;
+        let mut length_scale = 0;
+        let mut time_exp = 0;
+        let mut time_p2 = 0;
+        let mut time_p3 = 0;
+        let mut time_p5 = 0;
+        
+        // Extract MASS_EXPONENT
+        if let Some(cap) = Regex::new(r"const MASS_EXPONENT: isize = (\d+)").unwrap().captures(generic_params) {
+            mass_exp = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract MASS_SCALE_P10 with the specified suffix
+        let mass_scale_pattern = format!(r"const MASS_SCALE_P10_{}: isize = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&mass_scale_pattern).unwrap().captures(generic_params) {
+            mass_scale = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract LENGTH_EXPONENT
+        if let Some(cap) = Regex::new(r"const LENGTH_EXPONENT: isize = (\d+)").unwrap().captures(generic_params) {
+            length_exp = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract LENGTH_SCALE_P10 with the specified suffix
+        let length_scale_pattern = format!(r"const LENGTH_SCALE_P10_{}: isize = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&length_scale_pattern).unwrap().captures(generic_params) {
+            length_scale = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract TIME_EXPONENT
+        if let Some(cap) = Regex::new(r"const TIME_EXPONENT: isize = (\d+)").unwrap().captures(generic_params) {
+            time_exp = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract TIME_SCALE_P2 with the specified suffix
+        let time_p2_pattern = format!(r"const TIME_SCALE_P2_{}: isize = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&time_p2_pattern).unwrap().captures(generic_params) {
+            time_p2 = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract TIME_SCALE_P3 with the specified suffix
+        let time_p3_pattern = format!(r"const TIME_SCALE_P3_{}: isize = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&time_p3_pattern).unwrap().captures(generic_params) {
+            time_p3 = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Extract TIME_SCALE_P5 with the specified suffix
+        let time_p5_pattern = format!(r"const TIME_SCALE_P5_{}: isize = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&time_p5_pattern).unwrap().captures(generic_params) {
+            time_p5 = cap[1].parse().unwrap_or(0);
+        }
+        
+        // Use the prettyprint API to generate a readable type
+        use whippyunits::print::prettyprint::pretty_print_quantity_type;
+        pretty_print_quantity_type(
+            mass_exp, mass_scale,
+            length_exp, length_scale,
+            time_exp, time_p2, time_p3, time_p5,
+            false, // not verbose
+        )
+    }
+
+
 
     /// Check if this is an inlay hint response (has result with inlay hint data)
     fn is_inlay_hint_response(&self, lsp_msg: &LspMessage) -> bool {
@@ -288,6 +741,10 @@ impl LspProxy {
             false
         }
     }
+
+
+
+
 
     /// Process inlay hint result to pretty-print whippyunits types
     fn process_inlay_hint_result(&self, result: &Value) -> Result<Value, anyhow::Error> {
@@ -339,8 +796,29 @@ impl WhippyUnitsTypeConverter {
         };
         
         // Add raw type if requested
-        if config.include_raw {
+        // Only add raw type if requested AND if we actually made changes
+        if config.include_raw && result != text {
             result.push_str(&format!("\n\nRaw: {}", text));
+        }
+        
+        result
+    }
+
+    /// Convert types in text with display configuration and original text for Raw section
+    pub fn convert_types_in_text_with_config_and_original(&self, text: &str, config: &DisplayConfig, original_text: &str) -> String {
+        use whippyunits::print::prettyprint::pretty_print_quantity_type;
+        
+        let mut result = if config.verbose {
+            // In verbose mode, convert Quantity types to readable format
+            self.convert_quantity_types_verbose(text)
+        } else {
+            // In clean mode, convert to unit display
+            self.convert_quantity_types_clean(text, config.unicode)
+        };
+        
+        // Only add raw type if requested AND if we actually made changes
+        if config.include_raw && result != original_text {
+            result.push_str(&format!("\n\nRaw: {}", original_text));
         }
         
         result
@@ -371,8 +849,21 @@ impl WhippyUnitsTypeConverter {
             let full_match = caps[0].to_string();
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
-            let params = if full_match.contains("const") || full_match.contains("isize") {
-                // This is a type definition, treat as fully unresolved (all _ placeholders)
+            // Also check if we're in a context that suggests const generic parameters (like rescale functions)
+            let is_const_generic_context = full_match.contains("const") || 
+                                         full_match.contains("isize") || 
+                                         text.contains("pub fn rescale<") ||
+                                         text.contains("const FROM:") ||
+                                         text.contains("const TO:") ||
+                                         text.contains("impl Add for") ||
+                                         text.contains("impl Sub for") ||
+                                         text.contains("impl Mul<") ||
+                                         text.contains("impl Div<") ||
+                                         text.contains("impl Mul for") ||
+                                         text.contains("impl Div for");
+            
+            let params = if is_const_generic_context {
+                // This is a type definition or const generic context, treat as unknown (all isize::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: isize::MIN,
                     mass_scale: isize::MIN,
@@ -423,8 +914,21 @@ impl WhippyUnitsTypeConverter {
             let full_match = caps[0].to_string();
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
-            let params = if full_match.contains("const") || full_match.contains("isize") {
-                // This is a type definition, treat as fully unresolved (all _ placeholders)
+            // Also check if we're in a context that suggests const generic parameters (like rescale functions)
+            let is_const_generic_context = full_match.contains("const") || 
+                                         full_match.contains("isize") || 
+                                         text.contains("pub fn rescale<") ||
+                                         text.contains("const FROM:") ||
+                                         text.contains("const TO:") ||
+                                         text.contains("impl Add for") ||
+                                         text.contains("impl Sub for") ||
+                                         text.contains("impl Mul<") ||
+                                         text.contains("impl Div<") ||
+                                         text.contains("impl Mul for") ||
+                                         text.contains("impl Div for");
+            
+            let params = if is_const_generic_context {
+                // This is a type definition or const generic context, treat as unknown (all isize::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: isize::MIN,
                     mass_scale: isize::MIN,
@@ -475,8 +979,21 @@ impl WhippyUnitsTypeConverter {
             let full_match = caps[0].to_string();
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
-            let params = if full_match.contains("const") || full_match.contains("isize") {
-                // This is a type definition, treat as fully unresolved (all _ placeholders)
+            // Also check if we're in a context that suggests const generic parameters (like rescale functions)
+            let is_const_generic_context = full_match.contains("const") || 
+                                         full_match.contains("isize") || 
+                                         text.contains("pub fn rescale<") ||
+                                         text.contains("const FROM:") ||
+                                         text.contains("const TO:") ||
+                                         text.contains("impl Add for") ||
+                                         text.contains("impl Sub for") ||
+                                         text.contains("impl Mul<") ||
+                                         text.contains("impl Div<") ||
+                                         text.contains("impl Mul for") ||
+                                         text.contains("impl Div for");
+            
+            let params = if is_const_generic_context {
+                // This is a type definition or const generic context, treat as unknown (all isize::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: isize::MIN,
                     mass_scale: isize::MIN,
@@ -636,6 +1153,8 @@ struct QuantityParams {
     time_p5: isize,
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -667,8 +1186,8 @@ mod tests {
         let text = "let distance1: Quantity<0, _, 1, _, 0, _, _, _> = 5.0.millimeters();";
         let converted = converter.convert_types_in_text(text);
         println!("Converted unresolved type: '{}'", converted);
-        // Should show "length" for unresolved length type
-        assert!(converted.contains("length"));
+        // Should show "Length" for unresolved length type
+        assert!(converted.contains("Length"));
         assert!(!converted.contains("Unresolved type"));
     }
 
@@ -851,10 +1370,378 @@ mod tests {
         let result = processed_value["result"].as_array().unwrap();
         let label = &result[0]["label"];
         
-        // The label should contain "length" for the unresolved length type
+        // The label should contain "Length" for the unresolved length type
         let label_str = serde_json::to_string(label).unwrap();
         println!("Processed unresolved type label: {}", label_str);
-        assert!(label_str.contains("length"));
+        assert!(label_str.contains("Length"));
         assert!(!label_str.contains("Unresolved type"));
+    }
+
+    #[test]
+    fn test_rescale_signature_transformation() {
+        let proxy = LspProxy::new();
+        
+        // Test with the actual rescale function signature format
+        let hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\npub fn rescale<const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize, const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize>(quantity: Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>) -> Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed rescale signature: {}", contents_str);
+        // Should show a simplified rescale signature
+        assert!(contents_str.contains("pub fn rescale<const FROM:"));
+        assert!(contents_str.contains("-> TO"));
+        assert!(contents_str.contains("quantity: FROM"));
+        assert!(!contents_str.contains("MASS_EXPONENT"));
+        assert!(!contents_str.contains("LENGTH_EXPONENT"));
+        assert!(!contents_str.contains("TIME_EXPONENT"));
+    }
+
+    #[test]
+    fn test_add_sub_trait_signature_transformation() {
+        let proxy = LspProxy::new();
+        
+        // Test Add trait
+        let add_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Add for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&add_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Add trait signature: {}", contents_str);
+        // Should show a simplified Add trait signature
+        assert!(contents_str.contains("impl Add for"));
+        // The type converter should process the Quantity type and show the pretty output
+        // We expect something like Quantity<?> or the full pretty-printed format
+        assert!(contents_str.contains("Quantity<"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: isize"));
+        
+        // Test Sub trait
+        let sub_hover_response = json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Sub for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&sub_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Sub trait signature: {}", contents_str);
+        // Should show a simplified Sub trait signature
+        assert!(contents_str.contains("impl Sub for"));
+        // The type converter should process the Quantity type and show the pretty output
+        // We expect something like Quantity<?> or the full pretty-printed format
+        assert!(contents_str.contains("Quantity<"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: isize"));
+        
+        // Test Mul trait
+        let mul_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT1: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT1: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&mul_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Mul trait signature: {}", contents_str);
+        // Should show a simplified Mul trait signature
+        assert!(contents_str.contains("impl Mul for"));
+        assert!(contents_str.contains("Quantity<"));
+        // The type converter should process the Quantity types and show the pretty output
+        assert!(!contents_str.contains("const MASS_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: isize"));
+        
+        // Test Div trait
+        let div_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT1: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT1: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Div for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&div_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Div trait signature: {}", contents_str);
+        // Should show a simplified Div trait signature
+        assert!(contents_str.contains("impl Div for"));
+        assert!(contents_str.contains("Quantity<"));
+        // The type converter should process the Quantity types and show the pretty output
+        assert!(!contents_str.contains("const MASS_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: isize"));
+        
+        // Test scalar Mul trait (Quantity * f64)
+        let scalar_mul_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 5,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Mul<f64> for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&scalar_mul_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed scalar Mul trait signature: {}", contents_str);
+        // Should show a simplified scalar Mul trait signature
+        assert!(contents_str.contains("impl Mul<f64>"));
+        assert!(contents_str.contains("for Quantity<"));
+        // The type converter should process the Quantity type and show the pretty output
+        assert!(contents_str.contains("Quantity<"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: isize"));
+        
+        // Test Mul for pattern (where LSP doesn't preserve generic parameters)
+        let mul_for_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 6,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Mul for Quantity<LENGTH_EXPONENT, LENGTH_SCALE_P10, MASS_EXPONENT, MASS_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nfn mul(self, other: f64) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&mul_for_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Mul for trait signature: {}", contents_str);
+        // Should show a simplified Mul trait signature with f64 parameter detected from function signature
+        assert!(contents_str.contains("impl Mul<f64>"));
+        assert!(contents_str.contains("for Quantity<"));
+        // The type converter should process the Quantity type and show the pretty output
+        assert!(contents_str.contains("Quantity<"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: isize"));
+        
+        // Test Mul trait with where clause (Quantity-Quantity case)
+        let mul_where_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 7,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT1: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT1: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nwhere\n    MASS_EXPONENT1: isize,\n    LENGTH_EXPONENT1: isize,\n    TIME_EXPONENT1: isize,\n    MASS_SCALE_P10: isize,\n    LENGTH_SCALE_P10: isize,\n    TIME_SCALE_P2: isize,\n    TIME_SCALE_P3: isize,\n    TIME_SCALE_P5: isize,\n{\n```"
+                }
+            }
+        });
+        
+
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&mul_where_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed Mul trait with where clause: {}", contents_str);
+        // Should show a simplified Mul trait signature without the where clause
+        assert!(contents_str.contains("impl Mul for"));
+        assert!(contents_str.contains("Quantity<"));
+        // The type converter should process the Quantity types and show the pretty output
+        assert!(!contents_str.contains("const MASS_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: isize"));
+        // Should not contain the where clause
+        assert!(!contents_str.contains("where"));
+        assert!(!contents_str.contains("MASS_EXPONENT1: isize"));
+    }
+
+    #[test]
+    fn test_reverse_scalar_mul() {
+        let proxy = LspProxy::new();
+        
+        // Test reverse scalar Mul trait (f64 * Quantity)
+        let reverse_scalar_mul_hover_response = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "contents": {
+                    "kind": "markdown",
+                    "value": "```rust\nimpl<const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize, const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize, const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize> Mul for f64\nfn mul(self: f64, other: Self::Output) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
+                }
+            }
+        });
+        
+        // Convert to LSP message format
+        let json_str = serde_json::to_string(&reverse_scalar_mul_hover_response).unwrap();
+        let lsp_message = format!("Content-Length: {}\r\n\r\n{}", json_str.len(), json_str);
+        
+        // Process the message
+        let processed = proxy.process_incoming(&lsp_message).unwrap();
+        
+        // Extract the JSON payload from the processed message
+        let lines: Vec<&str> = processed.lines().collect();
+        let json_start = lines.iter().position(|line| line.trim().is_empty()).unwrap() + 1;
+        let processed_json = lines[json_start..].join("\n");
+        
+        // Parse and verify the result
+        let processed_value: Value = serde_json::from_str(&processed_json).unwrap();
+        let contents = &processed_value["result"]["contents"]["value"];
+        let contents_str = contents.as_str().unwrap();
+        
+        println!("Processed reverse scalar Mul trait: {}", contents_str);
+        // Should show a simplified reverse scalar Mul trait signature
+        assert!(contents_str.contains("impl Mul<Quantity<"));
+        assert!(contents_str.contains("for f64"));
+        // Should preserve the function definition and documentation
+        assert!(contents_str.contains("fn mul(self: f64, other: Self::Output) -> Self::Output"));
+        assert!(contents_str.contains("Performs the * operation."));
+        // Should not contain the const generic parameters
+        assert!(!contents_str.contains("const MASS_EXPONENT: isize"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: isize"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: isize"));
     }
 }

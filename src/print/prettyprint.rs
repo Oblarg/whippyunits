@@ -28,6 +28,47 @@ pub fn generate_dimension_symbols(mass_exponent: isize, length_exponent: isize, 
     }
 }
 
+/// Generate verbose dimension names for unresolved types (Length, Time, Mass)
+pub fn generate_verbose_dimension_names(mass_exponent: isize, length_exponent: isize, time_exponent: isize) -> String {
+    let mut parts = Vec::new();
+    
+    // Add mass dimension
+    if mass_exponent != 0 {
+        let name = if mass_exponent == 1 { "Mass" } else { "Mass" };
+        if mass_exponent != 1 {
+            parts.push(format!("{}{}", name, to_unicode_superscript(mass_exponent, false)));
+        } else {
+            parts.push(name.to_string());
+        }
+    }
+    
+    // Add length dimension
+    if length_exponent != 0 {
+        let name = if length_exponent == 1 { "Length" } else { "Length" };
+        if length_exponent != 1 {
+            parts.push(format!("{}{}", name, to_unicode_superscript(length_exponent, false)));
+        } else {
+            parts.push(name.to_string());
+        }
+    }
+    
+    // Add time dimension
+    if time_exponent != 0 {
+        let name = if time_exponent == 1 { "Time" } else { "Time" };
+        if time_exponent != 1 {
+            parts.push(format!("{}{}", name, to_unicode_superscript(time_exponent, false)));
+        } else {
+            parts.push(name.to_string());
+        }
+    }
+    
+    if parts.is_empty() {
+        "?".to_string()
+    } else {
+        parts.join("·")
+    }
+}
+
 /// Calculate total power of 10 across all dimensions
 fn calculate_total_scale_p10(
     mass_exponent: isize, mass_scale_p10: isize,
@@ -179,7 +220,8 @@ pub fn pretty_print_quantity(
         info.dimension_name.to_string()
     } else {
         if verbose {
-            "Unknown".to_string()
+            // For unrecognized dimensions in verbose mode, generate verbose dimension names
+            generate_verbose_dimension_names(mass_exponent, length_exponent, time_exponent)
         } else {
             // For unrecognized dimensions, compute dimension symbol dynamically from exponents
             generate_dimension_symbols(mass_exponent, length_exponent, time_exponent)

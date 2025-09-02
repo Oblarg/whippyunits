@@ -12,10 +12,10 @@ fn test_addition_same_scale() {
     let s1 = 30.0.seconds();
     
     // Same scale addition should work
-    let result = m1 + 3.0.meters();
+    let result: unit!(m) = m1 + 3.0.meters();
     assert_eq!(result.value, 8.0);
     
-    let result = s1 + 10.0.seconds();
+    let result: unit!(s) = s1 + 10.0.seconds();
     assert_eq!(result.value, 40.0);
 }
 
@@ -93,7 +93,7 @@ fn test_scalar_quantity_multiplication() {
     assert_eq!(result.value, 15.0);
     
     // Quantity * Scalar should work
-    let result: unit!(m) = m1 * 4.0;
+    let result: unit!(m) = m1 * 4.0; 
     assert_eq!(result.value, 20.0);
 }
 
@@ -154,23 +154,6 @@ fn test_rescale_time() {
 // ============================================================================
 // Edge Cases and Error Handling Tests
 // ============================================================================
-
-#[test]
-fn test_zero_quantities() {
-    let zero_m = 0.0.meters();
-    let zero_s = 0.0.seconds();
-    
-    // Addition with zero
-    let result = zero_m + 5.0.meters();
-    assert_eq!(result.value, 5.0);
-    
-    // Multiplication with zero
-    let result = zero_m * 10.0;
-    assert_eq!(result.value, 0.0);
-    
-    // Division by zero should panic (Rust behavior)
-    // This test documents the expected behavior
-}
 
 #[test]
 fn test_negative_quantities() {

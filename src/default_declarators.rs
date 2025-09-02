@@ -1,19 +1,7 @@
 use crate::quantity_type::Quantity;
 use crate::constants::*;
 
-#[cfg(feature = "strict")]
-const MASS_UNUSED: isize = 0;
-#[cfg(feature = "strict")]
-const LENGTH_UNUSED: isize = 0;
-#[cfg(feature = "strict")]
-const TIME_UNUSED: isize = 0;
-
-#[cfg(not(feature = "strict"))]
-const MASS_UNUSED: isize = isize::MAX;
-#[cfg(not(feature = "strict"))]
-const LENGTH_UNUSED: isize = isize::MAX;
-#[cfg(not(feature = "strict"))]
-const TIME_UNUSED: isize = isize::MAX;
+// All unused dimensions now use 0 (SI base unit scale) instead of sentinel values
 
 
 // ============================================================================
@@ -22,49 +10,49 @@ const TIME_UNUSED: isize = isize::MAX;
 
 pub type Milligram = Quantity<
     1, MILLIGRAM_SCALE_P10,
-    0, LENGTH_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0,
+    0, 0, 0, 0,
 >;
 pub type Gram = Quantity<
     1, GRAM_SCALE_P10,
-    0, LENGTH_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0,
+    0, 0, 0, 0,
 >;
 pub type Kilogram = Quantity<
     1, KILOGRAM_SCALE_P10,
-    0, LENGTH_UNUSED,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0,
+    0, 0, 0, 0,
 >;
 
 pub type Millimeter = Quantity<
-    0, MASS_UNUSED,
+    0, 0,
     1, MILLIMETER_SCALE_P10,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0, 0, 0,
 >;
 pub type Meter = Quantity<
-    0, MASS_UNUSED,
+    0, 0,
     1, METER_SCALE_P10,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0, 0, 0,
 >;
 pub type Kilometer = Quantity<
-    0, MASS_UNUSED,
+    0, 0,
     1, KILOMETER_SCALE_P10,
-    0, TIME_UNUSED, TIME_UNUSED, TIME_UNUSED,
+    0, 0, 0, 0,
 >;
 
 pub type Millisecond = Quantity<
-    0, MASS_UNUSED,
-    0, LENGTH_UNUSED,
+    0, 0,
+    0, 0,
     1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5,
 >;
 pub type Second = Quantity<
-    0, MASS_UNUSED,
-    0, LENGTH_UNUSED,
+    0, 0,
+    0, 0,
     1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5,
 >;
 pub type Minute = Quantity<
-    0, MASS_UNUSED,
-    0, LENGTH_UNUSED,
+    0, 0,
+    0, 0,
     1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5,
 >;
 
@@ -170,18 +158,10 @@ impl TimeExt for i32 {
     }
 }
 
-#[cfg(feature = "strict")]
 define_unit_macro!(
     0,
     0,
     0, 0, 0
-);
-
-#[cfg(not(feature = "strict"))]
-define_unit_macro!(
-    { isize::MAX },
-    { isize::MAX },
-    { isize::MAX }, { isize::MAX }, { isize::MAX }
 );
 
 pub use unit;

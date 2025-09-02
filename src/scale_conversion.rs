@@ -7,21 +7,19 @@ use crate::constants::*;
 
 /// Convert between Length units
 pub const fn length_conversion_factor(p10_from: isize, p10_to: isize, exponent: isize) -> f64 {
-    let diff_p10: isize = (p10_from - p10_to) * exponent;
-    const UNUSED: isize = LENGTH_UNUSED;
-    match (p10_from, p10_to) {
-        (UNUSED, _) | (_, UNUSED) => 1.0_f64,
-        _ => pow10(diff_p10),
+    match exponent {
+        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
+        1 => pow10(p10_from - p10_to),
+        _ => pow10((p10_from - p10_to) * exponent),
     }
 }
 
 /// Convert between Mass units
 pub const fn mass_conversion_factor(p10_from: isize, p10_to: isize, exponent: isize) -> f64 {
-    let diff_p10: isize = (p10_from - p10_to) * exponent;
-    const UNUSED: isize = MASS_UNUSED;
-    match (p10_from, p10_to) {
-        (UNUSED, _) | (_, UNUSED) => 1.0_f64,
-        _ => pow10(diff_p10),
+    match exponent {
+        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
+        1 => pow10(p10_from - p10_to),
+        _ => pow10((p10_from - p10_to) * exponent),
     }
 }
 
@@ -35,18 +33,15 @@ pub const fn time_conversion_factor(
     p5_to: isize,
     exponent: isize,
 ) -> f64 {
-    let diff_p2: isize = (p2_from - p2_to) * exponent;
-    let diff_p3: isize = (p3_from - p3_to) * exponent;
-    let diff_p5: isize = (p5_from - p5_to) * exponent;
-    const UNUSED: isize = TIME_UNUSED;
-    match (p2_from, p2_to, p3_from, p3_to, p5_from, p5_to) {
-        (UNUSED, _, _, _, _, _) => 1.0_f64,
-        (_, UNUSED, _, _, _, _) => 1.0_f64,
-        (_, _, UNUSED, _, _, _) => 1.0_f64,
-        (_, _, _, UNUSED, _, _) => 1.0_f64,
-        (_, _, _, _, UNUSED, _) => 1.0_f64,
-        (_, _, _, _, _, UNUSED) => 1.0_f64,
-        _ => pow2(diff_p2) * pow3(diff_p3) * pow5(diff_p5),
+    match exponent {
+        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
+        1 => pow2(p2_from - p2_to) * pow3(p3_from - p3_to) * pow5(p5_from - p5_to),
+        _ => {
+            let diff_p2: isize = (p2_from - p2_to) * exponent;
+            let diff_p3: isize = (p3_from - p3_to) * exponent;
+            let diff_p5: isize = (p5_from - p5_to) * exponent;
+            pow2(diff_p2) * pow3(diff_p3) * pow5(diff_p5)
+        }
     }
 }
 

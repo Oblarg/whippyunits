@@ -9,7 +9,6 @@
 pub const MILLIMETER_SCALE_P10: isize = -3;
 pub const METER_SCALE_P10: isize = 0;
 pub const KILOMETER_SCALE_P10: isize = 3;
-pub const LENGTH_UNUSED: isize = isize::MAX;
 
 // ============================================================================
 // Mass Scale Constants (Auto-generated)
@@ -18,7 +17,6 @@ pub const LENGTH_UNUSED: isize = isize::MAX;
 pub const MILLIGRAM_SCALE_P10: isize = -6;
 pub const GRAM_SCALE_P10: isize = -3;
 pub const KILOGRAM_SCALE_P10: isize = 0;
-pub const MASS_UNUSED: isize = isize::MAX;
 
 // ============================================================================
 // Time Scale Constants (Auto-generated)
@@ -35,8 +33,6 @@ pub const SECOND_SCALE_P5: isize = 0;
 pub const MINUTE_SCALE_P2: isize = 2;
 pub const MINUTE_SCALE_P3: isize = 1;
 pub const MINUTE_SCALE_P5: isize = 1;
-
-pub const TIME_UNUSED: isize = isize::MAX;
 
 // ============================================================================
 // Power Functions (Auto-generated)

@@ -106,10 +106,10 @@ define_dimension_traits!(
 );
 
 #[cfg(not(feature = "strict"))]
-// Define the traits with UNUSED values for all non-strict modes
+// Define the traits with 0 values for all non-strict modes (same as strict now)
 define_dimension_traits!(
-    MASS_UNUSED,
-    LENGTH_UNUSED,
-    TIME_UNUSED, TIME_UNUSED, TIME_UNUSED
+    0,
+    0,
+    0, 0, 0
 );
 
