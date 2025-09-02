@@ -97,15 +97,6 @@ macro_rules! define_dimension_traits {
     };
 }
 
-#[cfg(feature = "strict")]
-// Define the traits with specific scale values for strict mode
-define_dimension_traits!(
-    KILOGRAM_SCALE_P10,
-    METER_SCALE_P10,
-    SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5
-);
-
-#[cfg(not(feature = "strict"))]
 // Define the traits with 0 values for all non-strict modes (same as strict now)
 define_dimension_traits!(
     0,

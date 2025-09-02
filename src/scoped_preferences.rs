@@ -90,6 +90,9 @@ macro_rules! get_time_scale_p5 {
 #[macro_export]
 macro_rules! set_unit_preferences {
     ($mass_scale:ident, $length_scale:ident, $time_scale:ident) => {
+        use crate::constants::*;
+        use crate::scale_conversion::*;
+        use crate::quantity_type::Quantity;
         // Generate type aliases
         type LocalMass = Quantity<
             1, { get_mass_scale!($mass_scale) },
