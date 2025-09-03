@@ -8,10 +8,14 @@ quote = "1.0"
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
-whippyunits-unit-macro = { path = "./unit-macro" }
+whippyunits-proc-macros = { path = "./proc-macros" }
 
 [dev-dependencies]
 trybuild = "1.0"
+
+[[example]]
+name = "proc_macro_usage"
+path = "examples/proc_macro_usage.rs"
 
 [features]
 default = ["strict"]

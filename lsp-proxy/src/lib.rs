@@ -873,6 +873,7 @@ impl WhippyUnitsTypeConverter {
                     time_p2: isize::MIN,
                     time_p3: isize::MIN,
                     time_p5: isize::MIN,
+                    generic_type: "f64".to_string(),
                 })
             } else {
                 self.parse_quantity_params(&full_match)
@@ -938,6 +939,7 @@ impl WhippyUnitsTypeConverter {
                     time_p2: isize::MIN,
                     time_p3: isize::MIN,
                     time_p5: isize::MIN,
+                    generic_type: "f64".to_string(),
                 })
             } else {
                 self.parse_quantity_params(&full_match)
@@ -979,7 +981,7 @@ impl WhippyUnitsTypeConverter {
             let full_match = caps[0].to_string();
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: isize")
-            // Also check if we're in a context that suggests const generic parameters (like rescale functions)
+            // Also check if this is a type definition or const generic context (like rescale functions)
             let is_const_generic_context = full_match.contains("const") || 
                                          full_match.contains("isize") || 
                                          text.contains("pub fn rescale<") ||
@@ -1003,6 +1005,7 @@ impl WhippyUnitsTypeConverter {
                     time_p2: isize::MIN,
                     time_p3: isize::MIN,
                     time_p5: isize::MIN,
+                    generic_type: "f64".to_string(),
                 })
             } else {
                 self.parse_quantity_params(&full_match)
@@ -1054,7 +1057,15 @@ impl WhippyUnitsTypeConverter {
             })
             .collect();
         
-        if params.len() >= 8 {
+        if params.len() >= 9 {
+            // Extract the generic type parameter (last parameter)
+            let generic_type = if params.len() > 9 {
+                // If we have more than 9 parameters, the last one is the generic type
+                params_str.split(',').nth(8).unwrap_or("f64").trim().to_string()
+            } else {
+                "f64".to_string() // Default to f64
+            };
+            
             Some(QuantityParams {
                 // New API uses (mass, length, time) order
                 mass_exp: params[0].unwrap_or(0),
@@ -1065,6 +1076,21 @@ impl WhippyUnitsTypeConverter {
                 time_p2: params[5].unwrap_or(isize::MAX),
                 time_p3: params[6].unwrap_or(isize::MAX),
                 time_p5: params[7].unwrap_or(isize::MAX),
+                generic_type,
+            })
+        } else if params.len() >= 8 {
+            // Handle legacy 8-parameter format (backward compatibility)
+            Some(QuantityParams {
+                // New API uses (mass, length, time) order
+                mass_exp: params[0].unwrap_or(0),
+                mass_scale: params[1].unwrap_or(isize::MAX),
+                length_exp: params[2].unwrap_or(0),
+                length_scale: params[3].unwrap_or(isize::MAX),
+                time_exp: params[4].unwrap_or(0),
+                time_p2: params[5].unwrap_or(isize::MAX),
+                time_p3: params[6].unwrap_or(isize::MAX),
+                time_p5: params[7].unwrap_or(isize::MAX),
+                generic_type: "f64".to_string(), // Default to f64 for legacy format
             })
         } else {
             None
@@ -1151,6 +1177,7 @@ struct QuantityParams {
     time_p2: isize,
     time_p3: isize,
     time_p5: isize,
+    generic_type: String, // New field for the generic type parameter
 }
 
 

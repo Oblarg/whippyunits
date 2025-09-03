@@ -12,48 +12,57 @@ pub type Milligram = Quantity<
     1, MILLIGRAM_SCALE_P10,
     0, 0,
     0, 0, 0, 0,
+    f64,
 >;
 pub type Gram = Quantity<
     1, GRAM_SCALE_P10,
     0, 0,
     0, 0, 0, 0,
+    f64,
 >;
 pub type Kilogram = Quantity<
     1, KILOGRAM_SCALE_P10,
     0, 0,
     0, 0, 0, 0,
+    f64,
 >;
 
 pub type Millimeter = Quantity<
     0, 0,
     1, MILLIMETER_SCALE_P10,
     0, 0, 0, 0,
+    f64,
 >;
 pub type Meter = Quantity<
     0, 0,
     1, METER_SCALE_P10,
     0, 0, 0, 0,
+    f64,
 >;
 pub type Kilometer = Quantity<
     0, 0,
     1, KILOMETER_SCALE_P10,
     0, 0, 0, 0,
+    f64,
 >;
 
 pub type Millisecond = Quantity<
     0, 0,
     0, 0,
     1, MILLISECOND_SCALE_P2, MILLISECOND_SCALE_P3, MILLISECOND_SCALE_P5,
+    f64,
 >;
 pub type Second = Quantity<
     0, 0,
     0, 0,
     1, SECOND_SCALE_P2, SECOND_SCALE_P3, SECOND_SCALE_P5,
+    f64,
 >;
 pub type Minute = Quantity<
     0, 0,
     0, 0,
     1, MINUTE_SCALE_P2, MINUTE_SCALE_P3, MINUTE_SCALE_P5,
+    f64,
 >;
 
 pub trait MassExt {

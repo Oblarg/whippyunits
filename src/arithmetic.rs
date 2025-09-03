@@ -84,12 +84,16 @@ macro_rules! quantity_scalar_mul_div_interface {
             const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
             const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
             const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+            T,
         >
             $trait<f64> for Quantity<
                 LENGTH_EXPONENT, LENGTH_SCALE_P10,
                 MASS_EXPONENT, MASS_SCALE_P10,
                 TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                T,
             >
+        where
+            T: Copy + $trait<f64, Output = T>,
         {
             type Output = Self;
 
@@ -211,19 +215,24 @@ macro_rules! add_sub_interface {
             const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
             const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
             const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT, MASS_SCALE_P10,
                     LENGTH_EXPONENT, LENGTH_SCALE_P10,
                     TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT, MASS_SCALE_P10,
                 LENGTH_EXPONENT, LENGTH_SCALE_P10,
                 TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                T,
             >
+        where
+            T: Copy + $trait<T, Output = T>,
         {
             type Output = Self;
 
@@ -246,19 +255,24 @@ macro_rules! add_sub_interface {
             const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_1: isize, const LENGTH_SCALE_P10_2: isize,
             const TIME_EXPONENT: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
                                         const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT, MASS_SCALE_P10_1,
                 LENGTH_EXPONENT, LENGTH_SCALE_P10_1,
                 TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                T,
             >
+        where
+            T: Copy + $trait<T, Output = T> + Mul<f64, Output = T>,
         {
             type Output = Self;
 
@@ -268,6 +282,7 @@ macro_rules! add_sub_interface {
                     MASS_EXPONENT, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             ) -> Self::Output {
                let factor = aggregate_conversion_factor(
@@ -276,7 +291,7 @@ macro_rules! add_sub_interface {
                     TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
                     TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
                );
-               Self::Output::new(self.value $op other.value * factor)
+               Self::Output::new(self.value $op (other.value * factor))
             }
         }
     };
@@ -287,18 +302,21 @@ macro_rules! add_sub_interface {
             const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_1: isize, const LENGTH_SCALE_P10_2: isize,
             const TIME_EXPONENT: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
                                         const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT, MASS_SCALE_P10_1,
                 LENGTH_EXPONENT, LENGTH_SCALE_P10_1,
                 TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                T,
             >
         where
             (): IsIsize<{ min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) }>,
@@ -309,6 +327,7 @@ macro_rules! add_sub_interface {
                                                TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
             (): IsIsize<{ min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
                                                TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            T: Copy + $trait<T, Output = T> + Mul<f64, Output = T>,
         {
             type Output = Quantity<
                 MASS_EXPONENT, { min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) },
@@ -327,6 +346,7 @@ macro_rules! add_sub_interface {
                     MASS_EXPONENT, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             ) -> Self::Output {
                 let result_mass_scale_p10 = min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2);
@@ -351,7 +371,7 @@ macro_rules! add_sub_interface {
                                     result_time_scale_p2, result_time_scale_p3, result_time_scale_p5,
                 );
 
-                Self::Output::new(self.value * factor1 $op other.value * factor2)
+                Self::Output::new((self.value * factor1) $op (other.value * factor2))
             }
         }
     }
@@ -374,28 +394,33 @@ macro_rules! mul_div_interface {
             const MASS_EXPONENT1: isize, const MASS_EXPONENT2: isize, const MASS_SCALE_P10: isize,
             const LENGTH_EXPONENT1: isize, const LENGTH_EXPONENT2: isize, const LENGTH_SCALE_P10: isize,
             const TIME_EXPONENT1: isize, const TIME_EXPONENT2: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT2, MASS_SCALE_P10,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10,
                     TIME_EXPONENT2, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT1, MASS_SCALE_P10,
                 LENGTH_EXPONENT1, LENGTH_SCALE_P10,
                 TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                T,
             >
         where
             (): IsIsize<{ MASS_EXPONENT1 $log_op MASS_EXPONENT2 }>,
             (): IsIsize<{ LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }>,
             (): IsIsize<{ TIME_EXPONENT1 $log_op TIME_EXPONENT2 }>,
+            T: Copy + $trait<T, Output = T>,
         {
             type Output = Quantity<
                 { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, MASS_SCALE_P10,
                 { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, LENGTH_SCALE_P10,
                 { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                T,
             >;
 
             fn $fn(
@@ -404,13 +429,10 @@ macro_rules! mul_div_interface {
                     MASS_EXPONENT2, MASS_SCALE_P10,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10,
                     TIME_EXPONENT2, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+                    T,
                 >,
             ) -> Self::Output {
-                Quantity::<
-                    { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, MASS_SCALE_P10,
-                    { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, LENGTH_SCALE_P10,
-                    { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
-                >::new(self.value $op other.value)
+                Self::Output::new(self.value $op other.value)
             }
         }
     };
@@ -427,18 +449,21 @@ macro_rules! mul_div_interface {
             const MASS_EXPONENT2: isize, const MASS_SCALE_P10_2: isize,
             const LENGTH_EXPONENT2: isize, const LENGTH_SCALE_P10_2: isize,
             const TIME_EXPONENT2: isize, const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT2, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT1, MASS_SCALE_P10_1,
                 LENGTH_EXPONENT1, LENGTH_SCALE_P10_1,
                 TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                T,
             >
         where
             (): IsIsize<{ MASS_EXPONENT1 $log_op MASS_EXPONENT2 }>,
@@ -449,6 +474,7 @@ macro_rules! mul_div_interface {
             (): IsIsize<{ left_hand_wins_scale(TIME_SCALE_P2_1, TIME_SCALE_P2_2) }>,
             (): IsIsize<{ left_hand_wins_scale(TIME_SCALE_P3_1, TIME_SCALE_P3_2) }>,
             (): IsIsize<{ left_hand_wins_scale(TIME_SCALE_P5_1, TIME_SCALE_P5_2) }>,
+            T: Copy + $trait<T, Output = T> + Mul<f64, Output = T>,
         {
             type Output = Quantity<
                 { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { left_hand_wins_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) },
@@ -457,7 +483,7 @@ macro_rules! mul_div_interface {
                 { left_hand_wins_scale(TIME_SCALE_P2_1, TIME_SCALE_P2_2) },
                 { left_hand_wins_scale(TIME_SCALE_P3_1, TIME_SCALE_P3_2) },
                 { left_hand_wins_scale(TIME_SCALE_P5_1, TIME_SCALE_P5_2) },
-                { left_hand_wins_scale(TIME_SCALE_ORDER1, TIME_SCALE_ORDER2) },
+                T,
             >;
 
             fn $fn(
@@ -466,15 +492,10 @@ macro_rules! mul_div_interface {
                     MASS_EXPONENT2, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             ) -> Self::Output {
-                Quantity::<
-                    { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { left_hand_wins_scale(MASS_SCALE_P10_1, MASS_SCALE_P10_2) },
-                    { LENGTH_EXPONENT1 $log_op LENGTH_EXPONENT2 }, { left_hand_wins_scale(LENGTH_SCALE_P10_1, LENGTH_SCALE_P10_2) },
-                    { TIME_EXPONENT1 $log_op TIME_EXPONENT2 }, { left_hand_wins_scale(TIME_SCALE_P2_1, TIME_SCALE_P2_2) },
-                                                               { left_hand_wins_scale(TIME_SCALE_P3_1, TIME_SCALE_P3_2) },
-                                                               { left_hand_wins_scale(TIME_SCALE_P5_1, TIME_SCALE_P5_2) },
-                >::new(self.value $op (other.value * aggregate_conversion_factor(
+                Self::Output::new(self.value $op (other.value * aggregate_conversion_factor(
                     MASS_EXPONENT2, MASS_SCALE_P10_2, MASS_SCALE_P10_1,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10_2, LENGTH_SCALE_P10_1,
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P2_1, TIME_SCALE_P3_2, TIME_SCALE_P5_2, 
@@ -492,18 +513,21 @@ macro_rules! mul_div_interface {
             const MASS_EXPONENT2: isize, const MASS_SCALE_P10_2: isize,
             const LENGTH_EXPONENT2: isize, const LENGTH_SCALE_P10_2: isize,
             const TIME_EXPONENT2: isize, const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,
+            T,
         >
             $trait<
                 Quantity<
                     MASS_EXPONENT2, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             >
             for Quantity<
                 MASS_EXPONENT1, MASS_SCALE_P10_1,
                 LENGTH_EXPONENT1, LENGTH_SCALE_P10_1,
                 TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                T,
             >
         where
             (): IsIsize<{ MASS_EXPONENT1 $log_op MASS_EXPONENT2 }>,
@@ -519,6 +543,7 @@ macro_rules! mul_div_interface {
                                             TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
             (): IsIsize<{ min_time_scale(0, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
                                             TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            T: Copy + $trait<T, Output = T> + Mul<f64, Output = T>,
         {
             type Output = Quantity<
                 { MASS_EXPONENT1 $log_op MASS_EXPONENT2 }, { min_mass_scale(MASS_EXPONENT1, MASS_SCALE_P10_1, MASS_EXPONENT2, MASS_SCALE_P10_2) },
@@ -531,6 +556,7 @@ macro_rules! mul_div_interface {
                                                                                TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
                                                            { min_time_scale(0, TIME_EXPONENT1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1, 
                                                                                TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) },
+                T,
             >;
 
             fn $fn(
@@ -539,6 +565,7 @@ macro_rules! mul_div_interface {
                     MASS_EXPONENT2, MASS_SCALE_P10_2,
                     LENGTH_EXPONENT2, LENGTH_SCALE_P10_2,
                     TIME_EXPONENT2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2,
+                    T,
                 >,
             ) -> Self::Output {
                 let result_mass_scale_p10 = min_mass_scale(MASS_EXPONENT1, MASS_SCALE_P10_1, MASS_EXPONENT2, MASS_SCALE_P10_2);

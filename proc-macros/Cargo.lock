@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "libm"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -38,10 +44,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 
 [[package]]
-name = "whippyunits-unit-macro"
+name = "whippyunits"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "whippyunits-proc-macros",
+]
+
+[[package]]
+name = "whippyunits-proc-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "whippyunits",
 ]

@@ -20,11 +20,12 @@ pub mod print;
 pub mod arithmetic;
 pub mod dimension_traits;
 pub mod scale_resolution;
-
-// Re-export the proc macro
-pub use whippyunits_unit_macro::proc_unit;
+pub mod int_conversion;
 
 // Re-export macros that need to be available at crate root
 pub use scoped_preferences::*;
+
+// Re-export the proc macro for consumers to use
+pub use whippyunits_proc_macros::define_generic_dimension;
 
 

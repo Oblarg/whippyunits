@@ -10,22 +10,25 @@ pub struct Quantity<
     const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+    T = f64,
 > {
-    pub value: f64,
+    pub value: T,
 }
 
 impl<
     const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+    T,
 >
     Quantity<
         MASS_EXPONENT, MASS_SCALE_P10,
         LENGTH_EXPONENT, LENGTH_SCALE_P10,
         TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+        T,
     >
 {
-    pub fn new(value: f64) -> Self {
+    pub fn new(value: T) -> Self {
         Self { value }
     }
 }
@@ -41,17 +44,21 @@ impl<
     const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+    T,
 >
     fmt::Display
     for Quantity<
         MASS_EXPONENT, MASS_SCALE_P10,
         LENGTH_EXPONENT, LENGTH_SCALE_P10,
         TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+        T,
     >
+where
+    T: Copy + Into<f64>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pretty = pretty_print_quantity_value(
-            self.value,
+            self.value.into(),
             MASS_EXPONENT, MASS_SCALE_P10,
             LENGTH_EXPONENT, LENGTH_SCALE_P10,
             TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
@@ -65,17 +72,21 @@ impl<
     const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
     const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
+    T,
 >
     fmt::Debug
     for Quantity<
         MASS_EXPONENT, MASS_SCALE_P10,
         LENGTH_EXPONENT, LENGTH_SCALE_P10,
         TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+        T,
     >
+where
+    T: Copy + Into<f64>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pretty = pretty_print_quantity_value(
-            self.value,
+            self.value.into(),
             MASS_EXPONENT, MASS_SCALE_P10,
             LENGTH_EXPONENT, LENGTH_SCALE_P10,
             TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,

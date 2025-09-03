@@ -1,0 +1,19 @@
+[package]
+name = "whippyunits-proc-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[[example]]
+name = "test_macro"
+path = "examples/test_macro.rs"
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full"] }
+
+[dev-dependencies]
+whippyunits = { path = ".." }

@@ -208,11 +208,11 @@ dependencies = [
  "quote",
  "syn",
  "trybuild",
- "whippyunits-unit-macro",
+ "whippyunits-proc-macros",
 ]
 
 [[package]]
-name = "whippyunits-unit-macro"
+name = "whippyunits-proc-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

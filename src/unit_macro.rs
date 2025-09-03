@@ -20,49 +20,58 @@ macro_rules! define_unit_macro {
             (mg) => { crate::Quantity<
                         1, -6,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (g) => { crate::Quantity<
                         1, -3,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (kg) => { crate::Quantity<
                         1, 0,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             // Length units
             (mm) => { crate::Quantity<
                         0, $mass_unused,
                         1, -3,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (m) => { crate::Quantity<
                         0, $mass_unused,
                         1, 0,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (km) => { crate::Quantity<
                         0, $mass_unused,
                         1, 3,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             // Time units
             (ms) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        1, -3, 0, -3
+                        1, -3, 0, -3,
+                        f64
                     > };
             (s) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        1, 0, 0, 0
+                        1, 0, 0, 0,
+                        f64
                     > };
             (min) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        1, 2, 1, 1
+                        1, 2, 1, 1,
+                        f64
                     > };
 
             // ============================================================================
@@ -72,49 +81,58 @@ macro_rules! define_unit_macro {
             (1/mg) => { crate::Quantity<
                         -1, 6,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (1/g) => { crate::Quantity<
                         -1, 3,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (1/kg) => { crate::Quantity<
                         -1, 0,
                         0, $length_unused,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             // Inverse length units
             (1/mm) => { crate::Quantity<
                         0, $mass_unused,
                         -1, 3,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (1/m) => { crate::Quantity<
                         0, $mass_unused,
                         -1, 0,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             (1/km) => { crate::Quantity<
                         0, $mass_unused,
                         -1, -3,
-                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                        0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                        f64
                     > };
             // Inverse time units
             (1/ms) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        -1, 3, 0, 3
+                        -1, 3, 0, 3,
+                        f64
                     > };
             (1/s) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        -1, 0, 0, 0
+                        -1, 0, 0, 0,
+                        f64
                     > };
             (1/min) => { crate::Quantity<
                         0, $mass_unused,
                         0, $length_unused,
-                        -1, -2, -1, -1
+                        -1, -2, -1, -1,
+                        f64
                     > };
 
             // ============================================================================
@@ -124,49 +142,58 @@ macro_rules! define_unit_macro {
             (mg^$exp:tt) => { crate::Quantity<
                             $exp, -6,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (g^$exp:tt) => { crate::Quantity<
                             $exp, -3,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (kg^$exp:tt) => { crate::Quantity<
                             $exp, 0,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             // Length units with dynamic exponents
             (mm^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             $exp, -3,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (m^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             $exp, 0,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (km^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             $exp, 3,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             // Time units with dynamic exponents
             (ms^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            $exp, -3, 0, -3
+                            $exp, -3, 0, -3,
+                            f64
                         > };
             (s^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            $exp, 0, 0, 0
+                            $exp, 0, 0, 0,
+                            f64
                         > };
             (min^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            $exp, 2, 1, 1
+                            $exp, 2, 1, 1,
+                            f64
                         > };
 
             // ============================================================================
@@ -176,49 +203,58 @@ macro_rules! define_unit_macro {
             (1/mg^$exp:tt) => { crate::Quantity<
                             -$exp, 6,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (1/g^$exp:tt) => { crate::Quantity<
                             -$exp, 3,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (1/kg^$exp:tt) => { crate::Quantity<
                             -$exp, 0,
                             0, $length_unused,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             // Inverse length units with dynamic exponents
             (1/mm^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             -$exp, 3,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (1/m^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             -$exp, 0,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             (1/km^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             -$exp, -3,
-                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                            f64
                         > };
             // Inverse time units with dynamic exponents
             (1/ms^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            -$exp, 3, 0, 3
+                            -$exp, 3, 0, 3,
+                            f64
                         > };
             (1/s^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            -$exp, 0, 0, 0
+                            -$exp, 0, 0, 0,
+                            f64
                         > };
             (1/min^$exp:tt) => { crate::Quantity<
                             0, $mass_unused,
                             0, $length_unused,
-                            -$exp, -2, -1, -1
+                            -$exp, -2, -1, -1,
+                            f64
                         > };
 
             // ============================================================================
@@ -228,201 +264,240 @@ macro_rules! define_unit_macro {
             (mg * mg) => { crate::Quantity<
                 2, -6,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (g * mg) => { crate::Quantity<
                 2, -3,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (g * g) => { crate::Quantity<
                 2, -3,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * mg) => { crate::Quantity<
                 2, 0,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * g) => { crate::Quantity<
                 2, 0,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * kg) => { crate::Quantity<
                 2, 0,
                 0, $length_unused,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             // Length × Length
             (mm * mm) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (m * mm) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (m * m) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (km * mm) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (km * m) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (km * km) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             // Mass × Length
             (mg * mm) => { crate::Quantity<
                 1, -6,
                 1, -3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (mg * m) => { crate::Quantity<
                 1, -6,
                 1, 0,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (mg * km) => { crate::Quantity<
                 1, -6,
                 1, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (g * mm) => { crate::Quantity<
                 1, -3,
                 1, -3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (g * m) => { crate::Quantity<
                 1, -3,
                 1, 0,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (g * km) => { crate::Quantity<
                 1, -3,
                 1, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * mm) => { crate::Quantity<
                 1, 0,
                 1, -3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * m) => { crate::Quantity<
                 1, 0,
                 1, 0,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             (kg * km) => { crate::Quantity<
                 1, 0,
                 1, 3,
-                0, $time_unused_p2, $time_unused_p3, $time_unused_p5
+                0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+                f64
             > };
             // Mass × Time
             (mg * ms) => { crate::Quantity<
                 1, -6,
                 0, $mass_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (mg * s) => { crate::Quantity<
                 1, -6,
                 0, $mass_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (mg * min) => { crate::Quantity<
                 1, -6,
                 0, $mass_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (g * ms) => { crate::Quantity<
                 1, -3,
                 0, $mass_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (g * s) => { crate::Quantity<
                 1, -3,
                 0, $mass_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (g * min) => { crate::Quantity<
                 1, -3,
                 0, $mass_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (kg * ms) => { crate::Quantity<
                 1, 0,
                 0, $mass_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (kg * s) => { crate::Quantity<
                 1, 0,
                 0, $mass_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (kg * min) => { crate::Quantity<
                 1, 0,
                 0, $mass_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             // Length × Time
             (mm * ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (mm * s) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (mm * min) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (m * ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (m * s) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (m * min) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (km * ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (km * s) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (km * min) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -431,47 +506,56 @@ macro_rules! define_unit_macro {
             (mm / ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mm / s) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mm / min) => { crate::Quantity<
                 0, $mass_unused,
                 1, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (m / ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (m / s) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (m / min) => { crate::Quantity<
                 0, $mass_unused,
                 1, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (km / ms) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (km / s) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (km / min) => { crate::Quantity<
                 0, $mass_unused,
                 1, 3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -480,47 +564,56 @@ macro_rules! define_unit_macro {
             (mm / ms^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, -3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (mm / s^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, -3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (mm / min^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, -3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (m / ms^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 0,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (m / s^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 0,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (m / min^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 0,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (km / ms^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (km / s^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (km / min^$exp:tt) => { crate::Quantity<
                 0, $mass_unused,
                 $exp, 3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -529,137 +622,164 @@ macro_rules! define_unit_macro {
             (mg * mm / ms^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, -3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (mg * mm / s^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, -3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (mg * mm / min^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, -3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (mg * m / ms^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 0,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (mg * m / s^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 0,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (mg * m / min^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 0,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (mg * km / ms^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (mg * km / s^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (mg * km / min^$exp:tt) => { crate::Quantity<
                 $exp, -6,
                 $exp, 3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (g * mm / ms^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, -3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (g * mm / s^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, -3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (g * mm / min^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, -3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (g * m / ms^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 0,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (g * m / s^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 0,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (g * m / min^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 0,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (g * km / ms^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (g * km / s^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (g * km / min^$exp:tt) => { crate::Quantity<
                 $exp, -3,
                 $exp, 3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (kg * mm / ms^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, -3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (kg * mm / s^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, -3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (kg * mm / min^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, -3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (kg * m / ms^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 0,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (kg * m / s^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 0,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (kg * m / min^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 0,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
             (kg * km / ms^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 3,
-                -$exp, -3, 0, -3
+                -$exp, -3, 0, -3,
+                f64
             > };
             (kg * km / s^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 3,
-                -$exp, 0, 0, 0
+                -$exp, 0, 0, 0,
+                f64
             > };
             (kg * km / min^$exp:tt) => { crate::Quantity<
                 $exp, 0,
                 $exp, 3,
-                -$exp, 2, 1, 1
+                -$exp, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -668,137 +788,164 @@ macro_rules! define_unit_macro {
             (mg * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (mg * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (mg * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -807,137 +954,164 @@ macro_rules! define_unit_macro {
             (mg * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (mg * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (mg * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (mg * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (mg * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -6,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (g * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (g * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (g * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, -3,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * mm^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * mm^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * mm^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, -3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * m^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * m^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * m^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 0,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
             (kg * km^$exp1:tt / ms^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, -3, 0, -3
+                -$exp2, -3, 0, -3,
+                f64
             > };
             (kg * km^$exp1:tt / s^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, 0, 0, 0
+                -$exp2, 0, 0, 0,
+                f64
             > };
             (kg * km^$exp1:tt / min^$exp2:tt) => { crate::Quantity<
                 $exp1, 0,
                 $exp1, 3,
-                -$exp2, 2, 1, 1
+                -$exp2, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
@@ -946,407 +1120,488 @@ macro_rules! define_unit_macro {
             (mm * mm / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mm * mm / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mm * mm / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (mm * m / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mm * m / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mm * m / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (mm * km / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mm * km / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mm * km / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (m * mm / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (m * mm / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (m * mm / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (m * m / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (m * m / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (m * m / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (m * km / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (m * km / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (m * km / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (km * mm / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (km * mm / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (km * mm / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (km * m / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (km * m / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (km * m / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (km * km / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (km * km / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (km * km / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (mg * mg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mg * mg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mg * mg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (mg * g / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mg * g / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mg * g / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (mg * kg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (mg * kg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (mg * kg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -6,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (g * mg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (g * mg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (g * mg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (g * g / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (g * g / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (g * g / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (g * kg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (g * kg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (g * kg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, -3,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (kg * mg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (kg * mg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (kg * mg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (kg * g / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (kg * g / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (kg * g / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (kg * kg / ms) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, -3, 0, -3
+                -1, -3, 0, -3,
+                f64
             > };
             (kg * kg / s) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 0, 0, 0
+                -1, 0, 0, 0,
+                f64
             > };
             (kg * kg / min) => { crate::Quantity<
                 0, $mass_unused,
                 2, 0,
-                -1, 2, 1, 1
+                -1, 2, 1, 1,
+                f64
             > };
             (ms * ms / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * ms / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * ms / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * s / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * s / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * s / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * min / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * min / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (ms * min / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, -3, 0, -3
+                1, -3, 0, -3,
+                f64
             > };
             (s * ms / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * ms / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * ms / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * s / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * s / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * s / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * min / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * min / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (s * min / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 0, 0, 0
+                1, 0, 0, 0,
+                f64
             > };
             (min * ms / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * ms / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * ms / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * s / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * s / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * s / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * min / ms) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * min / s) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
             (min * min / min) => { crate::Quantity<
                 0, $mass_unused,
                 0, $length_unused,
-                1, 2, 1, 1
+                1, 2, 1, 1,
+                f64
             > };
 
             // ============================================================================
