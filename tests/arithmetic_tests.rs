@@ -1,4 +1,4 @@
-use whippyunits::scale_conversion::rescale;
+use whippyunits::scale_conversion::rescale_f64;
 use whippyunits::default_declarators::*;
 use whippyunits::quantity_type::Quantity;
 
@@ -14,9 +14,20 @@ fn test_addition_same_scale() {
     // Same scale addition should work
     let result: unit!(m) = m1 + 3.0.meters();
     assert_eq!(result.value, 8.0);
+
+    println!("result: {:?}", result);
     
     let result: unit!(s) = s1 + 10.0.seconds();
     assert_eq!(result.value, 40.0);
+}
+
+#[test]
+fn test_add_assign() {
+    let mut m1 = 5.0.meters();
+    
+    // Same scale addition should work
+    m1 += 3.0.meters();
+    assert_eq!(m1.value, 8.0);
 }
 
 #[test]
@@ -110,31 +121,59 @@ fn test_scalar_quantity_division() {
     assert_eq!(result.value, 2.0); // 10 / 5m = 2 m^-1
 }
 
+#[test]
+fn test_quantity_scalar_multiplication() {
+    let m1 = 5.0.meters();
+    
+    // Quantity * Scalar should work
+    let result: unit!(m) = m1 * 4.0;
+    assert_eq!(result.value, 20.0);
+}
+
+#[test]
+fn test_quantity_scalar_division() {
+    let m1 = 5.0.meters();
+    
+    // Quantity / Scalar should work
+    let result: unit!(m) = m1 / 2.0;
+    assert_eq!(result.value, 2.5);
+}
+
+#[test]
+fn test_quantity_scalar_multiplication_assign() {
+    let mut m1 = 5.0.meters();
+    
+    // Quantity * Scalar should work
+    m1 *= 4.0;
+    assert_eq!(m1.value, 20.0);
+}
+
+
 // ============================================================================
 // Rescale Tests
 // ============================================================================
 
 #[test]
 fn test_rescale_length() {
-    let m1 = 5.0.meters();
+    let m1: unit!(m) = 5.0.meters();
     
     // Rescale from meters to kilometers
-    let result: Kilometer = rescale(m1);
+    let result: Kilometer = rescale_f64(m1);
     assert_eq!(result.value, 0.005); // 5m = 0.005km
     
     // Rescale from meters to millimeters
-    let result: Millimeter = rescale(m1);
+    let result: Millimeter = rescale_f64(m1);
     assert_eq!(result.value, 5000.0); // 5m = 5000mm
 }
 
 #[test]
 fn test_rescale_mass() {    
     // Rescale from grams to kilograms
-    let result: Kilogram = rescale(100.0.grams());
+    let result: Kilogram = rescale_f64(100.0.grams());
     assert_eq!(result.value, 0.1); // 100g = 0.1kg
     
     // Rescale from grams to milligrams
-    let result: Milligram = rescale(100.0.grams());
+    let result: Milligram = rescale_f64(100.0.grams());
     assert_eq!(result.value, 100000.0); // 100g = 100000mg
 }
 
@@ -143,11 +182,11 @@ fn test_rescale_time() {
     let s1 = 30.0.seconds();
     
     // Rescale from seconds to minutes
-    let result: Minute = rescale(s1);
+    let result: Minute = rescale_f64(s1);
     assert_eq!(result.value, 0.5); // 30s = 0.5min
     
     // Rescale from seconds to milliseconds
-    let result: Millisecond = rescale(s1);
+    let result: Millisecond = rescale_f64(s1);
     assert_eq!(result.value, 30000.0); // 30s = 30000ms
 }
 

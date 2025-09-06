@@ -6,6 +6,7 @@ A pure rust units-of-measure library for applied numerical analysis.
 
 - **Simple syntax**: `5.meters()`, `2.0.kilograms()`, `1.hours()`
 - **Compile-time dimensional safety**: Catch dimensionally-incoherent expressions at compile time
+- **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
 - **Automatic unit conversion**: Implicit and explicit rescaling using compile-time-computed conversion factors
 - **No hidden/unnecessary flops**: Rescaling uses lossless log-scale arithmetic at all steps *except* final data-value rescaling; since exponentiation is by lookup-table, fixed-point computations can remain fully fixed-point
 - **Scoped storage preferences**: Set the storage scale (eventually: backing datatype) individually for each scope
@@ -102,6 +103,35 @@ println!("{}", joule); // (1000000000000) Quantity<mg·mm²·s⁻²; pJ; Energy>
 println!("{:?}", joule); 
 // (1000000000000) Quantity<milligram·millimeter²·second⁻²; picoJoule; Energy; [mass¹(10⁻⁶), length²(10⁻³), time⁻²(2⁰, 3⁰, 5⁰)]>
 ```
+
+## Scale-generic dimensional traits
+
+Define custom dimensional type traits using intuitive algebraic expressions:
+
+```rust
+use whippyunits::define_generic_dimension;
+
+// Define traits for derived physical quantities
+define_generic_dimension!(Energy, Mass * Length^2 / Time^2);
+
+// Use the generated traits in scale-generic algorithms
+fn accept_generic_energy<E: Energy>(energy: E) {
+    // this works on any energy, regardless of storage scale!
+}
+
+// so we can send it joules...
+accept_generic_energy(1.0.kilograms() * 1.0.meters() * 1.0.meters() / 1.0.seconds() / 1.0.seconds());
+// or any other unit of energy (standard or not!)
+accept_generic_energy(1.0.milligrams() * 1.0.millimeters() * 1.0.meters() / 1.0.hours() / 1.0.days());
+```
+
+The DSL supports:
+- **Basic operations**: `*`, `/`, `^` (exponentiation)
+- **Operator precedence**: `^` has higher precedence than `*` and `/`
+- **Parentheses**: For grouping complex expressions
+- **Automatic scale parameter generation**: Only generates scale constants for non-zero dimensions
+
+This creates a **dimensional type system** that's as expressive as mathematical notation while maintaining compile-time safety and zero runtime cost.
 
 ## LSP Proxy
 

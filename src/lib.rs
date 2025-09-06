@@ -11,6 +11,8 @@ impl<const S: isize> IsIsize<S> for () {}
 
 #[macro_use]
 pub mod unit_macro;
+#[macro_use]
+pub mod quantity_type_macros;
 pub mod default_declarators;
 pub mod scoped_preferences;
 pub mod constants;

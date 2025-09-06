@@ -1,30 +1,120 @@
 use crate::quantity_type::Quantity;
-use crate::constants::*;
 
 // ============================================================================
 // Individual Scale Conversion Factor Functions
 // ============================================================================
-
-/// Convert between Length units
-pub const fn length_conversion_factor(p10_from: isize, p10_to: isize, exponent: isize) -> f64 {
-    match exponent {
-        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
-        1 => pow10(p10_from - p10_to),
-        _ => pow10((p10_from - p10_to) * exponent),
+pub const fn pow10(exp: isize) -> (i128, i128) {
+    match exp {
+        -9 => (1, 1000000000),
+        -8 => (1, 100000000),
+        -7 => (1, 10000000),
+        -6 => (1, 1000000),
+        -5 => (1, 100000),
+        -4 => (1, 10000),
+        -3 => (1, 1000),
+        -2 => (1, 100),
+        -1 => (1, 10),
+        0 => (1, 1),
+        1 => (10, 1),
+        2 => (100, 1),
+        3 => (1000, 1),
+        4 => (10000, 1),
+        5 => (100000, 1),
+        6 => (1000000, 1),
+        7 => (10000000, 1),
+        8 => (100000000, 1),
+        9 => (1000000000, 1),
+        _ => (1, 1), // we'll only test small values during prototyping
     }
 }
 
-/// Convert between Mass units
-pub const fn mass_conversion_factor(p10_from: isize, p10_to: isize, exponent: isize) -> f64 {
-    match exponent {
-        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
-        1 => pow10(p10_from - p10_to),
-        _ => pow10((p10_from - p10_to) * exponent),
+pub const fn pow2(exp: isize) -> (i128, i128) {
+    match exp {
+        -9 => (1, 512),
+        -8 => (1, 256),
+        -7 => (1, 128),
+        -6 => (1, 64),
+        -5 => (1, 32),
+        -4 => (1, 16),
+        -3 => (1, 8),
+        -2 => (1, 4),
+        -1 => (1, 2),
+        0 => (1, 1),
+        1 => (2, 1),
+        2 => (4, 1),
+        3 => (8, 1),
+        4 => (16, 1),
+        5 => (32, 1),
+        6 => (64, 1),
+        7 => (128, 1),
+        8 => (256, 1),
+        9 => (512, 1),
+        _ => (1, 1), // we'll only test small values during prototyping
     }
 }
 
-/// Convert between Time units
-pub const fn time_conversion_factor(
+pub const fn pow3(exp: isize) -> (i128, i128) {
+    match exp {
+        -9 => (1, 19683),
+        -8 => (1, 6561),
+        -7 => (1, 2187),
+        -6 => (1, 729),
+        -5 => (1, 243),
+        -4 => (1, 81),
+        -3 => (1, 27),
+        -2 => (1, 9),
+        -1 => (1, 3),
+        0 => (1, 1),
+        1 => (3, 1),
+        2 => (9, 1),
+        3 => (27, 1),
+        4 => (81, 1),
+        5 => (243, 1),
+        6 => (729, 1),
+        7 => (2187, 1),
+        8 => (6561, 1),
+        9 => (19683, 1),
+        _ => (1, 1), // we'll only test small values during prototyping
+    }
+}
+
+pub const fn pow5(exp: isize) -> (i128, i128) {
+    match exp {
+        -9 => (1, 1953125),
+        -8 => (1, 390625),
+        -7 => (1, 78125),
+        -6 => (1, 15625),
+        -5 => (1, 3125),
+        -4 => (1, 625),
+        -3 => (1, 125),
+        -2 => (1, 25),
+        -1 => (1, 5),
+        0 => (1, 1),
+        1 => (5, 1),
+        2 => (25, 1),
+        3 => (125, 1),
+        4 => (625, 1),
+        5 => (3125, 1),
+        6 => (15625, 1),
+        7 => (78125, 1),
+        8 => (390625, 1),
+        9 => (1953125, 1),
+        _ => (1, 1), // we'll only test small values during prototyping
+    }
+}
+
+// ============================================================================
+// Length Scale Conversion Factors (Integer-based)
+// ============================================================================
+
+
+// ============================================================================
+// Time Scale Conversion Factors (Integer-based)
+// ============================================================================
+
+/// Compute the composite time scale factor using powers of 2, 3, and 5
+/// Returns (numerator, denominator) representing the scale factor
+pub const fn time_scale_factor(
     p2_from: isize,
     p3_from: isize,
     p5_from: isize,
@@ -32,65 +122,177 @@ pub const fn time_conversion_factor(
     p3_to: isize,
     p5_to: isize,
     exponent: isize,
-) -> f64 {
+) -> (i128, i128) {
     match exponent {
-        0 => 1.0_f64,  // dimension exponent is 0, no conversion needed
-        1 => pow2(p2_from - p2_to) * pow3(p3_from - p3_to) * pow5(p5_from - p5_to),
+        0 => (1, 1), // dimension exponent is 0, no conversion needed
+        1 => {
+            let (num2, den2) = pow2(p2_from - p2_to);
+            let (num3, den3) = pow3(p3_from - p3_to);
+            let (num5, den5) = pow5(p5_from - p5_to);
+            (num2 * num3 * num5, den2 * den3 * den5)
+        }
         _ => {
-            let diff_p2: isize = (p2_from - p2_to) * exponent;
-            let diff_p3: isize = (p3_from - p3_to) * exponent;
-            let diff_p5: isize = (p5_from - p5_to) * exponent;
-            pow2(diff_p2) * pow3(diff_p3) * pow5(diff_p5)
+            let (num2, den2) = pow2((p2_from - p2_to) * exponent);
+            let (num3, den3) = pow3((p3_from - p3_to) * exponent);
+            let (num5, den5) = pow5((p5_from - p5_to) * exponent);
+
+            (num2 * num3 * num5, den2 * den3 * den5)
         }
     }
 }
 
 // ============================================================================
-// Aggregate Scale Conversion Factor Function
+// Composite Scale Conversion Factors (Integer-based)
 // ============================================================================
 
-// Calculate the aggregate conversion factor multiplied over all logarithmic scales
-// Like-base logarithms are added together prior to LUT exponentiation for accuracy/efficiency
-const fn aggregate_conversion_factor(
+/// Compute a composite scale factor for a unit with mass, length, and time components
+/// Returns (numerator, denominator) representing the overall scale factor
+#[rustfmt::skip]
+pub const fn aggregate_scale_factor(
     mass_exponent: isize, mass_scale_p10_from: isize, mass_scale_p10_to: isize,
     length_exponent: isize, length_scale_p10_from: isize, length_scale_p10_to: isize,
-    time_exponent: isize, time_scale_p2_from: isize, time_scale_p3_from: isize, time_scale_p5_from: isize, time_scale_p2_to: isize, time_scale_p3_to: isize, time_scale_p5_to: isize,
-) -> f64 {
+    time_exponent: isize, time_scale_p2_from: isize, time_scale_p3_from: isize, time_scale_p5_from: isize,
+                          time_scale_p2_to: isize, time_scale_p3_to: isize, time_scale_p5_to: isize,
+) -> (i128, i128) {
     let diff_length_p10: isize = (length_scale_p10_from - length_scale_p10_to) * length_exponent;
     let diff_mass_p10: isize = (mass_scale_p10_from - mass_scale_p10_to) * mass_exponent;
     let diff_time_p2: isize = (time_scale_p2_from - time_scale_p2_to) * time_exponent;
     let diff_time_p3: isize = (time_scale_p3_from - time_scale_p3_to) * time_exponent;
     let diff_time_p5: isize = (time_scale_p5_from - time_scale_p5_to) * time_exponent;
-    pow10(diff_length_p10 + diff_mass_p10) * pow2(diff_time_p2) * pow3(diff_time_p3) * pow5(diff_time_p5)
+    
+    let (num10, den10) = pow10(diff_length_p10 + diff_mass_p10);
+    let (num2, den2) = pow2(diff_time_p2);
+    let (num3, den3) = pow3(diff_time_p3);
+    let (num5, den5) = pow5(diff_time_p5);
+    
+    reduce_rational(num10 * num2 * num3 * num5, den10 * den2 * den3 * den5)
 }
 
+/// Reduce a rational number to its simplest form using bit-shift based GCD
+/// Returns (reduced_numerator, reduced_denominator)
+pub const fn reduce_rational(num: i128, den: i128) -> (i128, i128) {
+    if den == 0 {
+        return (num, 1);
+    }
+    if num == 0 {
+        return (0, 1);
+    }
+
+    // Convert to unsigned for bit operations
+    let mut num_u = num.unsigned_abs();
+    let mut den_u = den.unsigned_abs();
+
+    // Remove common factors of 2 using bit shifts
+    let common_twos = (num_u | den_u).trailing_zeros();
+    num_u >>= common_twos;
+    den_u >>= common_twos;
+
+    // Now both are odd, so we can use the odd-odd case of binary GCD
+    while num_u != den_u {
+        if num_u > den_u {
+            // num_u and den_u are both odd, so (num_u - den_u) is even
+            let diff = num_u - den_u;
+            num_u = diff >> diff.trailing_zeros(); // Remove factors of 2
+        } else {
+            let diff = den_u - num_u;
+            den_u = diff >> diff.trailing_zeros(); // Remove factors of 2
+        }
+    }
+
+    // num_u == den_u now, and both are odd, so this is the GCD
+    let gcd = num_u;
+
+    // Divide both by the GCD to get reduced form
+    let reduced_num = num / (gcd as i128);
+    let reduced_den = den / (gcd as i128);
+
+    (reduced_num, reduced_den)
+}
 
 // ============================================================================
 // Rescale Function
 // ============================================================================
 
-pub fn rescale<
-    const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize,
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize,
-    const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize,
-                                const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize,
-> (
-    quantity: Quantity<
-        MASS_EXPONENT, MASS_SCALE_P10_FROM,
-        LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM,
-        TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM,
-    >,
-) -> Quantity<
-    MASS_EXPONENT, MASS_SCALE_P10_TO,
-    LENGTH_EXPONENT, LENGTH_SCALE_P10_TO,
-    TIME_EXPONENT, TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
-> {
-    Quantity::new(
-        aggregate_conversion_factor(
-            MASS_EXPONENT, MASS_SCALE_P10_FROM, MASS_SCALE_P10_TO,
-            LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM, LENGTH_SCALE_P10_TO,
-            TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM, 
-                            TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
-        ) * quantity.value
-    )
+#[rustfmt::skip]
+macro_rules! define_float_rescale {
+    ($fn:ident, $T:ty) => {
+        pub fn $fn<
+            const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize,
+            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize,
+            const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize,
+                                        const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize,
+        > (
+            quantity: Quantity<
+                MASS_EXPONENT, MASS_SCALE_P10_FROM,
+                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM,
+                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM,
+                $T,
+            >,
+        ) -> Quantity<
+            MASS_EXPONENT, MASS_SCALE_P10_TO,
+            LENGTH_EXPONENT, LENGTH_SCALE_P10_TO,
+            TIME_EXPONENT, TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+            $T,
+        > {
+            let (num, den) = aggregate_scale_factor(
+                MASS_EXPONENT, MASS_SCALE_P10_FROM, MASS_SCALE_P10_TO,
+                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM, LENGTH_SCALE_P10_TO,
+                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM, 
+                               TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+            );
+            let rescale_factor = (num as $T / den as $T);
+            Quantity::new(
+                quantity.value * rescale_factor
+            )
+        }
+    };
 }
+
+define_float_rescale!(rescale_f64, f64);
+
+#[rustfmt::skip]
+macro_rules! define_int_rescale {
+    ($fn:ident, $T:ty) => {
+        pub fn $fn<
+            const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize,
+            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize,
+            const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize,
+                                        const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize,
+        > (
+            quantity: Quantity<
+                MASS_EXPONENT, MASS_SCALE_P10_FROM,
+                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM,
+                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM,
+                $T,
+            >,
+        ) -> Quantity<
+            MASS_EXPONENT, MASS_SCALE_P10_TO,
+            LENGTH_EXPONENT, LENGTH_SCALE_P10_TO,
+            TIME_EXPONENT, TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+            $T,
+        > {
+            let (num, den) = aggregate_scale_factor(
+                MASS_EXPONENT, MASS_SCALE_P10_FROM, MASS_SCALE_P10_TO,
+                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM, LENGTH_SCALE_P10_TO,
+                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM, 
+                               TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+            );
+            let num = num as $T;
+            let den = den as $T;
+            
+            // Numerical stability: check for potential overflow on multiplication
+            // If value * num would overflow, divide first; otherwise multiply first
+            let result = if quantity.value.abs() > <$T>::max_value() / num.abs() {
+                // Potential overflow: divide first to reduce intermediate value
+                (quantity.value / den) * num
+            } else {
+                // Safe to multiply first
+                (quantity.value * num) / den
+            };
+            
+            Quantity::new(result)
+        }
+    }
+}
+
+define_int_rescale!(rescale_i64, i64);

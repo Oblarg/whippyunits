@@ -1,6 +1,4 @@
-use crate::constants::*;
 use crate::scale_conversion::*;
-use crate::quantity_type::Quantity;
 
 macro_rules! min_max_length_scale {
     ($fn_name:ident, $op:tt) => {
@@ -74,11 +72,9 @@ macro_rules! min_max_time_scale {
                     _ => 0, // should never happen, but use 0 for unused
                 },
                 _ => {
-                    if time_conversion_factor(
-                        0, 0, 0, p2_1, p3_1, p5_1, 1,
-                    ) $op time_conversion_factor(
-                        0, 0, 0, p2_2, p3_2, p5_2, 1,
-                    ) {
+                    let (num1, den1) = time_scale_factor(0, 0, 0, p2_1, p3_1, p5_1, 1);
+                    let (num2, den2) = time_scale_factor(0, 0, 0, p2_2, p3_2, p5_2, 1);
+                    if num1 * den2 $op num2 * den1 {
                         match which_prime {
                             2 => p2_1,
                             3 => p3_1,
