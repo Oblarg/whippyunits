@@ -309,7 +309,7 @@ macro_rules! generate_arithmetic_ops {
 
         // quantity-quantity arithmetic operations
         quantity_quantity_add_sub_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*), 
+            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
             ($($add_min_scale_where_clauses)*), $rescale_behavior, +, add, Add, $T, $rescale_fn
         );
         quantity_quantity_add_sub_interface!(
@@ -318,22 +318,22 @@ macro_rules! generate_arithmetic_ops {
         );
 
         quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*), 
+            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
             $rescale_behavior, +=, add_assign, AddAssign, $T, $rescale_fn
         );
         quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*), 
+            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
             $rescale_behavior, -=, sub_assign, SubAssign, $T, $rescale_fn
         );
 
         quantity_quantity_mul_div_interface!(
             ($($multiple_dimension_single_scale_params)*), ($($multiple_dimension_multiple_scale_params)*),
-             ($($mul_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
+             ($($mul_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*),
              $rescale_behavior, *, +, mul, Mul, $T, $rescale_fn
         );
         quantity_quantity_mul_div_interface!(
-            ($($multiple_dimension_single_scale_params)*), ($($multiple_dimension_multiple_scale_params)*), 
-            ($($div_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
+            ($($multiple_dimension_single_scale_params)*), ($($multiple_dimension_multiple_scale_params)*),
+            ($($div_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*),
             $rescale_behavior, /, -, div, Div, $T, $rescale_fn
         );
     };
