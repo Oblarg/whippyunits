@@ -71,7 +71,7 @@ macro_rules! quantity_quantity_add_sub_interface {
     // Strict interface (measurement scales must match) (only one set of scale parameters)
     (
         ($($single_dimension_single_scale_params:tt)*), ($($single_dimension_multiple_scale_params:tt)*),
-        ($($min_scale_where_clauses:tt)*),
+        ($($output_scale_where_clauses:tt)*),
         Strict, $op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -94,7 +94,7 @@ macro_rules! quantity_quantity_add_sub_interface {
     // Non-Strict interface (measurement scales can differ) (two sets of scale parameters)
     (
         ($($single_dimension_single_scale_params:tt)*), ($($single_dimension_multiple_scale_params:tt)*),
-        ($($min_scale_where_clauses:tt)*),
+        ($($output_scale_where_clauses:tt)*),
         LeftHandWins, $op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -120,7 +120,7 @@ macro_rules! quantity_quantity_add_sub_interface {
     // Non-Strict interface (measurement scales can differ) (two sets of scale parameters)
     (
         ($($single_dimension_single_scale_params:tt)*), ($($single_dimension_multiple_scale_params:tt)*),
-        ($($min_scale_where_clauses:tt)*),
+        ($($output_scale_where_clauses:tt)*),
         SmallerWins, $op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -131,7 +131,7 @@ macro_rules! quantity_quantity_add_sub_interface {
             >
             for addition_input!(LeftHand, $T)
         where
-            $($min_scale_where_clauses)*
+            $($output_scale_where_clauses)*
         {
             type Output = addition_output!(SmallerWins, $T);
 
@@ -195,7 +195,7 @@ macro_rules! quantity_quantity_mul_div_interface {
     // Strict interface (measurement scales must match) (only one set of scale parameters)
     (
         ($($multiple_dimension_single_scale_params:tt)*), ($($multiple_dimension_multiple_scale_params:tt)*),
-        ($($mul_result_where_clauses:tt)*), ($($mul_min_scale_where_clauses:tt)*),
+        ($($output_dimension_where_clauses:tt)*), ($($output_scale_where_clauses:tt)*),
         Strict, $op:tt, $log_op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -206,7 +206,7 @@ macro_rules! quantity_quantity_mul_div_interface {
             >
             for multiplication_input!(Strict, LeftHand, $T)
         where
-            $($mul_result_where_clauses)*
+            $($output_dimension_where_clauses)*
         {
             type Output = multiplication_output!(Strict, $T, $log_op);
 
@@ -222,7 +222,7 @@ macro_rules! quantity_quantity_mul_div_interface {
     // Non-Strict interface (measurement scales can differ) (two sets of scale parameters)
     (
         ($($multiple_dimension_single_scale_params:tt)*), ($($multiple_dimension_multiple_scale_params:tt)*),
-        ($($mul_result_where_clauses:tt)*), ($($mul_min_scale_where_clauses:tt)*),
+        ($($output_dimension_where_clauses:tt)*), ($($output_scale_where_clauses:tt)*),
         LeftHandWins, $op:tt, $log_op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -233,7 +233,7 @@ macro_rules! quantity_quantity_mul_div_interface {
             >
             for multiplication_input!(LeftHandWins, LeftHand, $T)
         where
-            $($mul_result_where_clauses)*
+            $($output_dimension_where_clauses)*
         {
             type Output = multiplication_output!(LeftHandWins, $T, $log_op);
 
@@ -252,7 +252,7 @@ macro_rules! quantity_quantity_mul_div_interface {
     // Non-Strict interface (measurement scales can differ) (two sets of scale parameters)
     (
         ($($multiple_dimension_single_scale_params:tt)*), ($($multiple_dimension_multiple_scale_params:tt)*),
-        ($($mul_result_where_clauses:tt)*), ($($mul_min_scale_where_clauses:tt)*),
+        ($($output_dimension_where_clauses:tt)*), ($($output_scale_where_clauses:tt)*),
         SmallerWins, $op:tt, $log_op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
@@ -263,8 +263,9 @@ macro_rules! quantity_quantity_mul_div_interface {
             >
             for multiplication_input!(SmallerWins, LeftHand, $T)
         where
-            $($mul_result_where_clauses)*,
-            $($mul_min_scale_where_clauses)*
+            $($output_dimension_where_clauses)*,
+            // smaller wins must validate the result of the output scale determination
+            $($output_scale_where_clauses)*
         {
             type Output = multiplication_output!(SmallerWins, $T, $log_op);
 
@@ -294,8 +295,8 @@ macro_rules! generate_arithmetic_ops {
      ($($inversion_where_clauses:tt)*),
      ($($add_min_scale_where_clauses:tt)*),
      ($($mul_min_scale_where_clauses:tt)*),
-     ($($mul_result_where_clauses:tt)*),
-     ($($div_result_where_clauses:tt)*),
+     ($($mul_output_dimension_where_clauses:tt)*),
+     ($($div_output_dimension_where_clauses:tt)*),
     $rescale_behavior:ident, $T:ty, $rescale_fn:ident) => {
         // scalar-quantity arithmetic operations
         scalar_quantity_mul_div_interface!(($($single_dimension_single_scale_params)*), ($($inversion_where_clauses)*), $T);
@@ -327,12 +328,12 @@ macro_rules! generate_arithmetic_ops {
 
         quantity_quantity_mul_div_interface!(
             ($($multiple_dimension_single_scale_params)*), ($($multiple_dimension_multiple_scale_params)*),
-             ($($mul_result_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
+             ($($mul_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
              $rescale_behavior, *, +, mul, Mul, $T, $rescale_fn
         );
         quantity_quantity_mul_div_interface!(
             ($($multiple_dimension_single_scale_params)*), ($($multiple_dimension_multiple_scale_params)*), 
-            ($($div_result_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
+            ($($div_output_dimension_where_clauses)*), ($($mul_min_scale_where_clauses)*), 
             $rescale_behavior, /, -, div, Div, $T, $rescale_fn
         );
     };
@@ -382,11 +383,11 @@ generate_arithmetic_ops!(
                                     TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
     (): IsIsize<{ min_time_scale(5, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
                                     TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>),
-    // mul result where clauses
+    // mul output dimension where clauses
     ((): IsIsize<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
     (): IsIsize<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
     (): IsIsize<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>),
-    // div result where clauses
+    // div output dimension where clauses
     ((): IsIsize<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
     (): IsIsize<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
     (): IsIsize<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>),
