@@ -339,60 +339,67 @@ macro_rules! generate_arithmetic_ops {
     };
 }
 
+macro_rules! declare_arithmetic {
+    ($rescale_behavior:ident, $T:ty, $rescale_fn:ident) => {
+        generate_arithmetic_ops!(
+            // single dimension, single scale
+            (const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
+            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
+            const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize),
+            // single dimension, multiple scales
+            (const MASS_EXPONENT: isize, const MASS_SCALE_P10_1: isize, const MASS_SCALE_P10_2: isize,
+            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_1: isize, const LENGTH_SCALE_P10_2: isize,
+            const TIME_EXPONENT: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
+                                        const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize),
+            // multiple dimension, single scale
+            (const MASS_EXPONENT_1: isize, const MASS_EXPONENT_2: isize, const MASS_SCALE_P10: isize,
+            const LENGTH_EXPONENT_1: isize, const LENGTH_EXPONENT_2: isize, const LENGTH_SCALE_P10: isize,
+            const TIME_EXPONENT_1: isize, const TIME_EXPONENT_2: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize),
+            // multiple dimension, multiple scales
+            (const MASS_EXPONENT_1: isize, const MASS_SCALE_P10_1: isize,
+            const LENGTH_EXPONENT_1: isize, const LENGTH_SCALE_P10_1: isize,
+            const TIME_EXPONENT_1: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
+            const MASS_EXPONENT_2: isize, const MASS_SCALE_P10_2: isize,
+            const LENGTH_EXPONENT_2: isize, const LENGTH_SCALE_P10_2: isize,
+            const TIME_EXPONENT_2: isize, const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,),
+            // inversion where clauses
+            ((): IsIsize<{ -MASS_EXPONENT }>,
+            (): IsIsize<{ -LENGTH_EXPONENT }>,
+            (): IsIsize<{ -TIME_EXPONENT }>),
+            // add min scale where clauses
+            ((): IsIsize<{ min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) }>,
+            (): IsIsize<{ min_length_scale(LENGTH_EXPONENT, LENGTH_SCALE_P10_1, LENGTH_EXPONENT, LENGTH_SCALE_P10_2) }>,
+            (): IsIsize<{ min_time_scale(2, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(3, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>),
+            // mul min scale where clauses
+            ((): IsIsize<{ min_mass_scale(MASS_EXPONENT_1, MASS_SCALE_P10_1, MASS_EXPONENT_2, MASS_SCALE_P10_2) }>,
+            (): IsIsize<{ min_length_scale(LENGTH_EXPONENT_1, LENGTH_SCALE_P10_1, LENGTH_EXPONENT_2, LENGTH_SCALE_P10_2) }>,
+            (): IsIsize<{ min_time_scale(2, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(3, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
+            (): IsIsize<{ min_time_scale(5, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
+                                            TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>),
+            // mul output dimension where clauses
+            ((): IsIsize<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
+            (): IsIsize<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
+            (): IsIsize<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>),
+            // div output dimension where clauses
+            ((): IsIsize<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
+            (): IsIsize<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
+            (): IsIsize<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>),
+            // other parameters
+            $rescale_behavior, $T, rescale_fn
+        );
+    }
+}
+
 #[cfg(feature = "strict")]
-generate_arithmetic_ops!(
-    // single dimension, single scale
-    (const MASS_EXPONENT: isize, const MASS_SCALE_P10: isize,
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10: isize,
-    const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize),
-    // single dimension, multiple scales
-    (const MASS_EXPONENT: isize, const MASS_SCALE_P10_1: isize, const MASS_SCALE_P10_2: isize,
-    const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_1: isize, const LENGTH_SCALE_P10_2: isize,
-    const TIME_EXPONENT: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
-                                const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize),
-    // multiple dimension, single scale
-    (const MASS_EXPONENT_1: isize, const MASS_EXPONENT_2: isize, const MASS_SCALE_P10: isize,
-    const LENGTH_EXPONENT_1: isize, const LENGTH_EXPONENT_2: isize, const LENGTH_SCALE_P10: isize,
-    const TIME_EXPONENT_1: isize, const TIME_EXPONENT_2: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize),
-    // multiple dimension, multiple scales
-    (const MASS_EXPONENT_1: isize, const MASS_SCALE_P10_1: isize,
-    const LENGTH_EXPONENT_1: isize, const LENGTH_SCALE_P10_1: isize,
-    const TIME_EXPONENT_1: isize, const TIME_SCALE_P2_1: isize, const TIME_SCALE_P3_1: isize, const TIME_SCALE_P5_1: isize,
-    const MASS_EXPONENT_2: isize, const MASS_SCALE_P10_2: isize,
-    const LENGTH_EXPONENT_2: isize, const LENGTH_SCALE_P10_2: isize,
-    const TIME_EXPONENT_2: isize, const TIME_SCALE_P2_2: isize, const TIME_SCALE_P3_2: isize, const TIME_SCALE_P5_2: isize,),
-    // inversion where clauses
-    ((): IsIsize<{ -MASS_EXPONENT }>,
-    (): IsIsize<{ -LENGTH_EXPONENT }>,
-    (): IsIsize<{ -TIME_EXPONENT }>),
-    // add min scale where clauses
-    ((): IsIsize<{ min_mass_scale(MASS_EXPONENT, MASS_SCALE_P10_1, MASS_EXPONENT, MASS_SCALE_P10_2) }>,
-    (): IsIsize<{ min_length_scale(LENGTH_EXPONENT, LENGTH_SCALE_P10_1, LENGTH_EXPONENT, LENGTH_SCALE_P10_2) }>,
-    (): IsIsize<{ min_time_scale(2, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-    (): IsIsize<{ min_time_scale(3, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-    (): IsIsize<{ min_time_scale(5, TIME_EXPONENT, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>),
-    // mul min scale where clauses
-    ((): IsIsize<{ min_mass_scale(MASS_EXPONENT_1, MASS_SCALE_P10_1, MASS_EXPONENT_2, MASS_SCALE_P10_2) }>,
-    (): IsIsize<{ min_length_scale(LENGTH_EXPONENT_1, LENGTH_SCALE_P10_1, LENGTH_EXPONENT_2, LENGTH_SCALE_P10_2) }>,
-    (): IsIsize<{ min_time_scale(2, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-    (): IsIsize<{ min_time_scale(3, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>,
-    (): IsIsize<{ min_time_scale(5, TIME_EXPONENT_1, TIME_SCALE_P2_1, TIME_SCALE_P3_1, TIME_SCALE_P5_1,
-                                    TIME_EXPONENT_2, TIME_SCALE_P2_2, TIME_SCALE_P3_2, TIME_SCALE_P5_2) }>),
-    // mul output dimension where clauses
-    ((): IsIsize<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
-    (): IsIsize<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
-    (): IsIsize<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>),
-    // div output dimension where clauses
-    ((): IsIsize<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
-    (): IsIsize<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
-    (): IsIsize<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>),
-    Strict, f64, rescale_f64
-);
+declare_arithmetic!(Strict, f64, rescale_f64);
 
 // Default if no feature is specified
 #[cfg(not(any(
@@ -400,4 +407,4 @@ generate_arithmetic_ops!(
     feature = "smaller_wins",
     feature = "left_hand_wins"
 )))]
-generate_arithmetic_ops!(Strict);
+declare_arithmetic!(Strict, f64, rescale_f64);
