@@ -22,7 +22,7 @@ impl<
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
     T,
 >
-    single_quantity_type!()
+    quantity_type!()
 {
     pub fn new(value: T) -> Self {
         Self { value }
@@ -43,7 +43,7 @@ impl<
     T,
 >
     fmt::Display
-    for single_quantity_type!()
+    for quantity_type!()
 where
     T: Copy + Into<f64>,
 {
@@ -66,7 +66,7 @@ impl<
     T,
 >
     fmt::Debug
-    for single_quantity_type!()
+    for quantity_type!()
 where
     T: Copy + Into<f64>,
 {
@@ -88,7 +88,7 @@ impl<
     const TIME_EXPONENT: isize, const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize,
     T,
 >
-    From<T> for single_quantity_type!()
+    From<T> for quantity_type!()
 {
     fn from(value: T) -> Self {
         Self::new(value.into())
