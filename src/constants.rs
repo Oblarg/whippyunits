@@ -6,30 +6,30 @@
 // Length Scale Constants (Auto-generated)
 // ============================================================================
 
-pub const MILLIMETER_SCALE_P10: isize = -3;
-pub const METER_SCALE_P10: isize = 0;
-pub const KILOMETER_SCALE_P10: isize = 3;
+pub const MILLIMETER_SCALE_P10: i8 = -3;
+pub const METER_SCALE_P10: i8 = 0;
+pub const KILOMETER_SCALE_P10: i8 = 3;
 
 // ============================================================================
 // Mass Scale Constants (Auto-generated)
 // ============================================================================
 
-pub const MILLIGRAM_SCALE_P10: isize = -6;
-pub const GRAM_SCALE_P10: isize = -3;
-pub const KILOGRAM_SCALE_P10: isize = 0;
+pub const MILLIGRAM_SCALE_P10: i8 = -6;
+pub const GRAM_SCALE_P10: i8 = -3;
+pub const KILOGRAM_SCALE_P10: i8 = 0;
 
 // ============================================================================
 // Time Scale Constants (Auto-generated)
 // ============================================================================
 
-pub const MILLISECOND_SCALE_P2: isize = -3;
-pub const MILLISECOND_SCALE_P3: isize = 0;
-pub const MILLISECOND_SCALE_P5: isize = -3;
+pub const MILLISECOND_SCALE_P2: i8 = -3;
+pub const MILLISECOND_SCALE_P3: i8 = 0;
+pub const MILLISECOND_SCALE_P5: i8 = -3;
 
-pub const SECOND_SCALE_P2: isize = 0;
-pub const SECOND_SCALE_P3: isize = 0;
-pub const SECOND_SCALE_P5: isize = 0;
+pub const SECOND_SCALE_P2: i8 = 0;
+pub const SECOND_SCALE_P3: i8 = 0;
+pub const SECOND_SCALE_P5: i8 = 0;
 
-pub const MINUTE_SCALE_P2: isize = 2;
-pub const MINUTE_SCALE_P3: isize = 1;
-pub const MINUTE_SCALE_P5: isize = 1;
+pub const MINUTE_SCALE_P2: i8 = 2;
+pub const MINUTE_SCALE_P3: i8 = 1;
+pub const MINUTE_SCALE_P5: i8 = 1;

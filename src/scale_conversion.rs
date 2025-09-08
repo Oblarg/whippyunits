@@ -1,9 +1,6 @@
 use crate::quantity_type::Quantity;
 
-// ============================================================================
-// Individual Scale Conversion Factor Functions
-// ============================================================================
-pub const fn pow10(exp: isize) -> (i128, i128) {
+pub const fn pow10(exp: i16) -> (i128, i128) {
     match exp {
         -9 => (1, 1000000000),
         -8 => (1, 100000000),
@@ -28,7 +25,7 @@ pub const fn pow10(exp: isize) -> (i128, i128) {
     }
 }
 
-pub const fn pow2(exp: isize) -> (i128, i128) {
+pub const fn pow2(exp: i16) -> (i128, i128) {
     match exp {
         -9 => (1, 512),
         -8 => (1, 256),
@@ -53,7 +50,7 @@ pub const fn pow2(exp: isize) -> (i128, i128) {
     }
 }
 
-pub const fn pow3(exp: isize) -> (i128, i128) {
+pub const fn pow3(exp: i16) -> (i128, i128) {
     match exp {
         -9 => (1, 19683),
         -8 => (1, 6561),
@@ -78,7 +75,7 @@ pub const fn pow3(exp: isize) -> (i128, i128) {
     }
 }
 
-pub const fn pow5(exp: isize) -> (i128, i128) {
+pub const fn pow5(exp: i16) -> (i128, i128) {
     match exp {
         -9 => (1, 1953125),
         -8 => (1, 390625),
@@ -103,69 +100,55 @@ pub const fn pow5(exp: isize) -> (i128, i128) {
     }
 }
 
-// ============================================================================
-// Length Scale Conversion Factors (Integer-based)
-// ============================================================================
-
-
-// ============================================================================
-// Time Scale Conversion Factors (Integer-based)
-// ============================================================================
-
-/// Compute the composite time scale factor using powers of 2, 3, and 5
-/// Returns (numerator, denominator) representing the scale factor
-pub const fn time_scale_factor(
-    p2_from: isize,
-    p3_from: isize,
-    p5_from: isize,
-    p2_to: isize,
-    p3_to: isize,
-    p5_to: isize,
-    exponent: isize,
-) -> (i128, i128) {
-    match exponent {
-        0 => (1, 1), // dimension exponent is 0, no conversion needed
-        1 => {
-            let (num2, den2) = pow2(p2_from - p2_to);
-            let (num3, den3) = pow3(p3_from - p3_to);
-            let (num5, den5) = pow5(p5_from - p5_to);
-            (num2 * num3 * num5, den2 * den3 * den5)
-        }
-        _ => {
-            let (num2, den2) = pow2((p2_from - p2_to) * exponent);
-            let (num3, den3) = pow3((p3_from - p3_to) * exponent);
-            let (num5, den5) = pow5((p5_from - p5_to) * exponent);
-
-            (num2 * num3 * num5, den2 * den3 * den5)
+#[macro_export]
+macro_rules! define_composite_scale_factor {
+    (
+        ($($composite_scale_factor_params:tt)*), 
+        $exponent:ident,
+        ($($composite_scale_factor_one_pow_exprs:tt)*),
+        ($($composite_scale_factor_default_pow_exprs:tt)*),
+        ($($composite_scale_factor_num_expr:tt)*),
+        ($($composite_scale_factor_den_expr:tt)*),
+        $fn:ident,
+    ) => {
+        pub const fn $fn(
+            $($composite_scale_factor_params)*
+            $exponent: i8,
+        ) -> (i128, i128) {
+            match $exponent {
+                0 => (1, 1),
+                1 => {
+                    $($composite_scale_factor_one_pow_exprs)*
+                    ($($composite_scale_factor_num_expr)*, $($composite_scale_factor_den_expr)*)
+                }
+                _ => {
+                    $($composite_scale_factor_default_pow_exprs)*
+                    ($($composite_scale_factor_num_expr)*, $($composite_scale_factor_den_expr)*)
+                }
+            }
         }
     }
 }
 
-// ============================================================================
-// Composite Scale Conversion Factors (Integer-based)
-// ============================================================================
+#[macro_export]
+macro_rules! define_aggregate_scale_factor {
+    (
+        ($($aggregate_scale_factor_params:tt)*), 
+        ($($aggregate_scale_factor_diff_exprs:tt)*), 
+        ($($aggregate_scale_factor_pow_exprs:tt)*),
+        ($($aggregate_scale_factor_num_exprs:tt)*),
+        ($($aggregate_scale_factor_den_exprs:tt)*),
+    ) => {
+        pub const fn aggregate_scale_factor(
+            $($aggregate_scale_factor_params)*,
+        ) -> (i128, i128) {
+            $($aggregate_scale_factor_diff_exprs)*
 
-/// Compute a composite scale factor for a unit with mass, length, and time components
-/// Returns (numerator, denominator) representing the overall scale factor
-#[rustfmt::skip]
-pub const fn aggregate_scale_factor(
-    mass_exponent: isize, mass_scale_p10_from: isize, mass_scale_p10_to: isize,
-    length_exponent: isize, length_scale_p10_from: isize, length_scale_p10_to: isize,
-    time_exponent: isize, time_scale_p2_from: isize, time_scale_p3_from: isize, time_scale_p5_from: isize,
-                          time_scale_p2_to: isize, time_scale_p3_to: isize, time_scale_p5_to: isize,
-) -> (i128, i128) {
-    let diff_length_p10: isize = (length_scale_p10_from - length_scale_p10_to) * length_exponent;
-    let diff_mass_p10: isize = (mass_scale_p10_from - mass_scale_p10_to) * mass_exponent;
-    let diff_time_p2: isize = (time_scale_p2_from - time_scale_p2_to) * time_exponent;
-    let diff_time_p3: isize = (time_scale_p3_from - time_scale_p3_to) * time_exponent;
-    let diff_time_p5: isize = (time_scale_p5_from - time_scale_p5_to) * time_exponent;
-    
-    let (num10, den10) = pow10(diff_length_p10 + diff_mass_p10);
-    let (num2, den2) = pow2(diff_time_p2);
-    let (num3, den3) = pow3(diff_time_p3);
-    let (num5, den5) = pow5(diff_time_p5);
-    
-    reduce_rational(num10 * num2 * num3 * num5, den10 * den2 * den3 * den5)
+            $($aggregate_scale_factor_pow_exprs)*
+            
+            reduce_rational($($aggregate_scale_factor_num_exprs)*, $($aggregate_scale_factor_den_exprs)*)
+        }
+    }
 }
 
 /// Reduce a rational number to its simplest form using bit-shift based GCD
@@ -209,36 +192,23 @@ pub const fn reduce_rational(num: i128, den: i128) -> (i128, i128) {
     (reduced_num, reduced_den)
 }
 
-// ============================================================================
-// Rescale Function
-// ============================================================================
-
-#[rustfmt::skip]
-macro_rules! define_float_rescale {
-    ($fn:ident, $T:ty) => {
+#[macro_export]
+macro_rules! _define_float_rescale {
+    (
+        ($($float_rescale_const_params:tt)*),
+        ($($float_rescale_input_type:tt)*),
+        ($($float_rescale_output_type:tt)*),
+        ($($float_rescale_aggregate_args:tt)*),
+        ($fn:ident, $T:ty),
+    ) => {
+        #[rustfmt::skip]
         pub fn $fn<
-            const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize,
-            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize,
-            const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize,
-                                        const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize,
+            $($float_rescale_const_params)*
         > (
-            quantity: Quantity<
-                MASS_EXPONENT, MASS_SCALE_P10_FROM,
-                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM,
-                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM,
-                $T,
-            >,
-        ) -> Quantity<
-            MASS_EXPONENT, MASS_SCALE_P10_TO,
-            LENGTH_EXPONENT, LENGTH_SCALE_P10_TO,
-            TIME_EXPONENT, TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
-            $T,
-        > {
+            quantity: $($float_rescale_input_type)*,
+        ) -> $($float_rescale_output_type)* {
             let (num, den) = aggregate_scale_factor(
-                MASS_EXPONENT, MASS_SCALE_P10_FROM, MASS_SCALE_P10_TO,
-                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM, LENGTH_SCALE_P10_TO,
-                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM, 
-                               TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+                $($float_rescale_aggregate_args)*
             );
             let rescale_factor = (num as $T / den as $T);
             Quantity::new(
@@ -248,34 +218,23 @@ macro_rules! define_float_rescale {
     };
 }
 
-define_float_rescale!(rescale_f64, f64);
-
-#[rustfmt::skip]
-macro_rules! define_int_rescale {
-    ($fn:ident, $T:ty) => {
+#[macro_export]
+macro_rules! _define_int_rescale {
+    (
+        ($($int_rescale_const_params:tt)*),
+        ($($int_rescale_input_type:tt)*),
+        ($($int_rescale_output_type:tt)*),
+        ($($int_rescale_aggregate_args:tt)*),
+        ($fn:ident, $T:ty),
+    ) => {
+        #[rustfmt::skip]
         pub fn $fn<
-            const MASS_EXPONENT: isize, const MASS_SCALE_P10_FROM: isize, const MASS_SCALE_P10_TO: isize,
-            const LENGTH_EXPONENT: isize, const LENGTH_SCALE_P10_FROM: isize, const LENGTH_SCALE_P10_TO: isize,
-            const TIME_EXPONENT: isize, const TIME_SCALE_P2_FROM: isize, const TIME_SCALE_P3_FROM: isize, const TIME_SCALE_P5_FROM: isize,
-                                        const TIME_SCALE_P2_TO: isize, const TIME_SCALE_P3_TO: isize, const TIME_SCALE_P5_TO: isize,
+            $($int_rescale_const_params)*
         > (
-            quantity: Quantity<
-                MASS_EXPONENT, MASS_SCALE_P10_FROM,
-                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM,
-                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM,
-                $T,
-            >,
-        ) -> Quantity<
-            MASS_EXPONENT, MASS_SCALE_P10_TO,
-            LENGTH_EXPONENT, LENGTH_SCALE_P10_TO,
-            TIME_EXPONENT, TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
-            $T,
-        > {
+            quantity: $($int_rescale_input_type)*,
+        ) -> $($int_rescale_output_type)* {
             let (num, den) = aggregate_scale_factor(
-                MASS_EXPONENT, MASS_SCALE_P10_FROM, MASS_SCALE_P10_TO,
-                LENGTH_EXPONENT, LENGTH_SCALE_P10_FROM, LENGTH_SCALE_P10_TO,
-                TIME_EXPONENT, TIME_SCALE_P2_FROM, TIME_SCALE_P3_FROM, TIME_SCALE_P5_FROM, 
-                               TIME_SCALE_P2_TO, TIME_SCALE_P3_TO, TIME_SCALE_P5_TO,
+                $($int_rescale_aggregate_args)*
             );
             let num = num as $T;
             let den = den as $T;
@@ -294,5 +253,3 @@ macro_rules! define_int_rescale {
         }
     }
 }
-
-define_int_rescale!(rescale_i64, i64);

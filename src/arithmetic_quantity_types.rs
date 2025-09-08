@@ -1,24 +1,4 @@
 #[macro_export]
-macro_rules! quantity_type {
-    () => {
-        Quantity<
-            MASS_EXPONENT, MASS_SCALE_P10,
-            LENGTH_EXPONENT, LENGTH_SCALE_P10,
-            TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
-            T,
-        >
-    };
-    ($T:ty) => {
-        Quantity<
-            MASS_EXPONENT, MASS_SCALE_P10,
-            LENGTH_EXPONENT, LENGTH_SCALE_P10,
-            TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
-            $T,
-        >
-    };
-}
-
-#[macro_export]
 macro_rules! inverse_quantity_type {
     ($T:ty) => {
         Quantity<
@@ -173,5 +153,4 @@ macro_rules! multiplication_output {
         >
     };
 }
-
 

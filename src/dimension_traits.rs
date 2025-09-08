@@ -18,7 +18,7 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const MASS_SCALE_P10: isize>
+            const MASS_SCALE_P10: i8>
         Mass
         for Quantity<
             1, MASS_SCALE_P10, 
@@ -37,7 +37,7 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const LENGTH_SCALE_P10: isize>
+            const LENGTH_SCALE_P10: i8>
         Length
         for Quantity<
             0, $mass_unused, 
@@ -52,7 +52,7 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const LENGTH_SCALE_P10: isize>
+            const LENGTH_SCALE_P10: i8>
         Area
         for Quantity<
             0, $mass_unused, 
@@ -71,7 +71,7 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize>
+            const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8>
         Time
         for Quantity<
             0, $mass_unused, 
@@ -86,7 +86,7 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const TIME_SCALE_P2: isize, const TIME_SCALE_P3: isize, const TIME_SCALE_P5: isize>
+            const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8>
         Frequency
         for Quantity<
             0, $mass_unused, 

@@ -1,4 +1,4 @@
-use whippyunits::scale_conversion::rescale_f64;
+use whippyunits::api::rescale_f64;
 use whippyunits::default_declarators::*;
 use whippyunits::quantity_type::Quantity;
 

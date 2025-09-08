@@ -24,11 +24,11 @@ pub fn generate_const_generic_params() -> String {
         if let Some(first_unit) = units.first() {
             if first_unit.is_time_unit() {
                 // Complex dimension - needs P2, P3, P5, SCALE_ORDER
-                params.push_str(&format!("    const {}_EXPONENT: isize, const {}_P2: isize, const {}_P3: isize, const {}_P5: isize, const {}_SCALE_ORDER: isize,\n",
+                params.push_str(&format!("    const {}_EXPONENT: i8, const {}_P2: i8, const {}_P3: i8, const {}_P5: i8, const {}_SCALE_ORDER: i8,\n",
                     dimension_name, dimension_name, dimension_name, dimension_name, dimension_name));
             } else {
                 // Simple dimension - just scale
-                params.push_str(&format!("    const {}_EXPONENT: isize, const {}_SCALE: isize,\n",
+                params.push_str(&format!("    const {}_EXPONENT: i8, const {}_SCALE: i8,\n",
                     dimension_name, dimension_name));
             }
         }
@@ -68,11 +68,11 @@ pub fn generate_const_generic_params_with_suffix(suffix: &str) -> String {
         if let Some(first_unit) = units.first() {
             if first_unit.is_time_unit() {
                 // Complex dimension - needs P2, P3, P5, SCALE_ORDER
-                params.push_str(&format!("    const {}_EXPONENT{}: isize, const {}_P2{}: isize, const {}_P3{}: isize, const {}_P5{}: isize, const {}_SCALE_ORDER{}: isize,\n",
+                params.push_str(&format!("    const {}_EXPONENT{}: i8, const {}_P2{}: i8, const {}_P3{}: i8, const {}_P5{}: i8, const {}_SCALE_ORDER{}: i8,\n",
                     dimension_name, suffix, dimension_name, suffix, dimension_name, suffix, dimension_name, suffix, dimension_name, suffix));
             } else {
                 // Simple dimension - just scale
-                params.push_str(&format!("    const {}_EXPONENT{}: isize, const {}_SCALE{}: isize,\n",
+                params.push_str(&format!("    const {}_EXPONENT{}: i8, const {}_SCALE{}: i8,\n",
                     dimension_name, suffix, dimension_name, suffix));
             }
         }
@@ -108,7 +108,7 @@ pub fn generate_where_clauses_for_exponent_arithmetic(log_op: &str) -> String {
     
     for (dim_index, _units) in ALL_DIMENSIONS.iter().enumerate() {
         let dimension_name = DIMENSION_NAMES[dim_index].to_uppercase();
-        clauses.push_str(&format!("        (): IsIsize<{{ {}_EXPONENT1 {} {}_EXPONENT2 }}>,\n", 
+        clauses.push_str(&format!("        (): IsI8<{{ {}_EXPONENT1 {} {}_EXPONENT2 }}>,\n", 
             dimension_name, log_op, dimension_name));
     }
     
@@ -124,9 +124,9 @@ pub fn generate_scale_where_clauses(scale_order: &str) -> String {
         
         if let Some(first_unit) = units.first() {
             if first_unit.is_time_unit() {
-                clauses.push_str(&format!("        (): IsIsize<{{ {}_scale_2({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
-                clauses.push_str(&format!("        (): IsIsize<{{ {}_scale_3({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
-                clauses.push_str(&format!("        (): IsIsize<{{ {}_scale_5({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
+                clauses.push_str(&format!("        (): IsI8<{{ {}_scale_2({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
+                clauses.push_str(&format!("        (): IsI8<{{ {}_scale_3({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
+                clauses.push_str(&format!("        (): IsI8<{{ {}_scale_5({}) }}>,\n", dimension_name.to_lowercase(), scale_order));
             }
         }
     }
@@ -163,7 +163,7 @@ pub fn is_complex_dimension(dimension_index: usize) -> bool {
 /// This function is called at runtime during code generation
 /// Works directly with the source of truth in unit_data.rs
 pub fn match_dimension_from_atomic_exponents(
-    unit_vector: &[isize],
+    unit_vector: &[i8],
     use_long_names: bool,
 ) -> Option<(&'static str, &'static str)> {
     // Check if the unit vector matches any atomic dimension from unit_data

@@ -3,7 +3,7 @@ use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::utils::{to_unicode_superscript, get_si_prefix};
 
 /// Generate dimension symbols for unresolved types (M, L, T)
-pub fn generate_dimension_symbols(mass_exponent: isize, length_exponent: isize, time_exponent: isize) -> String {
+pub fn generate_dimension_symbols(mass_exponent: i8, length_exponent: i8, time_exponent: i8) -> String {
     let mut parts = Vec::new();
     
     // Add mass dimension
@@ -29,7 +29,7 @@ pub fn generate_dimension_symbols(mass_exponent: isize, length_exponent: isize, 
 }
 
 /// Generate verbose dimension names for unresolved types (Length, Time, Mass)
-pub fn generate_verbose_dimension_names(mass_exponent: isize, length_exponent: isize, time_exponent: isize) -> String {
+pub fn generate_verbose_dimension_names(mass_exponent: i8, length_exponent: i8, time_exponent: i8) -> String {
     let mut parts = Vec::new();
     
     // Add mass dimension
@@ -71,10 +71,10 @@ pub fn generate_verbose_dimension_names(mass_exponent: isize, length_exponent: i
 
 /// Calculate total power of 10 across all dimensions
 fn calculate_total_scale_p10(
-    mass_exponent: isize, mass_scale_p10: isize,
-    length_exponent: isize, length_scale_p10: isize,
-    time_exponent: isize, time_scale_p2: isize, time_scale_p3: isize, time_scale_p5: isize,
-) -> isize {
+    mass_exponent: i8, mass_scale_p10: i8,
+    length_exponent: i8, length_scale_p10: i8,
+    time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
+) -> i8 {
     let mut total_scale_p10 = 0;
     
     // Add mass contribution: exponent × scale
@@ -98,7 +98,7 @@ fn calculate_total_scale_p10(
 
 /// Generate SI unit with 10^n notation when no standard prefix is available
 fn generate_si_unit_with_scale(
-    total_scale_p10: isize,
+    total_scale_p10: i8,
     base_si_unit: &str,
     _long_name: bool,
 ) -> String {
@@ -114,9 +114,9 @@ fn generate_si_unit_with_scale(
 
 /// Generate correctly-prefixed SI unit name
 fn generate_prefixed_si_unit(
-    mass_exponent: isize, mass_scale_p10: isize,
-    length_exponent: isize, length_scale_p10: isize,
-    time_exponent: isize, time_scale_p2: isize, time_scale_p3: isize, time_scale_p5: isize,
+    mass_exponent: i8, mass_scale_p10: i8,
+    length_exponent: i8, length_scale_p10: i8,
+    time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
     base_si_unit: &str,
     long_name: bool,
 ) -> String {
@@ -135,8 +135,8 @@ fn generate_prefixed_si_unit(
 }
 
 /// Helper function to format scale values, handling sentinel values
-fn format_scale_value(scale: isize) -> String {
-    if scale == isize::MAX {
+fn format_scale_value(scale: i8) -> String {
+    if scale == i8::MAX {
         "unused".to_string()
     } else {
         scale.to_string()
@@ -163,14 +163,14 @@ fn format_scale_value(scale: isize) -> String {
 /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales]>`
 pub fn pretty_print_quantity(
     value: Option<f64>,
-    mass_exponent: isize,
-    mass_scale_p10: isize,
-    length_exponent: isize,
-    length_scale_p10: isize,
-    time_exponent: isize,
-    time_scale_p2: isize,
-    time_scale_p3: isize,
-    time_scale_p5: isize,
+    mass_exponent: i8,
+    mass_scale_p10: i8,
+    length_exponent: i8,
+    length_scale_p10: i8,
+    time_exponent: i8,
+    time_scale_p2: i8,
+    time_scale_p3: i8,
+    time_scale_p5: i8,
     verbose: bool,
 ) -> String {
     let mut result = String::new();
@@ -257,46 +257,46 @@ pub fn pretty_print_quantity(
     if verbose {
         result.push_str("; [");
         result.push_str(&format!("mass{}", to_unicode_superscript(mass_exponent, true)));
-        if mass_scale_p10 == isize::MAX {
+        if mass_scale_p10 == i8::MAX {
             result.push_str("(unused)");
-        } else if mass_scale_p10 == isize::MIN {
+        } else if mass_scale_p10 == i8::MIN {
             result.push_str("(10ˀ)");
         } else {
             result.push_str(&format!("(10{})", to_unicode_superscript(mass_scale_p10, false)));
         }
         result.push_str(&format!(", length{}", to_unicode_superscript(length_exponent, true)));
-        if length_scale_p10 == isize::MAX {
+        if length_scale_p10 == i8::MAX {
             result.push_str("(unused)");
-        } else if length_scale_p10 == isize::MIN {
+        } else if length_scale_p10 == i8::MIN {
             result.push_str("(10ˀ)");
         } else {
             result.push_str(&format!("(10{})", to_unicode_superscript(length_scale_p10, false)));
         }
         result.push_str(&format!(", time{}", to_unicode_superscript(time_exponent, true)));
         // Check if all time scales are unused
-        if time_scale_p2 == isize::MAX && time_scale_p3 == isize::MAX && time_scale_p5 == isize::MAX {
+        if time_scale_p2 == i8::MAX && time_scale_p3 == i8::MAX && time_scale_p5 == i8::MAX {
             result.push_str("(unused)");
         } else {
             result.push_str("(2");
-            if time_scale_p2 == isize::MAX {
+            if time_scale_p2 == i8::MAX {
                 result.push_str("unused");
-            } else if time_scale_p2 == isize::MIN {
+            } else if time_scale_p2 == i8::MIN {
                 result.push_str("ˀ");
             } else {
                 result.push_str(&to_unicode_superscript(time_scale_p2, false));
             }
             result.push_str(", 3");
-            if time_scale_p3 == isize::MAX {
+            if time_scale_p3 == i8::MAX {
                 result.push_str("unused");
-            } else if time_scale_p3 == isize::MIN {
+            } else if time_scale_p3 == i8::MIN {
                 result.push_str("ˀ");
             } else {
                 result.push_str(&to_unicode_superscript(time_scale_p3, false));
             }
             result.push_str(", 5");
-            if time_scale_p5 == isize::MAX {
+            if time_scale_p5 == i8::MAX {
                 result.push_str("unused");
-            } else if time_scale_p5 == isize::MIN {
+            } else if time_scale_p5 == i8::MIN {
                 result.push_str("ˀ");
             } else {
                 result.push_str(&to_unicode_superscript(time_scale_p5, false));
@@ -313,14 +313,14 @@ pub fn pretty_print_quantity(
 
 /// Pretty print a quantity type (without value)
 pub fn pretty_print_quantity_type(
-    mass_exponent: isize,
-    mass_scale_p10: isize,
-    length_exponent: isize,
-    length_scale_p10: isize,
-    time_exponent: isize,
-    time_scale_p2: isize,
-    time_scale_p3: isize,
-    time_scale_p5: isize,
+    mass_exponent: i8,
+    mass_scale_p10: i8,
+    length_exponent: i8,
+    length_scale_p10: i8,
+    time_exponent: i8,
+    time_scale_p2: i8,
+    time_scale_p3: i8,
+    time_scale_p5: i8,
     verbose: bool,
 ) -> String {
     pretty_print_quantity(
@@ -335,14 +335,14 @@ pub fn pretty_print_quantity_type(
 /// Pretty print a quantity value (with value)
 pub fn pretty_print_quantity_value(
     value: f64,
-    mass_exponent: isize,
-    mass_scale_p10: isize,
-    length_exponent: isize,
-    length_scale_p10: isize,
-    time_exponent: isize,
-    time_scale_p2: isize,
-    time_scale_p3: isize,
-    time_scale_p5: isize,
+    mass_exponent: i8,
+    mass_scale_p10: i8,
+    length_exponent: i8,
+    length_scale_p10: i8,
+    time_exponent: i8,
+    time_scale_p2: i8,
+    time_scale_p3: i8,
+    time_scale_p5: i8,
     verbose: bool,
 ) -> String {
     pretty_print_quantity(
@@ -356,14 +356,14 @@ pub fn pretty_print_quantity_value(
 
 /// Ultra-terse pretty print for inlay hints - shows only the unit literal
 pub fn pretty_print_quantity_inlay_hint(
-    mass_exponent: isize,
-    mass_scale_p10: isize,
-    length_exponent: isize,
-    length_scale_p10: isize,
-    time_exponent: isize,
-    time_scale_p2: isize,
-    time_scale_p3: isize,
-    time_scale_p5: isize,
+    mass_exponent: i8,
+    mass_scale_p10: i8,
+    length_exponent: i8,
+    length_scale_p10: i8,
+    time_exponent: i8,
+    time_scale_p2: i8,
+    time_scale_p3: i8,
+    time_scale_p5: i8,
 ) -> String {
     // Generate systematic unit literal (this is the unit name like "mm", "kg", etc.)
     let systematic_literal = generate_systematic_unit_name(

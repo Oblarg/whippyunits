@@ -1,8 +1,8 @@
 /// Convert any integer to Unicode superscript notation
 /// Returns empty string for unity exponent (1) unless show_unity is true
-/// Returns "?" for unknown values (isize::MIN)
-pub fn to_unicode_superscript(num: isize, show_unity: bool) -> String {
-    if num == isize::MIN {
+/// Returns "?" for unknown values (i8::MIN)
+pub fn to_unicode_superscript(num: i8, show_unity: bool) -> String {
+    if num == i8::MIN {
         return "ˀ".to_string();
     }
     
@@ -25,7 +25,7 @@ pub fn to_unicode_superscript(num: isize, show_unity: bool) -> String {
 }
 
 /// Get SI prefix based on scale
-pub fn get_si_prefix(scale_p10: isize, long_name: bool) -> Option<&'static str> {
+pub fn get_si_prefix(scale_p10: i8, long_name: bool) -> Option<&'static str> {
     match scale_p10 {
         -15 => Some(if long_name { "femto" } else { "f" }),
         -12 => Some(if long_name { "pico" } else { "p" }),

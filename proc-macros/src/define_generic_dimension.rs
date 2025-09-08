@@ -63,7 +63,7 @@ impl DimensionExpr {
     }
     
     // Evaluate the expression to get dimension exponents
-    fn evaluate(&self) -> (isize, isize, isize) {
+    fn evaluate(&self) -> (i8, i8, i8) {
         match self {
             DimensionExpr::Dimension(ident) => {
                 let name = ident.to_string().to_lowercase();
@@ -86,7 +86,7 @@ impl DimensionExpr {
             },
             DimensionExpr::Pow(base, exp) => {
                 let (m, l, t) = base.evaluate();
-                let exp_val: isize = exp.base10_parse().unwrap();
+                let exp_val: i8 = exp.base10_parse().unwrap();
                 (m * exp_val, l * exp_val, t * exp_val)
             }
         }
@@ -131,7 +131,7 @@ impl DefineGenericDimensionInput {
         }
     }
     
-    fn generate_impl(&self, mass_exp: isize, length_exp: isize, time_exp: isize) -> TokenStream {
+    fn generate_impl(&self, mass_exp: i8, length_exp: i8, time_exp: i8) -> TokenStream {
         let trait_name = &self.trait_name;
         
         // Determine which scale parameters we need
@@ -141,23 +141,23 @@ impl DefineGenericDimensionInput {
         // Mass dimension
         if mass_exp != 0 {
             let const_ident = Ident::new("MASS_SCALE_P10", proc_macro2::Span::call_site());
-            const_decls.push(quote! { const #const_ident: isize });
+            const_decls.push(quote! { const #const_ident: i8 });
             generic_params.push(quote! { #mass_exp }); // MASS_EXPONENT
             generic_params.push(quote! { #const_ident }); // MASS_SCALE_P10
         } else {
             generic_params.push(quote! { #mass_exp }); // MASS_EXPONENT
-            generic_params.push(quote! { 0_isize }); // MASS_SCALE_P10
+            generic_params.push(quote! { 0_i8 }); // MASS_SCALE_P10
         }
         
         // Length dimension
         if length_exp != 0 {
             let const_ident = Ident::new("LENGTH_SCALE_P10", proc_macro2::Span::call_site());
-            const_decls.push(quote! { const #const_ident: isize });
+            const_decls.push(quote! { const #const_ident: i8 });
             generic_params.push(quote! { #length_exp }); // LENGTH_EXPONENT
             generic_params.push(quote! { #const_ident }); // LENGTH_SCALE_P10
         } else {
             generic_params.push(quote! { #length_exp }); // LENGTH_EXPONENT
-            generic_params.push(quote! { 0_isize }); // LENGTH_SCALE_P10
+            generic_params.push(quote! { 0_i8 }); // LENGTH_SCALE_P10
         }
         
         // Time dimension
@@ -166,9 +166,9 @@ impl DefineGenericDimensionInput {
             let const_p3 = Ident::new("TIME_SCALE_P3", proc_macro2::Span::call_site());
             let const_p5 = Ident::new("TIME_SCALE_P5", proc_macro2::Span::call_site());
             const_decls.push(quote! { 
-                const #const_p2: isize,
-                const #const_p3: isize,
-                const #const_p5: isize
+                const #const_p2: i8,
+                const #const_p3: i8,
+                const #const_p5: i8
             });
             generic_params.push(quote! { #time_exp }); // TIME_EXPONENT
             generic_params.push(quote! { #const_p2 }); // TIME_SCALE_P2
@@ -176,9 +176,9 @@ impl DefineGenericDimensionInput {
             generic_params.push(quote! { #const_p5 }); // TIME_SCALE_P5
         } else {
             generic_params.push(quote! { #time_exp }); // TIME_EXPONENT
-            generic_params.push(quote! { 0_isize }); // TIME_SCALE_P2
-            generic_params.push(quote! { 0_isize }); // TIME_SCALE_P3
-            generic_params.push(quote! { 0_isize }); // TIME_SCALE_P5
+            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P2
+            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P3
+            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P5
         }
         
         quote! {

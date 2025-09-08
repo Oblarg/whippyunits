@@ -30,15 +30,15 @@ fn generate_trait_definition(dimension: &DimensionType) -> String {
     // Generate variadic trait signature based on dimension requirements
     if is_atomic_dimension(dimension) {
         // Atomic dimensions use single scale parameter
-        output.push_str("    fn unit_name(scale: isize, use_long_names: bool) -> &'static str;\n");
+        output.push_str("    fn unit_name(scale: i8, use_long_names: bool) -> &'static str;\n");
         output.push_str("    \n");
         output.push_str("    /// Get the short unit name\n");
-        output.push_str("    fn short_name(scale: isize) -> &'static str {\n");
+        output.push_str("    fn short_name(scale: i8) -> &'static str {\n");
         output.push_str("        Self::unit_name(scale, false)\n");
         output.push_str("    }\n");
         output.push_str("    \n");
         output.push_str("    /// Get the long unit name\n");
-        output.push_str("    fn long_name(scale: isize) -> &'static str {\n");
+        output.push_str("    fn long_name(scale: i8) -> &'static str {\n");
         output.push_str("        Self::unit_name(scale, true)\n");
         output.push_str("    }\n");
     } else {
@@ -93,7 +93,7 @@ fn generate_trait_implementation(dimension: &DimensionType) -> String {
             } else {
                 &format!("{}_SCALE", dimension_name)
             };
-            params.push(format!("    const {}: isize", param_name));
+            params.push(format!("    const {}: i8", param_name));
         }
     }
     
@@ -159,7 +159,7 @@ fn generate_unit_name_implementation(dimension: &DimensionType) -> String {
         // Atomic dimensions use single scale parameter
         let units = get_units_for_atomic_dimension(dimension);
         
-        output.push_str("    fn unit_name(scale: isize, use_long_names: bool) -> &'static str {\n");
+        output.push_str("    fn unit_name(scale: i8, use_long_names: bool) -> &'static str {\n");
         output.push_str("        match scale {\n");
         
         // Add cases for each unit in this atomic dimension
@@ -243,7 +243,7 @@ fn generate_const_generic_params_for_dimension(dimension: &DimensionType) -> Str
             } else {
                 &format!("{}_SCALE", dimension_name)
             };
-            params.push(format!("const {}: isize", param_name));
+            params.push(format!("const {}: i8", param_name));
         }
     }
     
@@ -286,7 +286,7 @@ fn get_unused_constant_name_for_dimension(dimension: &DimensionType) -> String {
     }
     
     // No non-zero exponents found - complex dimension
-    "isize::MAX".to_string()
+    "i8::MAX".to_string()
 }
 
 fn generate_trait_aliases(dimension: &DimensionType) -> String {
@@ -318,7 +318,7 @@ fn generate_dimensions_rs() -> String {
     
     // Header
     output.push_str("use crate::{\n");
-    output.push_str("    time_scale_2, time_scale_3, time_scale_5, IsIsize, Quantity,\n");
+    output.push_str("    time_scale_2, time_scale_3, time_scale_5, IsI8, Quantity,\n");
     
     // Generate unused constant imports dynamically
     for (dim_index, _dimension_name) in DIMENSION_NAMES.iter().enumerate() {

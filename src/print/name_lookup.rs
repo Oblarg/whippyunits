@@ -1,26 +1,26 @@
 use crate::print::utils::get_si_prefix;
 
 pub fn generate_systematic_unit_name(
-    mass_exponent: isize, mass_scale_p10: isize,
-    length_exponent: isize, length_scale_p10: isize,
-    time_exponent: isize, time_scale_p2: isize, time_scale_p3: isize, time_scale_p5: isize,
+    mass_exponent: i8, mass_scale_p10: i8,
+    length_exponent: i8, length_scale_p10: i8,
+    time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
     long_name: bool,
 ) -> String {
     // Helper function to get unicode exponent
-    fn get_unicode_exponent(exp: isize) -> String {
+    fn get_unicode_exponent(exp: i8) -> String {
         crate::print::utils::to_unicode_superscript(exp, false)
     }
     
     // Helper function to render a unit with optional SI prefix or scale notation
     fn render_unit_with_scale(
         unit_string: &mut String,
-        scale_p10: isize,
+        scale_p10: i8,
         base_unit: &str,
         exponent_str: &str,
         long_name: bool,
     ) {
-        // Check if scale is unknown (isize::MIN)
-        if scale_p10 == isize::MIN {
+        // Check if scale is unknown (i8::MIN)
+        if scale_p10 == i8::MIN {
             // Unknown scale, show as "?" to indicate unresolved
             unit_string.push_str("?");
             return;
@@ -54,7 +54,7 @@ pub fn generate_systematic_unit_name(
     }
 
     // Check if all exponents are unknown
-    if mass_exponent == isize::MIN && length_exponent == isize::MIN && time_exponent == isize::MIN {
+    if mass_exponent == i8::MIN && length_exponent == i8::MIN && time_exponent == i8::MIN {
         return "?".to_string();
     }
     
@@ -117,9 +117,9 @@ pub struct DimensionNames {
 }
 
 pub fn lookup_dimension_name(
-    mass_exponent: isize,
-    length_exponent: isize,
-    time_exponent: isize,
+    mass_exponent: i8,
+    length_exponent: i8,
+    time_exponent: i8,
 ) -> Option<DimensionNames> {
     match (mass_exponent, length_exponent, time_exponent) {
         (1, 0, 0) => {

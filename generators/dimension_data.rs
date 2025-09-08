@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::vec::Vec;
 
 
-type DimensionalExponents = HashMap<&'static str, isize>;
+type DimensionalExponents = HashMap<&'static str, i8>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SiUnit {
@@ -45,9 +45,9 @@ pub struct UnitScale {
     pub name: &'static str,
     pub base_name: &'static str,
     pub base_symbol: &'static str,
-    pub base_scale_name_offset: isize,
-    pub primes: Vec<isize>,
-    pub composite_prime_levels: Option<Vec<HashMap<isize, isize>>>,
+    pub base_scale_name_offset: i8,
+    pub primes: Vec<i8>,
+    pub composite_prime_levels: Option<Vec<HashMap<i8, i8>>>,
 }
 
 pub fn get_unit_scales() -> Vec<UnitScale> {

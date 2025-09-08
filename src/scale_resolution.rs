@@ -1,11 +1,13 @@
 use crate::scale_conversion::*;
+use crate::api::*;
 
-macro_rules! min_max_length_scale {
+#[macro_export]
+macro_rules! define_min_max_scale {
     ($fn_name:ident, $op:tt) => {
         pub const fn $fn_name(
-            length_exponent_1: isize, length_scale_1: isize,
-            length_exponent_2: isize, length_scale_2: isize,
-        ) -> isize {
+            length_exponent_1: i8, length_scale_1: i8,
+            length_exponent_2: i8, length_scale_2: i8,
+        ) -> i8 {
             match (length_exponent_1, length_exponent_2) {
                 (0, _) => length_scale_2,  // dimension not used, use other scale
                 (_, 0) => length_scale_1,  // dimension not used, use other scale
@@ -21,72 +23,40 @@ macro_rules! min_max_length_scale {
     }
 }
 
-min_max_length_scale!(min_length_scale, <);
-min_max_length_scale!(max_length_scale, >);
-
-macro_rules! min_max_mass_scale {
-    ($fn_name:ident, $op:tt) => {
-        pub const fn $fn_name(
-            mass_exponent_1: isize, mass_scale_1: isize,
-            mass_exponent_2: isize, mass_scale_2: isize,
-        ) -> isize {
-            match (mass_exponent_1, mass_exponent_2) {
-                (0, _) => mass_scale_2,  // dimension not used, use other scale
-                (_, 0) => mass_scale_1,  // dimension not used, use other scale
-                _ => {
-                    if mass_scale_1 $op mass_scale_2 {
-                        mass_scale_1
-                    } else {
-                        mass_scale_2
-                    }
-                }
-            }
-        }
-    }
-}
-
-min_max_mass_scale!(min_mass_scale, <);
-min_max_mass_scale!(max_mass_scale, >);
-
-macro_rules! min_max_time_scale {
-    ($fn_name:ident, $op:tt) => {
-        pub const fn $fn_name(
-            which_prime: isize,
-            time_exponent_1: isize,
-            p2_1: isize, p3_1: isize, p5_1: isize,
-            time_exponent_2: isize,
-            p2_2: isize, p3_2: isize, p5_2: isize,
-        ) -> isize {
+macro_rules! _define_min_max_composite_scale {
+    (
+        ($($prime_scales:tt)*),
+        ($($defer_to_second:tt)*),
+        ($($defer_to_first:tt)*),
+        ($($compare_scales_let:tt)*),
+        ($($compare_scales_if:tt)*),
+        ($($compare_scales_first:tt)*),
+        ($($compare_scales_second:tt)*),
+        $fn:ident, $factor_fn:ident, $exponent1:ident, $exponent2:ident, $op:tt
+    ) => {
+        pub const fn $fn(
+            which_prime: i8,
+            $exponent1: i8,
+            $($prime_scales)*,
+            $exponent2: i8,
+        ) -> i8 {
             // time scales are aggregate across primes, and we can't just mix-and-match or we end up with nonstandard scale values
-            match (time_exponent_1, time_exponent_2) { 
+            match ($exponent1, $exponent2) { 
                 (0, _) => match which_prime {  // time dimension not used in first quantity
-                    2 => p2_2,
-                    3 => p3_2,
-                    5 => p5_2,
-                    _ => 0, // should never happen, but use 0 for unused
+                    $($defer_to_second)*
                 },
                 (_, 0) => match which_prime {  // time dimension not used in second quantity
-                    2 => p2_1,
-                    3 => p3_1,
-                    5 => p5_1,
-                    _ => 0, // should never happen, but use 0 for unused
+                    $($defer_to_first)*
                 },
                 _ => {
-                    let (num1, den1) = time_scale_factor(0, 0, 0, p2_1, p3_1, p5_1, 1);
-                    let (num2, den2) = time_scale_factor(0, 0, 0, p2_2, p3_2, p5_2, 1);
-                    if num1 * den2 $op num2 * den1 {
+                    $($compare_scales_let)*
+                    $($compare_scales_if)* {
                         match which_prime {
-                            2 => p2_1,
-                            3 => p3_1,
-                            5 => p5_1,
-                            _ => 0, // should never happen, but use 0 for unused
+                            $($compare_scales_first)*
                         }
                     } else {
                         match which_prime {
-                            2 => p2_2,
-                            3 => p3_2,
-                            5 => p5_2,
-                            _ => 0, // should never happen, but use 0 for unused
+                            $($compare_scales_second)*
                         }
                     }
                 }
@@ -94,6 +64,3 @@ macro_rules! min_max_time_scale {
         }
     }
 }
-
-min_max_time_scale!(min_time_scale, <);
-min_max_time_scale!(max_time_scale, >);

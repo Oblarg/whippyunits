@@ -11,7 +11,7 @@ pub trait LengthOrMass {
 }
 
 impl <
-    const LENGTH_SCALE_P10: isize,
+    const LENGTH_SCALE_P10: i8,
 > LengthOrMass for Quantity<
     1, LENGTH_SCALE_P10,
     0, 0,
@@ -21,7 +21,7 @@ impl <
 }
 
 impl <
-    const MASS_SCALE_P10: isize,
+    const MASS_SCALE_P10: i8,
 > LengthOrMass for Quantity<
     0, 0,
     1, MASS_SCALE_P10,

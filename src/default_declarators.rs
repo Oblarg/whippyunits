@@ -1,13 +1,6 @@
 use crate::quantity_type::Quantity;
 use crate::constants::*;
 
-// All unused dimensions now use 0 (SI base unit scale) instead of sentinel values
-
-
-// ============================================================================
-// Extension Traits for Natural Syntax
-// ============================================================================
-
 pub type Milligram = Quantity<
     1, MILLIGRAM_SCALE_P10,
     0, 0,
@@ -39,6 +32,7 @@ pub type Meter = Quantity<
     0, 0, 0, 0,
     f64,
 >;
+
 pub type Kilometer = Quantity<
     0, 0,
     1, KILOMETER_SCALE_P10,

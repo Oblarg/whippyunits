@@ -2,10 +2,6 @@
 // Scoped Preferences Macros
 // ============================================================================
 
-use crate::quantity_type::Quantity;
-use crate::constants::*;
-use crate::scale_conversion::*;
-
 #[macro_export]
 macro_rules! get_mass_scale {
     (Milligram) => {
