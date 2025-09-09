@@ -30,3 +30,11 @@ path = "generate_unit_macros.rs"
 [[bin]]
 name = "generate_quantity_scale_consts"
 path = "generate_quantity_scale_consts.rs"
+
+[[bin]]
+name = "generate_api"
+path = "generate_api.rs"
+
+[[bin]]
+name = "generate_arithmetic_quantity_types"
+path = "generate_arithmetic_quantity_types.rs"

@@ -2,390 +2,376 @@ use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::utils::{to_unicode_superscript, get_si_prefix};
 
-/// Generate dimension symbols for unresolved types (M, L, T)
-pub fn generate_dimension_symbols(mass_exponent: i8, length_exponent: i8, time_exponent: i8) -> String {
-    let mut parts = Vec::new();
-    
-    // Add mass dimension
-    if mass_exponent != 0 {
-        parts.push(format!("M{}", to_unicode_superscript(mass_exponent, false)));
-    }
-    
-    // Add length dimension
-    if length_exponent != 0 {
-        parts.push(format!("L{}", to_unicode_superscript(length_exponent, false)));
-    }
-    
-    // Add time dimension
-    if time_exponent != 0 {
-        parts.push(format!("T{}", to_unicode_superscript(time_exponent, false)));
-    }
-    
-    if parts.is_empty() {
-        "?".to_string()
+/// Helper function to format scale exponent values, using "ˀ" for i8::MIN values
+fn format_scale_exponent(scale: i8) -> String {
+    if scale == i8::MIN {
+        "ˀ".to_string()
     } else {
-        parts.join("·")
+        to_unicode_superscript(scale, true)
     }
 }
 
-/// Generate verbose dimension names for unresolved types (Length, Time, Mass)
-pub fn generate_verbose_dimension_names(mass_exponent: i8, length_exponent: i8, time_exponent: i8) -> String {
-    let mut parts = Vec::new();
-    
-    // Add mass dimension
-    if mass_exponent != 0 {
-        let name = if mass_exponent == 1 { "Mass" } else { "Mass" };
-        if mass_exponent != 1 {
-            parts.push(format!("{}{}", name, to_unicode_superscript(mass_exponent, false)));
-        } else {
-            parts.push(name.to_string());
+#[macro_export]
+macro_rules! define_generate_dimension_symbols {
+    (($($dimension_symbols:tt)*), ($($dimension_exponents:tt)*)) => {
+        pub fn generate_dimension_symbols(
+            $($dimension_exponents)*
+        ) -> String {
+            let parts: Vec<String> = [
+                $($dimension_symbols)*
+            ].iter()
+            .filter(|(exp, _)| *exp != 0)
+            .map(|(exp, symbol)| format!("{}{}", symbol, to_unicode_superscript(*exp, false)))
+            .collect();
+            
+            if parts.is_empty() { "?".to_string() } else { parts.join("·") }
         }
-    }
-    
-    // Add length dimension
-    if length_exponent != 0 {
-        let name = if length_exponent == 1 { "Length" } else { "Length" };
-        if length_exponent != 1 {
-            parts.push(format!("{}{}", name, to_unicode_superscript(length_exponent, false)));
-        } else {
-            parts.push(name.to_string());
-        }
-    }
-    
-    // Add time dimension
-    if time_exponent != 0 {
-        let name = if time_exponent == 1 { "Time" } else { "Time" };
-        if time_exponent != 1 {
-            parts.push(format!("{}{}", name, to_unicode_superscript(time_exponent, false)));
-        } else {
-            parts.push(name.to_string());
-        }
-    }
-    
-    if parts.is_empty() {
-        "?".to_string()
-    } else {
-        parts.join("·")
-    }
+    };
 }
 
-/// Calculate total power of 10 across all dimensions
-fn calculate_total_scale_p10(
-    mass_exponent: i8, mass_scale_p10: i8,
-    length_exponent: i8, length_scale_p10: i8,
-    time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
-) -> i8 {
-    let mut total_scale_p10 = 0;
-    
-    // Add mass contribution: exponent × scale
-    if mass_exponent != 0 {
-        // Mass scales are relative to kilograms (SI base unit)
+define_generate_dimension_symbols!(
+    (
+        (mass_exponent, "M"),
+        (length_exponent, "L"), 
+        (time_exponent, "T"),
+        (electric_current_exponent, "I"),
+        (temperature_exponent, "θ"),
+        (amount_of_substance_exponent, "N"),
+        (luminous_intensity_exponent, "J"),
+        (angle_exponent, "A")
+    ),
+    (mass_exponent: i8, length_exponent: i8, time_exponent: i8, electric_current_exponent: i8, temperature_exponent: i8, amount_of_substance_exponent: i8, luminous_intensity_exponent: i8, angle_exponent: i8)
+);
+
+#[macro_export]
+macro_rules! define_generate_verbose_dimension_names {
+    (($($dimension_names:tt)*), ($($dimension_exponents:tt)*)) => {
+        /// Generate verbose dimension names for unresolved types (Length, Time, Mass)
+        pub fn generate_verbose_dimension_names(
+            $($dimension_exponents)*
+        ) -> String {
+            let parts: Vec<String> = [
+                $($dimension_names)*
+            ].iter()
+            .filter(|(exp, _)| *exp != 0)
+            .map(|(exp, name)| if *exp == 1 { 
+                name.to_string() 
+            } else { 
+                format!("{}{}", name, to_unicode_superscript(*exp, false)) 
+            })
+            .collect();
+            
+            if parts.is_empty() { "?".to_string() } else { parts.join("·") }
+        }
+    };
+}
+
+define_generate_verbose_dimension_names!(
+    (
+        (mass_exponent, "Mass"),
+        (length_exponent, "Length"),
+        (time_exponent, "Time"),
+        (electric_current_exponent, "Electric Current"),
+        (temperature_exponent, "Temperature"),
+        (amount_of_substance_exponent, "Amount of Substance"),
+        (luminous_intensity_exponent, "Luminous Intensity"),
+        (angle_exponent, "Angle")
+    ),
+    (mass_exponent: i8, length_exponent: i8, time_exponent: i8, electric_current_exponent: i8, temperature_exponent: i8, amount_of_substance_exponent: i8, luminous_intensity_exponent: i8, angle_exponent: i8)
+);
+
+#[macro_export]
+macro_rules! define_calculate_total_scale_p10 {
+    (($($dimension_params:tt)*), ($($total_scale_calculation:tt)*)) => {
+        /// Calculate total power of 10 across all dimensions
+        fn calculate_total_scale_p10(
+            $($dimension_params)*
+        ) -> i8 {
+            // total_scale_p10
+            $($total_scale_calculation)*
+        }
+    };
+}
+
+define_calculate_total_scale_p10!(
+    (
+        mass_exponent: i8, mass_scale_p10: i8,
+        length_exponent: i8, length_scale_p10: i8,
+        time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
+        electric_current_exponent: i8, electric_current_scale_p10: i8,
+        temperature_exponent: i8, temperature_scale_p10: i8,
+        amount_of_substance_exponent: i8, amount_of_substance_scale_p10: i8,
+        luminous_intensity_exponent: i8, luminous_intensity_scale_p10: i8,
+        angle_exponent: i8, angle_scale_p2: i8, angle_scale_p3: i8, angle_scale_p5: i8, angle_scale_pi: i8
+    ),
+    (
+        let mut total_scale_p10: i8 = 0;
         total_scale_p10 += mass_exponent * mass_scale_p10;
-    }
-    
-    // Add length contribution: exponent × scale
-    if length_exponent != 0 {
         total_scale_p10 += length_exponent * length_scale_p10;
-    }
-    
-    // Add time contribution: only if it's a power of 10 case
-    if time_exponent != 0 && time_scale_p2 == time_scale_p5 && time_scale_p3 == 0 {
-        total_scale_p10 += time_exponent * time_scale_p2;
-    }
-    
-    total_scale_p10
-}
+        // only check pure powers of 10 on composite units
+        if time_scale_p2 == time_scale_p5 && time_scale_p3 == 0 {
+            total_scale_p10 += time_exponent * time_scale_p2;
+        }
+        total_scale_p10 += electric_current_exponent * electric_current_scale_p10;
+        total_scale_p10 += temperature_exponent * temperature_scale_p10;
+        total_scale_p10 += amount_of_substance_exponent * amount_of_substance_scale_p10;
+        total_scale_p10 += luminous_intensity_exponent * luminous_intensity_scale_p10;
+        if angle_scale_p2 == angle_scale_p5 && angle_scale_p3 == 0 && angle_scale_pi == 0 {
+            total_scale_p10 += angle_exponent * angle_scale_p2;
+        }
+        total_scale_p10
+    )
+);
 
 /// Generate SI unit with 10^n notation when no standard prefix is available
-fn generate_si_unit_with_scale(
-    total_scale_p10: i8,
-    base_si_unit: &str,
-    _long_name: bool,
-) -> String {
+fn generate_si_unit_with_scale(total_scale_p10: i8, base_si_unit: &str, _long_name: bool) -> String {
     if total_scale_p10 == 0 {
         base_si_unit.to_string()
     } else {
-        let superscript = to_unicode_superscript(total_scale_p10, false);
-        format!("10{} {}", superscript, base_si_unit)
+        format!("10{} {}", to_unicode_superscript(total_scale_p10, false), base_si_unit)
     }
 }
 
-
-
-/// Generate correctly-prefixed SI unit name
-fn generate_prefixed_si_unit(
-    mass_exponent: i8, mass_scale_p10: i8,
-    length_exponent: i8, length_scale_p10: i8,
-    time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
-    base_si_unit: &str,
-    long_name: bool,
-) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(
-        mass_exponent, mass_scale_p10,
-        length_exponent, length_scale_p10,
-        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-    );
-    
-    if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
-        format!("{}{}", prefix, base_si_unit)
-    } else {
-        // Fall back to SI unit with 10^n notation when SI prefix lookup fails
-        generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
-    }
+#[macro_export]
+macro_rules! define_generate_prefixed_si_unit {
+    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*)) => {
+        /// Generate correctly-prefixed SI unit name
+        fn generate_prefixed_si_unit(
+            $($dimension_signature_params)*,
+            base_si_unit: &str,
+            long_name: bool,
+        ) -> String {
+            let total_scale_p10 = calculate_total_scale_p10(
+                $($dimension_args)*
+            );
+            
+            if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
+                format!("{}{}", prefix, base_si_unit)
+            } else {
+                // Fall back to SI unit with 10^n notation when SI prefix lookup fails
+                generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
+            }
+        }        
+    };
 }
+
+define_generate_prefixed_si_unit!(
+    (
+        mass_exponent: i8, mass_scale_p10: i8,
+        length_exponent: i8, length_scale_p10: i8,
+        time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
+        electric_current_exponent: i8, electric_current_scale_p10: i8,
+        temperature_exponent: i8, temperature_scale_p10: i8,
+        amount_of_substance_exponent: i8, amount_of_substance_scale_p10: i8,
+        luminous_intensity_exponent: i8, luminous_intensity_scale_p10: i8,
+        angle_exponent: i8, angle_scale_p2: i8, angle_scale_p3: i8, angle_scale_p5: i8, angle_scale_pi: i8
+    ),
+    (
+        mass_exponent, mass_scale_p10, 
+        length_exponent, length_scale_p10, 
+        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5, 
+        electric_current_exponent, electric_current_scale_p10, 
+        temperature_exponent, temperature_scale_p10, 
+        amount_of_substance_exponent, amount_of_substance_scale_p10, 
+        luminous_intensity_exponent, luminous_intensity_scale_p10, 
+        angle_exponent, angle_scale_p2, angle_scale_p3, angle_scale_p5, angle_scale_pi,
+    )
+);
 
 /// Helper function to format scale values, handling sentinel values
 fn format_scale_value(scale: i8) -> String {
-    if scale == i8::MAX {
-        "unused".to_string()
-    } else {
-        scale.to_string()
-    }
+    if scale == i8::MAX { "unused".to_string() } else { scale.to_string() }
 }
 
+#[macro_export]
+macro_rules! define_pretty_print_quantity {
+    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($dimension_exponents:tt)*), $unit_vector_format:expr) => {
+        /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales]>`
+        pub fn pretty_print_quantity(
+            value: Option<f64>,
+            $($dimension_signature_params)*
+            verbose: bool,
+        ) -> String {
+            let value_prefix = value.map(|val| format!("({}) ", val)).unwrap_or_default();
+            
+            // Generate systematic unit literal
+            let systematic_literal = generate_systematic_unit_name(
+                $($dimension_args)*
+                verbose, // Use full names in verbose mode, symbols in non-verbose mode
+            );
+            
+            // Look up dimension name
+            let dimension_info = lookup_dimension_name($($dimension_exponents)*);
+            
+            // Generate SI shortname - use dimension-specific SI unit if available, otherwise don't show a shortname
+            let unit_shortname = if let Some(ref info) = dimension_info {
+                if let Some(base_si_unit) = if verbose {
+                    info.unit_si_shortname
+                } else {
+                    info.unit_si_shortname_symbol
+                } {
+                    // Use the specific SI unit name with correct prefix (e.g., "μJ" for microjoule)
+                    generate_prefixed_si_unit(
+                        $($dimension_args)*
+                        base_si_unit,
+                        verbose,
+                    )
+                } else {
+                    // No specific SI unit defined for this recognized dimension, don't show a shortname
+                    String::new()
+                }
+            } else {
+                // Unknown dimension, don't show a unit shortname to avoid stuttering
+                String::new()
+            };
+            
+            let dimension_name = if let Some(ref info) = dimension_info {
+                // For recognized dimensions, show the dimension name in both modes
+                info.dimension_name.to_string()
+            } else {
+                if verbose {
+                    // For unrecognized dimensions in verbose mode, generate verbose dimension names
+                    generate_verbose_dimension_names($($dimension_exponents)*)
+                } else {
+                    // For unrecognized dimensions, compute dimension symbol dynamically from exponents
+                    generate_dimension_symbols($($dimension_exponents)*)
+                }
+            };
+            
+            let primary = if systematic_literal.is_empty() { &dimension_name } else { &systematic_literal };
+            let secondary = if !unit_shortname.is_empty() && unit_shortname != systematic_literal {
+                format!("; {}; {}", unit_shortname, dimension_name)
+            } else if !systematic_literal.is_empty() {
+                format!("; {}", dimension_name)
+            } else {
+                String::new()
+            };
+            let verbose_info = if verbose {
+                $unit_vector_format
+            } else {
+                String::new()
+            };
+            
+            format!("{}Quantity<{}{}{}>", value_prefix, primary, secondary, verbose_info)
+        }
+    };
+}
 
+define_pretty_print_quantity!(
+    (
+        mass_exponent: i8, mass_scale_p10: i8,
+        length_exponent: i8, length_scale_p10: i8,
+        time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
+        electric_current_exponent: i8, electric_current_scale_p10: i8,
+        temperature_exponent: i8, temperature_scale_p10: i8,
+        amount_of_substance_exponent: i8, amount_of_substance_scale_p10: i8,
+        luminous_intensity_exponent: i8, luminous_intensity_scale_p10: i8,
+        angle_exponent: i8, angle_scale_p2: i8, angle_scale_p3: i8, angle_scale_p5: i8, angle_scale_pi: i8,
+    ),
+    (
+        mass_exponent, mass_scale_p10, 
+        length_exponent, length_scale_p10, 
+        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5, 
+        electric_current_exponent, electric_current_scale_p10, 
+        temperature_exponent, temperature_scale_p10, 
+        amount_of_substance_exponent, amount_of_substance_scale_p10, 
+        luminous_intensity_exponent, luminous_intensity_scale_p10, 
+        angle_exponent, angle_scale_p2, angle_scale_p3, angle_scale_p5, angle_scale_pi,
+    ),
+    (mass_exponent, length_exponent, time_exponent, electric_current_exponent, temperature_exponent, amount_of_substance_exponent, luminous_intensity_exponent, angle_exponent),
+    format!(
+        "; [mass{}(10{}), length{}(10{}), time{}(2{}, 3{}, 5{}), electric_current{}(10{}), temperature{}(10{}), amount_of_substance{}(10{}), luminous_intensity{}(10{}), angle{}(2{}, 3{}, 5{}, pi{})]",
+        to_unicode_superscript(mass_exponent, true),
+        format_scale_exponent(mass_scale_p10),
+        to_unicode_superscript(length_exponent, true),
+        format_scale_exponent(length_scale_p10),
+        to_unicode_superscript(time_exponent, true),
+        format_scale_exponent(time_scale_p2),
+        format_scale_exponent(time_scale_p3),
+        format_scale_exponent(time_scale_p5),
+        to_unicode_superscript(electric_current_exponent, true),
+        format_scale_exponent(electric_current_scale_p10),
+        to_unicode_superscript(temperature_exponent, true),
+        format_scale_exponent(temperature_scale_p10),
+        to_unicode_superscript(amount_of_substance_exponent, true),
+        format_scale_exponent(amount_of_substance_scale_p10),
+        to_unicode_superscript(luminous_intensity_exponent, true),
+        format_scale_exponent(luminous_intensity_scale_p10),
+        to_unicode_superscript(angle_exponent, true),
+        format_scale_exponent(angle_scale_p2),
+        format_scale_exponent(angle_scale_p3),
+        format_scale_exponent(angle_scale_p5),
+        format_scale_exponent(angle_scale_pi)
+    )
+);
 
-/// Pretty print a quantity with full information
-/// 
-/// # Arguments
-/// * `value` - Optional numeric value (None for type-only display)
-/// * `mass_exponent` - Mass dimension exponent
-/// * `mass_scale_p10` - Mass scale (power of 10)
-/// * `length_exponent` - Length dimension exponent  
-/// * `length_scale_p10` - Length scale (power of 10)
-/// * `time_exponent` - Time dimension exponent
-/// * `time_scale_p2` - Time scale (power of 2)
-/// * `time_scale_p3` - Time scale (power of 3)
-/// * `time_scale_p5` - Time scale (power of 5)
-/// * `verbose` - Whether to show verbose output with all details
-/// 
-/// # Returns
-/// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales]>`
-pub fn pretty_print_quantity(
-    value: Option<f64>,
-    mass_exponent: i8,
-    mass_scale_p10: i8,
-    length_exponent: i8,
-    length_scale_p10: i8,
-    time_exponent: i8,
-    time_scale_p2: i8,
-    time_scale_p3: i8,
-    time_scale_p5: i8,
-    verbose: bool,
-) -> String {
-    let mut result = String::new();
-    
-    // Add value if provided
-    if let Some(val) = value {
-        result.push_str(&format!("({}) ", val));
-    }
-    
-    // Generate systematic unit literal
-    let systematic_literal = generate_systematic_unit_name(
-        mass_exponent, mass_scale_p10,
-        length_exponent, length_scale_p10,
-        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-        verbose, // Use full names in verbose mode, symbols in non-verbose mode
-    );
-    
-    // Look up dimension name
-    let dimension_info = lookup_dimension_name(mass_exponent, length_exponent, time_exponent);
-    
-    // Generate SI shortname - use dimension-specific SI unit if available, otherwise don't show a shortname
-    let unit_shortname = if let Some(ref info) = dimension_info {
-        if let Some(base_si_unit) = if verbose {
-            info.unit_si_shortname
-        } else {
-            info.unit_si_shortname_symbol
-        } {
-            // Use the specific SI unit name with correct prefix (e.g., "μJ" for microjoule)
-            generate_prefixed_si_unit(
-                mass_exponent, mass_scale_p10,
-                length_exponent, length_scale_p10,
-                time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-                base_si_unit,
+#[macro_export]
+macro_rules! define_pretty_print_quantity_helpers {
+    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($dimension_exponents:tt)*)) => {
+        /// Pretty print a quantity type (without value)
+        pub fn pretty_print_quantity_type(
+            $($dimension_signature_params)*
+            verbose: bool,
+        ) -> String {
+            pretty_print_quantity(
+                None,
+                $($dimension_args)*
                 verbose,
             )
-        } else {
-            // No specific SI unit defined for this recognized dimension, don't show a shortname
-            String::new()
         }
-    } else {
-        // Unknown dimension, don't show a unit shortname to avoid stuttering
-        String::new()
+
+        /// Pretty print a quantity value (with value)
+        pub fn pretty_print_quantity_value(
+            value: f64,
+            $($dimension_signature_params)*
+            verbose: bool,
+        ) -> String {
+            pretty_print_quantity(
+                Some(value),
+                $($dimension_args)*
+                verbose,
+            )
+        }
+
+        /// Ultra-terse pretty print for inlay hints - shows only the unit literal
+        pub fn pretty_print_quantity_inlay_hint(
+            $($dimension_signature_params)*
+        ) -> String {
+            let systematic_literal = generate_systematic_unit_name(
+                $($dimension_args)*
+                false
+            );
+            
+            lookup_dimension_name($($dimension_exponents)*)
+                .and_then(|info| info.unit_si_shortname_symbol)
+                .filter(|si_shortname| si_shortname != &systematic_literal)
+                .map(|si_shortname| si_shortname.to_string())
+                .unwrap_or(systematic_literal)
+        }
+
     };
-    
-    let dimension_name = if let Some(ref info) = dimension_info {
-        // For recognized dimensions, show the dimension name in both modes
-        info.dimension_name.to_string()
-    } else {
-        if verbose {
-            // For unrecognized dimensions in verbose mode, generate verbose dimension names
-            generate_verbose_dimension_names(mass_exponent, length_exponent, time_exponent)
-        } else {
-            // For unrecognized dimensions, compute dimension symbol dynamically from exponents
-            generate_dimension_symbols(mass_exponent, length_exponent, time_exponent)
-        }
-    };
-    
-    // Build the main format
-    result.push_str("Quantity<");
-    
-    // If systematic literal is empty, use dimension name as fallback
-    if systematic_literal.is_empty() {
-        result.push_str(&dimension_name);
-    } else {
-        result.push_str(&systematic_literal);
-    }
-    
-    // Only show SI shortname if it's different from the systematic literal
-    if !unit_shortname.is_empty() && unit_shortname != systematic_literal {
-        result.push_str("; ");
-        result.push_str(&unit_shortname);
-        result.push_str("; ");
-        result.push_str(&dimension_name);
-    } else {
-        // If unit_shortname equals systematic literal, don't show redundant information
-        // Just show the systematic literal and dimension name
-        if !systematic_literal.is_empty() {
-            result.push_str("; ");
-            result.push_str(&dimension_name);
-        }
-    }
-    
-    // Add exponents and scales if verbose
-    if verbose {
-        result.push_str("; [");
-        result.push_str(&format!("mass{}", to_unicode_superscript(mass_exponent, true)));
-        if mass_scale_p10 == i8::MAX {
-            result.push_str("(unused)");
-        } else if mass_scale_p10 == i8::MIN {
-            result.push_str("(10ˀ)");
-        } else {
-            result.push_str(&format!("(10{})", to_unicode_superscript(mass_scale_p10, false)));
-        }
-        result.push_str(&format!(", length{}", to_unicode_superscript(length_exponent, true)));
-        if length_scale_p10 == i8::MAX {
-            result.push_str("(unused)");
-        } else if length_scale_p10 == i8::MIN {
-            result.push_str("(10ˀ)");
-        } else {
-            result.push_str(&format!("(10{})", to_unicode_superscript(length_scale_p10, false)));
-        }
-        result.push_str(&format!(", time{}", to_unicode_superscript(time_exponent, true)));
-        // Check if all time scales are unused
-        if time_scale_p2 == i8::MAX && time_scale_p3 == i8::MAX && time_scale_p5 == i8::MAX {
-            result.push_str("(unused)");
-        } else {
-            result.push_str("(2");
-            if time_scale_p2 == i8::MAX {
-                result.push_str("unused");
-            } else if time_scale_p2 == i8::MIN {
-                result.push_str("ˀ");
-            } else {
-                result.push_str(&to_unicode_superscript(time_scale_p2, false));
-            }
-            result.push_str(", 3");
-            if time_scale_p3 == i8::MAX {
-                result.push_str("unused");
-            } else if time_scale_p3 == i8::MIN {
-                result.push_str("ˀ");
-            } else {
-                result.push_str(&to_unicode_superscript(time_scale_p3, false));
-            }
-            result.push_str(", 5");
-            if time_scale_p5 == i8::MAX {
-                result.push_str("unused");
-            } else if time_scale_p5 == i8::MIN {
-                result.push_str("ˀ");
-            } else {
-                result.push_str(&to_unicode_superscript(time_scale_p5, false));
-            }
-            result.push_str(")");
-        }
-        result.push_str(")]");
-    }
-    
-    result.push_str(">");
-    
-    result
 }
 
-/// Pretty print a quantity type (without value)
-pub fn pretty_print_quantity_type(
-    mass_exponent: i8,
-    mass_scale_p10: i8,
-    length_exponent: i8,
-    length_scale_p10: i8,
-    time_exponent: i8,
-    time_scale_p2: i8,
-    time_scale_p3: i8,
-    time_scale_p5: i8,
-    verbose: bool,
-) -> String {
-    pretty_print_quantity(
-        None,
-        mass_exponent, mass_scale_p10,
-        length_exponent, length_scale_p10,
-        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-        verbose,
-    )
-}
-
-/// Pretty print a quantity value (with value)
-pub fn pretty_print_quantity_value(
-    value: f64,
-    mass_exponent: i8,
-    mass_scale_p10: i8,
-    length_exponent: i8,
-    length_scale_p10: i8,
-    time_exponent: i8,
-    time_scale_p2: i8,
-    time_scale_p3: i8,
-    time_scale_p5: i8,
-    verbose: bool,
-) -> String {
-    pretty_print_quantity(
-        Some(value),
-        mass_exponent, mass_scale_p10,
-        length_exponent, length_scale_p10,
-        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-        verbose,
-    )
-}
-
-/// Ultra-terse pretty print for inlay hints - shows only the unit literal
-pub fn pretty_print_quantity_inlay_hint(
-    mass_exponent: i8,
-    mass_scale_p10: i8,
-    length_exponent: i8,
-    length_scale_p10: i8,
-    time_exponent: i8,
-    time_scale_p2: i8,
-    time_scale_p3: i8,
-    time_scale_p5: i8,
-) -> String {
-    // Generate systematic unit literal (this is the unit name like "mm", "kg", etc.)
-    let systematic_literal = generate_systematic_unit_name(
-        mass_exponent, mass_scale_p10,
-        length_exponent, length_scale_p10,
-        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5,
-        false, // Use short names for inlay hints
-    );
-    
-    // Look up dimension name to check if we have a specific SI unit
-    let dimension_info = lookup_dimension_name(mass_exponent, length_exponent, time_exponent);
-    
-    // If we have a specific SI unit that's different from the systematic literal, use it
-    if let Some(ref info) = dimension_info {
-        if let Some(si_shortname) = info.unit_si_shortname_symbol {
-            // Use the SI shortname if it's different from the systematic literal
-            if si_shortname != systematic_literal {
-                return si_shortname.to_string();
-            }
-        }
-    }
-    
-    // Otherwise, return the systematic literal
-    systematic_literal
-}
+define_pretty_print_quantity_helpers!(
+    (
+        mass_exponent: i8, mass_scale_p10: i8,
+        length_exponent: i8, length_scale_p10: i8,
+        time_exponent: i8, time_scale_p2: i8, time_scale_p3: i8, time_scale_p5: i8,
+        electric_current_exponent: i8, electric_current_scale_p10: i8,
+        temperature_exponent: i8, temperature_scale_p10: i8,
+        amount_of_substance_exponent: i8, amount_of_substance_scale_p10: i8,
+        luminous_intensity_exponent: i8, luminous_intensity_scale_p10: i8,
+        angle_exponent: i8, angle_scale_p2: i8, angle_scale_p3: i8, angle_scale_p5: i8, angle_scale_pi: i8,
+    ),
+    (
+        mass_exponent, mass_scale_p10, 
+        length_exponent, length_scale_p10, 
+        time_exponent, time_scale_p2, time_scale_p3, time_scale_p5, 
+        electric_current_exponent, electric_current_scale_p10, 
+        temperature_exponent, temperature_scale_p10, 
+        amount_of_substance_exponent, amount_of_substance_scale_p10, 
+        luminous_intensity_exponent, luminous_intensity_scale_p10, 
+        angle_exponent, angle_scale_p2, angle_scale_p3, angle_scale_p5, angle_scale_pi,
+    ),
+    (mass_exponent, length_exponent, time_exponent, electric_current_exponent, temperature_exponent, amount_of_substance_exponent, luminous_intensity_exponent, angle_exponent)
+);

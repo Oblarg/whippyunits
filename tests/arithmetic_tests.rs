@@ -1,6 +1,6 @@
-use whippyunits::api::rescale_f64;
+use whippyunits::generated_api::rescale_f64;
 use whippyunits::default_declarators::*;
-use whippyunits::quantity_type::Quantity;
+use whippyunits::generated_quantity_type::Quantity;
 
 // ============================================================================
 // Addition and Subtraction Tests

@@ -1,6 +1,6 @@
-use crate::quantity_type::Quantity;
+use crate::generated_quantity_type::Quantity;
 
-pub const fn pow10(exp: i16) -> (i128, i128) {
+pub const fn pow10(exp: i32) -> (i128, i128) {
     match exp {
         -9 => (1, 1000000000),
         -8 => (1, 100000000),
@@ -25,7 +25,7 @@ pub const fn pow10(exp: i16) -> (i128, i128) {
     }
 }
 
-pub const fn pow2(exp: i16) -> (i128, i128) {
+pub const fn pow2(exp: i32) -> (i128, i128) {
     match exp {
         -9 => (1, 512),
         -8 => (1, 256),
@@ -50,7 +50,7 @@ pub const fn pow2(exp: i16) -> (i128, i128) {
     }
 }
 
-pub const fn pow3(exp: i16) -> (i128, i128) {
+pub const fn pow3(exp: i32) -> (i128, i128) {
     match exp {
         -9 => (1, 19683),
         -8 => (1, 6561),
@@ -75,7 +75,7 @@ pub const fn pow3(exp: i16) -> (i128, i128) {
     }
 }
 
-pub const fn pow5(exp: i16) -> (i128, i128) {
+pub const fn pow5(exp: i32) -> (i128, i128) {
     match exp {
         -9 => (1, 1953125),
         -8 => (1, 390625),
@@ -100,6 +100,21 @@ pub const fn pow5(exp: i16) -> (i128, i128) {
     }
 }
 
+/// Compute π^exp using the rational approximation 710/113
+/// Returns (numerator, denominator) for π^exp
+pub const fn powPi(exp: i32) -> (i128, i128) {
+    match exp {
+        -3 => (113 * 113 * 113, 710 * 710 * 710), // π^(-3) = (113/710)^3
+        -2 => (113 * 113, 710 * 710),             // π^(-2) = (113/710)^2
+        -1 => (113, 710),                         // π^(-1) = 113/710
+        0 => (1, 1),                              // π^0 = 1
+        1 => (710, 113),                          // π^1 = 710/113
+        2 => (710 * 710, 113 * 113),              // π^2 = (710/113)^2
+        3 => (710 * 710 * 710, 113 * 113 * 113),  // π^3 = (710/113)^3
+        _ => (1, 1), // we'll only test small values during prototyping
+    }
+}
+
 #[macro_export]
 macro_rules! define_composite_scale_factor {
     (
@@ -112,7 +127,7 @@ macro_rules! define_composite_scale_factor {
         $fn:ident,
     ) => {
         pub const fn $fn(
-            $($composite_scale_factor_params)*
+            $($composite_scale_factor_params)*,
             $exponent: i8,
         ) -> (i128, i128) {
             match $exponent {
@@ -147,6 +162,26 @@ macro_rules! define_aggregate_scale_factor {
             $($aggregate_scale_factor_pow_exprs)*
             
             reduce_rational($($aggregate_scale_factor_num_exprs)*, $($aggregate_scale_factor_den_exprs)*)
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! define_aggregate_scale_factor_float {
+    (
+        ($($aggregate_scale_factor_params:tt)*), 
+        ($($aggregate_scale_factor_diff_exprs:tt)*), 
+        ($($aggregate_scale_factor_pow_exprs:tt)*),
+        ($($aggregate_scale_factor_expr:tt)*),
+    ) => {
+        pub fn aggregate_scale_factor_float(
+            $($aggregate_scale_factor_params)*,
+        ) -> f64 {
+            $($aggregate_scale_factor_diff_exprs)*
+
+            $($aggregate_scale_factor_pow_exprs)*
+            
+            $($aggregate_scale_factor_expr)*
         }
     }
 }
@@ -199,7 +234,7 @@ macro_rules! _define_float_rescale {
         ($($float_rescale_input_type:tt)*),
         ($($float_rescale_output_type:tt)*),
         ($($float_rescale_aggregate_args:tt)*),
-        ($fn:ident, $T:ty),
+        $fn:ident, $T:ty,
     ) => {
         #[rustfmt::skip]
         pub fn $fn<
@@ -207,10 +242,9 @@ macro_rules! _define_float_rescale {
         > (
             quantity: $($float_rescale_input_type)*,
         ) -> $($float_rescale_output_type)* {
-            let (num, den) = aggregate_scale_factor(
+            let rescale_factor = aggregate_scale_factor_float(
                 $($float_rescale_aggregate_args)*
             );
-            let rescale_factor = (num as $T / den as $T);
             Quantity::new(
                 quantity.value * rescale_factor
             )
@@ -225,7 +259,7 @@ macro_rules! _define_int_rescale {
         ($($int_rescale_input_type:tt)*),
         ($($int_rescale_output_type:tt)*),
         ($($int_rescale_aggregate_args:tt)*),
-        ($fn:ident, $T:ty),
+        $fn:ident, $T:ty,
     ) => {
         #[rustfmt::skip]
         pub fn $fn<

@@ -1,4 +1,4 @@
-use crate::quantity_type::Quantity;
+use crate::generated_quantity_type::Quantity;
 use crate::IsI8;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 

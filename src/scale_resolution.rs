@@ -1,5 +1,5 @@
 use crate::scale_conversion::*;
-use crate::api::*;
+use crate::generated_api::*;
 
 #[macro_export]
 macro_rules! define_min_max_scale {
@@ -25,38 +25,39 @@ macro_rules! define_min_max_scale {
 
 macro_rules! _define_min_max_composite_scale {
     (
-        ($($prime_scales:tt)*),
-        ($($defer_to_second:tt)*),
-        ($($defer_to_first:tt)*),
-        ($($compare_scales_let:tt)*),
-        ($($compare_scales_if:tt)*),
-        ($($compare_scales_first:tt)*),
-        ($($compare_scales_second:tt)*),
-        $fn:ident, $factor_fn:ident, $exponent1:ident, $exponent2:ident, $op:tt
+        ($($prime_scales_lhs:tt)*),
+        ($($prime_scales_rhs:tt)*),
+        ($($resolve_to_second:tt)*),
+        ($($resolve_to_first:tt)*),
+        $scale_size_lhs:expr,
+        $scale_size_rhs:expr,
+        $fn:ident, $exponent1:ident, $exponent2:ident, $op:tt
     ) => {
         pub const fn $fn(
             which_prime: i8,
             $exponent1: i8,
-            $($prime_scales)*,
+            $($prime_scales_lhs)*,
             $exponent2: i8,
+            $($prime_scales_rhs)*,
         ) -> i8 {
             // time scales are aggregate across primes, and we can't just mix-and-match or we end up with nonstandard scale values
             match ($exponent1, $exponent2) { 
                 (0, _) => match which_prime {  // time dimension not used in first quantity
-                    $($defer_to_second)*
+                    $($resolve_to_second)*
                 },
                 (_, 0) => match which_prime {  // time dimension not used in second quantity
-                    $($defer_to_first)*
+                    $($resolve_to_first)*
                 },
                 _ => {
-                    $($compare_scales_let)*
-                    $($compare_scales_if)* {
+                    let (num1, den1) = $scale_size_lhs;
+                    let (num2, den2) = $scale_size_rhs;
+                    if num1 * den2 $op num2 * den1 {
                         match which_prime {
-                            $($compare_scales_first)*
+                            $($resolve_to_second)*
                         }
                     } else {
                         match which_prime {
-                            $($compare_scales_second)*
+                            $($resolve_to_first)*
                         }
                     }
                 }

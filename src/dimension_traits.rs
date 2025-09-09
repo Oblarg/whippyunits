@@ -1,4 +1,4 @@
-use crate::quantity_type::Quantity;
+use crate::generated_quantity_type::Quantity;
 use crate::constants::*;
 
 #[macro_export]
@@ -23,7 +23,12 @@ macro_rules! define_dimension_traits {
         for Quantity<
             1, MASS_SCALE_P10, 
             0, $length_unused, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5> {
+            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0, 0, 0, 0> {
             type Unit = Self;
         }
 
@@ -42,7 +47,12 @@ macro_rules! define_dimension_traits {
         for Quantity<
             0, $mass_unused, 
             1, LENGTH_SCALE_P10, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5> {
+            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0, 0, 0, 0> {
             type Unit = Self;
         }
 
@@ -57,7 +67,12 @@ macro_rules! define_dimension_traits {
         for Quantity<
             0, $mass_unused, 
             2, LENGTH_SCALE_P10, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5> {
+            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0, 0, 0, 0> {
             type Unit = Self;
         }
 
@@ -76,7 +91,12 @@ macro_rules! define_dimension_traits {
         for Quantity<
             0, $mass_unused, 
             0, $length_unused, 
-            1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5> {
+            1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0, 0, 0, 0> {
             type Unit = Self;
         }
 
@@ -91,7 +111,12 @@ macro_rules! define_dimension_traits {
         for Quantity<
             0, $mass_unused, 
             0, $length_unused, 
-            -1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5> {
+            -1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0, 0, 0, 0> {
             type Unit = Self;
         }
     };
