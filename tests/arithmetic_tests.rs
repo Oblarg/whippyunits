@@ -109,6 +109,14 @@ fn test_scalar_from_radians() {
 }
 
 #[test]
+fn test_radian_erasure() {
+    let composite_with_radians = 5.0.radians() / 3.0.seconds();
+    let composite_with_radians_erased: unit!(1 / s) = composite_with_radians.into();
+    println!("composite_with_radians_erased: {:?}", composite_with_radians_erased);
+    assert_eq!(composite_with_radians_erased.value, 5.0 / 3.0);
+}
+
+#[test]
 fn test_quantity_division() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();
@@ -199,6 +207,8 @@ fn test_rescale_mass() {
     // Rescale from grams to milligrams
     let result: Milligram = rescale_f64(100.0.grams());
     assert_eq!(result.value, 100000.0); // 100g = 100000mg
+
+    println!("{:?}", 1.kilograms() * 1.meters() * 1.meters() / 1.seconds() / 1.seconds());
 }
 
 #[test]

@@ -233,6 +233,99 @@ macro_rules! define_from_for_radians {
                 other.value
             }
         }
+
+        impl<
+            const MASS_EXPONENT: i8,
+            const MASS_SCALE_P10: i8,
+            const LENGTH_EXPONENT: i8,
+            const LENGTH_SCALE_P10: i8,
+            const TIME_EXPONENT: i8,
+            const TIME_SCALE_P2: i8,
+            const TIME_SCALE_P3: i8,
+            const TIME_SCALE_P5: i8,
+            const CURRENT_EXPONENT: i8,
+            const CURRENT_SCALE_P10: i8,
+            const TEMPERATURE_EXPONENT: i8,
+            const TEMPERATURE_SCALE_P10: i8,
+            const AMOUNT_EXPONENT: i8,
+            const AMOUNT_SCALE_P10: i8,
+            const LUMINOSITY_EXPONENT: i8,
+            const LUMINOSITY_SCALE_P10: i8,
+            const ANGLE_SCALE_P2: i8,
+            const ANGLE_SCALE_P3: i8,
+            const ANGLE_SCALE_P5: i8,
+            const ANGLE_SCALE_PI: i8,
+        > From<
+            Quantity<
+                MASS_EXPONENT,
+                MASS_SCALE_P10,
+                LENGTH_EXPONENT,
+                LENGTH_SCALE_P10,
+                TIME_EXPONENT,
+                TIME_SCALE_P2,
+                TIME_SCALE_P3,
+                TIME_SCALE_P5,
+                CURRENT_EXPONENT,
+                CURRENT_SCALE_P10,
+                TEMPERATURE_EXPONENT,
+                TEMPERATURE_SCALE_P10,
+                AMOUNT_EXPONENT,
+                AMOUNT_SCALE_P10,
+                LUMINOSITY_EXPONENT,
+                LUMINOSITY_SCALE_P10,
+                $exponent,
+                0, 0, 0, 0,
+                f64
+            >
+        > for Quantity<
+            MASS_EXPONENT,
+            MASS_SCALE_P10,
+            LENGTH_EXPONENT,
+            LENGTH_SCALE_P10,
+            TIME_EXPONENT,
+            TIME_SCALE_P2,
+            TIME_SCALE_P3,
+            TIME_SCALE_P5,
+            CURRENT_EXPONENT,
+            CURRENT_SCALE_P10,
+            TEMPERATURE_EXPONENT,
+            TEMPERATURE_SCALE_P10,
+            AMOUNT_EXPONENT,
+            AMOUNT_SCALE_P10,
+            LUMINOSITY_EXPONENT,
+            LUMINOSITY_SCALE_P10,
+            0,
+            ANGLE_SCALE_P2,
+            ANGLE_SCALE_P3,
+            ANGLE_SCALE_P5,
+            ANGLE_SCALE_PI,
+            f64
+        >
+        {
+            fn from(other: Quantity<
+                MASS_EXPONENT,
+                MASS_SCALE_P10,
+                LENGTH_EXPONENT,
+                LENGTH_SCALE_P10,
+                TIME_EXPONENT,
+                TIME_SCALE_P2,
+                TIME_SCALE_P3,
+                TIME_SCALE_P5,
+                CURRENT_EXPONENT,
+                CURRENT_SCALE_P10,
+                TEMPERATURE_EXPONENT,
+                TEMPERATURE_SCALE_P10,
+                AMOUNT_EXPONENT,
+                AMOUNT_SCALE_P10,
+                LUMINOSITY_EXPONENT,
+                LUMINOSITY_SCALE_P10,
+                $exponent,
+                0, 0, 0, 0,
+                f64
+            >) -> Self {
+                Self { value: other.value }
+            }
+        }
     };
 }
 
