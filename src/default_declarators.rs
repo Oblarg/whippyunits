@@ -105,6 +105,30 @@ pub type Minute = Quantity<
     f64,
 >;
 
+type Ampere = Quantity<
+    0, 0,
+    0, 0,
+    0, 0, 0, 0,
+    1, 0,
+    0, 0,
+    0, 0,
+    0, 0,
+    0, 0, 0, 0, 0,
+    f64,
+>;
+
+type Radian = Quantity<
+    0, 0,
+    0, 0,
+    0, 0, 0, 0,
+    0, 0,
+    0, 0,
+    0, 0,
+    0, 0,
+    1,0,0,0,0,
+    f64,
+>;
+
 pub trait MassExt {
     fn milligrams(self) -> Milligram;
     fn grams(self) -> Gram;
@@ -203,6 +227,38 @@ impl TimeExt for i32 {
     }
 
     fn minutes(self) -> Minute {
+        Quantity::new(self as f64)
+    }
+}
+
+pub trait CurrentExt {
+    fn amperes(self) -> Ampere;
+}
+
+impl CurrentExt for f64 {
+    fn amperes(self) -> Ampere {
+        Quantity::new(self)
+    }
+}
+
+impl CurrentExt for i32 {
+    fn amperes(self) -> Ampere {
+        Quantity::new(self as f64)
+    }
+}
+
+pub trait AngleExt {
+    fn radians(self) -> Radian;
+}
+
+impl AngleExt for f64 {
+    fn radians(self) -> Radian {
+        Quantity::new(self)
+    }
+}
+
+impl AngleExt for i32 {
+    fn radians(self) -> Radian {
         Quantity::new(self as f64)
     }
 }

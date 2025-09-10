@@ -190,9 +190,19 @@ macro_rules! define_pretty_print_quantity {
         pub fn pretty_print_quantity(
             value: Option<f64>,
             $($dimension_signature_params)*
+            type_name: &str,
             verbose: bool,
+            show_type_in_brackets: bool,
         ) -> String {
-            let value_prefix = value.map(|val| format!("({}) ", val)).unwrap_or_default();
+            let value_prefix = if let Some(val) = value {
+                if verbose && !show_type_in_brackets {
+                    format!("({}_{}) ", val, type_name)
+                } else {
+                    format!("({}) ", val)
+                }
+            } else {
+                String::new()
+            };
             
             // Generate systematic unit literal
             let systematic_literal = generate_systematic_unit_name(
@@ -247,7 +257,13 @@ macro_rules! define_pretty_print_quantity {
                 String::new()
             };
             let verbose_info = if verbose {
-                $unit_vector_format
+                if show_type_in_brackets {
+                    // Insert the type name as the last item inside the square brackets
+                    let unit_vector_with_type = $unit_vector_format.replace("]", &format!(", {}]", type_name));
+                    unit_vector_with_type
+                } else {
+                    $unit_vector_format
+                }
             } else {
                 String::new()
             };
@@ -311,12 +327,16 @@ macro_rules! define_pretty_print_quantity_helpers {
         /// Pretty print a quantity type (without value)
         pub fn pretty_print_quantity_type(
             $($dimension_signature_params)*
+            type_name: &str,
             verbose: bool,
+            show_type_in_brackets: bool,
         ) -> String {
             pretty_print_quantity(
                 None,
                 $($dimension_args)*
+                type_name,
                 verbose,
+                show_type_in_brackets,
             )
         }
 
@@ -324,12 +344,16 @@ macro_rules! define_pretty_print_quantity_helpers {
         pub fn pretty_print_quantity_value(
             value: f64,
             $($dimension_signature_params)*
+            type_name: &str,
             verbose: bool,
+            show_type_in_brackets: bool,
         ) -> String {
             pretty_print_quantity(
                 Some(value),
                 $($dimension_args)*
+                type_name,
                 verbose,
+                show_type_in_brackets,
             )
         }
 

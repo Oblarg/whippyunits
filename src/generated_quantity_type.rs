@@ -95,6 +95,167 @@ impl<
     }
 }
 
+// from/into for dimensionless quantities
+
+// proper dimensionless quantities (all exponents are 0, scales irrelevant)
+impl<
+    const MASS_SCALE_P10: i8,
+    const LENGTH_SCALE_P10: i8,
+    const TIME_SCALE_P2: i8,
+    const TIME_SCALE_P3: i8,
+    const TIME_SCALE_P5: i8,
+    const CURRENT_SCALE_P10: i8,
+    const TEMPERATURE_SCALE_P10: i8,
+    const AMOUNT_SCALE_P10: i8,
+    const LUMINOSITY_SCALE_P10: i8,
+    const ANGLE_SCALE_P2: i8,
+    const ANGLE_SCALE_P3: i8,
+    const ANGLE_SCALE_P5: i8,
+    const ANGLE_SCALE_PI: i8,
+> From<
+    Quantity<
+        0,
+        MASS_SCALE_P10,
+        0,
+        LENGTH_SCALE_P10,
+        0,
+        TIME_SCALE_P2,
+        TIME_SCALE_P3,
+        TIME_SCALE_P5,
+        0,
+        CURRENT_SCALE_P10,
+        0,
+        TEMPERATURE_SCALE_P10,
+        0,
+        AMOUNT_SCALE_P10,
+        0,
+        LUMINOSITY_SCALE_P10,
+        0,
+        ANGLE_SCALE_P2,
+        ANGLE_SCALE_P3,
+        ANGLE_SCALE_P5,
+        ANGLE_SCALE_PI,
+        f64
+    >
+> for f64
+{
+    fn from(other: Quantity<
+        0,
+        MASS_SCALE_P10,
+        0,
+        LENGTH_SCALE_P10,
+        0,
+        TIME_SCALE_P2,
+        TIME_SCALE_P3,
+        TIME_SCALE_P5,
+        0,
+        CURRENT_SCALE_P10,
+        0,
+        TEMPERATURE_SCALE_P10,
+        0,
+        AMOUNT_SCALE_P10,
+        0,
+        LUMINOSITY_SCALE_P10,
+        0,
+        ANGLE_SCALE_P2,
+        ANGLE_SCALE_P3,
+        ANGLE_SCALE_P5,
+        ANGLE_SCALE_PI,
+        f64
+    >
+    ) -> f64 {
+        other.value
+    }
+}
+
+// radians can be identified as dimensionless (all exponents are 0 except angle, angle scale radians)
+// trait resolution rules mean we have to manually template this out over different angle exponents...
+
+
+
+macro_rules! define_from_for_radians {
+    ($exponent:expr) => {
+        impl<
+            const MASS_SCALE_P10: i8,
+            const LENGTH_SCALE_P10: i8,
+            const TIME_SCALE_P2: i8,
+            const TIME_SCALE_P3: i8,
+            const TIME_SCALE_P5: i8,
+            const CURRENT_SCALE_P10: i8,
+            const TEMPERATURE_SCALE_P10: i8,
+            const AMOUNT_SCALE_P10: i8,
+            const LUMINOSITY_SCALE_P10: i8,
+        > From<
+            Quantity<
+                0,
+                MASS_SCALE_P10,
+                0,
+                LENGTH_SCALE_P10,
+                0,
+                TIME_SCALE_P2,
+                TIME_SCALE_P3,
+                TIME_SCALE_P5,
+                0,
+                CURRENT_SCALE_P10,
+                0,
+                TEMPERATURE_SCALE_P10,
+                0,
+                AMOUNT_SCALE_P10,
+                0,
+                LUMINOSITY_SCALE_P10,
+                $exponent,
+                0, 0, 0, 0,
+                f64
+            >
+        > for f64
+        {
+            fn from(other: Quantity<
+                0,
+                MASS_SCALE_P10,
+                0,
+                LENGTH_SCALE_P10,
+                0,
+                TIME_SCALE_P2,
+                TIME_SCALE_P3,
+                TIME_SCALE_P5,
+                0,
+                CURRENT_SCALE_P10,
+                0,
+                TEMPERATURE_SCALE_P10,
+                0,
+                AMOUNT_SCALE_P10,
+                0,
+                LUMINOSITY_SCALE_P10,
+                $exponent,
+                0, 0, 0, 0,
+                f64
+            >) -> f64 {
+                other.value
+            }
+        }
+    };
+}
+
+define_from_for_radians!(-9);
+define_from_for_radians!(-8);
+define_from_for_radians!(-7);
+define_from_for_radians!(-6);
+define_from_for_radians!(-5);
+define_from_for_radians!(-4);
+define_from_for_radians!(-3);
+define_from_for_radians!(-2);
+define_from_for_radians!(-1);
+define_from_for_radians!(1);
+define_from_for_radians!(2);
+define_from_for_radians!(3);
+define_from_for_radians!(4);
+define_from_for_radians!(5);
+define_from_for_radians!(6);
+define_from_for_radians!(7);
+define_from_for_radians!(8);
+define_from_for_radians!(9);
+
+
 #[macro_export]
 macro_rules! quantity_type {
     () => {

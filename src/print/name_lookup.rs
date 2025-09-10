@@ -186,12 +186,31 @@ pub fn generate_systematic_unit_name(
             // For composite units, check if we can represent them systematically
             if config.unknown_text.is_some() {
                 // This is a composite unit - check if it matches a known pattern
-                if config.scale.prime_scales.len() > 1 || !config.scale.constant_scales.is_empty() {
-                    // For now, use unknown text for complex composite units
-                    // TODO: Implement proper composite unit logic
-                    part.push_str(config.unknown_text.unwrap());
+                // For time units: if time_scale_p2 == time_scale_p5 && time_scale_p3 == 0, treat as pure power of 10
+                // For angle units: if angle_scale_p2 == angle_scale_p5 && angle_scale_p3 == 0 && angle_scale_pi == 0, treat as pure power of 10
+                let is_pure_power_of_10 = if base_unit == "second" || base_unit == "s" {
+                    // Time unit: check if 2 and 5 scales match and 3 scale is 0
+                    let scale_2 = config.scale.prime_scales.get(&2).copied().unwrap_or(0);
+                    let scale_3 = config.scale.prime_scales.get(&3).copied().unwrap_or(0);
+                    let scale_5 = config.scale.prime_scales.get(&5).copied().unwrap_or(0);
+                    scale_2 == scale_5 && scale_3 == 0
+                } else if base_unit == "radian" || base_unit == "rad" {
+                    // Angle unit: check if 2 and 5 scales match and 3 and pi scales are 0
+                    let scale_2 = config.scale.prime_scales.get(&2).copied().unwrap_or(0);
+                    let scale_3 = config.scale.prime_scales.get(&3).copied().unwrap_or(0);
+                    let scale_5 = config.scale.prime_scales.get(&5).copied().unwrap_or(0);
+                    let scale_pi = config.scale.constant_scales.get("pi").copied().unwrap_or(0);
+                    scale_2 == scale_5 && scale_3 == 0 && scale_pi == 0
                 } else {
+                    false
+                };
+                
+                if is_pure_power_of_10 {
+                    // Treat as simple unit with power-of-10 scaling
                     render_unit_with_scale(&mut part, &config.scale, base_unit, config.base_scale_offset, &get_unicode_exponent(config.exponent), long_name);
+                } else {
+                    // Use unknown text for complex composite units
+                    part.push_str(config.unknown_text.unwrap());
                 }
             } else {
                 // Simple unit
@@ -234,7 +253,16 @@ pub fn lookup_dimension_name(
     
     dimension_lookup
         .iter()
-        .find(|((m, l, t), _)| *m == mass_exponent && *l == length_exponent && *t == time_exponent)
+        .find(|((m, l, t), _)| {
+            *m == mass_exponent && 
+            *l == length_exponent && 
+            *t == time_exponent &&
+            electric_current_exponent == 0 &&
+            temperature_exponent == 0 &&
+            amount_of_substance_exponent == 0 &&
+            luminous_intensity_exponent == 0 &&
+            angle_exponent == 0
+        })
         .map(|(_, (name, symbol, long_name))| DimensionNames {
             dimension_name: name,
             unit_si_shortname_symbol: symbol.map(|s| s),

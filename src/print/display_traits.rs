@@ -21,7 +21,9 @@ macro_rules! define_display_traits {
                 let pretty = pretty_print_quantity_value(
                     self.value.into(),
                     $($dimension_args)*
+                    std::any::type_name::<T>(),
                     false, // Non-verbose mode for Display
+                    false, // Don't show type in brackets for Display
                 );
                 write!(f, "{}", pretty)
             }
@@ -43,7 +45,9 @@ macro_rules! define_display_traits {
                 let pretty = pretty_print_quantity_value(
                     self.value.into(),
                     $($dimension_args)*
+                    std::any::type_name::<T>(),
                     true, // Verbose mode for Debug
+                    false, // Don't show type in brackets for Debug (show as value suffix)
                 );
                 write!(f, "{}", pretty)
             }

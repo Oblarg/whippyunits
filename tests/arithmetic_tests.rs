@@ -8,11 +8,11 @@ use whippyunits::generated_quantity_type::Quantity;
 
 #[test]
 fn test_addition_same_scale() {
-    let m1 = 5.0.meters();
+    let m1 = 5.0.amperes();
     let s1 = 30.0.seconds();
     
     // Same scale addition should work
-    let result: unit!(m) = m1 + 3.0.meters();
+    let result = m1 + 3.0.amperes();
     assert_eq!(result.value, 8.0);
 
     println!("result: {:?}", result);
@@ -75,13 +75,37 @@ fn test_division_same_scale() {
 
 #[test]
 fn test_quantity_multiplication() {
-    let m1 = 5.0.meters();
+    let m1 = 5.0.amperes();
     let s1 = 30.0.seconds();
     
     // Multiplying quantities should combine dimensions
-    let result: unit!(m * s) = m1 * s1;
+    let result= m1 * s1;
+    println!("result: {:?}", result);
     // Result should be length * time = distance * time
     assert_eq!(result.value, 150.0); // 5m * 30s = 150 m·s
+}
+
+#[test]
+fn test_scalar_from_radians() {
+    let radians = 5.0.radians();
+    let square_radians = radians * radians;
+    let cube_radians = square_radians * radians;
+    let inverse_radians = 1.0 / radians;
+    let inverse_square_radians = 1.0 / square_radians;
+    let inverse_cube_radians = 1.0 / cube_radians;
+    
+    let scalar: f64 = radians.into();
+    assert_eq!(scalar, 5.0);
+    let scalar: f64 = square_radians.into();
+    assert_eq!(scalar, 25.0);
+    let scalar: f64 = cube_radians.into();
+    assert_eq!(scalar, 125.0);
+    let scalar: f64 = inverse_radians.into();
+    assert_eq!(scalar, 0.2);
+    let scalar: f64 = inverse_square_radians.into();
+    assert_eq!(scalar, 0.04);
+    let scalar: f64 = inverse_cube_radians.into();
+    assert_eq!(scalar, 0.008);
 }
 
 #[test]

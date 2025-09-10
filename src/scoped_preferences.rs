@@ -162,7 +162,12 @@ macro_rules! set_unit_preferences {
         define_unit_macro!(
             { get_mass_scale!($mass_scale) },
             { get_length_scale!($length_scale) },
-            { get_time_scale_p2!($time_scale) }, { get_time_scale_p3!($time_scale) }, { get_time_scale_p5!($time_scale) }
+            { get_time_scale_p2!($time_scale) }, { get_time_scale_p3!($time_scale) }, { get_time_scale_p5!($time_scale) },
+            { get_electric_current_scale!($electric_current_scale) },
+            { get_temperature_scale!($temperature_scale) },
+            { get_amount_of_substance_scale!($amount_of_substance_scale) },
+            { get_luminous_intensity_scale!($luminous_intensity_scale) },
+            { get_angle_scale_p2!($angle_scale) }, { get_angle_scale_p3!($angle_scale) }, { get_angle_scale_p5!($angle_scale) }, { get_angle_scale_pi!($angle_scale) },
         );
     };
 }

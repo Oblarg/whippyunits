@@ -687,7 +687,14 @@ impl LspProxy {
             mass_exp, mass_scale,
             length_exp, length_scale,
             time_exp, time_p2, time_p3, time_p5,
+            0, i8::MAX, // electric_current_exp, electric_current_scale_p10
+            0, i8::MAX, // temperature_exp, temperature_scale_p10
+            0, i8::MAX, // amount_of_substance_exp, amount_of_substance_scale_p10
+            0, i8::MAX, // luminous_intensity_exp, luminous_intensity_scale_p10
+            0, i8::MAX, i8::MAX, i8::MAX, i8::MAX, // angle_exp, angle_scale_p2, angle_scale_p3, angle_scale_p5, angle_scale_pi
+            "f64", // generic_type
             false, // not verbose
+            false, // don't show type in brackets for this context
         )
     }
 
@@ -866,13 +873,26 @@ impl WhippyUnitsTypeConverter {
                 // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: i8::MIN,
-                    mass_scale: i8::MIN,
+                    mass_scale_p10: i8::MIN,
                     length_exp: i8::MIN,
-                    length_scale: i8::MIN,
+                    length_scale_p10: i8::MIN,
                     time_exp: i8::MIN,
-                    time_p2: i8::MIN,
-                    time_p3: i8::MIN,
-                    time_p5: i8::MIN,
+                    time_scale_p2: i8::MIN,
+                    time_scale_p3: i8::MIN,
+                    time_scale_p5: i8::MIN,
+                    electric_current_exp: 0,
+                    electric_current_scale_p10: i8::MAX,
+                    temperature_exp: 0,
+                    temperature_scale_p10: i8::MAX,
+                    amount_of_substance_exp: 0,
+                    amount_of_substance_scale_p10: i8::MAX,
+                    luminous_intensity_exp: 0,
+                    luminous_intensity_scale_p10: i8::MAX,
+                    angle_exp: 0,
+                    angle_scale_p2: i8::MAX,
+                    angle_scale_p3: i8::MAX,
+                    angle_scale_p5: i8::MAX,
+                    angle_scale_pi: i8::MAX,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -880,25 +900,21 @@ impl WhippyUnitsTypeConverter {
             };
             
             if let Some(params) = params {
-                // Check if this is a partially resolved type
-                if self.is_partially_resolved_type(&full_match) {
-                    // For partially resolved types, use the full pretty-printed format
-                    // but with unresolved scale indicators
-                    pretty_print_quantity_type(
-                        params.mass_exp, params.mass_scale,
-                        params.length_exp, params.length_scale,
-                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
-                        true, // verbose
-                    )
-                } else {
-                    // Use the new prettyprint API with verbose=true
-                    pretty_print_quantity_type(
-                        params.mass_exp, params.mass_scale,
-                        params.length_exp, params.length_scale,
-                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
-                        true, // verbose
-                    )
-                }
+                // For LSP hover info, we always show type info without values
+                // Show backing datatype at end of square brackets
+                pretty_print_quantity_type(
+                    params.mass_exp, params.mass_scale_p10,
+                    params.length_exp, params.length_scale_p10,
+                    params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
+                    params.electric_current_exp, params.electric_current_scale_p10,
+                    params.temperature_exp, params.temperature_scale_p10,
+                    params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
+                    params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
+                    params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
+                    &params.generic_type,
+                    true, // verbose
+                    true, // show_type_in_brackets for LSP hover
+                )
             } else {
                 caps[0].to_string()
             }
@@ -932,13 +948,26 @@ impl WhippyUnitsTypeConverter {
                 // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: i8::MIN,
-                    mass_scale: i8::MIN,
+                    mass_scale_p10: i8::MIN,
                     length_exp: i8::MIN,
-                    length_scale: i8::MIN,
+                    length_scale_p10: i8::MIN,
                     time_exp: i8::MIN,
-                    time_p2: i8::MIN,
-                    time_p3: i8::MIN,
-                    time_p5: i8::MIN,
+                    time_scale_p2: i8::MIN,
+                    time_scale_p3: i8::MIN,
+                    time_scale_p5: i8::MIN,
+                    electric_current_exp: 0,
+                    electric_current_scale_p10: i8::MAX,
+                    temperature_exp: 0,
+                    temperature_scale_p10: i8::MAX,
+                    amount_of_substance_exp: 0,
+                    amount_of_substance_scale_p10: i8::MAX,
+                    luminous_intensity_exp: 0,
+                    luminous_intensity_scale_p10: i8::MAX,
+                    angle_exp: 0,
+                    angle_scale_p2: i8::MAX,
+                    angle_scale_p3: i8::MAX,
+                    angle_scale_p5: i8::MAX,
+                    angle_scale_pi: i8::MAX,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -950,19 +979,26 @@ impl WhippyUnitsTypeConverter {
                 if self.is_partially_resolved_type(&full_match) {
                     // For partially resolved types, leverage existing prettyprint logic
                     // First try to look up recognized dimension names
-                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp) {
+                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp) {
                         dimension_info.dimension_name.to_string()
                     } else {
                         // For unrecognized composite types, show dimension symbols (M, L, T)
-                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp)
+                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp)
                     }
                 } else {
                     // Use the new prettyprint API with verbose=false
                     pretty_print_quantity_type(
-                        params.mass_exp, params.mass_scale,
-                        params.length_exp, params.length_scale,
-                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                        params.mass_exp, params.mass_scale_p10,
+                        params.length_exp, params.length_scale_p10,
+                        params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
+                        params.electric_current_exp, params.electric_current_scale_p10,
+                        params.temperature_exp, params.temperature_scale_p10,
+                        params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
+                        params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
+                        params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
+                        &params.generic_type,
                         false, // not verbose
+                        false, // don't show type in brackets for clean mode
                     )
                 }
             } else {
@@ -998,13 +1034,26 @@ impl WhippyUnitsTypeConverter {
                 // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
                 Some(QuantityParams {
                     mass_exp: i8::MIN,
-                    mass_scale: i8::MIN,
+                    mass_scale_p10: i8::MIN,
                     length_exp: i8::MIN,
-                    length_scale: i8::MIN,
+                    length_scale_p10: i8::MIN,
                     time_exp: i8::MIN,
-                    time_p2: i8::MIN,
-                    time_p3: i8::MIN,
-                    time_p5: i8::MIN,
+                    time_scale_p2: i8::MIN,
+                    time_scale_p3: i8::MIN,
+                    time_scale_p5: i8::MIN,
+                    electric_current_exp: 0,
+                    electric_current_scale_p10: i8::MAX,
+                    temperature_exp: 0,
+                    temperature_scale_p10: i8::MAX,
+                    amount_of_substance_exp: 0,
+                    amount_of_substance_scale_p10: i8::MAX,
+                    luminous_intensity_exp: 0,
+                    luminous_intensity_scale_p10: i8::MAX,
+                    angle_exp: 0,
+                    angle_scale_p2: i8::MAX,
+                    angle_scale_p3: i8::MAX,
+                    angle_scale_p5: i8::MAX,
+                    angle_scale_pi: i8::MAX,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -1016,18 +1065,23 @@ impl WhippyUnitsTypeConverter {
                 if self.is_partially_resolved_type(&full_match) {
                     // For partially resolved types, leverage existing prettyprint logic
                     // First try to look up recognized dimension names
-                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp) {
+                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp) {
                         dimension_info.dimension_name.to_string()
                     } else {
                         // For unrecognized composite types, show dimension symbols (M, L, T)
-                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp)
+                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp)
                     }
                 } else {
                     // Use the new ultra-terse inlay hint API
                     pretty_print_quantity_inlay_hint(
-                        params.mass_exp, params.mass_scale,
-                        params.length_exp, params.length_scale,
-                        params.time_exp, params.time_p2, params.time_p3, params.time_p5,
+                        params.mass_exp, params.mass_scale_p10,
+                        params.length_exp, params.length_scale_p10,
+                        params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
+                        params.electric_current_exp, params.electric_current_scale_p10,
+                        params.temperature_exp, params.temperature_scale_p10,
+                        params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
+                        params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
+                        params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
                     )
                 }
             } else {
@@ -1057,40 +1111,69 @@ impl WhippyUnitsTypeConverter {
             })
             .collect();
         
-        if params.len() >= 9 {
-            // Extract the generic type parameter (last parameter)
-            let generic_type = if params.len() > 9 {
-                // If we have more than 9 parameters, the last one is the generic type
-                params_str.split(',').nth(8).unwrap_or("f64").trim().to_string()
+        // Extract the generic type parameter (last parameter if it's not a number)
+        let generic_type = if params.len() > 0 {
+            let last_param = params_str.split(',').last().unwrap_or("f64").trim();
+            if last_param.parse::<i8>().is_err() && last_param != "_" && last_param != "9223372036854775807" {
+                last_param.to_string()
             } else {
                 "f64".to_string() // Default to f64
-            };
-            
+            }
+        } else {
+            "f64".to_string()
+        };
+        
+        // Handle full 8-dimension format (21 parameters + type)
+        if params.len() >= 21 {
             Some(QuantityParams {
-                // New API uses (mass, length, time) order
                 mass_exp: params[0].unwrap_or(0),
-                mass_scale: params[1].unwrap_or(i8::MAX),
+                mass_scale_p10: params[1].unwrap_or(i8::MAX),
                 length_exp: params[2].unwrap_or(0),
-                length_scale: params[3].unwrap_or(i8::MAX),
+                length_scale_p10: params[3].unwrap_or(i8::MAX),
                 time_exp: params[4].unwrap_or(0),
-                time_p2: params[5].unwrap_or(i8::MAX),
-                time_p3: params[6].unwrap_or(i8::MAX),
-                time_p5: params[7].unwrap_or(i8::MAX),
+                time_scale_p2: params[5].unwrap_or(i8::MAX),
+                time_scale_p3: params[6].unwrap_or(i8::MAX),
+                time_scale_p5: params[7].unwrap_or(i8::MAX),
+                electric_current_exp: params[8].unwrap_or(0),
+                electric_current_scale_p10: params[9].unwrap_or(i8::MAX),
+                temperature_exp: params[10].unwrap_or(0),
+                temperature_scale_p10: params[11].unwrap_or(i8::MAX),
+                amount_of_substance_exp: params[12].unwrap_or(0),
+                amount_of_substance_scale_p10: params[13].unwrap_or(i8::MAX),
+                luminous_intensity_exp: params[14].unwrap_or(0),
+                luminous_intensity_scale_p10: params[15].unwrap_or(i8::MAX),
+                angle_exp: params[16].unwrap_or(0),
+                angle_scale_p2: params[17].unwrap_or(i8::MAX),
+                angle_scale_p3: params[18].unwrap_or(i8::MAX),
+                angle_scale_p5: params[19].unwrap_or(i8::MAX),
+                angle_scale_pi: params[20].unwrap_or(i8::MAX),
                 generic_type,
             })
         } else if params.len() >= 8 {
-            // Handle legacy 8-parameter format (backward compatibility)
+            // Handle legacy 3-dimension format (backward compatibility)
             Some(QuantityParams {
-                // New API uses (mass, length, time) order
                 mass_exp: params[0].unwrap_or(0),
-                mass_scale: params[1].unwrap_or(i8::MAX),
+                mass_scale_p10: params[1].unwrap_or(i8::MAX),
                 length_exp: params[2].unwrap_or(0),
-                length_scale: params[3].unwrap_or(i8::MAX),
+                length_scale_p10: params[3].unwrap_or(i8::MAX),
                 time_exp: params[4].unwrap_or(0),
-                time_p2: params[5].unwrap_or(i8::MAX),
-                time_p3: params[6].unwrap_or(i8::MAX),
-                time_p5: params[7].unwrap_or(i8::MAX),
-                generic_type: "f64".to_string(), // Default to f64 for legacy format
+                time_scale_p2: params[5].unwrap_or(i8::MAX),
+                time_scale_p3: params[6].unwrap_or(i8::MAX),
+                time_scale_p5: params[7].unwrap_or(i8::MAX),
+                electric_current_exp: 0,
+                electric_current_scale_p10: i8::MAX,
+                temperature_exp: 0,
+                temperature_scale_p10: i8::MAX,
+                amount_of_substance_exp: 0,
+                amount_of_substance_scale_p10: i8::MAX,
+                luminous_intensity_exp: 0,
+                luminous_intensity_scale_p10: i8::MAX,
+                angle_exp: 0,
+                angle_scale_p2: i8::MAX,
+                angle_scale_p3: i8::MAX,
+                angle_scale_p5: i8::MAX,
+                angle_scale_pi: i8::MAX,
+                generic_type,
             })
         } else {
             None
@@ -1169,14 +1252,27 @@ impl WhippyUnitsTypeConverter {
 
 #[derive(Debug)]
 struct QuantityParams {
-    length_exp: i8,
-    length_scale: i8,
     mass_exp: i8,
-    mass_scale: i8,
+    mass_scale_p10: i8,
+    length_exp: i8,
+    length_scale_p10: i8,
     time_exp: i8,
-    time_p2: i8,
-    time_p3: i8,
-    time_p5: i8,
+    time_scale_p2: i8,
+    time_scale_p3: i8,
+    time_scale_p5: i8,
+    electric_current_exp: i8,
+    electric_current_scale_p10: i8,
+    temperature_exp: i8,
+    temperature_scale_p10: i8,
+    amount_of_substance_exp: i8,
+    amount_of_substance_scale_p10: i8,
+    luminous_intensity_exp: i8,
+    luminous_intensity_scale_p10: i8,
+    angle_exp: i8,
+    angle_scale_p2: i8,
+    angle_scale_p3: i8,
+    angle_scale_p5: i8,
+    angle_scale_pi: i8,
     generic_type: String, // New field for the generic type parameter
 }
 
