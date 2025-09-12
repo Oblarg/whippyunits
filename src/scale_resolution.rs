@@ -23,6 +23,7 @@ macro_rules! define_min_max_scale {
     }
 }
 
+#[macro_export]
 macro_rules! _define_min_max_composite_scale {
     (
         ($($prime_scales_lhs:tt)*),

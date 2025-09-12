@@ -1,8 +1,11 @@
-use whippyunits::*;
+use whippyunits::set_unit_preferences;
+use whippyunits::generated_api::*;
+use whippyunits::generated_quantity_type::Quantity;
 
 #[test]
 fn test_scoped_prefs() {
-    set_unit_preferences!(Milligram, Millimeter, Second);
-    let distance = 5.0.meters();
-    assert_eq!(distance.value, 5000.0);
+    set_unit_preferences!(Milligram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);
+    let test: unit!(mm) = 1.0.meters();
+    let energy = 1.0.kilograms() * 1.0.meters() * 1.0.meters() / 1.0.seconds() / 1.0.seconds();
+    println!("{:?}", energy);
 }

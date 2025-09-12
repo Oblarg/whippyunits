@@ -1,7 +1,15 @@
 use crate::IsI8;
 use crate::scale_conversion::*;
+use crate::define_composite_scale_factor;
 use crate::generated_quantity_type::*;
 use crate::print::prettyprint::*;
+use crate::define_min_max_scale;
+use crate::_define_min_max_composite_scale;
+use crate::define_aggregate_scale_factor;
+use crate::define_aggregate_scale_factor_float;
+use crate::_define_float_rescale;
+use crate::_define_int_rescale;
+use crate::define_display_traits;
 use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
 use std::fmt;
 
@@ -170,7 +178,7 @@ define_aggregate_scale_factor_float!(
 
 macro_rules! define_float_rescale {
     ($rescale_fn:ident, $T:ty) => {
-        _define_float_rescale!(
+        $crate::_define_float_rescale!(
             (
                 const MASS_EXPONENT: i8,
                 const MASS_SCALE_P10_FROM: i8, const MASS_SCALE_P10_TO: i8,
@@ -276,7 +284,7 @@ macro_rules! define_float_rescale {
 }
 macro_rules! define_int_rescale {
     ($rescale_fn:ident, $T:ty) => {
-        _define_int_rescale!(
+        $crate::_define_int_rescale!(
             (
                 const MASS_EXPONENT: i8,
                 const MASS_SCALE_P10_FROM: i8, const MASS_SCALE_P10_TO: i8,
@@ -399,7 +407,7 @@ define_min_max_scale!(max_luminosity_scale, >);
 #[macro_export]
 macro_rules! define_min_max_time_scale {
     ($fn:ident, $factor_fn:ident, $op:tt) => {
-        _define_min_max_composite_scale!(
+        $crate::_define_min_max_composite_scale!(
             // variadic template parameters (prime scales)
             (p2_1: i8, p3_1: i8, p5_1: i8),
             (p2_2: i8, p3_2: i8, p5_2: i8),
@@ -419,7 +427,7 @@ macro_rules! define_min_max_time_scale {
 #[macro_export]
 macro_rules! define_min_max_angle_scale {
     ($fn:ident, $factor_fn:ident, $op:tt) => {
-        _define_min_max_composite_scale!(
+        $crate::_define_min_max_composite_scale!(
             // variadic template parameters (prime scales)
             (p2_1: i8, p3_1: i8, p5_1: i8, pi_1: i8),
             (p2_2: i8, p3_2: i8, p5_2: i8, pi_2: i8),
@@ -444,7 +452,7 @@ define_min_max_angle_scale!(max_angle_scale, angle_scale_factor, >);
 #[macro_export]
 macro_rules! define_arithmetic {
     ($rescale_behavior:ident, $T:ty, $rescale_fn:ident) => {
-        _define_arithmetic!(
+        $crate::_define_arithmetic!(
             // single dimension, single scale
             (
             const MASS_EXPONENT: i8,

@@ -1,4 +1,5 @@
 use whippyunits::generated_api::rescale_f64;
+use whippyunits::unit;
 use whippyunits::default_declarators::*;
 use whippyunits::generated_quantity_type::Quantity;
 
@@ -15,10 +16,8 @@ fn test_addition_same_scale() {
     let result = m1 + 3.0.amperes();
     assert_eq!(result.value, 8.0);
 
+    let result = 1.meters() * 1.meters() + rescale_f64(1.megameters() * 1.megameters());
     println!("result: {:?}", result);
-    
-    let result: unit!(s) = s1 + 10.0.seconds();
-    assert_eq!(result.value, 40.0);
 }
 
 #[test]

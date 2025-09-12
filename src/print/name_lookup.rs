@@ -186,26 +186,77 @@ pub fn generate_systematic_unit_name(
             // For composite units, check if we can represent them systematically
             if config.unknown_text.is_some() {
                 // This is a composite unit - check if it matches a known pattern
-                // For time units: if time_scale_p2 == time_scale_p5 && time_scale_p3 == 0, treat as pure power of 10
-                // For angle units: if angle_scale_p2 == angle_scale_p5 && angle_scale_p3 == 0 && angle_scale_pi == 0, treat as pure power of 10
+                let scale_2 = config.scale.prime_scales.get(&2).copied().unwrap_or(0);
+                let scale_3 = config.scale.prime_scales.get(&3).copied().unwrap_or(0);
+                let scale_5 = config.scale.prime_scales.get(&5).copied().unwrap_or(0);
+                let scale_pi = config.scale.constant_scales.get("pi").copied().unwrap_or(0);
+                
+                // Check for known composite time units
+                let known_time_unit = if base_unit == "second" || base_unit == "s" {
+                    match (scale_2, scale_3, scale_5) {
+                        (0, 0, 0) => Some("second"), // Pure second
+                        (2, 1, 1) => Some("minute"), // 1 minute = 60 seconds = 2^2 * 3^1 * 5^1
+                        (4, 2, 2) => Some("hour"),   // 1 hour = 3600 seconds = 2^4 * 3^2 * 5^2
+                        (7, 3, 2) => Some("day"),    // 1 day = 86400 seconds = 2^7 * 3^3 * 5^2
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                
+                // Check for known composite angle units
+                let known_angle_unit = if base_unit == "radian" || base_unit == "rad" {
+                    match (scale_2, scale_3, scale_5, scale_pi) {
+                        (0, 0, 0, 0) => Some("radian"),     // Pure radian
+                        (1, 0, 0, 1) => Some("rotation"),   // 1 rotation = 2π radians
+                        (-2, -2, -1, 1) => Some("degree"),  // 1 degree = π/180 radians
+                        (-3, 0, -2, 1) => Some("gradian"),  // 1 gradian = π/200 radians
+                        (-4, -3, -2, 1) => Some("arcminute"), // 1 arcminute = π/10800 radians
+                        (-5, -4, -2, 1) => Some("arcsecond"), // 1 arcsecond = π/648000 radians
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                
+                // Check for pure power of 10 scaling (for time and angle units)
                 let is_pure_power_of_10 = if base_unit == "second" || base_unit == "s" {
                     // Time unit: check if 2 and 5 scales match and 3 scale is 0
-                    let scale_2 = config.scale.prime_scales.get(&2).copied().unwrap_or(0);
-                    let scale_3 = config.scale.prime_scales.get(&3).copied().unwrap_or(0);
-                    let scale_5 = config.scale.prime_scales.get(&5).copied().unwrap_or(0);
                     scale_2 == scale_5 && scale_3 == 0
                 } else if base_unit == "radian" || base_unit == "rad" {
                     // Angle unit: check if 2 and 5 scales match and 3 and pi scales are 0
-                    let scale_2 = config.scale.prime_scales.get(&2).copied().unwrap_or(0);
-                    let scale_3 = config.scale.prime_scales.get(&3).copied().unwrap_or(0);
-                    let scale_5 = config.scale.prime_scales.get(&5).copied().unwrap_or(0);
-                    let scale_pi = config.scale.constant_scales.get("pi").copied().unwrap_or(0);
                     scale_2 == scale_5 && scale_3 == 0 && scale_pi == 0
                 } else {
                     false
                 };
                 
-                if is_pure_power_of_10 {
+                if let Some(unit_name) = known_time_unit {
+                    // Use the known composite time unit name
+                    let unit_symbol = if long_name { unit_name } else { 
+                        match unit_name {
+                            "second" => "s",
+                            "minute" => "min", 
+                            "hour" => "h",
+                            "day" => "d",
+                            _ => unit_name,
+                        }
+                    };
+                    part.push_str(&format!("{}{}", unit_symbol, get_unicode_exponent(config.exponent)));
+                } else if let Some(unit_name) = known_angle_unit {
+                    // Use the known composite angle unit name
+                    let unit_symbol = if long_name { unit_name } else { 
+                        match unit_name {
+                            "radian" => "rad",
+                            "rotation" => "rev", 
+                            "degree" => "°",
+                            "gradian" => "gon",
+                            "arcminute" => "'",
+                            "arcsecond" => "\"",
+                            _ => unit_name,
+                        }
+                    };
+                    part.push_str(&format!("{}{}", unit_symbol, get_unicode_exponent(config.exponent)));
+                } else if is_pure_power_of_10 {
                     // Treat as simple unit with power-of-10 scaling
                     render_unit_with_scale(&mut part, &config.scale, base_unit, config.base_scale_offset, &get_unicode_exponent(config.exponent), long_name);
                 } else {

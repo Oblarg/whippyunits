@@ -14,7 +14,7 @@ macro_rules! define_unit_macro {
         $temperature_unused:expr,
         $amount_of_substance_unused:expr,
         $luminous_intensity_unused:expr,
-        $angle_unused_p2:expr, $angle_unused_p3:expr, $angle_unused_p5:expr, $angle_unused_pi:expr,
+        $angle_unused_p2:expr, $angle_unused_p3:expr, $angle_unused_p5:expr, $angle_unused_pi:expr
     ) => {
         #[macro_export]
         macro_rules! unit {
