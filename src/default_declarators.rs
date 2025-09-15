@@ -428,6 +428,60 @@ macro_rules! define_angle_quantity {
     };
 }
 
+macro_rules! define_energy_quantity {
+    (
+        $mass_scale_p10:expr,
+        $length_scale_p10:expr,
+        $time_scale_p2:expr, $time_scale_p3:expr, $time_scale_p5:expr,
+        $electric_current_scale_p10:expr,
+        $temperature_scale_p10:expr,
+        $amount_of_substance_scale_p10:expr,
+        $luminous_intensity_scale_p10:expr,
+        $angle_scale_p2:expr, $angle_scale_p3:expr, $angle_scale_p5:expr, $angle_scale_pi:expr,
+        $trait_name:ident, $(($scale_name:ident, $fn_name:ident, $scale_p2:expr, $scale_p3:expr, $scale_p5:expr)),* $(,)?
+    ) => {
+        // Generate the trait definition
+        pub trait $trait_name {
+            $(
+                fn $fn_name(self) -> $scale_name;
+            )*
+        }
+        
+        // Generate the type definitions
+        $(
+            pub type $scale_name = Quantity<
+                0, $mass_scale_p10,
+                0, $length_scale_p10,
+                1, $scale_p2, $scale_p3, $scale_p5,
+                0, $electric_current_scale_p10,
+                0, $temperature_scale_p10,
+                0, $amount_of_substance_scale_p10,
+                0, $luminous_intensity_scale_p10,
+                0, $angle_scale_p2, $angle_scale_p3, $angle_scale_p5, $angle_scale_pi,
+                f64,
+            >;
+        )*
+        
+        // Generate extension trait implementations for f64
+        impl $trait_name for f64 {
+            $(
+                fn $fn_name(self) -> $scale_name {
+                    Quantity::new(self)
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i32
+        impl $trait_name for i32 {
+            $(
+                fn $fn_name(self) -> $scale_name {
+                    Quantity::new(self as f64)
+                }
+            )*
+        }
+    };
+}
+
 macro_rules! define_unit_declarators(
     (
         $mass_scale_p10:expr,
