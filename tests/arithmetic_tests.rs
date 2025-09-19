@@ -666,3 +666,116 @@ fn test_prettyprint_dimension_symbols() {
     println!("Custom dim1 non-verbose (Display): {}", custom_dim1);
     println!("Custom dim2 non-verbose (Display): {}", custom_dim2);
 }
+
+#[test]
+fn test_imperial_units() {
+    use whippyunits::imperial_declarators::*;
+
+    println!("=== Imperial Length Units ===");
+    let length_inches = 12.0.inches();
+    let length_feet = 1.0.feet();
+    let length_yards = 1.0.yards();
+    let length_miles = 1.0.miles();
+
+    println!("12 inches = {:?}", length_inches);
+    println!("1 foot = {:?}", length_feet);
+    println!("1 yard = {:?}", length_yards);
+    println!("1 mile = {:?}", length_miles);
+
+    println!("\n=== Imperial Mass Units ===");
+    let mass_ounces = 16.0.ounces();
+    let mass_pounds = 1.0.pounds();
+    let mass_stones = 1.0.stones();
+    let mass_tons = 1.0.tons();
+
+    println!("16 ounces = {:?}", mass_ounces);
+    println!("1 pound = {:?}", mass_pounds);
+    println!("1 stone = {:?}", mass_stones);
+    println!("1 ton = {:?}", mass_tons);
+
+    println!("\n=== Imperial Temperature Units ===");
+    let temp_fahrenheit = 32.0.fahrenheit();
+    let temp_rankine = 491.67.rankine();
+
+    println!("32°F = {:?}", temp_fahrenheit);
+    println!("491.67°R = {:?}", temp_rankine);
+
+    println!("Imperial units test passed!");
+}
+
+#[test]
+fn test_custom_formatting() {
+    use whippyunits::print::custom_display::QuantityFormatExt;
+    
+    println!("\n=== Custom Formatting Tests ===");
+    
+    // Test basic unit conversion formatting
+    let distance = 5000.0.meters();
+    let mass = 2.5.kilograms();
+    let time = 90.0.seconds();
+    
+    println!("Original values:");
+    println!("  Distance: {}", distance);
+    println!("  Mass: {}", mass);
+    println!("  Time: {}", time);
+    
+    // Test distance conversions
+    println!("\nDistance conversions:");
+    assert_eq!(distance.format_as("km").unwrap(), "5 km");
+    assert_eq!(distance.format_as("cm").unwrap(), "500000 cm");
+    assert_eq!(distance.format_as("mm").unwrap(), "5000000 mm");
+    assert_eq!(distance.format_as("ft").unwrap(), "5000 ft");
+    assert_eq!(distance.format_as("mi").unwrap(), "5 mi");
+    
+    // Test mass conversions
+    println!("Mass conversions:");
+    assert_eq!(mass.format_as("g").unwrap(), "2500 g");
+    assert_eq!(mass.format_as("kg").unwrap(), "2.5 kg");
+    assert_eq!(mass.format_as("oz").unwrap(), "2500 oz");
+    assert_eq!(mass.format_as("lb").unwrap(), "2.5 lb");
+    
+    // Test time conversions
+    println!("Time conversions:");
+    assert_eq!(time.format_as("s").unwrap(), "90 s");
+    assert_eq!(time.format_as("min").unwrap(), "1.5 min");
+    assert_eq!(time.format_as("h").unwrap(), "0.025 h");
+    
+    // Test precision formatting
+    println!("Precision formatting:");
+    assert_eq!(distance.format_as_with_precision("km", 2).unwrap(), "5.00 km");
+    assert_eq!(distance.format_as_with_precision("cm", 0).unwrap(), "500000 cm");
+    assert_eq!(mass.format_as_with_precision("g", 1).unwrap(), "2500.0 g");
+    
+    // Test error cases
+    println!("Error cases:");
+    assert!(distance.format_as("kg").is_err()); // Wrong dimension
+    assert!(distance.format_as("unknown_unit").is_err()); // Unknown unit
+    
+    // Test with different unit names (symbols vs long names)
+    assert_eq!(distance.format_as("kilometer").unwrap(), "5 km");
+    assert_eq!(distance.format_as("kilometers").unwrap(), "5 km");
+    assert_eq!(mass.format_as("gram").unwrap(), "2500 g");
+    assert_eq!(mass.format_as("grams").unwrap(), "2500 g");
+    
+    println!("Custom formatting tests passed!");
+}
+
+#[test]
+fn test_format_syntax_demonstration() {
+    use whippyunits::default_declarators::*;
+    use whippyunits::format_quantity;
+    
+    println!("\n=== Custom Format Syntax Demonstration ===");
+    
+    // Create a mass quantity
+    let mass = 2.5.kilograms();
+    
+    println!("Original mass: {}", mass);
+    
+    // Demonstrate the {:kg} syntax using format_quantity! macro
+    println!("\nformat_quantity! macro (simulating {{:kg}} syntax):");
+    println!("  {}", format_quantity!("Mass: {:g}", &mass));
+    println!("  {}", format_quantity!("Mass: {:kg}", &mass));
+    
+    println!("Format syntax demonstration completed!");
+}

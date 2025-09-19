@@ -12,6 +12,7 @@ impl<const S: i16> IsI16<S> for () {}
 // pub mod arithmetic_quantity_types;
 pub mod arithmetic_quantity_types;
 pub mod default_declarators;
+pub mod imperial_declarators;
 pub mod scoped_preferences;
 pub mod scale_conversion;
 // #[macro_use]

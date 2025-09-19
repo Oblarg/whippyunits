@@ -43,6 +43,45 @@ macro_rules! define_quantity {
     };
 }
 
+macro_rules! define_affine_quantity {
+    (
+        $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
+        $trait_name:ident,
+        $storage_scale:ident,
+        $(($scale_name:ident, $fn_name:ident, $offset:expr)),* $(,)?
+    ) => {
+        // Generate the trait definition
+        pub trait $trait_name {
+            $(
+                fn $fn_name(self) -> $scale_name;
+            )*
+        }
+        
+        // Generate the type definitions (all stored in the same scale)
+        $(
+            pub type $scale_name = $storage_scale;
+        )*
+        
+        // Generate extension trait implementations for f64
+        impl $trait_name for f64 {
+            $(
+                fn $fn_name(self) -> $scale_name {
+                    $storage_scale::new(self + $offset)
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i32
+        impl $trait_name for i32 {
+            $(
+                fn $fn_name(self) -> $scale_name {
+                    $storage_scale::new((self as f64) + $offset)
+                }
+            )*
+        }
+    };
+}
+
 define_quantity!(
     1, 0, 0, 0, 0, 0, 0, 0,
     SIMass,
@@ -159,6 +198,13 @@ define_quantity!(
     (Exakelvin, exakelvins, 0, 0, 0, 18, 0),
     (Zettakelvin, zettakelvins, 0, 0, 0, 21, 0),
     (Yottakelvin, yottakelvins, 0, 0, 0, 24, 0),
+);
+
+define_affine_quantity!(
+    0, 0, 0, 0, 1, 0, 0, 0,  // temperature dimension
+    CommonTemperature,
+    Kelvin,
+    (Celsius, celsius, 273.15),  // °C to K: C + 273.15
 );
 
 define_quantity!(

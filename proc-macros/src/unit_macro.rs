@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Ident, LitInt};
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::{Star, Slash, Caret};
-use whippyunits_default_dimensions::DIMENSION_LOOKUP;
+use whippyunits_default_dimensions::{DIMENSION_LOOKUP, SI_PREFIXES, BASE_UNITS};
 
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
@@ -127,72 +127,15 @@ impl UnitExpr {
     }
 }
 
-/// SI prefix definitions
-/// Each prefix maps to its actual scale factor used in the generated unit methods
-/// These values match exactly what the actual unit methods return
-const SI_PREFIXES: &[(&str, i16)] = &[
-    // Small prefixes (negative powers of 10)
-    ("p", -12),  // pico
-    ("n", -9),  // nano
-    ("u", -6),   // micro 
-    ("m", -3),   // milli
-    
-    // Large prefixes (positive powers of 10)
-    ("k", 3),    // kilo
-    ("M", 6),    // mega
-    ("G", 9),    // giga
-    ("T", 12),   // tera
-    ("P", 15),   // peta
-    ("E", 18),   // exa
-    ("Z", 21),   // zetta
-    ("Y", 24),   // yotta
-];
-
-/// Base unit definitions
-/// Each base unit maps to its dimension exponents (mass, length, time, current, temperature, amount, luminosity, angle)
-/// and its inherent scale factor (p10_offset)
-const BASE_UNITS: &[(&str, (i16, i16, i16, i16, i16, i16, i16, i16, i16))] = &[
-    // Mass - all mass units are relative to kilogram (scale factor 0)
-    ("g", (1, 0, 0, 0, 0, 0, 0, 0, -3)),     // gram: scale -3 (1g = 10^-3 kg)
-    
-    // Length - all length units are relative to meter (scale factor 0)
-    ("m", (0, 1, 0, 0, 0, 0, 0, 0, 0)),      // meter: no inherent scale
-    
-    // Time - all time units are relative to second (scale factor 0)
-    ("s", (0, 0, 1, 0, 0, 0, 0, 0, 0)),      // second: no inherent scale
-    ("min", (0, 0, 1, 0, 0, 0, 0, 0, 0)),    // minute: 60s = 2^2 * 3 * 5, so p2=2, p3=1, p5=1
-    ("h", (0, 0, 1, 0, 0, 0, 0, 0, 0)),      // hour: 3600s = 2^4 * 3^2 * 5^2, so p2=4, p3=2, p5=2
-    ("d", (0, 0, 1, 0, 0, 0, 0, 0, 0)),      // day: 86400s = 2^7 * 3^3 * 5^2, so p2=7, p3=3, p5=2
-    ("yr", (0, 0, 1, 0, 0, 0, 0, 0, 0)),     // year (approximate: 365.25 days)
-    
-    // Current - all current units are relative to ampere (scale factor 0)
-    ("A", (0, 0, 0, 1, 0, 0, 0, 0, 0)),      // ampere: no inherent scale
-    
-    // Temperature - all temperature units are relative to kelvin (scale factor 0)
-    ("K", (0, 0, 0, 0, 1, 0, 0, 0, 0)),      // kelvin: no inherent scale
-    
-    // Amount - all amount units are relative to mole (scale factor 0)
-    ("mol", (0, 0, 0, 0, 0, 1, 0, 0, 0)),    // mole: no inherent scale
-    
-    // Luminosity - all luminosity units are relative to candela (scale factor 0)
-    ("cd", (0, 0, 0, 0, 0, 0, 1, 0, 0)),     // candela: no inherent scale
-    
-    // Angle - all angle units are relative to radian (scale factor 0)
-    ("rad", (0, 0, 0, 0, 0, 0, 0, 1, 0)),    // radian: no inherent scale
-    ("deg", (0, 0, 0, 0, 0, 0, 0, 1, 0)),    // degrees (dimensionless but treated as angle)
-    
-    // Special cases
-    ("dimensionless", (0, 0, 0, 0, 0, 0, 0, 0, 0)),
-];
 
 /// Parse a unit name to extract prefix and base unit
 fn parse_unit_name(unit_name: &str) -> (Option<&str>, &str) {
     // Try to find the longest matching prefix
-    for (prefix, _) in SI_PREFIXES.iter().rev() {
-        if unit_name.starts_with(prefix) {
-            let base = &unit_name[prefix.len()..];
+    for prefix_info in SI_PREFIXES.iter().rev() {
+        if unit_name.starts_with(prefix_info.symbol) {
+            let base = &unit_name[prefix_info.symbol.len()..];
             if !base.is_empty() && is_valid_base_unit(base) {
-                return (Some(prefix), base);
+                return (Some(prefix_info.symbol), base);
             }
         }
     }
@@ -203,22 +146,23 @@ fn parse_unit_name(unit_name: &str) -> (Option<&str>, &str) {
 
 /// Check if a string is a valid base unit
 fn is_valid_base_unit(unit: &str) -> bool {
-    BASE_UNITS.iter().any(|(base_unit, _)| *base_unit == unit)
+    BASE_UNITS.iter().any(|base_unit_info| base_unit_info.symbol == unit)
 }
 
 /// Get the power of 10 for a prefix
 fn get_prefix_power(prefix: &str) -> i16 {
     SI_PREFIXES.iter()
-        .find(|(p, _)| *p == prefix)
-        .map(|(_, power)| *power)
+        .find(|prefix_info| prefix_info.symbol == prefix)
+        .map(|prefix_info| prefix_info.scale_factor)
         .unwrap_or(0)
 }
 
 /// Get dimension exponents and inherent scale for a base unit
 fn get_base_unit_dimensions(base_unit: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16) {
-    // First try the hardcoded base units
-    if let Some((_, dims)) = BASE_UNITS.iter().find(|(unit, _)| *unit == base_unit) {
-        return *dims;
+    // First try the base units from default-dimensions
+    if let Some(base_unit_info) = BASE_UNITS.iter().find(|info| info.symbol == base_unit) {
+        let (m, l, t, c, temp, a, lum, ang) = base_unit_info.dimension_exponents;
+        return (m, l, t, c, temp, a, lum, ang, base_unit_info.inherent_scale_factor);
     }
     
     // If not found, try to find it in the shared dimension data by SI symbol

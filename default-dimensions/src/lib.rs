@@ -16,6 +16,33 @@ pub struct DimensionInfo {
     pub si_long_name: Option<&'static str>,
 }
 
+/// SI prefix information
+#[derive(Debug, Clone)]
+pub struct PrefixInfo {
+    pub symbol: &'static str,
+    pub scale_factor: i16,
+    pub long_name: &'static str,
+}
+
+/// Base unit information including dimension exponents and inherent scale factor
+#[derive(Debug, Clone)]
+pub struct BaseUnitInfo {
+    pub symbol: &'static str,
+    pub dimension_exponents: DimensionExponents,
+    pub inherent_scale_factor: i16, // p10_offset
+    pub long_name: &'static str,
+}
+
+/// Unit literal information for formatting and conversion
+#[derive(Debug, Clone)]
+pub struct UnitLiteralInfo {
+    pub symbol: &'static str,
+    pub long_name: &'static str,
+    pub type_name: &'static str, // The actual type name (e.g., "Kilometer", "Meter")
+    pub dimension_exponents: DimensionExponents,
+    pub scale_factors: (i16, i16, i16, i16, i16), // p2, p3, p5, p10, pi
+}
+
 /// Canonical lookup table for all supported dimensions
 ///
 /// This is the single source of truth for dimension data, shared between
@@ -485,6 +512,103 @@ pub const DIMENSION_LOOKUP: &[DimensionInfo] = &[
     },
 ];
 
+/// SI prefix definitions
+/// Each prefix maps to its actual scale factor used in the generated unit methods
+pub const SI_PREFIXES: &[PrefixInfo] = &[
+    // Small prefixes (negative powers of 10)
+    PrefixInfo { symbol: "p", scale_factor: -12, long_name: "pico" },
+    PrefixInfo { symbol: "n", scale_factor: -9, long_name: "nano" },
+    PrefixInfo { symbol: "u", scale_factor: -6, long_name: "micro" },
+    PrefixInfo { symbol: "m", scale_factor: -3, long_name: "milli" },
+    
+    // Large prefixes (positive powers of 10)
+    PrefixInfo { symbol: "k", scale_factor: 3, long_name: "kilo" },
+    PrefixInfo { symbol: "M", scale_factor: 6, long_name: "mega" },
+    PrefixInfo { symbol: "G", scale_factor: 9, long_name: "giga" },
+    PrefixInfo { symbol: "T", scale_factor: 12, long_name: "tera" },
+    PrefixInfo { symbol: "P", scale_factor: 15, long_name: "peta" },
+    PrefixInfo { symbol: "E", scale_factor: 18, long_name: "exa" },
+    PrefixInfo { symbol: "Z", scale_factor: 21, long_name: "zetta" },
+    PrefixInfo { symbol: "Y", scale_factor: 24, long_name: "yotta" },
+];
+
+/// Base unit definitions
+/// Each base unit maps to its dimension exponents and inherent scale factor
+pub const BASE_UNITS: &[BaseUnitInfo] = &[
+    // Mass - all mass units are relative to kilogram (scale factor 0)
+    BaseUnitInfo { symbol: "g", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: -3, long_name: "gram" },
+    
+    // Length - all length units are relative to meter (scale factor 0)
+    BaseUnitInfo { symbol: "m", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "meter" },
+    
+    // Time - all time units are relative to second (scale factor 0)
+    BaseUnitInfo { symbol: "s", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "second" },
+    BaseUnitInfo { symbol: "min", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "minute" },
+    BaseUnitInfo { symbol: "h", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "hour" },
+    BaseUnitInfo { symbol: "d", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "day" },
+    BaseUnitInfo { symbol: "yr", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "year" },
+    
+    // Current - all current units are relative to ampere (scale factor 0)
+    BaseUnitInfo { symbol: "A", dimension_exponents: (0, 0, 0, 1, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "ampere" },
+    
+    // Temperature - all temperature units are relative to kelvin (scale factor 0)
+    BaseUnitInfo { symbol: "K", dimension_exponents: (0, 0, 0, 0, 1, 0, 0, 0), inherent_scale_factor: 0, long_name: "kelvin" },
+    
+    // Amount - all amount units are relative to mole (scale factor 0)
+    BaseUnitInfo { symbol: "mol", dimension_exponents: (0, 0, 0, 0, 0, 1, 0, 0), inherent_scale_factor: 0, long_name: "mole" },
+    
+    // Luminosity - all luminosity units are relative to candela (scale factor 0)
+    BaseUnitInfo { symbol: "cd", dimension_exponents: (0, 0, 0, 0, 0, 0, 1, 0), inherent_scale_factor: 0, long_name: "candela" },
+    
+    // Angle - all angle units are relative to radian (scale factor 0)
+    BaseUnitInfo { symbol: "rad", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1), inherent_scale_factor: 0, long_name: "radian" },
+    BaseUnitInfo { symbol: "deg", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1), inherent_scale_factor: 0, long_name: "degree" },
+    
+    // Imperial length units
+    BaseUnitInfo { symbol: "in", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), inherent_scale_factor: -2, long_name: "inch" }, // 1 in = 2.54 cm = 0.0254 m = 10^-2 * 2.54 m
+    BaseUnitInfo { symbol: "ft", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "foot" }, // 1 ft = 0.3048 m
+    BaseUnitInfo { symbol: "yd", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "yard" }, // 1 yd = 0.9144 m
+    BaseUnitInfo { symbol: "mi", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 3, long_name: "mile" }, // 1 mi = 1.609344 km = 10^3 * 1.609344 m
+    
+    // Imperial mass units
+    BaseUnitInfo { symbol: "oz", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: -3, long_name: "ounce" }, // 1 oz = 28.349523125 g
+    BaseUnitInfo { symbol: "lb", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "pound" }, // 1 lb = 0.45359237 kg
+    BaseUnitInfo { symbol: "st", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "stone" }, // 1 st = 6.35029318 kg
+    BaseUnitInfo { symbol: "ton", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 3, long_name: "ton" }, // 1 ton = 1.0160469088 Mg
+    
+    // Special cases
+    BaseUnitInfo { symbol: "dimensionless", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 0), inherent_scale_factor: 0, long_name: "dimensionless" },
+];
+
+/// Comprehensive unit literal lookup table
+/// This includes all the units defined in default_declarators and imperial_declarators
+pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
+    // Length units (from SILength)
+    UnitLiteralInfo { symbol: "m", long_name: "meter", type_name: "Meter", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+    UnitLiteralInfo { symbol: "km", long_name: "kilometer", type_name: "Kilometer", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 3, 0) },
+    UnitLiteralInfo { symbol: "cm", long_name: "centimeter", type_name: "Centimeter", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -2, 0) },
+    UnitLiteralInfo { symbol: "mm", long_name: "millimeter", type_name: "Millimeter", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -3, 0) },
+    
+    // Mass units (from SIMass)
+    UnitLiteralInfo { symbol: "kg", long_name: "kilogram", type_name: "Kilogram", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+    UnitLiteralInfo { symbol: "g", long_name: "gram", type_name: "Gram", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -3, 0) },
+    
+    // Time units (from SITime and CommonTime)
+    UnitLiteralInfo { symbol: "s", long_name: "second", type_name: "Second", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+    UnitLiteralInfo { symbol: "min", long_name: "minute", type_name: "Minute", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (2, 1, 1, 0, 0) },
+    UnitLiteralInfo { symbol: "h", long_name: "hour", type_name: "Hour", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (4, 2, 2, 0, 0) },
+    
+    // Imperial length units (from ImperialLength)
+    UnitLiteralInfo { symbol: "in", long_name: "inch", type_name: "Inch", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -2, 0) },
+    UnitLiteralInfo { symbol: "ft", long_name: "foot", type_name: "Foot", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+    UnitLiteralInfo { symbol: "yd", long_name: "yard", type_name: "Yard", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+    UnitLiteralInfo { symbol: "mi", long_name: "mile", type_name: "Mile", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 3, 0) },
+    
+    // Imperial mass units (from ImperialMass)
+    UnitLiteralInfo { symbol: "oz", long_name: "ounce", type_name: "Ounce", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -3, 0) },
+    UnitLiteralInfo { symbol: "lb", long_name: "pound", type_name: "Pound", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0) },
+];
+
 /// Look up dimension information by name (case-insensitive)
 ///
 /// Returns the dimension info if found, or None if the dimension name is not recognized.
@@ -619,4 +743,26 @@ pub fn lookup_dimension_by_exponents(
     DIMENSION_LOOKUP
         .iter()
         .find(|info| info.exponents == exponents)
+}
+
+/// Look up unit literal information by symbol or name
+pub fn lookup_unit_literal(unit_name: &str) -> Option<&'static UnitLiteralInfo> {
+    UNIT_LITERALS.iter().find(|info| {
+        info.symbol == unit_name || 
+        info.long_name == unit_name ||
+        info.type_name == unit_name ||
+        // Handle plural forms
+        info.long_name.to_string() + "s" == unit_name ||
+        info.symbol.to_string() + "s" == unit_name
+    })
+}
+
+/// Look up SI prefix information by symbol
+pub fn lookup_si_prefix(prefix: &str) -> Option<&'static PrefixInfo> {
+    SI_PREFIXES.iter().find(|info| info.symbol == prefix)
+}
+
+/// Look up base unit information by symbol
+pub fn lookup_base_unit(unit: &str) -> Option<&'static BaseUnitInfo> {
+    BASE_UNITS.iter().find(|info| info.symbol == unit)
 }
