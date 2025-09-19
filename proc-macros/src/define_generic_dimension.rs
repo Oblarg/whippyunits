@@ -1,8 +1,10 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Ident, Token, LitInt};
+use syn::punctuated::Punctuated;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::token::{Star, Slash, Caret};
+use syn::token::{Star, Slash, Caret, Comma};
+use whippyunits_default_dimensions::lookup_dimension_by_name;
 
 // Parse dimension expressions like "Length / Time" or "Mass * Length^2 / Time^2"
 pub enum DimensionExpr {
@@ -63,31 +65,37 @@ impl DimensionExpr {
     }
     
     // Evaluate the expression to get dimension exponents
-    fn evaluate(&self) -> (i8, i8, i8) {
+    fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
             DimensionExpr::Dimension(ident) => {
-                let name = ident.to_string().to_lowercase();
-                match name.as_str() {
-                    "mass" => (1, 0, 0),
-                    "length" => (0, 1, 0),
-                    "time" => (0, 0, 1),
-                    _ => panic!("Unsupported dimension: {}", name)
+                let name = ident.to_string();
+                match lookup_dimension_by_name(&name) {
+                    Some(dim_info) => dim_info.exponents,
+                    None => {
+                        // Generate a helpful error message with all supported dimensions
+                        let supported_dims: Vec<&str> = whippyunits_default_dimensions::DIMENSION_LOOKUP
+                            .iter()
+                            .map(|info| info.name)
+                            .collect();
+                        panic!("Unsupported dimension: '{}'. Supported dimensions: {}", 
+                               name, supported_dims.join(", "));
+                    }
                 }
             },
             DimensionExpr::Mul(a, b) => {
-                let (ma, la, ta) = a.evaluate();
-                let (mb, lb, tb) = b.evaluate();
-                (ma + mb, la + lb, ta + tb)
+                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate();
+                (ma + mb, la + lb, ta + tb, ca + cb, tempa + tempb, aa + ab, luma + lumb, anga + angb)
             },
             DimensionExpr::Div(a, b) => {
-                let (ma, la, ta) = a.evaluate();
-                let (mb, lb, tb) = b.evaluate();
-                (ma - mb, la - lb, ta - tb)
+                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate();
+                (ma - mb, la - lb, ta - tb, ca - cb, tempa - tempb, aa - ab, luma - lumb, anga - angb)
             },
             DimensionExpr::Pow(base, exp) => {
-                let (m, l, t) = base.evaluate();
-                let exp_val: i8 = exp.base10_parse().unwrap();
-                (m * exp_val, l * exp_val, t * exp_val)
+                let (m, l, t, c, temp, a, lum, ang) = base.evaluate();
+                let exp_val: i16 = exp.base10_parse().unwrap();
+                (m * exp_val, l * exp_val, t * exp_val, c * exp_val, temp * exp_val, a * exp_val, lum * exp_val, ang * exp_val)
             }
         }
     }
@@ -96,7 +104,7 @@ impl DimensionExpr {
 pub struct DefineGenericDimensionInput {
     pub trait_name: Ident,
     pub _comma: Token![,],
-    pub dimension_expr: DimensionExpr,
+    pub dimension_exprs: Punctuated<DimensionExpr, Comma>,
 }
 
 impl Parse for DefineGenericDimensionInput {
@@ -104,7 +112,7 @@ impl Parse for DefineGenericDimensionInput {
         Ok(DefineGenericDimensionInput {
             trait_name: input.parse()?,
             _comma: input.parse()?,
-            dimension_expr: input.parse()?,
+            dimension_exprs: input.parse_terminated(DimensionExpr::parse, Token![,])?,
         })
     }
 }
@@ -112,7 +120,6 @@ impl Parse for DefineGenericDimensionInput {
 impl DefineGenericDimensionInput {
     pub fn expand(self) -> TokenStream {
         let trait_name = &self.trait_name;
-        let (mass_exp, length_exp, time_exp) = self.dimension_expr.evaluate();
         
         // Generate the trait definition
         let trait_def = quote! {
@@ -121,71 +128,39 @@ impl DefineGenericDimensionInput {
             }
         };
         
-        // Generate the implementation with the calculated exponents
-        let impl_block = self.generate_impl(mass_exp, length_exp, time_exp);
+        // Generate implementations for each dimension expression
+        let impl_blocks: Vec<TokenStream> = self.dimension_exprs
+            .iter()
+            .map(|expr| {
+                let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = expr.evaluate();
+                self.generate_impl(mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp)
+            })
+            .collect();
         
         quote! {
             #trait_def
             
-            #impl_block
+            #(#impl_blocks)*
         }
     }
     
-    fn generate_impl(&self, mass_exp: i8, length_exp: i8, time_exp: i8) -> TokenStream {
+    fn generate_impl(&self, mass_exp: i16, length_exp: i16, time_exp: i16, current_exp: i16, temp_exp: i16, amount_exp: i16, lum_exp: i16, angle_exp: i16) -> TokenStream {
         let trait_name = &self.trait_name;
         
-        // Determine which scale parameters we need
-        let mut const_decls = Vec::new();
-        let mut generic_params = Vec::new();
-        
-        // Mass dimension
-        if mass_exp != 0 {
-            let const_ident = Ident::new("MASS_SCALE_P10", proc_macro2::Span::call_site());
-            const_decls.push(quote! { const #const_ident: i8 });
-            generic_params.push(quote! { #mass_exp }); // MASS_EXPONENT
-            generic_params.push(quote! { #const_ident }); // MASS_SCALE_P10
-        } else {
-            generic_params.push(quote! { #mass_exp }); // MASS_EXPONENT
-            generic_params.push(quote! { 0_i8 }); // MASS_SCALE_P10
-        }
-        
-        // Length dimension
-        if length_exp != 0 {
-            let const_ident = Ident::new("LENGTH_SCALE_P10", proc_macro2::Span::call_site());
-            const_decls.push(quote! { const #const_ident: i8 });
-            generic_params.push(quote! { #length_exp }); // LENGTH_EXPONENT
-            generic_params.push(quote! { #const_ident }); // LENGTH_SCALE_P10
-        } else {
-            generic_params.push(quote! { #length_exp }); // LENGTH_EXPONENT
-            generic_params.push(quote! { 0_i8 }); // LENGTH_SCALE_P10
-        }
-        
-        // Time dimension
-        if time_exp != 0 {
-            let const_p2 = Ident::new("TIME_SCALE_P2", proc_macro2::Span::call_site());
-            let const_p3 = Ident::new("TIME_SCALE_P3", proc_macro2::Span::call_site());
-            let const_p5 = Ident::new("TIME_SCALE_P5", proc_macro2::Span::call_site());
-            const_decls.push(quote! { 
-                const #const_p2: i8,
-                const #const_p3: i8,
-                const #const_p5: i8
-            });
-            generic_params.push(quote! { #time_exp }); // TIME_EXPONENT
-            generic_params.push(quote! { #const_p2 }); // TIME_SCALE_P2
-            generic_params.push(quote! { #const_p3 }); // TIME_SCALE_P3
-            generic_params.push(quote! { #const_p5 }); // TIME_SCALE_P5
-        } else {
-            generic_params.push(quote! { #time_exp }); // TIME_EXPONENT
-            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P2
-            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P3
-            generic_params.push(quote! { 0_i8 }); // TIME_SCALE_P5
-        }
-        
+        // For simplicity, we'll use 0 for all scale parameters
+        // In a more sophisticated implementation, we could determine scale parameters based on the dimensions
         quote! {
             impl <
-                #(#const_decls),*
+                const SCALE_P2: i16,
+                const SCALE_P3: i16,
+                const SCALE_P5: i16,
+                const SCALE_P10: i16,
+                const SCALE_PI: i16,
+                T
             > #trait_name for whippyunits::quantity_type::Quantity<
-                #(#generic_params),*
+                #mass_exp, #length_exp, #time_exp, #current_exp, #temp_exp, #amount_exp, #lum_exp, #angle_exp,
+                SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+                T
             > {
                 type Unit = Self;
             }

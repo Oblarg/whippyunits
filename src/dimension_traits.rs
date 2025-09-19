@@ -1,5 +1,4 @@
-use crate::generated_quantity_type::Quantity;
-use crate::constants::*;
+use crate::quantity_type::Quantity;
 
 #[macro_export]
 macro_rules! define_dimension_traits {
@@ -18,17 +17,17 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const MASS_SCALE_P10: i8>
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_P10: i16,
+            const SCALE_PI: i16,
+            T>
         Mass
         for Quantity<
-            1, MASS_SCALE_P10, 
-            0, $length_unused, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0, 0, 0, 0> {
+            1, 0, 0, 0, 0, 0, 0, 0,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            T> {
             type Unit = Self;
         }
 
@@ -42,17 +41,17 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const LENGTH_SCALE_P10: i8>
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_P10: i16,
+            const SCALE_PI: i16,
+            T>
         Length
         for Quantity<
-            0, $mass_unused, 
-            1, LENGTH_SCALE_P10, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0, 0, 0, 0> {
+            0, 1, 0, 0, 0, 0, 0, 0,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            T> {
             type Unit = Self;
         }
 
@@ -62,17 +61,17 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const LENGTH_SCALE_P10: i8>
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_P10: i16,
+            const SCALE_PI: i16,
+            T>
         Area
         for Quantity<
-            0, $mass_unused, 
-            2, LENGTH_SCALE_P10, 
-            0, $time_unused_p2, $time_unused_p3, $time_unused_p5,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0, 0, 0, 0> {
+            0, 2, 0, 0, 0, 0, 0, 0,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            T> {
             type Unit = Self;
         }
 
@@ -86,17 +85,17 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8>
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_P10: i16,
+            const SCALE_PI: i16,
+            T>
         Time
         for Quantity<
-            0, $mass_unused, 
-            0, $length_unused, 
-            1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0, 0, 0, 0> {
+            0, 0, 1, 0, 0, 0, 0, 0,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            T> {
             type Unit = Self;
         }
 
@@ -106,17 +105,17 @@ macro_rules! define_dimension_traits {
 
         #[rustfmt::skip]
         impl<
-            const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8>
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_P10: i16,
+            const SCALE_PI: i16,
+            T>
         Frequency
         for Quantity<
-            0, $mass_unused, 
-            0, $length_unused, 
-            -1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0,
-            0, 0, 0, 0, 0> {
+            0, 0, -1, 0, 0, 0, 0, 0,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            T> {
             type Unit = Self;
         }
     };

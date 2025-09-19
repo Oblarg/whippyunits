@@ -637,46 +637,46 @@ impl LspProxy {
         let mut time_p5 = 0;
         
         // Extract MASS_EXPONENT
-        if let Some(cap) = Regex::new(r"const MASS_EXPONENT: i8 = (\d+)").unwrap().captures(generic_params) {
+        if let Some(cap) = Regex::new(r"const MASS_EXPONENT: i16 = (\d+)").unwrap().captures(generic_params) {
             mass_exp = cap[1].parse().unwrap_or(0);
         }
         
         // Extract MASS_SCALE_P10 with the specified suffix
-        let mass_scale_pattern = format!(r"const MASS_SCALE_P10_{}: i8 = (-?\d+)", scale_suffix);
+        let mass_scale_pattern = format!(r"const MASS_SCALE_P10_{}: i16 = (-?\d+)", scale_suffix);
         if let Some(cap) = Regex::new(&mass_scale_pattern).unwrap().captures(generic_params) {
             mass_scale = cap[1].parse().unwrap_or(0);
         }
         
         // Extract LENGTH_EXPONENT
-        if let Some(cap) = Regex::new(r"const LENGTH_EXPONENT: i8 = (\d+)").unwrap().captures(generic_params) {
+        if let Some(cap) = Regex::new(r"const LENGTH_EXPONENT: i16 = (\d+)").unwrap().captures(generic_params) {
             length_exp = cap[1].parse().unwrap_or(0);
         }
         
         // Extract LENGTH_SCALE_P10 with the specified suffix
-        let length_scale_pattern = format!(r"const LENGTH_SCALE_P10_{}: i8 = (-?\d+)", scale_suffix);
+        let length_scale_pattern = format!(r"const LENGTH_SCALE_P10_{}: i16 = (-?\d+)", scale_suffix);
         if let Some(cap) = Regex::new(&length_scale_pattern).unwrap().captures(generic_params) {
             length_scale = cap[1].parse().unwrap_or(0);
         }
         
         // Extract TIME_EXPONENT
-        if let Some(cap) = Regex::new(r"const TIME_EXPONENT: i8 = (\d+)").unwrap().captures(generic_params) {
+        if let Some(cap) = Regex::new(r"const TIME_EXPONENT: i16 = (\d+)").unwrap().captures(generic_params) {
             time_exp = cap[1].parse().unwrap_or(0);
         }
         
         // Extract TIME_SCALE_P2 with the specified suffix
-        let time_p2_pattern = format!(r"const TIME_SCALE_P2_{}: i8 = (-?\d+)", scale_suffix);
+        let time_p2_pattern = format!(r"const TIME_SCALE_P2_{}: i16 = (-?\d+)", scale_suffix);
         if let Some(cap) = Regex::new(&time_p2_pattern).unwrap().captures(generic_params) {
             time_p2 = cap[1].parse().unwrap_or(0);
         }
         
         // Extract TIME_SCALE_P3 with the specified suffix
-        let time_p3_pattern = format!(r"const TIME_SCALE_P3_{}: i8 = (-?\d+)", scale_suffix);
+        let time_p3_pattern = format!(r"const TIME_SCALE_P3_{}: i16 = (-?\d+)", scale_suffix);
         if let Some(cap) = Regex::new(&time_p3_pattern).unwrap().captures(generic_params) {
             time_p3 = cap[1].parse().unwrap_or(0);
         }
         
         // Extract TIME_SCALE_P5 with the specified suffix
-        let time_p5_pattern = format!(r"const TIME_SCALE_P5_{}: i8 = (-?\d+)", scale_suffix);
+        let time_p5_pattern = format!(r"const TIME_SCALE_P5_{}: i16 = (-?\d+)", scale_suffix);
         if let Some(cap) = Regex::new(&time_p5_pattern).unwrap().captures(generic_params) {
             time_p5 = cap[1].parse().unwrap_or(0);
         }
@@ -684,14 +684,9 @@ impl LspProxy {
         // Use the prettyprint API to generate a readable type
         use whippyunits::print::prettyprint::pretty_print_quantity_type;
         pretty_print_quantity_type(
-            mass_exp, mass_scale,
-            length_exp, length_scale,
-            time_exp, time_p2, time_p3, time_p5,
-            0, i8::MAX, // electric_current_exp, electric_current_scale_p10
-            0, i8::MAX, // temperature_exp, temperature_scale_p10
-            0, i8::MAX, // amount_of_substance_exp, amount_of_substance_scale_p10
-            0, i8::MAX, // luminous_intensity_exp, luminous_intensity_scale_p10
-            0, i8::MAX, i8::MAX, i8::MAX, i8::MAX, // angle_exp, angle_scale_p2, angle_scale_p3, angle_scale_p5, angle_scale_pi
+            mass_exp, length_exp, time_exp,
+            0, 0, 0, 0, 0, // electric_current_exp, temperature_exp, amount_of_substance_exp, luminous_intensity_exp, angle_exp
+            time_p2, time_p3, time_p5, mass_scale, 0, // scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
             "f64", // generic_type
             false, // not verbose
             false, // don't show type in brackets for this context
@@ -855,10 +850,10 @@ impl WhippyUnitsTypeConverter {
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
             
-            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i8")
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if we're in a context that suggests const generic parameters (like rescale functions)
             let is_const_generic_context = full_match.contains("const") || 
-                                         full_match.contains("i8") || 
+                                         full_match.contains("i16") || 
                                          text.contains("pub fn rescale<") ||
                                          text.contains("const FROM:") ||
                                          text.contains("const TO:") ||
@@ -870,29 +865,21 @@ impl WhippyUnitsTypeConverter {
                                          text.contains("impl Div for");
             
             let params = if is_const_generic_context {
-                // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
+                // This is a type definition or const generic context, treat as unknown (all i16::MIN placeholders)
                 Some(QuantityParams {
-                    mass_exp: i8::MIN,
-                    mass_scale_p10: i8::MIN,
-                    length_exp: i8::MIN,
-                    length_scale_p10: i8::MIN,
-                    time_exp: i8::MIN,
-                    time_scale_p2: i8::MIN,
-                    time_scale_p3: i8::MIN,
-                    time_scale_p5: i8::MIN,
+                    mass_exp: i16::MIN,
+                    length_exp: i16::MIN,
+                    time_exp: i16::MIN,
                     electric_current_exp: 0,
-                    electric_current_scale_p10: i8::MAX,
                     temperature_exp: 0,
-                    temperature_scale_p10: i8::MAX,
                     amount_of_substance_exp: 0,
-                    amount_of_substance_scale_p10: i8::MAX,
                     luminous_intensity_exp: 0,
-                    luminous_intensity_scale_p10: i8::MAX,
                     angle_exp: 0,
-                    angle_scale_p2: i8::MAX,
-                    angle_scale_p3: i8::MAX,
-                    angle_scale_p5: i8::MAX,
-                    angle_scale_pi: i8::MAX,
+                    scale_p2: i16::MIN,
+                    scale_p3: i16::MIN,
+                    scale_p5: i16::MIN,
+                    scale_p10: i16::MIN,
+                    scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -903,14 +890,10 @@ impl WhippyUnitsTypeConverter {
                 // For LSP hover info, we always show type info without values
                 // Show backing datatype at end of square brackets
                 pretty_print_quantity_type(
-                    params.mass_exp, params.mass_scale_p10,
-                    params.length_exp, params.length_scale_p10,
-                    params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
-                    params.electric_current_exp, params.electric_current_scale_p10,
-                    params.temperature_exp, params.temperature_scale_p10,
-                    params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
-                    params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
-                    params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
+                    params.mass_exp, params.length_exp, params.time_exp,
+                    params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
+                    params.luminous_intensity_exp, params.angle_exp,
+                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
                     &params.generic_type,
                     true, // verbose
                     true, // show_type_in_brackets for LSP hover
@@ -930,10 +913,10 @@ impl WhippyUnitsTypeConverter {
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
             
-            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i8")
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if we're in a context that suggests const generic parameters (like rescale functions)
             let is_const_generic_context = full_match.contains("const") || 
-                                         full_match.contains("i8") || 
+                                         full_match.contains("i16") || 
                                          text.contains("pub fn rescale<") ||
                                          text.contains("const FROM:") ||
                                          text.contains("const TO:") ||
@@ -945,29 +928,21 @@ impl WhippyUnitsTypeConverter {
                                          text.contains("impl Div for");
             
             let params = if is_const_generic_context {
-                // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
+                // This is a type definition or const generic context, treat as unknown (all i16::MIN placeholders)
                 Some(QuantityParams {
-                    mass_exp: i8::MIN,
-                    mass_scale_p10: i8::MIN,
-                    length_exp: i8::MIN,
-                    length_scale_p10: i8::MIN,
-                    time_exp: i8::MIN,
-                    time_scale_p2: i8::MIN,
-                    time_scale_p3: i8::MIN,
-                    time_scale_p5: i8::MIN,
+                    mass_exp: i16::MIN,
+                    length_exp: i16::MIN,
+                    time_exp: i16::MIN,
                     electric_current_exp: 0,
-                    electric_current_scale_p10: i8::MAX,
                     temperature_exp: 0,
-                    temperature_scale_p10: i8::MAX,
                     amount_of_substance_exp: 0,
-                    amount_of_substance_scale_p10: i8::MAX,
                     luminous_intensity_exp: 0,
-                    luminous_intensity_scale_p10: i8::MAX,
                     angle_exp: 0,
-                    angle_scale_p2: i8::MAX,
-                    angle_scale_p3: i8::MAX,
-                    angle_scale_p5: i8::MAX,
-                    angle_scale_pi: i8::MAX,
+                    scale_p2: i16::MIN,
+                    scale_p3: i16::MIN,
+                    scale_p5: i16::MIN,
+                    scale_p10: i16::MIN,
+                    scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -979,23 +954,20 @@ impl WhippyUnitsTypeConverter {
                 if self.is_partially_resolved_type(&full_match) {
                     // For partially resolved types, leverage existing prettyprint logic
                     // First try to look up recognized dimension names
-                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp) {
+                    let exponents = vec![params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp];
+                    if let Some(dimension_info) = lookup_dimension_name(exponents.clone()) {
                         dimension_info.dimension_name.to_string()
                     } else {
                         // For unrecognized composite types, show dimension symbols (M, L, T)
-                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp)
+                        generate_dimension_symbols(exponents)
                     }
                 } else {
                     // Use the new prettyprint API with verbose=false
                     pretty_print_quantity_type(
-                        params.mass_exp, params.mass_scale_p10,
-                        params.length_exp, params.length_scale_p10,
-                        params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
-                        params.electric_current_exp, params.electric_current_scale_p10,
-                        params.temperature_exp, params.temperature_scale_p10,
-                        params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
-                        params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
-                        params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
+                        params.mass_exp, params.length_exp, params.time_exp,
+                        params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
+                        params.luminous_intensity_exp, params.angle_exp,
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
                         &params.generic_type,
                         false, // not verbose
                         false, // don't show type in brackets for clean mode
@@ -1016,10 +988,10 @@ impl WhippyUnitsTypeConverter {
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
             
-            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i8")
+            // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if this is a type definition or const generic context (like rescale functions)
             let is_const_generic_context = full_match.contains("const") || 
-                                         full_match.contains("i8") || 
+                                         full_match.contains("i16") || 
                                          text.contains("pub fn rescale<") ||
                                          text.contains("const FROM:") ||
                                          text.contains("const TO:") ||
@@ -1031,29 +1003,21 @@ impl WhippyUnitsTypeConverter {
                                          text.contains("impl Div for");
             
             let params = if is_const_generic_context {
-                // This is a type definition or const generic context, treat as unknown (all i8::MIN placeholders)
+                // This is a type definition or const generic context, treat as unknown (all i16::MIN placeholders)
                 Some(QuantityParams {
-                    mass_exp: i8::MIN,
-                    mass_scale_p10: i8::MIN,
-                    length_exp: i8::MIN,
-                    length_scale_p10: i8::MIN,
-                    time_exp: i8::MIN,
-                    time_scale_p2: i8::MIN,
-                    time_scale_p3: i8::MIN,
-                    time_scale_p5: i8::MIN,
+                    mass_exp: i16::MIN,
+                    length_exp: i16::MIN,
+                    time_exp: i16::MIN,
                     electric_current_exp: 0,
-                    electric_current_scale_p10: i8::MAX,
                     temperature_exp: 0,
-                    temperature_scale_p10: i8::MAX,
                     amount_of_substance_exp: 0,
-                    amount_of_substance_scale_p10: i8::MAX,
                     luminous_intensity_exp: 0,
-                    luminous_intensity_scale_p10: i8::MAX,
                     angle_exp: 0,
-                    angle_scale_p2: i8::MAX,
-                    angle_scale_p3: i8::MAX,
-                    angle_scale_p5: i8::MAX,
-                    angle_scale_pi: i8::MAX,
+                    scale_p2: i16::MIN,
+                    scale_p3: i16::MIN,
+                    scale_p5: i16::MIN,
+                    scale_p10: i16::MIN,
+                    scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
             } else {
@@ -1065,23 +1029,20 @@ impl WhippyUnitsTypeConverter {
                 if self.is_partially_resolved_type(&full_match) {
                     // For partially resolved types, leverage existing prettyprint logic
                     // First try to look up recognized dimension names
-                    if let Some(dimension_info) = lookup_dimension_name(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp) {
+                    let exponents = vec![params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp];
+                    if let Some(dimension_info) = lookup_dimension_name(exponents.clone()) {
                         dimension_info.dimension_name.to_string()
                     } else {
                         // For unrecognized composite types, show dimension symbols (M, L, T)
-                        generate_dimension_symbols(params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp)
+                        generate_dimension_symbols(exponents)
                     }
                 } else {
                     // Use the new ultra-terse inlay hint API
                     pretty_print_quantity_inlay_hint(
-                        params.mass_exp, params.mass_scale_p10,
-                        params.length_exp, params.length_scale_p10,
-                        params.time_exp, params.time_scale_p2, params.time_scale_p3, params.time_scale_p5,
-                        params.electric_current_exp, params.electric_current_scale_p10,
-                        params.temperature_exp, params.temperature_scale_p10,
-                        params.amount_of_substance_exp, params.amount_of_substance_scale_p10,
-                        params.luminous_intensity_exp, params.luminous_intensity_scale_p10,
-                        params.angle_exp, params.angle_scale_p2, params.angle_scale_p3, params.angle_scale_p5, params.angle_scale_pi,
+                        params.mass_exp, params.length_exp, params.time_exp,
+                        params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
+                        params.luminous_intensity_exp, params.angle_exp,
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
                     )
                 }
             } else {
@@ -1097,16 +1058,16 @@ impl WhippyUnitsTypeConverter {
         let params_str = captures.get(1)?.as_str();
         
         // Parse comma-separated parameters, handling _ placeholders
-        let params: Vec<Option<i8>> = params_str
+        let params: Vec<Option<i16>> = params_str
             .split(',')
             .map(|s| {
                 let s = s.trim();
                 if s == "_" {
-                    Some(i8::MIN) // Unknown placeholder
+                    Some(i16::MIN) // Unknown placeholder
                 } else if s == "9223372036854775807" {
-                    Some(i8::MAX) // Unused value (original meaning)
+                    Some(i16::MAX) // Unused value (original meaning)
                 } else {
-                    s.parse::<i8>().ok()
+                    s.parse::<i16>().ok()
                 }
             })
             .collect();
@@ -1114,7 +1075,7 @@ impl WhippyUnitsTypeConverter {
         // Extract the generic type parameter (last parameter if it's not a number)
         let generic_type = if params.len() > 0 {
             let last_param = params_str.split(',').last().unwrap_or("f64").trim();
-            if last_param.parse::<i8>().is_err() && last_param != "_" && last_param != "9223372036854775807" {
+            if last_param.parse::<i16>().is_err() && last_param != "_" && last_param != "9223372036854775807" {
                 last_param.to_string()
             } else {
                 "f64".to_string() // Default to f64
@@ -1123,56 +1084,58 @@ impl WhippyUnitsTypeConverter {
             "f64".to_string()
         };
         
-        // Handle full 8-dimension format (21 parameters + type)
-        if params.len() >= 21 {
+        // Handle new 14-parameter format (8 dimension exponents + 5 aggregated scale parameters + 1 type)
+        if params.len() >= 14 {
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
-                mass_scale_p10: params[1].unwrap_or(i8::MAX),
-                length_exp: params[2].unwrap_or(0),
-                length_scale_p10: params[3].unwrap_or(i8::MAX),
-                time_exp: params[4].unwrap_or(0),
-                time_scale_p2: params[5].unwrap_or(i8::MAX),
-                time_scale_p3: params[6].unwrap_or(i8::MAX),
-                time_scale_p5: params[7].unwrap_or(i8::MAX),
-                electric_current_exp: params[8].unwrap_or(0),
-                electric_current_scale_p10: params[9].unwrap_or(i8::MAX),
-                temperature_exp: params[10].unwrap_or(0),
-                temperature_scale_p10: params[11].unwrap_or(i8::MAX),
-                amount_of_substance_exp: params[12].unwrap_or(0),
-                amount_of_substance_scale_p10: params[13].unwrap_or(i8::MAX),
-                luminous_intensity_exp: params[14].unwrap_or(0),
-                luminous_intensity_scale_p10: params[15].unwrap_or(i8::MAX),
-                angle_exp: params[16].unwrap_or(0),
-                angle_scale_p2: params[17].unwrap_or(i8::MAX),
-                angle_scale_p3: params[18].unwrap_or(i8::MAX),
-                angle_scale_p5: params[19].unwrap_or(i8::MAX),
-                angle_scale_pi: params[20].unwrap_or(i8::MAX),
+                length_exp: params[1].unwrap_or(0),
+                time_exp: params[2].unwrap_or(0),
+                electric_current_exp: params[3].unwrap_or(0),
+                temperature_exp: params[4].unwrap_or(0),
+                amount_of_substance_exp: params[5].unwrap_or(0),
+                luminous_intensity_exp: params[6].unwrap_or(0),
+                angle_exp: params[7].unwrap_or(0),
+                scale_p2: params[8].unwrap_or(0),
+                scale_p3: params[9].unwrap_or(0),
+                scale_p5: params[10].unwrap_or(0),
+                scale_p10: params[11].unwrap_or(0),
+                scale_pi: params[12].unwrap_or(0),
+                generic_type,
+            })
+        } else if params.len() >= 13 {
+            // Handle 13-parameter format (8 dimension exponents + 5 scale parameters, no explicit type)
+            Some(QuantityParams {
+                mass_exp: params[0].unwrap_or(0),
+                length_exp: params[1].unwrap_or(0),
+                time_exp: params[2].unwrap_or(0),
+                electric_current_exp: params[3].unwrap_or(0),
+                temperature_exp: params[4].unwrap_or(0),
+                amount_of_substance_exp: params[5].unwrap_or(0),
+                luminous_intensity_exp: params[6].unwrap_or(0),
+                angle_exp: params[7].unwrap_or(0),
+                scale_p2: params[8].unwrap_or(0),
+                scale_p3: params[9].unwrap_or(0),
+                scale_p5: params[10].unwrap_or(0),
+                scale_p10: params[11].unwrap_or(0),
+                scale_pi: params[12].unwrap_or(0),
                 generic_type,
             })
         } else if params.len() >= 8 {
             // Handle legacy 3-dimension format (backward compatibility)
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
-                mass_scale_p10: params[1].unwrap_or(i8::MAX),
                 length_exp: params[2].unwrap_or(0),
-                length_scale_p10: params[3].unwrap_or(i8::MAX),
                 time_exp: params[4].unwrap_or(0),
-                time_scale_p2: params[5].unwrap_or(i8::MAX),
-                time_scale_p3: params[6].unwrap_or(i8::MAX),
-                time_scale_p5: params[7].unwrap_or(i8::MAX),
                 electric_current_exp: 0,
-                electric_current_scale_p10: i8::MAX,
                 temperature_exp: 0,
-                temperature_scale_p10: i8::MAX,
                 amount_of_substance_exp: 0,
-                amount_of_substance_scale_p10: i8::MAX,
                 luminous_intensity_exp: 0,
-                luminous_intensity_scale_p10: i8::MAX,
                 angle_exp: 0,
-                angle_scale_p2: i8::MAX,
-                angle_scale_p3: i8::MAX,
-                angle_scale_p5: i8::MAX,
-                angle_scale_pi: i8::MAX,
+                scale_p2: params[5].unwrap_or(0),
+                scale_p3: params[6].unwrap_or(0),
+                scale_p5: params[7].unwrap_or(0),
+                scale_p10: params[1].unwrap_or(0), // mass_scale_p10 in old format
+                scale_pi: 0,
                 generic_type,
             })
         } else {
@@ -1187,31 +1150,43 @@ impl WhippyUnitsTypeConverter {
             let params_str = &caps[1];
             let params: Vec<&str> = params_str.split(',').map(|s| s.trim()).collect();
             
-            if params.len() >= 8 {
+            if params.len() >= 14 {
                 // Check if any dimension has a non-zero exponent but sentinel scale values
                 // This indicates a partially resolved type
                 
-                // Mass dimension: params[0] = exp, params[1] = scale
-                let mass_exp = params[0].parse::<i8>().unwrap_or(0);
-                let mass_scale = if params[1] == "_" { i8::MIN } else { params[1].parse::<i8>().unwrap_or(i8::MAX) };
-                if mass_exp != 0 && mass_scale == i8::MIN {
-                    return true; // Mass has exponent but unknown scale
+                // Check dimension exponents (params[0-7])
+                for i in 0..8 {
+                    let exp = params[i].parse::<i16>().unwrap_or(0);
+                    if exp != 0 {
+                        // Check if any scale parameter has sentinel value
+                        for j in 8..13 { // scale parameters are at indices 8-12
+                            let scale = if params[j] == "_" { i16::MIN } else { params[j].parse::<i16>().unwrap_or(i16::MAX) };
+                            if scale == i16::MIN {
+                                return true; // Has exponent but unknown scale
+                            }
+                        }
+                    }
+                }
+            } else if params.len() >= 8 {
+                // Legacy format - check old structure
+                let mass_exp = params[0].parse::<i16>().unwrap_or(0);
+                let mass_scale = if params[1] == "_" { i16::MIN } else { params[1].parse::<i16>().unwrap_or(i16::MAX) };
+                if mass_exp != 0 && mass_scale == i16::MIN {
+                    return true;
                 }
                 
-                // Length dimension: params[2] = exp, params[3] = scale  
-                let length_exp = params[2].parse::<i8>().unwrap_or(0);
-                let length_scale = if params[3] == "_" { i8::MIN } else { params[3].parse::<i8>().unwrap_or(i8::MAX) };
-                if length_exp != 0 && length_scale == i8::MIN {
-                    return true; // Length has exponent but unknown scale
+                let length_exp = params[2].parse::<i16>().unwrap_or(0);
+                let length_scale = if params[3] == "_" { i16::MIN } else { params[3].parse::<i16>().unwrap_or(i16::MAX) };
+                if length_exp != 0 && length_scale == i16::MIN {
+                    return true;
                 }
                 
-                // Time dimension: params[4] = exp, params[5-7] = p2, p3, p5
-                let time_exp = params[4].parse::<i8>().unwrap_or(0);
-                let time_p2 = if params[5] == "_" { i8::MIN } else { params[5].parse::<i8>().unwrap_or(i8::MAX) };
-                let time_p3 = if params[6] == "_" { i8::MIN } else { params[6].parse::<i8>().unwrap_or(i8::MAX) };
-                let time_p5 = if params[7] == "_" { i8::MIN } else { params[7].parse::<i8>().unwrap_or(i8::MAX) };
-                if time_exp != 0 && (time_p2 == i8::MIN || time_p3 == i8::MIN || time_p5 == i8::MIN) {
-                    return true; // Time has exponent but unknown scale
+                let time_exp = params[4].parse::<i16>().unwrap_or(0);
+                let time_p2 = if params[5] == "_" { i16::MIN } else { params[5].parse::<i16>().unwrap_or(i16::MAX) };
+                let time_p3 = if params[6] == "_" { i16::MIN } else { params[6].parse::<i16>().unwrap_or(i16::MAX) };
+                let time_p5 = if params[7] == "_" { i16::MIN } else { params[7].parse::<i16>().unwrap_or(i16::MAX) };
+                if time_exp != 0 && (time_p2 == i16::MIN || time_p3 == i16::MIN || time_p5 == i16::MIN) {
+                    return true;
                 }
             }
         }
@@ -1252,28 +1227,20 @@ impl WhippyUnitsTypeConverter {
 
 #[derive(Debug)]
 struct QuantityParams {
-    mass_exp: i8,
-    mass_scale_p10: i8,
-    length_exp: i8,
-    length_scale_p10: i8,
-    time_exp: i8,
-    time_scale_p2: i8,
-    time_scale_p3: i8,
-    time_scale_p5: i8,
-    electric_current_exp: i8,
-    electric_current_scale_p10: i8,
-    temperature_exp: i8,
-    temperature_scale_p10: i8,
-    amount_of_substance_exp: i8,
-    amount_of_substance_scale_p10: i8,
-    luminous_intensity_exp: i8,
-    luminous_intensity_scale_p10: i8,
-    angle_exp: i8,
-    angle_scale_p2: i8,
-    angle_scale_p3: i8,
-    angle_scale_p5: i8,
-    angle_scale_pi: i8,
-    generic_type: String, // New field for the generic type parameter
+    mass_exp: i16,
+    length_exp: i16,
+    time_exp: i16,
+    electric_current_exp: i16,
+    temperature_exp: i16,
+    amount_of_substance_exp: i16,
+    luminous_intensity_exp: i16,
+    angle_exp: i16,
+    scale_p2: i16,
+    scale_p3: i16,
+    scale_p5: i16,
+    scale_p10: i16,
+    scale_pi: i16,
+    generic_type: String,
 }
 
 
@@ -1511,7 +1478,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\npub fn rescale<const MASS_EXPONENT: i8, const MASS_SCALE_P10_FROM: i8, const MASS_SCALE_P10_TO: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10_FROM: i8, const LENGTH_SCALE_P10_TO: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2_FROM: i8, const TIME_SCALE_P3_FROM: i8, const TIME_SCALE_P5_FROM: i8, const TIME_SCALE_P2_TO: i8, const TIME_SCALE_P3_TO: i8, const TIME_SCALE_P5_TO: i8>(quantity: Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>) -> Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>\n```"
+                    "value": "```rust\npub fn rescale<const MASS_EXPONENT: i16, const MASS_SCALE_P10_FROM: i16, const MASS_SCALE_P10_TO: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10_FROM: i16, const LENGTH_SCALE_P10_TO: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2_FROM: i16, const TIME_SCALE_P3_FROM: i16, const TIME_SCALE_P5_FROM: i16, const TIME_SCALE_P2_TO: i16, const TIME_SCALE_P3_TO: i16, const TIME_SCALE_P5_TO: i16>(quantity: Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>) -> Quantity<Unknown; [mass⁰(unused), length⁰(unused), time⁰(unused))]>\n```"
                 }
             }
         });
@@ -1554,7 +1521,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Add for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Add for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
                 }
             }
         });
@@ -1582,9 +1549,9 @@ mod tests {
         // The type converter should process the Quantity type and show the pretty output
         // We expect something like Quantity<?> or the full pretty-printed format
         assert!(contents_str.contains("Quantity<"));
-        assert!(!contents_str.contains("const MASS_EXPONENT: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: i16"));
         
         // Test Sub trait
         let sub_hover_response = json!({
@@ -1592,7 +1559,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Sub for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Sub for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
                 }
             }
         });
@@ -1620,9 +1587,9 @@ mod tests {
         // The type converter should process the Quantity type and show the pretty output
         // We expect something like Quantity<?> or the full pretty-printed format
         assert!(contents_str.contains("Quantity<"));
-        assert!(!contents_str.contains("const MASS_EXPONENT: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: i16"));
         
         // Test Mul trait
         let mul_hover_response = json!({
@@ -1631,7 +1598,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT1: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT1: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT1: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT1: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT1: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
                 }
             }
         });
@@ -1658,9 +1625,9 @@ mod tests {
         assert!(contents_str.contains("impl Mul for"));
         assert!(contents_str.contains("Quantity<"));
         // The type converter should process the Quantity types and show the pretty output
-        assert!(!contents_str.contains("const MASS_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT1: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: i16"));
         
         // Test Div trait
         let div_hover_response = json!({
@@ -1669,7 +1636,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT1: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT1: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT1: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Div for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT1: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT1: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Div for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
                 }
             }
         });
@@ -1696,9 +1663,9 @@ mod tests {
         assert!(contents_str.contains("impl Div for"));
         assert!(contents_str.contains("Quantity<"));
         // The type converter should process the Quantity types and show the pretty output
-        assert!(!contents_str.contains("const MASS_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT1: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: i16"));
         
         // Test scalar Mul trait (Quantity * f64)
         let scalar_mul_hover_response = json!({
@@ -1707,7 +1674,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Mul<f64> for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Mul<f64> for Quantity<MASS_EXPONENT, MASS_SCALE_P10, LENGTH_EXPONENT, LENGTH_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\n```"
                 }
             }
         });
@@ -1735,9 +1702,9 @@ mod tests {
         assert!(contents_str.contains("for Quantity<"));
         // The type converter should process the Quantity type and show the pretty output
         assert!(contents_str.contains("Quantity<"));
-        assert!(!contents_str.contains("const MASS_EXPONENT: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: i16"));
         
         // Test Mul for pattern (where LSP doesn't preserve generic parameters)
         let mul_for_hover_response = json!({
@@ -1746,7 +1713,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Mul for Quantity<LENGTH_EXPONENT, LENGTH_SCALE_P10, MASS_EXPONENT, MASS_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nfn mul(self, other: f64) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Mul for Quantity<LENGTH_EXPONENT, LENGTH_SCALE_P10, MASS_EXPONENT, MASS_SCALE_P10, TIME_EXPONENT, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nfn mul(self, other: f64) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
                 }
             }
         });
@@ -1774,9 +1741,9 @@ mod tests {
         assert!(contents_str.contains("for Quantity<"));
         // The type converter should process the Quantity type and show the pretty output
         assert!(contents_str.contains("Quantity<"));
-        assert!(!contents_str.contains("const MASS_EXPONENT: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: i16"));
         
         // Test Mul trait with where clause (Quantity-Quantity case)
         let mul_where_hover_response = json!({
@@ -1785,7 +1752,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT1: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT1: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT1: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nwhere\n    MASS_EXPONENT1: i8,\n    LENGTH_EXPONENT1: i8,\n    TIME_EXPONENT1: i8,\n    MASS_SCALE_P10: i8,\n    LENGTH_SCALE_P10: i8,\n    TIME_SCALE_P2: i8,\n    TIME_SCALE_P3: i8,\n    TIME_SCALE_P5: i8,\n{\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT1: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT1: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT1: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Mul for Quantity<MASS_EXPONENT1, MASS_SCALE_P10, LENGTH_EXPONENT1, LENGTH_SCALE_P10, TIME_EXPONENT1, TIME_SCALE_P2, TIME_SCALE_P3, TIME_SCALE_P5>\nwhere\n    MASS_EXPONENT1: i16,\n    LENGTH_EXPONENT1: i16,\n    TIME_EXPONENT1: i16,\n    MASS_SCALE_P10: i16,\n    LENGTH_SCALE_P10: i16,\n    TIME_SCALE_P2: i16,\n    TIME_SCALE_P3: i16,\n    TIME_SCALE_P5: i16,\n{\n```"
                 }
             }
         });
@@ -1814,12 +1781,12 @@ mod tests {
         assert!(contents_str.contains("impl Mul for"));
         assert!(contents_str.contains("Quantity<"));
         // The type converter should process the Quantity types and show the pretty output
-        assert!(!contents_str.contains("const MASS_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT1: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT1: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT1: i16"));
         // Should not contain the where clause
         assert!(!contents_str.contains("where"));
-        assert!(!contents_str.contains("MASS_EXPONENT1: i8"));
+        assert!(!contents_str.contains("MASS_EXPONENT1: i16"));
     }
 
     #[test]
@@ -1833,7 +1800,7 @@ mod tests {
             "result": {
                 "contents": {
                     "kind": "markdown",
-                    "value": "```rust\nimpl<const MASS_EXPONENT: i8, const MASS_SCALE_P10: i8, const LENGTH_EXPONENT: i8, const LENGTH_SCALE_P10: i8, const TIME_EXPONENT: i8, const TIME_SCALE_P2: i8, const TIME_SCALE_P3: i8, const TIME_SCALE_P5: i8> Mul for f64\nfn mul(self: f64, other: Self::Output) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
+                    "value": "```rust\nimpl<const MASS_EXPONENT: i16, const MASS_SCALE_P10: i16, const LENGTH_EXPONENT: i16, const LENGTH_SCALE_P10: i16, const TIME_EXPONENT: i16, const TIME_SCALE_P2: i16, const TIME_SCALE_P3: i16, const TIME_SCALE_P5: i16> Mul for f64\nfn mul(self: f64, other: Self::Output) -> Self::Output\nPerforms the * operation.\n\nExample\nassert_eq!(12 * 2, 24);\n```"
                 }
             }
         });
@@ -1863,8 +1830,8 @@ mod tests {
         assert!(contents_str.contains("fn mul(self: f64, other: Self::Output) -> Self::Output"));
         assert!(contents_str.contains("Performs the * operation."));
         // Should not contain the const generic parameters
-        assert!(!contents_str.contains("const MASS_EXPONENT: i8"));
-        assert!(!contents_str.contains("const LENGTH_EXPONENT: i8"));
-        assert!(!contents_str.contains("const TIME_EXPONENT: i8"));
+        assert!(!contents_str.contains("const MASS_EXPONENT: i16"));
+        assert!(!contents_str.contains("const LENGTH_EXPONENT: i16"));
+        assert!(!contents_str.contains("const TIME_EXPONENT: i16"));
     }
 }

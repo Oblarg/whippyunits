@@ -499,8 +499,13 @@ dependencies = [
  "quote",
  "syn",
  "trybuild",
+ "whippyunits-default-dimensions",
  "whippyunits-proc-macros",
 ]
+
+[[package]]
+name = "whippyunits-default-dimensions"
+version = "0.1.0"
 
 [[package]]
 name = "whippyunits-proc-macros"
@@ -509,6 +514,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "whippyunits-default-dimensions",
 ]
 
 [[package]]

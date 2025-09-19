@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
 mod define_generic_dimension;
+mod unit_macro;
 
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
@@ -9,11 +10,15 @@ pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
+#[proc_macro]
+pub fn proc_unit(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as unit_macro::UnitMacroInput);
+    input.expand().into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proc_macro2::TokenStream;
-    use syn::parse::Parse;
     
     #[test]
     fn test_parse_input() {
@@ -24,9 +29,7 @@ mod tests {
         
         let parsed = parsed.unwrap();
         assert_eq!(parsed.trait_name.to_string(), "LengthOrMass");
-        assert_eq!(parsed.dimension_types.len(), 2);
-        assert_eq!(parsed.dimension_types[0].to_string(), "Length");
-        assert_eq!(parsed.dimension_types[1].to_string(), "Mass");
+        assert_eq!(parsed.dimension_exprs.len(), 2);
     }
     
     #[test]

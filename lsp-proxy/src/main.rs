@@ -257,6 +257,26 @@ async fn spawn_rust_analyzer(path: &str, args: &[String]) -> Result<Child> {
        .stdout(Stdio::piped())
        .stderr(Stdio::piped());
     
+    // Explicitly set critical environment variables for rust-analyzer
+    if let Ok(path) = std::env::var("PATH") {
+        cmd.env("PATH", path);
+    }
+    if let Ok(developer_dir) = std::env::var("DEVELOPER_DIR") {
+        cmd.env("DEVELOPER_DIR", developer_dir);
+    }
+    if let Ok(sdkroot) = std::env::var("SDKROOT") {
+        cmd.env("SDKROOT", sdkroot);
+    }
+    if let Ok(rust_log) = std::env::var("RUST_LOG") {
+        cmd.env("RUST_LOG", rust_log);
+    }
+    
+    // Log the environment variables we're setting
+    info!("Setting environment for rust-analyzer:");
+    info!("  PATH: {}", std::env::var("PATH").unwrap_or_default());
+    info!("  DEVELOPER_DIR: {}", std::env::var("DEVELOPER_DIR").unwrap_or_default());
+    info!("  SDKROOT: {}", std::env::var("SDKROOT").unwrap_or_default());
+    
     info!("Spawning rust-analyzer: {:?}", cmd);
     
     let child = cmd.spawn()?;

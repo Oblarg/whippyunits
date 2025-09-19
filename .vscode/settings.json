@@ -1,8 +1,13 @@
 {
     "rust-analyzer.server.path": "/Users/emichaelbarnettgmail.com/Developer/whippyunits/lsp-proxy/target/release/lsp-proxy",
+    "rust-analyzer.checkOnSave": true,
+    "rust-analyzer.procMacro.enable": true,
+    "rust-analyzer.cargo.buildScripts.enable": true,
     "rust-analyzer.server.extraEnv": {
         "RUST_LOG": "debug",
-        "PATH": "/Users/emichaelbarnettgmail.com/.rustup/toolchains/nightly-aarch64-apple-darwin/bin:${env:PATH}",
+        "PATH": "/Users/emichaelbarnettgmail.com/.rustup/toolchains/nightly-aarch64-apple-darwin/bin:/Users/emichaelbarnettgmail.com/.cargo/bin:/opt/homebrew/bin:/Users/emichaelbarnettgmail.com/.bun/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/Users/emichaelbarnettgmail.com/.nvm/versions/node/v20.13.1/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/emichaelbarnettgmail.com/.cargo/bin:/Users/emichaelbarnettgmail.com/.bun/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/Users/emichaelbarnettgmail.com/.nvm/versions/node/v20.13.1/bin:/Users/emichaelbarnettgmail.com/.rvm/bin:/Users/emichaelbarnettgmail.com/.rvm/bin",
+        "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer",
+        "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk",
         "WHIPPYUNITS_VERBOSE": "true",
         "WHIPPYUNITS_UNICODE": "true",
         "WHIPPYUNITS_INCLUDE_RAW": "true"

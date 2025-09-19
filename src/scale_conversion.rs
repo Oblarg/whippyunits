@@ -1,4 +1,4 @@
-use crate::generated_quantity_type::Quantity;
+use crate::quantity_type::Quantity;
 
 pub const fn pow10(exp: i32) -> (i128, i128) {
     match exp {
@@ -116,37 +116,7 @@ pub const fn powPi(exp: i32) -> (i128, i128) {
 }
 
 #[macro_export]
-macro_rules! define_composite_scale_factor {
-    (
-        ($($composite_scale_factor_params:tt)*), 
-        $exponent:ident,
-        ($($composite_scale_factor_one_pow_exprs:tt)*),
-        ($($composite_scale_factor_default_pow_exprs:tt)*),
-        ($($composite_scale_factor_num_expr:tt)*),
-        ($($composite_scale_factor_den_expr:tt)*),
-        $fn:ident,
-    ) => {
-        pub const fn $fn(
-            $($composite_scale_factor_params)*,
-            $exponent: i8,
-        ) -> (i128, i128) {
-            match $exponent {
-                0 => (1, 1),
-                1 => {
-                    $($composite_scale_factor_one_pow_exprs)*
-                    ($($composite_scale_factor_num_expr)*, $($composite_scale_factor_den_expr)*)
-                }
-                _ => {
-                    $($composite_scale_factor_default_pow_exprs)*
-                    ($($composite_scale_factor_num_expr)*, $($composite_scale_factor_den_expr)*)
-                }
-            }
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! define_aggregate_scale_factor {
+macro_rules! define_aggregate_scale_factor_rational {
     (
         ($($aggregate_scale_factor_params:tt)*), 
         ($($aggregate_scale_factor_diff_exprs:tt)*), 
@@ -155,7 +125,7 @@ macro_rules! define_aggregate_scale_factor {
         ($($aggregate_scale_factor_den_exprs:tt)*),
     ) => {
         pub const fn aggregate_scale_factor(
-            $($aggregate_scale_factor_params)*,
+            $($aggregate_scale_factor_params)*
         ) -> (i128, i128) {
             $($aggregate_scale_factor_diff_exprs)*
 
@@ -175,7 +145,7 @@ macro_rules! define_aggregate_scale_factor_float {
         ($($aggregate_scale_factor_expr:tt)*),
     ) => {
         pub fn aggregate_scale_factor_float(
-            $($aggregate_scale_factor_params)*,
+            $($aggregate_scale_factor_params)*
         ) -> f64 {
             $($aggregate_scale_factor_diff_exprs)*
 
