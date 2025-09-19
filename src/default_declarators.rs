@@ -85,28 +85,42 @@ macro_rules! define_affine_quantity {
 define_quantity!(
     1, 0, 0, 0, 0, 0, 0, 0,
     SIMass,
-    (Picogram, picograms, 0, 0, 0, -15, 0),
-    (Nanogram, nanograms, 0, 0, 0, -12, 0),
-    (Microgram, micrograms, 0, 0, 0, -9, 0),
-    (Milligram, milligrams, 0, 0, 0, -6, 0),
-    (Centigram, centigrams, 0, 0, 0, -5, 0),
-    (Decigram, decigrams, 0, 0, 0, -4, 0),
-    (Gram, grams, 0, 0, 0, -3, 0),
-    (Decagram, decagrams, 0, 0, 0, -2, 0),
-    (Hectogram, hectograms, 0, 0, 0, -1, 0),
-    (Kilogram, kilograms, 0, 0, 0, 0, 0),
-    (Megagram, megagrams, 0, 0, 0, 3, 0),
-    (Gigagram, gigagrams, 0, 0, 0, 6, 0),
-    (Teragram, teragrams, 0, 0, 0, 9, 0),
-    (Petagram, petagrams, 0, 0, 0, 12, 0),
-    (Exagram, exagrams, 0, 0, 0, 15, 0),
-    (Zettagram, zettagrams, 0, 0, 0, 18, 0),
-    (Yottagram, yottagrams, 0, 0, 0, 21, 0)
+    (Quectogram, quectograms, 0, 0, 0, -33, 0),  // -3 (gram base) + -30 (quecto)
+    (Rontogram, rontograms, 0, 0, 0, -30, 0),    // -3 (gram base) + -27 (ronto)
+    (Yoctogram, yoctograms, 0, 0, 0, -27, 0),    // -3 (gram base) + -24 (yocto)
+    (Zeptogram, zeptograms, 0, 0, 0, -24, 0),    // -3 (gram base) + -21 (zepto)
+    (Attogram, attograms, 0, 0, 0, -21, 0),      // -3 (gram base) + -18 (atto)
+    (Femtogram, femtograms, 0, 0, 0, -18, 0),    // -3 (gram base) + -15 (femto)
+    (Picogram, picograms, 0, 0, 0, -15, 0),      // -3 (gram base) + -12 (pico)
+    (Nanogram, nanograms, 0, 0, 0, -12, 0),      // -3 (gram base) + -9 (nano)
+    (Microgram, micrograms, 0, 0, 0, -9, 0),     // -3 (gram base) + -6 (micro)
+    (Milligram, milligrams, 0, 0, 0, -6, 0),     // -3 (gram base) + -3 (milli)
+    (Centigram, centigrams, 0, 0, 0, -5, 0),     // -3 (gram base) + -2 (centi)
+    (Decigram, decigrams, 0, 0, 0, -4, 0),       // -3 (gram base) + -1 (deci)
+    (Gram, grams, 0, 0, 0, -3, 0),               // -3 (gram base) + 0 (no prefix)
+    (Decagram, decagrams, 0, 0, 0, -2, 0),       // -3 (gram base) + 1 (deca)
+    (Hectogram, hectograms, 0, 0, 0, -1, 0),     // -3 (gram base) + 2 (hecto)
+    (Kilogram, kilograms, 0, 0, 0, 0, 0),        // -3 (gram base) + 3 (kilo)
+    (Megagram, megagrams, 0, 0, 0, 3, 0),        // -3 (gram base) + 6 (mega)
+    (Gigagram, gigagrams, 0, 0, 0, 6, 0),        // -3 (gram base) + 9 (giga)
+    (Teragram, teragrams, 0, 0, 0, 9, 0),        // -3 (gram base) + 12 (tera)
+    (Petagram, petagrams, 0, 0, 0, 12, 0),       // -3 (gram base) + 15 (peta)
+    (Exagram, exagrams, 0, 0, 0, 15, 0),         // -3 (gram base) + 18 (exa)
+    (Zettagram, zettagrams, 0, 0, 0, 18, 0),     // -3 (gram base) + 21 (zetta)
+    (Yottagram, yottagrams, 0, 0, 0, 21, 0),     // -3 (gram base) + 24 (yotta)
+    (Ronagram, ronagrams, 0, 0, 0, 24, 0),       // -3 (gram base) + 27 (ronna)
+    (Quettagram, quettagrams, 0, 0, 0, 27, 0)    // -3 (gram base) + 30 (quetta)
 );
 
 define_quantity!(
     0, 1, 0, 0, 0, 0, 0, 0,
     SILength,
+    (Quectometer, quectometers, 0, 0, 0, -30, 0),
+    (Rontometer, rontometers, 0, 0, 0, -27, 0),
+    (Yoctometer, yoctometers, 0, 0, 0, -24, 0),
+    (Zeptometer, zeptometers, 0, 0, 0, -21, 0),
+    (Attometer, attometers, 0, 0, 0, -18, 0),
+    (Femtometer, femtometers, 0, 0, 0, -15, 0),
     (Picometer, picometers, 0, 0, 0, -12, 0),
     (Nanometer, nanometers, 0, 0, 0, -9, 0),
     (Micrometer, micrometers, 0, 0, 0, -6, 0),
@@ -124,11 +138,19 @@ define_quantity!(
     (Exameter, exameters, 0, 0, 0, 18, 0),
     (Zettameter, zettameters, 0, 0, 0, 21, 0),
     (Yottameter, yottameters, 0, 0, 0, 24, 0),
+    (Ronameter, ronameters, 0, 0, 0, 27, 0),
+    (Quettameter, quettameters, 0, 0, 0, 30, 0),
 );
 
 define_quantity!(
     0, 0, 1, 0, 0, 0, 0, 0,
     SITime,
+    (Quectosecond, quectoseconds, -30, 0, -30, 0, 0),
+    (Rontosecond, rontoseconds, -27, 0, -27, 0, 0),
+    (Yoctosecond, yoctoseconds, -24, 0, -24, 0, 0),
+    (Zeptosecond, zeptoseconds, -21, 0, -21, 0, 0),
+    (Attosecond, attoseconds, -18, 0, -18, 0, 0),
+    (Femtosecond, femtoseconds, -15, 0, -15, 0, 0),
     (Picosecond, picoseconds, -12, 0, -12, 0, 0),
     (Nanosecond, nanoseconds, -9, 0, -9, 0, 0),
     (Microsecond, microseconds, -6, 0, -6, 0, 0),
@@ -146,6 +168,8 @@ define_quantity!(
     (Exasecond, exaseconds, 18, 0, 18, 0, 0),
     (Zettasecond, zettaseconds, 21, 0, 21, 0, 0),
     (Yottasecond, yottaseconds, 24, 0, 24, 0, 0),
+    (Ronasecond, ronaseconds, 27, 0, 27, 0, 0),
+    (Quettasecond, quettaseconds, 30, 0, 30, 0, 0),
 );
 
 define_quantity!(
@@ -159,6 +183,12 @@ define_quantity!(
 define_quantity!(
     0, 0, 0, 1, 0, 0, 0, 0,
     SICurrent,
+    (Quectoampere, quectoamperes, 0, 0, 0, -30, 0),
+    (Rontoampere, rontoamperes, 0, 0, 0, -27, 0),
+    (Yoctoampere, yoctoamperes, 0, 0, 0, -24, 0),
+    (Zeptoampere, zeptoamperes, 0, 0, 0, -21, 0),
+    (Attoampere, attoamperes, 0, 0, 0, -18, 0),
+    (Femtoampere, femtoamperes, 0, 0, 0, -15, 0),
     (Picoampere, picoamperes, 0, 0, 0, -12, 0),
     (Nanoampere, nanoamperes, 0, 0, 0, -9, 0),
     (Microampere, microamperes, 0, 0, 0, -6, 0),
@@ -176,11 +206,19 @@ define_quantity!(
     (Exaampere, exaamperes, 0, 0, 0, 18, 0),
     (Zettaampere, zettaamperes, 0, 0, 0, 21, 0),
     (Yottaampere, yottaamperes, 0, 0, 0, 24, 0),
+    (Ronaampere, ronaamperes, 0, 0, 0, 27, 0),
+    (Quettaampere, quettaamperes, 0, 0, 0, 30, 0),
 );
 
 define_quantity!(
     0, 0, 0, 0, 1, 0, 0, 0,
     SITemperature,
+    (Quectokelvin, quectokelvins, 0, 0, 0, -30, 0),
+    (Rontokelvin, rontokelvins, 0, 0, 0, -27, 0),
+    (Yoctokelvin, yoctokelvins, 0, 0, 0, -24, 0),
+    (Zeptokelvin, zeptokelvins, 0, 0, 0, -21, 0),
+    (Attokelvin, attokelvins, 0, 0, 0, -18, 0),
+    (Femtokelvin, femtokelvins, 0, 0, 0, -15, 0),
     (Picokelvin, picokelvins, 0, 0, 0, -12, 0),
     (Nanokelvin, nanokelvins, 0, 0, 0, -9, 0),
     (Microkelvin, microkelvins, 0, 0, 0, -6, 0),
@@ -198,6 +236,8 @@ define_quantity!(
     (Exakelvin, exakelvins, 0, 0, 0, 18, 0),
     (Zettakelvin, zettakelvins, 0, 0, 0, 21, 0),
     (Yottakelvin, yottakelvins, 0, 0, 0, 24, 0),
+    (Ronakelvin, ronakelvins, 0, 0, 0, 27, 0),
+    (Quettakelvin, quettakelvins, 0, 0, 0, 30, 0),
 );
 
 define_affine_quantity!(
@@ -210,6 +250,12 @@ define_affine_quantity!(
 define_quantity!(
     0, 0, 0, 0, 0, 1, 0, 0,
     SIAmount,
+    (Quectomole, quectomoles, 0, 0, 0, -30, 0),
+    (Rontomole, rontomoles, 0, 0, 0, -27, 0),
+    (Yoctomole, yoctomoles, 0, 0, 0, -24, 0),
+    (Zeptomole, zeptomoles, 0, 0, 0, -21, 0),
+    (Attomole, attomoles, 0, 0, 0, -18, 0),
+    (Femtomole, femtomoles, 0, 0, 0, -15, 0),
     (Picomole, picomoles, 0, 0, 0, -12, 0),
     (Nanomole, nanomoles, 0, 0, 0, -9, 0),
     (Micromole, micromoles, 0, 0, 0, -6, 0),
@@ -227,11 +273,19 @@ define_quantity!(
     (Examole, examoles, 0, 0, 0, 18, 0),
     (Zettamole, zettamoles, 0, 0, 0, 21, 0),
     (Yottamole, yottamoles, 0, 0, 0, 24, 0),
+    (Ronamole, ronamoles, 0, 0, 0, 27, 0),
+    (Quettamole, quettamoles, 0, 0, 0, 30, 0),
 );
 
 define_quantity!(
     0, 0, 0, 0, 0, 0, 1, 0,
     SILuminosity,
+    (Quectocandela, quectocandelas, 0, 0, 0, -30, 0),
+    (Rontocandela, rontocandelas, 0, 0, 0, -27, 0),
+    (Yoctocandela, yoctocandelas, 0, 0, 0, -24, 0),
+    (Zeptocandela, zeptocandelas, 0, 0, 0, -21, 0),
+    (Attocandela, attocandelas, 0, 0, 0, -18, 0),
+    (Femtocandela, femtocandelas, 0, 0, 0, -15, 0),
     (Picocandela, picocandelas, 0, 0, 0, -12, 0),
     (Nanocandela, nanocandelas, 0, 0, 0, -9, 0),
     (Microcandela, microcandelas, 0, 0, 0, -6, 0),
@@ -249,11 +303,19 @@ define_quantity!(
     (Exacandela, exacandelas, 0, 0, 0, 18, 0),
     (Zettacandela, zettacandelas, 0, 0, 0, 21, 0),
     (Yottacandela, yottacandelas, 0, 0, 0, 24, 0),
+    (Ronacandela, ronacandelas, 0, 0, 0, 27, 0),
+    (Quettacandela, quettacandelas, 0, 0, 0, 30, 0),
 );
 
 define_quantity!(
     0, 0, 0, 0, 0, 0, 0, 1,
     SIAngle,
+    (Quectoradian, quectoradians, -30, 0, -30, 0, 0),
+    (Rontoradian, rontoradians, -27, 0, -27, 0, 0),
+    (Yoctoradian, yoctoradians, -24, 0, -24, 0, 0),
+    (Zeptoradian, zeptoradians, -21, 0, -21, 0, 0),
+    (Attoradian, attoradians, -18, 0, -18, 0, 0),
+    (Femtoradian, femtoradians, -15, 0, -15, 0, 0),
     (Picoradian, picoradians, -12, 0, -12, 0, 0),
     (Nanoradian, nanoradians, -9, 0, -9, 0, 0),
     (Microradian, microradians, -6, 0, -6, 0, 0),
@@ -271,6 +333,8 @@ define_quantity!(
     (Exaradian, exaradians, 18, 0, 18, 0, 0),
     (Zettaradian, zettaradians, 21, 0, 21, 0, 0),
     (Yottaradian, yottaradians, 24, 0, 24, 0, 0),
+    (Ronaradian, ronaradians, 27, 0, 27, 0, 0),
+    (Quettaradian, quettaradians, 30, 0, 30, 0, 0),
 );
 
 define_quantity!(

@@ -130,6 +130,11 @@ impl UnitExpr {
 
 /// Parse a unit name to extract prefix and base unit
 fn parse_unit_name(unit_name: &str) -> (Option<&str>, &str) {
+    // First check if the entire unit name is a valid base unit (prioritize exact matches)
+    if is_valid_base_unit(unit_name) {
+        return (None, unit_name);
+    }
+    
     // Try to find the longest matching prefix
     for prefix_info in SI_PREFIXES.iter().rev() {
         if unit_name.starts_with(prefix_info.symbol) {
