@@ -189,6 +189,7 @@ macro_rules! define_int_rescale {
         );
     };
 }
+define_float_rescale!(rescale, f64);
 define_float_rescale!(rescale_f64, f64);
 
 define_int_rescale!(rescale_i64, i64);

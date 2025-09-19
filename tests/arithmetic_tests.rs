@@ -1,6 +1,6 @@
 #![feature(impl_trait_in_bindings)]
 
-use whippyunits::api::rescale_f64;
+use whippyunits::api::rescale;
 use whippyunits::unit;
 use whippyunits::quantity;
 use whippyunits::default_declarators::*;
@@ -193,22 +193,22 @@ fn test_rescale_length() {
     let m1: unit!(m) = 5.0.meters();
     
     // Rescale from meters to kilometers
-    let result: Kilometer = rescale_f64(m1);
+    let result: Kilometer = rescale(m1);
     assert_eq!(result.value, 0.005); // 5m = 0.005km
     
     // Rescale from meters to millimeters
-    let result: Millimeter = rescale_f64(m1);
+    let result: Millimeter = rescale(m1);
     assert_eq!(result.value, 5000.0); // 5m = 5000mm
 }
 
 #[test]
 fn test_rescale_mass() {    
     // Rescale from grams to kilograms
-    let result: Kilogram = rescale_f64(100.0.grams());
+    let result: Kilogram = rescale(100.0.grams());
     assert_eq!(result.value, 0.1); // 100g = 0.1kg
     
     // Rescale from grams to milligrams
-    let result: Milligram = rescale_f64(100.0.grams());
+    let result: Milligram = rescale(100.0.grams());
     assert_eq!(result.value, 100000.0); // 100g = 100000mg
 
     println!("{:?}", 1.kilograms() * 1.meters() * 1.meters() / 1.seconds() / 1.seconds());
@@ -219,11 +219,11 @@ fn test_rescale_time() {
     let s1 = 30.0.seconds();
     
     // Rescale from seconds to minutes
-    let result: Minute = rescale_f64(s1);
+    let result: Minute = rescale(s1);
     assert_eq!(result.value, 0.5); // 30s = 0.5min
     
     // Rescale from seconds to milliseconds
-    let result: Millisecond = rescale_f64(s1);
+    let result: Millisecond = rescale(s1);
     assert_eq!(result.value, 30000.0); // 30s = 30000ms
 }
 
@@ -605,6 +605,6 @@ fn test_expanded_dimension_dsl_naming_variations() {
 
 #[test]
 fn test_bespoke_quantity() {
-    let kV = quantity!(1.0, V * s / m);
-    println!("{:?}", kV);
+    let joule = quantity!(1.0, J);
+    println!("{:?}", joule);
 }

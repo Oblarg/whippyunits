@@ -1,4 +1,5 @@
 use crate::quantity_type::Quantity;
+use crate::define_generic_dimension;
 
 macro_rules! define_quantity {
     (
