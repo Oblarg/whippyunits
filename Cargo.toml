@@ -17,9 +17,6 @@ ndarray = "0.16.1"
 [dev-dependencies]
 trybuild = "1.0"
 
-[[example]]
-name = "proc_macro_usage"
-path = "examples/proc_macro_usage.rs"
 
 [features]
 default = ["strict"]

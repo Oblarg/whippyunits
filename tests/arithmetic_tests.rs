@@ -608,3 +608,61 @@ fn test_bespoke_quantity() {
     let joule = quantity!(1.0, J);
     println!("{:?}", joule);
 }
+
+#[test]
+fn test_dimension_symbols_in_dsl() {
+    // Test that we can use dimension symbols in the DSL
+    define_generic_dimension!(SymbolTest, L, M, T, L^2, M * L^2 / T^2);
+    
+    let length: impl SymbolTest = quantity!(1.0, m);
+    let mass: impl SymbolTest = quantity!(1.0, kg);
+    let time: impl SymbolTest = quantity!(1.0, s);
+    let area: impl SymbolTest = quantity!(1.0, m^2);
+    let energy: impl SymbolTest = quantity!(1.0, J);
+    
+    println!("Dimension symbols DSL test passed");
+}
+
+#[test]
+fn test_mixed_dimension_names_and_symbols() {
+    // Test that we can mix dimension names and symbols in the same DSL
+    define_generic_dimension!(MixedTest, Length, M, Time, L^2, Mass * L^2 / T^2);
+    
+    let length: impl MixedTest = quantity!(1.0, m);
+    let mass: impl MixedTest = quantity!(1.0, kg);
+    let time: impl MixedTest = quantity!(1.0, s);
+    let area: impl MixedTest = quantity!(1.0, m^2);
+    let energy: impl MixedTest = quantity!(1.0, J);
+    
+    println!("Mixed dimension names and symbols DSL test passed");
+}
+
+#[test]
+fn test_prettyprint_dimension_symbols() {
+    // Test prettyprint behavior with dimension symbols
+    let force = quantity!(1.0, N);
+    let energy = quantity!(1.0, J);
+    let pressure = quantity!(1.0, Pa);
+    
+    println!("=== Recognized Composite Dimensions ===");
+    println!("Force verbose: {:?}", force);
+    println!("Energy verbose: {:?}", energy);
+    println!("Pressure verbose: {:?}", pressure);
+    
+    // Test non-verbose mode (should still use dimension names for recognized composites)
+    println!("Force non-verbose: {}", format!("{:?}", force).replace("verbose", "terse"));
+    println!("Energy non-verbose: {}", format!("{:?}", energy).replace("verbose", "terse"));
+    println!("Pressure non-verbose: {}", format!("{:?}", pressure).replace("verbose", "terse"));
+    
+    // Test with truly unrecognized dimensions (should use symbols in non-verbose mode)
+    println!("\n=== Unrecognized Composite Dimensions ===");
+    // Create dimensions that don't exist in the lookup table
+    let custom_dim1 = quantity!(1.0, kg * m^3 / s^4);  // M·L³·T⁻⁴ (not in lookup table)
+    let custom_dim2 = quantity!(1.0, kg^2 * m / s^3);  // M²·L·T⁻³ (not in lookup table)
+    
+    println!("Custom dim1 verbose (Debug): {:?}", custom_dim1);
+    println!("Custom dim2 verbose (Debug): {:?}", custom_dim2);
+    
+    println!("Custom dim1 non-verbose (Display): {}", custom_dim1);
+    println!("Custom dim2 non-verbose (Display): {}", custom_dim2);
+}

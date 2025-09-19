@@ -4,9 +4,22 @@ use syn::{Ident, Token, LitInt};
 use syn::punctuated::Punctuated;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::{Star, Slash, Caret, Comma};
-use whippyunits_default_dimensions::lookup_dimension_by_name;
+use whippyunits_default_dimensions::{lookup_dimension_by_name, DIMENSION_LOOKUP};
 
-// Parse dimension expressions like "Length / Time" or "Mass * Length^2 / Time^2"
+/// Look up dimension information by symbol
+/// 
+/// Returns the dimension info if found, or None if the symbol is not recognized.
+fn lookup_dimension_by_symbol(symbol: &str) -> Option<&'static whippyunits_default_dimensions::DimensionInfo> {
+    DIMENSION_LOOKUP.iter().find(|info| {
+        if let Some(dim_symbol) = info.symbol {
+            dim_symbol == symbol
+        } else {
+            false
+        }
+    })
+}
+
+// Parse dimension expressions like "Length / Time", "L / T", or "Mass * Length^2 / Time^2", "M * L^2 / T^2"
 pub enum DimensionExpr {
     Dimension(Ident),
     Mul(Box<DimensionExpr>, Box<DimensionExpr>),
@@ -68,19 +81,32 @@ impl DimensionExpr {
     fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
             DimensionExpr::Dimension(ident) => {
-                let name = ident.to_string();
-                match lookup_dimension_by_name(&name) {
-                    Some(dim_info) => dim_info.exponents,
-                    None => {
-                        // Generate a helpful error message with all supported dimensions
-                        let supported_dims: Vec<&str> = whippyunits_default_dimensions::DIMENSION_LOOKUP
-                            .iter()
-                            .map(|info| info.name)
-                            .collect();
-                        panic!("Unsupported dimension: '{}'. Supported dimensions: {}", 
-                               name, supported_dims.join(", "));
-                    }
+                let name_or_symbol = ident.to_string();
+                
+                // First try to look up by name
+                if let Some(dim_info) = lookup_dimension_by_name(&name_or_symbol) {
+                    return dim_info.exponents;
                 }
+                
+                // If not found by name, try to look up by symbol
+                if let Some(dim_info) = lookup_dimension_by_symbol(&name_or_symbol) {
+                    return dim_info.exponents;
+                }
+                
+                // If neither works, generate a helpful error message
+                let supported_names: Vec<&str> = DIMENSION_LOOKUP
+                    .iter()
+                    .map(|info| info.name)
+                    .collect();
+                let supported_symbols: Vec<&str> = DIMENSION_LOOKUP
+                    .iter()
+                    .filter_map(|info| info.symbol)
+                    .collect();
+                
+                panic!("Unsupported dimension: '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
+                       name_or_symbol, 
+                       supported_names.join(", "),
+                       supported_symbols.join(", "));
             },
             DimensionExpr::Mul(a, b) => {
                 let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate();

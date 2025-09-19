@@ -1,6 +1,7 @@
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::utils::{to_unicode_superscript, get_si_prefix};
+use whippyunits_default_dimensions::DIMENSION_LOOKUP;
 
 // Helper function to get unicode exponent
 fn get_unicode_exponent(exp: i16) -> String {
@@ -16,39 +17,31 @@ fn format_scale_exponent(scale: i16) -> String {
     }
 }
 
-#[macro_export]
-macro_rules! define_generate_dimension_symbols {
-    (($($dimension_symbols:tt)*)) => {
-        pub fn generate_dimension_symbols(
-            exponents: Vec<i16>
-        ) -> String {
-            let parts: Vec<String> = [
-                $($dimension_symbols)*
-            ].iter()
-            .filter(|(idx, _)| exponents[*idx] != 0)
-            .map(|(idx, symbol)| {
-                let superscript = to_unicode_superscript(exponents[*idx], false);
-                format!("{}{}", symbol, superscript)
-            })
-            .collect();
-            
-            if parts.is_empty() { "?".to_string() } else { parts.join("·") }
-        }
-    };
+/// Generate dimension symbols from atomic dimension symbols and exponents
+/// 
+/// This function uses the atomic dimension symbols from the default-dimensions
+/// source of truth to generate composite dimension symbols.
+pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
+    // Get atomic dimension symbols from the source of truth
+    let atomic_symbols: Vec<&str> = DIMENSION_LOOKUP
+        .iter()
+        .take(8) // First 8 are the atomic dimensions
+        .map(|info| info.symbol.unwrap_or("?"))
+        .collect();
+    
+    let parts: Vec<String> = exponents
+        .iter()
+        .enumerate()
+        .filter(|(_, &exp)| exp != 0)
+        .map(|(idx, &exp)| {
+            let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
+            let superscript = to_unicode_superscript(exp, false);
+            format!("{}{}", symbol, superscript)
+        })
+        .collect();
+    
+    if parts.is_empty() { "?".to_string() } else { parts.join("·") }
 }
-
-define_generate_dimension_symbols!(
-    (
-        (0, "M"),
-        (1, "L"), 
-        (2, "T"),
-        (3, "I"),
-        (4, "θ"),
-        (5, "N"),
-        (6, "Cd"),
-        (7, "A")
-    )
-);
 
 #[macro_export]
 macro_rules! define_generate_verbose_dimension_names {
@@ -296,14 +289,15 @@ macro_rules! define_pretty_print_quantity {
             };
             
             let dimension_name = if let Some(ref info) = dimension_info {
-                // For recognized dimensions, show the dimension name in both modes
+                // For recognized composite dimensions, always use the dimension name (e.g., "Force", "Energy")
+                // regardless of verbose/non-verbose mode, since these are established names
                 info.dimension_name.to_string()
             } else {
                 if verbose {
                     // For unrecognized dimensions in verbose mode, generate verbose dimension names
                     generate_verbose_dimension_names([$($dimension_args)*].to_vec())
                 } else {
-                    // For unrecognized dimensions, compute dimension symbol dynamically from exponents
+                    // For unrecognized dimensions in non-verbose mode, use dimension symbols
                     generate_dimension_symbols([$($dimension_args)*].to_vec())
                 }
             };
