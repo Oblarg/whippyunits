@@ -4,6 +4,7 @@ use regex::Regex;
 
 
 pub mod inlay_hint_processor;
+pub mod rustc_pretty;
 
 
 

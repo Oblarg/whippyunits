@@ -9,6 +9,8 @@ use whippyunits::define_generic_dimension;
 #[test]
 fn test_addition_same_scale() {
     let m1 = 5.0.meters();
+
+    let area = m1 * m1;
     
     // Same scale addition should work
     let result = m1 + 3.0.meters();

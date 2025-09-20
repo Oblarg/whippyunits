@@ -1,3 +1,12 @@
+[workspace]
+members = [
+    ".",
+    "proc-macros",
+    "default-dimensions", 
+    "shared-dimension-data",
+    "lsp-proxy",
+]
+
 [package]
 name = "whippyunits"
 version = "0.1.0"

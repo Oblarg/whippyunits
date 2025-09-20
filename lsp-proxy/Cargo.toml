@@ -13,11 +13,16 @@ log = "0.4"
 env_logger = "0.10"
 tempfile = "3.0"
 shellexpand = "3.0"
+clap = { version = "4.0", features = ["derive"] }
 whippyunits = { path = ".." }
 
 [[bin]]
 name = "lsp-proxy"
 path = "src/main.rs"
+
+[[bin]]
+name = "whippyunits-pretty"
+path = "src/pretty_main.rs"
 
 
 
