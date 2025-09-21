@@ -764,3 +764,126 @@ pub fn lookup_si_prefix(prefix: &str) -> Option<&'static PrefixInfo> {
 pub fn lookup_base_unit(unit: &str) -> Option<&'static BaseUnitInfo> {
     BASE_UNITS.iter().find(|info| info.symbol == unit)
 }
+
+/// Map scale type names to their base unit symbols
+/// This function takes a scale type name (like "Kilogram", "Millimeter") and returns
+/// the corresponding base unit symbol (like "g", "m") that can be used in unit expressions.
+pub fn scale_type_to_base_unit(scale_type: &str) -> Option<&'static str> {
+    // Map the scale type names to their base unit symbols
+    match scale_type {
+        // Mass scales
+        "Kilogram" | "Gram" | "Milligram" | "Microgram" | "Nanogram" | "Picogram" | "Femtogram" | "Attogram" | "Zeptogram" | "Yoctogram" |
+        "Megagram" | "Gigagram" | "Teragram" | "Petagram" | "Exagram" | "Zettagram" | "Yottagram" => Some("g"),
+        
+        // Length scales  
+        "Meter" | "Millimeter" | "Micrometer" | "Nanometer" | "Picometer" | "Femtometer" | "Attometer" | "Zeptometer" | "Yoctometer" |
+        "Kilometer" | "Megameter" | "Gigameter" | "Terameter" | "Petameter" | "Exameter" | "Zettameter" | "Yottameter" => Some("m"),
+        
+        // Time scales
+        "Second" | "Millisecond" | "Microsecond" | "Nanosecond" | "Picosecond" | "Femtosecond" | "Attosecond" | "Zeptosecond" | "Yoctosecond" |
+        "Kilosecond" | "Megasecond" | "Gigasecond" | "Terasecond" | "Petasecond" | "Exasecond" | "Zettasecond" | "Yottasecond" => Some("s"),
+        
+        // Current scales
+        "Ampere" | "Milliampere" | "Microampere" | "Nanoampere" | "Picoampere" | "Femtoampere" | "Attoampere" | "Zeptoampere" | "Yoctoampere" |
+        "Kiloampere" | "Megaampere" | "Gigaampere" | "Teraampere" | "Petaampere" | "Exaampere" | "Zettaampere" | "Yottaampere" => Some("A"),
+        
+        // Temperature scales
+        "Kelvin" | "Millikelvin" | "Microkelvin" | "Nanokelvin" | "Picokelvin" | "Femtokelvin" | "Attokelvin" | "Zeptokelvin" | "Yoctokelvin" |
+        "Kilokelvin" | "Megakelvin" | "Gigakelvin" | "Terakelvin" | "Petakelvin" | "Exakelvin" | "Zettakelvin" | "Yottakelvin" => Some("K"),
+        
+        // Amount scales
+        "Mole" | "Millimole" | "Micromole" | "Nanomole" | "Picomole" | "Femtomole" | "Attomole" | "Zeptomole" | "Yoctomole" |
+        "Kilomole" | "Megamole" | "Gigamole" | "Teramole" | "Petamole" | "Examole" | "Zettamole" | "Yottamole" => Some("mol"),
+        
+        // Luminosity scales
+        "Candela" | "Millicandela" | "Microcandela" | "Nanocandela" | "Picocandela" | "Femtocandela" | "Attocandela" | "Zeptocandela" | "Yoctocandela" |
+        "Kilocandela" | "Megacandela" | "Gigacandela" | "Teracandela" | "Petacandela" | "Exacandela" | "Zettacandela" | "Yottacandela" => Some("cd"),
+        
+        // Angle scales
+        "Radian" | "Milliradian" | "Microradian" | "Nanoradian" | "Picoradian" | "Femtoradian" | "Attoradian" | "Zeptoradian" | "Yoctoradian" |
+        "Kiloradian" | "Megaradian" | "Gigaradian" | "Teraradian" | "Petaradian" | "Exaradian" | "Zettaradian" | "Yottaradian" => Some("rad"),
+        
+        _ => None,
+    }
+}
+
+/// Parse a scale type name to extract prefix and base unit, then construct the unit symbol
+/// This function takes a scale type name (like "Kilogram", "Millimeter") and returns
+/// the corresponding unit symbol (like "kg", "mm") that can be used in unit expressions.
+/// 
+/// It uses the same parsing logic as the unit! macro to extract prefixes and base units.
+pub fn scale_type_to_unit_symbol(scale_type: &str) -> Option<String> {
+    // Map scale type names to their corresponding base unit names
+    let base_unit_name = match scale_type {
+        // Mass scales - all end with "gram"
+        name if name.ends_with("gram") => "gram",
+        // Length scales - all end with "meter"  
+        name if name.ends_with("meter") => "meter",
+        // Time scales - all end with "second"
+        name if name.ends_with("second") => "second",
+        // Current scales - all end with "ampere"
+        name if name.ends_with("ampere") => "ampere",
+        // Temperature scales - all end with "kelvin"
+        name if name.ends_with("kelvin") => "kelvin",
+        // Amount scales - all end with "mole"
+        name if name.ends_with("mole") => "mole",
+        // Luminosity scales - all end with "candela"
+        name if name.ends_with("candela") => "candela",
+        // Angle scales - all end with "radian"
+        name if name.ends_with("radian") => "radian",
+        _ => return None,
+    };
+    
+    // Extract the prefix from the scale type name
+    let prefix = if scale_type.len() > base_unit_name.len() {
+        &scale_type[..scale_type.len() - base_unit_name.len()]
+    } else {
+        "" // No prefix
+    };
+    
+    // Map base unit names to their symbols
+    let base_unit_symbol = match base_unit_name {
+        "gram" => "g",
+        "meter" => "m", 
+        "second" => "s",
+        "ampere" => "A",
+        "kelvin" => "K",
+        "mole" => "mol",
+        "candela" => "cd",
+        "radian" => "rad",
+        _ => return None,
+    };
+    
+    // Map prefix names to their symbols
+    let prefix_symbol = match prefix {
+        "" => "",
+        "Quecto" => "q",
+        "Ronto" => "r", 
+        "Yocto" => "y",
+        "Zepto" => "z",
+        "Atto" => "a",
+        "Femto" => "f",
+        "Pico" => "p",
+        "Nano" => "n",
+        "Micro" => "u",
+        "Milli" => "m",
+        "Centi" => "c",
+        "Deci" => "d",
+        "Deca" => "da",
+        "Hecto" => "h",
+        "Kilo" => "k",
+        "Mega" => "M",
+        "Giga" => "G",
+        "Tera" => "T",
+        "Peta" => "P",
+        "Exa" => "E",
+        "Zetta" => "Z",
+        "Yotta" => "Y",
+        "Ronna" => "R",
+        "Quetta" => "Q",
+        _ => return None,
+    };
+    
+    // Construct the unit symbol
+    Some(format!("{}{}", prefix_symbol, base_unit_symbol))
+}

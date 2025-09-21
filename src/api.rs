@@ -193,6 +193,7 @@ define_float_rescale!(rescale, f64);
 define_float_rescale!(rescale_f64, f64);
 
 define_int_rescale!(rescale_i64, i64);
+define_int_rescale!(rescale_i32, i32);
 
 #[macro_export]
 macro_rules! define_arithmetic {
@@ -323,6 +324,7 @@ macro_rules! define_arithmetic {
     }
 }
 define_arithmetic!(f64, rescale_f64);
+define_arithmetic!(i32, rescale_i32);
 
 
 define_display_traits!(

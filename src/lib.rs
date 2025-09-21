@@ -31,5 +31,6 @@ pub use scoped_preferences::*;
 // Re-export the proc macros for consumers to use
 pub use whippyunits_proc_macros::define_generic_dimension;
 pub use whippyunits_proc_macros::proc_unit as unit;
+pub use whippyunits_proc_macros::local_unit_type;
 
 

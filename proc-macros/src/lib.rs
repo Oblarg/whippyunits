@@ -3,6 +3,7 @@ use syn::parse_macro_input;
 
 mod define_generic_dimension;
 mod unit_macro;
+mod local_quantity_macro;
 
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
@@ -13,6 +14,12 @@ pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn proc_unit(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as unit_macro::UnitMacroInput);
+    input.expand().into()
+}
+
+#[proc_macro]
+pub fn local_unit_type(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as local_quantity_macro::LocalQuantityMacroInput);
     input.expand().into()
 }
 

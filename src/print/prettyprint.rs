@@ -409,7 +409,7 @@ macro_rules! define_pretty_print_quantity_helpers {
             )
         }
 
-        /// Ultra-terse pretty print for inlay hints - shows only the unit literal
+        /// Ultra-terse pretty print for inlay hints - shows only the unit literal with SI prefixes
         pub fn pretty_print_quantity_inlay_hint(
             $($dimension_signature_params)*
         ) -> String {
@@ -418,11 +418,38 @@ macro_rules! define_pretty_print_quantity_helpers {
                 false
             );
             
-            lookup_dimension_name([$($dimension_args)*].to_vec())
-                .and_then(|info| info.unit_si_shortname_symbol)
-                .filter(|si_shortname| si_shortname != &systematic_literal)
-                .map(|si_shortname| si_shortname.to_string())
-                .unwrap_or(systematic_literal)
+            // Apply SI prefix to the systematic unit literal
+            let prefixed_systematic_literal = generate_prefixed_systematic_unit(
+                [$($dimension_args)*].to_vec(),
+                $($scale_args)*,
+                &systematic_literal,
+                false, // Use short names for inlay hints
+            );
+            
+            // Check if we have a recognized dimension with a specific SI unit
+            if let Some(info) = lookup_dimension_name([$($dimension_args)*].to_vec()) {
+                if let Some(si_shortname) = info.unit_si_shortname_symbol {
+                    // Apply SI prefix to the specific SI unit name
+                    let prefixed_si_unit = generate_prefixed_si_unit(
+                        $($scale_args)*,
+                        si_shortname,
+                        false, // Use short names for inlay hints
+                    );
+                    
+                    // Return the prefixed SI unit if it's different from the systematic literal
+                    if prefixed_si_unit != prefixed_systematic_literal {
+                        prefixed_si_unit
+                    } else {
+                        prefixed_systematic_literal
+                    }
+                } else {
+                    // No specific SI unit defined, use the prefixed systematic literal
+                    prefixed_systematic_literal
+                }
+            } else {
+                // Unknown dimension, use the prefixed systematic literal
+                prefixed_systematic_literal
+            }
         }
     };
 }

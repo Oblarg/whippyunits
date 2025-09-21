@@ -7,36 +7,36 @@ macro_rules! define_quantity {
         $trait_name:ident,
         $(($scale_name:ident, $fn_name:ident, $scale_p2:expr, $scale_p3:expr, $scale_p5:expr, $scale_p10:expr, $scale_pi:expr)),* $(,)?
     ) => {
-        // Generate the trait definition
-        pub trait $trait_name {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
             $(
-                fn $fn_name(self) -> $scale_name;
+                fn $fn_name(self) -> $scale_name<T>;
             )*
         }
         
-        // Generate the type definitions
+        // Generate the type definitions (generic with f64 default)
         $(
-            pub type $scale_name = Quantity<
+            pub type $scale_name<T = f64> = Quantity<
                 $mass_exp, $length_exp, $time_exp, $current_exp, $temperature_exp, $amount_exp, $luminosity_exp, $angle_exp,
                 $scale_p2, $scale_p3, $scale_p5, $scale_p10, $scale_pi,
-                f64,
+                T,
             >;
         )*
         
-        // Generate extension trait implementations for f64
-        impl $trait_name for f64 {
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
             $(
-                fn $fn_name(self) -> $scale_name {
+                fn $fn_name(self) -> $scale_name<f64> {
                     Quantity::new(self)
                 }
             )*
         }
         
         // Generate extension trait implementations for i32
-        impl $trait_name for i32 {
+        impl $trait_name<i32> for i32 {
             $(
-                fn $fn_name(self) -> $scale_name {
-                    Quantity::new(self as f64)
+                fn $fn_name(self) -> $scale_name<i32> {
+                    Quantity::new(self)
                 }
             )*
         }
@@ -351,5 +351,8 @@ define_quantity!(
 macro_rules! quantity {
     ($value:expr, $unit:expr) => {
         <$crate::unit!($unit)>::new($value)
-    }
+    };
+    ($value:expr, $unit:expr, $storage_type:ty) => {
+        <$crate::unit!($unit, $storage_type)>::new($value)
+    };
 }

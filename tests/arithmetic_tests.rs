@@ -781,3 +781,56 @@ fn test_format_syntax_demonstration() {
     
     println!("Format syntax demonstration completed!");
 }
+
+#[test]
+fn test_i32_quantity_declarators() {
+    use whippyunits::default_declarators::*;
+    
+    // Test that the existing i32 implementation works (creates f64-backed quantities)
+    let mass_i32 = 5.grams();
+    let length_i32 = 10.meters();
+    
+    // Test arithmetic operations
+    let area_i32 = length_i32 * length_i32;
+    println!("i32 Area: {:?}", area_i32);
+    
+    // Test that the values are actually i32 (native i32-backed quantities!)
+    assert_eq!(mass_i32.value, 5i32);
+    assert_eq!(length_i32.value, 10i32);
+    assert_eq!(area_i32.value, 100i32);
+    
+    // Test that f64 declarators still work (backward compatibility)
+    let mass_f64 = 5.0.grams();
+    let length_f64 = 10.0.meters();
+
+    let foo = quantity!(1.0, g * m^2 / s^2);
+    
+    assert_eq!(mass_f64.value, 5.0f64);
+    assert_eq!(length_f64.value, 10.0f64);
+    
+    println!("i32 quantity declarators test passed!");
+}
+
+#[test]
+fn test_unit_macro_with_different_types() {
+    use whippyunits::default_declarators::*;
+    
+    // Test unit macro with default f64 backing
+    let length_f64: unit!(m) = 5.0.meters();
+    assert_eq!(length_f64.value, 5.0f64);
+    
+    // Test unit macro with i32 backing
+    let length_i32: unit!(m, i32) = 5.meters();
+    assert_eq!(length_i32.value, 5i32);
+    
+    // Test complex unit expressions with different types
+    let area_i32: unit!(m^2, i32) = 5.meters() * 10.meters();
+    assert_eq!(area_i32.value, 50i32);
+    
+    // Test that the unit macro correctly generates the right type
+    // This verifies the macro expansion works correctly
+    let _length_type_check: unit!(m, i32) = 5.meters();
+    let _area_type_check: unit!(m^2, i32) = 5.meters() * 10.meters();
+    
+    println!("Unit macro with different backing types test passed!");
+}

@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, LitInt};
+use syn::{Ident, LitInt, Type};
 use syn::parse::{Parse, ParseStream, Result};
-use syn::token::{Star, Slash, Caret};
+use syn::token::{Star, Slash, Caret, Comma};
 use whippyunits_default_dimensions::{DIMENSION_LOOKUP, SI_PREFIXES, BASE_UNITS};
 
 /// Represents a unit with optional exponent
@@ -78,7 +78,7 @@ impl UnitExpr {
     }
     
     /// Evaluate the unit expression to get dimension exponents and scale factors
-    fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+    pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
             UnitExpr::Unit(unit) => {
                 let (mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, p10, pi) = 
@@ -230,12 +230,24 @@ fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i
 /// Input for the unit macro
 pub struct UnitMacroInput {
     pub unit_expr: UnitExpr,
+    pub storage_type: Option<Type>,
 }
 
 impl Parse for UnitMacroInput {
     fn parse(input: ParseStream) -> Result<Self> {
+        let unit_expr = input.parse()?;
+        
+        // Check if there's a comma followed by a type parameter
+        let storage_type = if input.peek(Comma) {
+            let _comma: Comma = input.parse()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        
         Ok(UnitMacroInput {
-            unit_expr: input.parse()?,
+            unit_expr,
+            storage_type,
         })
     }
 }
@@ -245,11 +257,16 @@ impl UnitMacroInput {
         let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, 
              p2, p3, p5, p10, pi) = self.unit_expr.evaluate();
         
+        // Use the specified storage type or default to f64
+        let storage_type = self.storage_type.unwrap_or_else(|| {
+            syn::parse_str::<Type>("f64").unwrap()
+        });
+        
         quote! {
             whippyunits::quantity_type::Quantity<
                 #mass_exp, #length_exp, #time_exp, #current_exp, #temp_exp, #amount_exp, #lum_exp, #angle_exp,
                 #p2, #p3, #p5, #p10, #pi,
-                f64
+                #storage_type
             >
         }
     }

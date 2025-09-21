@@ -1,5 +1,5 @@
-use crate::default_declarators;
-use crate::quantity_type::Quantity;
+// use crate::default_declarators;
+// use crate::quantity_type::Quantity;
 
 #[macro_export]
 macro_rules! define_local_quantity {
@@ -254,5 +254,41 @@ macro_rules! set_unit_preferences {
             (Arcminutes, arcminutes),
             (Arcseconds, arcseconds),
         );
+
+        // Helper macro to construct the target type using local scale parameters
+        // This uses a procedural macro to map the dimension to the appropriate local scale type
+        #[macro_export]
+        macro_rules! local_unit_type {
+            ($unit:expr) => {
+                $crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale)
+            };
+        }
+
+        // Define a local quantity! macro that delegates to the default quantity! macro
+        // and then rescales to the preferred units using the existing machinery
+        #[macro_export]
+        macro_rules! quantity {
+            ($value:expr, $unit:expr) => {
+                {
+                    // Create the quantity using the default quantity! macro (source type)
+                    let default_quantity = $crate::quantity!($value, $unit);
+                    
+                    // The target type needs to use the local scale parameters
+                    // For now, we'll use type inference to let rescale_f64 determine the target
+                    let target_quantity: local_unit_type!($unit) = $crate::api::rescale_f64(default_quantity);
+                    target_quantity
+                }
+            };
+            ($value:expr, $unit:expr, $storage_type:ty) => {
+                {
+                    // Create the quantity using the default quantity! macro with storage type
+                    let default_quantity = $crate::quantity!($value, $unit, $storage_type);
+                    
+                    // Rescale to the preferred unit with the specified storage type
+                    let target_quantity: local_unit_type!($unit) = $crate::api::rescale_f64(default_quantity);
+                    target_quantity
+                }
+            };
+        }
     };
 }

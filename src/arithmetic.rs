@@ -45,7 +45,7 @@ macro_rules! quantity_scalar_mul_div_interface {
         {
             type Output = Self;
 
-            fn $fn(self, other: f64) -> Self::Output {
+            fn $fn(self, other: $T) -> Self::Output {
                 Self::new(self.value $op other)
             }
         }
