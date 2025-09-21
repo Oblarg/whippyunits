@@ -19,3 +19,7 @@ target
 **/out
 
 settings.json
+.env
+
+.vscode
+.vscode/*
