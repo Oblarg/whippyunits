@@ -134,15 +134,15 @@ The `lsp-proxy/` directory contains a Language Server Protocol proxy that interc
         let frequency: Quantity<0, 0, _, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
         size = 8, align = 0x8, no Drop
         ```
-    * tersely in inlay hints (also including best-effort interpretation...):
+    * tersely in inlay hints with backing datatype suffix (also including best-effort interpretation...):
         ```rust
         //          v inlay hint
-        let distance: mm = 5.0.millimeters();
+        let distance: mm_f64 = 5.0.millimeters();
         ```
 * replaces literal Quantity text completions with equivalent `unit!` macro declarations
     ```rust
     //          v inlay hint (like above)
-    let distance: mm = 5.0.millimeters();
+    let distance: mm_f64 = 5.0.millimeters();
     //          double-clicks into correct macro declaration syntax for the unit!
     let distance: unit!(mm) = 5.0.millimeters();
     ```

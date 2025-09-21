@@ -266,15 +266,24 @@ impl InlayHintProcessor {
             }
         }
 
-        // Convert the pretty-printed type to a unit! macro format
-        let unit_macro = format!("unit!({})", self.convert_pretty_type_to_unit_macro(&pretty_type));
+        // Extract the datatype suffix if present
+        let (unit_part, datatype) = self.extract_unit_and_datatype(&pretty_type);
+        
+        // Generate the appropriate unit! macro format based on datatype
+        let unit_macro = if datatype == "f64" {
+            // For f64, use the simple format: unit!(mm)
+            format!("unit!({})", unit_part)
+        } else {
+            // For other datatypes, use the type-specified format: unit!(mm, i32)
+            format!("unit!({}, {})", unit_part, datatype)
+        };
         
         // Return just the type annotation with the unit! macro
         Ok(format!(": {}", unit_macro))
     }
 
-    /// Convert pretty-printed type to unit! macro format
-    fn convert_pretty_type_to_unit_macro(&self, pretty_type: &str) -> String {
+    /// Extract unit part and datatype from a pretty-printed type with suffix
+    fn extract_unit_and_datatype(&self, pretty_type: &str) -> (String, String) {
         // Remove the "Unresolved type - " prefix if present
         let clean_type = if pretty_type.starts_with("Unresolved type - ") {
             &pretty_type[18..] // Skip "Unresolved type - "
@@ -282,9 +291,27 @@ impl InlayHintProcessor {
             pretty_type
         };
         
+        // Check for backing datatype suffix
+        if let Some(underscore_pos) = clean_type.rfind('_') {
+            let suffix = &clean_type[underscore_pos + 1..];
+            if suffix == "f64" || suffix == "f32" || suffix == "i64" || suffix == "i32" || 
+               suffix == "i16" || suffix == "i8" || suffix == "u64" || suffix == "u32" || 
+               suffix == "u16" || suffix == "u8" || suffix == "isize" || suffix == "usize" {
+                let unit_part = self.convert_pretty_type_to_unit_macro(&clean_type[..underscore_pos]);
+                return (unit_part, suffix.to_string());
+            }
+        }
+        
+        // No datatype suffix found, treat as f64 (default)
+        let unit_part = self.convert_pretty_type_to_unit_macro(clean_type);
+        (unit_part, "f64".to_string())
+    }
+
+    /// Convert pretty-printed type to unit! macro format
+    fn convert_pretty_type_to_unit_macro(&self, pretty_type: &str) -> String {
         // Convert pretty-printed types like "mmˀ" to unit macro format like "mm^"
         // Remove the ? and place cursor after the caret
-        clean_type
+        pretty_type
             .replace("ˀ", "^")  // Replace superscript question mark with just ^
             .replace("⁻", "^-")  // Replace superscript minus with ^-
             .replace("¹", "^1")  // Replace superscript 1 with ^1
