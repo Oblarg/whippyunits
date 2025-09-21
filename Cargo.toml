@@ -4,7 +4,6 @@ members = [
     "proc-macros",
     "default-dimensions", 
     "shared-dimension-data",
-    "lsp-proxy",
 ]
 
 [package]

@@ -1,11 +1,11 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, parse::{Parse, ParseStream, Result}};
+use syn::{Ident, Type, parse::{Parse, ParseStream, Result}};
 use syn::token::Comma;
 use whippyunits_default_dimensions::scale_type_to_unit_symbol;
 
 /// Input for the local quantity macro
-/// This takes a unit identifier and local scale parameters
+/// This takes a unit identifier, local scale parameters, and optional storage type
 pub struct LocalQuantityMacroInput {
     pub unit_ident: Ident,
     pub mass_scale: Ident,
@@ -16,6 +16,7 @@ pub struct LocalQuantityMacroInput {
     pub amount_scale: Ident,
     pub luminosity_scale: Ident,
     pub angle_scale: Ident,
+    pub storage_type: Option<Type>,
 }
 
 impl Parse for LocalQuantityMacroInput {
@@ -43,6 +44,14 @@ impl Parse for LocalQuantityMacroInput {
         let _comma: Comma = input.parse()?;
         let angle_scale: Ident = input.parse()?;
         
+        // Check if there's a comma followed by a storage type parameter
+        let storage_type = if input.peek(Comma) {
+            let _comma: Comma = input.parse()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        
         Ok(LocalQuantityMacroInput {
             unit_ident,
             mass_scale,
@@ -53,6 +62,7 @@ impl Parse for LocalQuantityMacroInput {
             amount_scale,
             luminosity_scale,
             angle_scale,
+            storage_type,
         })
     }
 }
@@ -60,6 +70,11 @@ impl Parse for LocalQuantityMacroInput {
 impl LocalQuantityMacroInput {
     pub fn expand(self) -> TokenStream {
         let unit_name = self.unit_ident.to_string();
+        
+        // Use the specified storage type or default to f64
+        let storage_type = self.storage_type.unwrap_or_else(|| {
+            syn::parse_str::<Type>("f64").unwrap()
+        });
         
         // Get the actual unit symbols for each scale type before moving the values
         let mass_base = scale_type_to_unit_symbol(&self.mass_scale.to_string()).unwrap_or_else(|| "g".to_string());
@@ -96,108 +111,108 @@ impl LocalQuantityMacroInput {
             // Mass units - map to local mass scale
             "kg" | "g" | "mg" | "ug" | "ng" | "pg" | "fg" | "ag" | "zg" | "yg" |
             "Mg" | "Gg" | "Tg" | "Pg" | "Eg" | "Zg" | "Yg" => {
-                quote! { whippyunits::default_declarators::#mass_scale<f64> }
+                quote! { whippyunits::default_declarators::#mass_scale<#storage_type> }
             },
             // Length units - map to local length scale
             "m" | "mm" | "um" | "nm" | "pm" | "fm" | "am" | "zm" | "ym" |
             "km" | "Mm" | "Gm" | "Tm" | "Pm" | "Em" | "Zm" | "Ym" => {
-                quote! { whippyunits::default_declarators::#length_scale<f64> }
+                quote! { whippyunits::default_declarators::#length_scale<#storage_type> }
             },
             // Time units - map to local time scale
             "s" | "ms" | "us" | "ns" | "ps" | "fs" | "as" | "zs" | "ys" |
             "ks" | "Ms" | "Gs" | "Ts" | "Ps" | "Es" | "Zs" | "Ys" => {
-                quote! { whippyunits::default_declarators::#time_scale<f64> }
+                quote! { whippyunits::default_declarators::#time_scale<#storage_type> }
             },
             // Current units - map to local current scale
             "A" | "mA" | "uA" | "nA" | "pA" | "fA" | "aA" | "zA" | "yA" |
             "kA" | "MA" | "GA" | "TA" | "PA" | "EA" | "ZA" | "YA" => {
-                quote! { whippyunits::default_declarators::#current_scale<f64> }
+                quote! { whippyunits::default_declarators::#current_scale<#storage_type> }
             },
             // Temperature units - map to local temperature scale
             "K" | "mK" | "uK" | "nK" | "pK" | "fK" | "aK" | "zK" | "yK" |
             "kK" | "MK" | "GK" | "TK" | "PK" | "EK" | "ZK" | "YK" => {
-                quote! { whippyunits::default_declarators::#temperature_scale<f64> }
+                quote! { whippyunits::default_declarators::#temperature_scale<#storage_type> }
             },
             // Amount units - map to local amount scale
             "mol" | "mmol" | "umol" | "nmol" | "pmol" | "fmol" | "amol" | "zmol" | "ymol" |
             "kmol" | "Mmol" | "Gmol" | "Tmol" | "Pmol" | "Emol" | "Zmol" | "Ymol" => {
-                quote! { whippyunits::default_declarators::#amount_scale<f64> }
+                quote! { whippyunits::default_declarators::#amount_scale<#storage_type> }
             },
             // Luminosity units - map to local luminosity scale
             "cd" | "mcd" | "ucd" | "ncd" | "pcd" | "fcd" | "acd" | "zcd" | "ycd" |
             "kcd" | "Mcd" | "Gcd" | "Tcd" | "Pcd" | "Ecd" | "Zcd" | "Ycd" => {
-                quote! { whippyunits::default_declarators::#luminosity_scale<f64> }
+                quote! { whippyunits::default_declarators::#luminosity_scale<#storage_type> }
             },
             // Angle units - map to local angle scale
             "rad" | "mrad" | "urad" | "nrad" | "prad" | "frad" | "arad" | "zrad" | "yrad" |
             "krad" | "Mrad" | "Grad" | "Trad" | "Prad" | "Erad" | "Zrad" | "Yrad" => {
-                quote! { whippyunits::default_declarators::#angle_scale<f64> }
+                quote! { whippyunits::default_declarators::#angle_scale<#storage_type> }
             },
             // Compound units - decompose and reconstruct using local scales
             "J" => {
                 // Joule = kg * m^2 / s^2
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^2) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^2, #storage_type) }
             },
             "N" => {
                 // Newton = kg * m / s^2
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident / #time_base_ident^2) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident / #time_base_ident^2, #storage_type) }
             },
             "W" => {
                 // Watt = kg * m^2 / s^3
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^3) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^3, #storage_type) }
             },
             "Pa" => {
                 // Pascal = kg / (m * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident / (#length_base_ident * #time_base_ident^2)) }
+                quote! { whippyunits::unit!(#mass_base_ident / (#length_base_ident * #time_base_ident^2), #storage_type) }
             },
             "Hz" => {
                 // Hertz = 1 / s
-                quote! { whippyunits::unit!(1 / #time_base_ident) }
+                quote! { whippyunits::unit!(1 / #time_base_ident, #storage_type) }
             },
             "C" => {
                 // Coulomb = A * s
-                quote! { whippyunits::unit!(#current_base_ident * #time_base_ident) }
+                quote! { whippyunits::unit!(#current_base_ident * #time_base_ident, #storage_type) }
             },
             "V" => {
                 // Volt = kg * m^2 / (A * s^3)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^3)) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^3), #storage_type) }
             },
             "F" => {
                 // Farad = A^2 * s^4 / (kg * m^2)
-                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^4 / (#mass_base_ident * #length_base_ident^2)) }
+                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^4 / (#mass_base_ident * #length_base_ident^2), #storage_type) }
             },
             "Ω" => {
                 // Ohm = kg * m^2 / (A^2 * s^3)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^3)) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^3), #storage_type) }
             },
             "S" => {
                 // Siemens = A^2 * s^3 / (kg * m^2)
-                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^3 / (#mass_base_ident * #length_base_ident^2)) }
+                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^3 / (#mass_base_ident * #length_base_ident^2), #storage_type) }
             },
             "H" => {
                 // Henry = kg * m^2 / (A^2 * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^2)) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^2), #storage_type) }
             },
             "T" => {
                 // Tesla = kg / (A * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident / (#current_base_ident * #time_base_ident^2)) }
+                quote! { whippyunits::unit!(#mass_base_ident / (#current_base_ident * #time_base_ident^2), #storage_type) }
             },
             "Wb" => {
                 // Weber = kg * m^2 / (A * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^2)) }
+                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^2), #storage_type) }
             },
             "lm" => {
                 // Lumen = cd * sr (steradian is dimensionless)
-                quote! { whippyunits::unit!(#luminosity_base_ident) }
+                quote! { whippyunits::unit!(#luminosity_base_ident, #storage_type) }
             },
             "lx" => {
                 // Lux = cd / m^2
-                quote! { whippyunits::unit!(#luminosity_base_ident / #length_base_ident^2) }
+                quote! { whippyunits::unit!(#luminosity_base_ident / #length_base_ident^2, #storage_type) }
             },
             // For other units, fall back to the original unit type
             _ => {
                 let unit_ident = self.unit_ident;
-                quote! { whippyunits::unit!(#unit_ident) }
+                quote! { whippyunits::unit!(#unit_ident, #storage_type) }
             }
         }
     }

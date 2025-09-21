@@ -3,34 +3,38 @@ macro_rules! define_imperial_quantity {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
         $trait_name:ident,
-        $(($scale_name:ident, $fn_name:ident, $conversion_factor:expr, $storage_scale:ident)),* $(,)?
+        $(($fn_name:ident, $conversion_factor:expr, $storage_scale:ident)),* $(,)?
     ) => {
-        // Generate the trait definition
-        pub trait $trait_name {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
             $(
-                fn $fn_name(self) -> $scale_name;
+                fn $fn_name(self) -> $crate::default_declarators::$storage_scale<T>;
             )*
         }
         
-        // Generate the type definitions with individual storage scales
-        $(
-            pub type $scale_name = $crate::default_declarators::$storage_scale;
-        )*
-        
-        // Generate extension trait implementations for f64
-        impl $trait_name for f64 {
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
             $(
-                fn $fn_name(self) -> $scale_name {
+                fn $fn_name(self) -> $crate::default_declarators::$storage_scale<f64> {
                     $crate::default_declarators::$storage_scale::new(self * $conversion_factor)
                 }
             )*
         }
         
         // Generate extension trait implementations for i32
-        impl $trait_name for i32 {
+        impl $trait_name<i32> for i32 {
             $(
-                fn $fn_name(self) -> $scale_name {
-                    $crate::default_declarators::$storage_scale::new((self as f64) * $conversion_factor)
+                fn $fn_name(self) -> $crate::default_declarators::$storage_scale<i32> {
+                    $crate::default_declarators::$storage_scale::new((self as f64 * $conversion_factor) as i32)
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i64
+        impl $trait_name<i64> for i64 {
+            $(
+                fn $fn_name(self) -> $crate::default_declarators::$storage_scale<i64> {
+                    $crate::default_declarators::$storage_scale::new((self as f64 * $conversion_factor) as i64)
                 }
             )*
         }
@@ -40,19 +44,19 @@ macro_rules! define_imperial_quantity {
 define_imperial_quantity!(
     0, 1, 0, 0, 0, 0, 0, 0,  // length dimension
     ImperialLength,
-    (Inch, inches, 2.54, Centimeter),     
-    (Foot, feet, 0.3048, Meter),
-    (Yard, yards, 0.9144, Meter),
-    (Mile, miles, 1.609344, Kilometer),
+    (inches, 2.54, Centimeter),     
+    (feet, 0.3048, Meter),
+    (yards, 0.9144, Meter),
+    (miles, 1.609344, Kilometer),
 );
 
 define_imperial_quantity!(
     1, 0, 0, 0, 0, 0, 0, 0,  // mass dimension
     ImperialMass,
-    (Ounce, ounces, 28.349523125, Gram),
-    (Pound, pounds, 0.45359237, Kilogram),
-    (Stone, stones, 6.35029318, Kilogram),
-    (Ton, tons, 1.0160469088, Megagram),
+    (ounces, 28.349523125, Gram),
+    (pounds, 0.45359237, Kilogram),
+    (stones, 6.35029318, Kilogram),
+    (tons, 1.0160469088, Megagram),
 );
 
 macro_rules! define_imperial_affine_quantity {
@@ -62,32 +66,41 @@ macro_rules! define_imperial_affine_quantity {
         $storage_scale:ident,
         $(($scale_name:ident, $fn_name:ident, $conversion_factor:expr, $offset:expr)),* $(,)?
     ) => {
-        // Generate the trait definition
-        pub trait $trait_name {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
             $(
-                fn $fn_name(self) -> $scale_name;
+                fn $fn_name(self) -> $scale_name<T>;
             )*
         }
         
-        // Generate the type definitions (all stored in the same scale)
+        // Generate the type definitions (all stored in the same scale, generic with f64 default)
         $(
-            pub type $scale_name = $crate::default_declarators::$storage_scale;
+            pub type $scale_name<T = f64> = $crate::default_declarators::$storage_scale<T>;
         )*
         
-        // Generate extension trait implementations for f64
-        impl $trait_name for f64 {
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
             $(
-                fn $fn_name(self) -> $scale_name {
+                fn $fn_name(self) -> $scale_name<f64> {
                     $crate::default_declarators::$storage_scale::new(self * $conversion_factor + $offset)
                 }
             )*
         }
         
         // Generate extension trait implementations for i32
-        impl $trait_name for i32 {
+        impl $trait_name<i32> for i32 {
             $(
-                fn $fn_name(self) -> $scale_name {
-                    $crate::default_declarators::$storage_scale::new((self as f64) * $conversion_factor + $offset)
+                fn $fn_name(self) -> $scale_name<i32> {
+                    $crate::default_declarators::$storage_scale::new((self as f64 * $conversion_factor + $offset) as i32)
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i64
+        impl $trait_name<i64> for i64 {
+            $(
+                fn $fn_name(self) -> $scale_name<i64> {
+                    $crate::default_declarators::$storage_scale::new((self as f64 * $conversion_factor + $offset) as i64)
                 }
             )*
         }

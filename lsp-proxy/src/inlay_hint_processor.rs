@@ -133,8 +133,10 @@ impl InlayHintProcessor {
             // Construct the full type string
             let full_type = format!("Quantity{}", generic_params);
             
-            // For inlay hints, use the ultra-terse format that shows only the unit literal
+            // For inlay hints, use the ultra-terse format that shows only the unit literal with storage type suffix
+            eprintln!("DEBUG: InlayHintProcessor calling convert_types_in_text_inlay_hint with: '{}'", full_type);
             let pretty_type = self.converter.convert_types_in_text_inlay_hint(&full_type);
+            eprintln!("DEBUG: InlayHintProcessor got result: '{}'", pretty_type);
             
             // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
             let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);

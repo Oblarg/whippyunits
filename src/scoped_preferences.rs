@@ -7,18 +7,36 @@ macro_rules! define_local_quantity {
         $local_quantity_scale:ident,
         $trait_name:ident, $(($scale_name:ident, $fn_name:ident)),* $(,)?
     ) => {
-        // Generate the trait definition
-        pub trait $trait_name {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
             $(
-                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale;
+                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale<T>;
             )*
         }
 
-        // Generate extension trait implementations for f64
-        impl $trait_name for f64 {
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
             $(
-                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale {
+                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale<f64> {
                     rescale_f64($crate::default_declarators::$scale_name::new(self))
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i32
+        impl $trait_name<i32> for i32 {
+            $(
+                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale<i32> {
+                    rescale_i32($crate::default_declarators::$scale_name::new(self))
+                }
+            )*
+        }
+        
+        // Generate extension trait implementations for i64
+        impl $trait_name<i64> for i64 {
+            $(
+                fn $fn_name(self) -> $crate::default_declarators::$local_quantity_scale<i64> {
+                    rescale_i64($crate::default_declarators::$scale_name::new(self))
                 }
             )*
         }
@@ -26,7 +44,7 @@ macro_rules! define_local_quantity {
 }
 
 #[macro_export]
-macro_rules! set_unit_preferences {
+macro_rules! define_base_units {
     (
         $mass_scale:ident,
         $length_scale:ident,
@@ -262,6 +280,9 @@ macro_rules! set_unit_preferences {
             ($unit:expr) => {
                 $crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale)
             };
+            ($unit:expr, $storage_type:ty) => {
+                $crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale, $storage_type)
+            };
         }
 
         // Define a local quantity! macro that delegates to the default quantity! macro
@@ -279,13 +300,33 @@ macro_rules! set_unit_preferences {
                     target_quantity
                 }
             };
-            ($value:expr, $unit:expr, $storage_type:ty) => {
+            ($value:expr, $unit:expr, f64) => {
                 {
-                    // Create the quantity using the default quantity! macro with storage type
-                    let default_quantity = $crate::quantity!($value, $unit, $storage_type);
+                    // Create the quantity using the default quantity! macro with f64 storage type
+                    let default_quantity = $crate::quantity!($value, $unit, f64);
                     
-                    // Rescale to the preferred unit with the specified storage type
-                    let target_quantity: local_unit_type!($unit) = $crate::api::rescale_f64(default_quantity);
+                    // Rescale to the preferred unit with f64 storage type
+                    let target_quantity: local_unit_type!($unit, f64) = $crate::api::rescale_f64(default_quantity);
+                    target_quantity
+                }
+            };
+            ($value:expr, $unit:expr, i32) => {
+                {
+                    // Create the quantity using the default quantity! macro with i32 storage type
+                    let default_quantity = $crate::quantity!($value, $unit, i32);
+                    
+                    // Rescale to the preferred unit with i32 storage type
+                    let target_quantity: local_unit_type!($unit, i32) = $crate::api::rescale_i32(default_quantity);
+                    target_quantity
+                }
+            };
+            ($value:expr, $unit:expr, i64) => {
+                {
+                    // Create the quantity using the default quantity! macro with i64 storage type
+                    let default_quantity = $crate::quantity!($value, $unit, i64);
+                    
+                    // Rescale to the preferred unit with i64 storage type
+                    let target_quantity: local_unit_type!($unit, i64) = $crate::api::rescale_i64(default_quantity);
                     target_quantity
                 }
             };

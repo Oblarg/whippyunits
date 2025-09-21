@@ -35,7 +35,7 @@ let illegal = area + distance;
 fn foo() {
     // scoped preferences lets you control the native units of your API
     // by generating traits and declarators fixed to scale preferences of your choosing
-    set_unit_preferences!(
+    define_base_units!(
         Kilogram,
         // Local declarators will now use millimeters
         Millimeter,

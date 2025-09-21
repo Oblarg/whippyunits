@@ -3,8 +3,10 @@
 use whippyunits::api::rescale;
 use whippyunits::unit;
 use whippyunits::quantity;
+use whippyunits::default_declarators;
 use whippyunits::default_declarators::*;
 use whippyunits::define_generic_dimension;
+use whippyunits::imperial_declarators::*;
 
 #[test]
 fn test_addition_same_scale() {
@@ -834,3 +836,187 @@ fn test_unit_macro_with_different_types() {
     
     println!("Unit macro with different backing types test passed!");
 }
+
+#[test]
+fn test_imperial_declarators_generic_storage_types() {
+    // Test imperial length declarators with different storage types
+    
+    // Test f64 (default)
+    let length_f64: default_declarators::Centimeter<f64> = 12.0.inches();
+    assert_eq!(length_f64.value, 12.0 * 2.54);
+    
+    // Test i32
+    let length_i32: default_declarators::Centimeter<i32> = 12i32.inches();
+    assert_eq!(length_i32.value, (12.0 * 2.54) as i32);
+    
+    // Test i64
+    let length_i64: default_declarators::Centimeter<i64> = 12i64.inches();
+    assert_eq!(length_i64.value, (12.0 * 2.54) as i64);
+    
+    // Test imperial mass declarators
+    let mass_f64: default_declarators::Kilogram<f64> = 2.0.pounds();
+    assert_eq!(mass_f64.value, 2.0 * 0.45359237);
+    
+    let mass_i32: default_declarators::Kilogram<i32> = 2i32.pounds();
+    assert_eq!(mass_i32.value, (2.0 * 0.45359237) as i32);
+    
+    // Test imperial temperature declarators (affine)
+    let temp_f64: Fahrenheit<f64> = 32.0.fahrenheit();
+    assert_eq!(temp_f64.value, 32.0 * 5.0/9.0 + 255.3722222222222);
+    
+    let temp_i32: Fahrenheit<i32> = 32i32.fahrenheit();
+    assert_eq!(temp_i32.value, (32.0 * 5.0/9.0 + 255.3722222222222) as i32);
+    
+    println!("Imperial declarators with different storage types test passed!");
+}
+
+// ============================================================================
+// All Arithmetic Types Tests
+// ============================================================================
+
+#[test]
+fn test_all_types_arithmetic_available() {
+    use whippyunits::default_declarators::*;
+    
+    println!("=== Testing All Types Arithmetic Available ===");
+    
+    // Test that arithmetic operations work for all types using explicit type annotations
+    // This tests that the arithmetic implementations are available for all types
+    
+    // Test f64 (default)
+    let length_f64: unit!(m, f64) = 5.0.meters();
+    let area_f64: unit!(m^2, f64) = length_f64 * length_f64;
+    assert_eq!(area_f64.value, 25.0f64);
+    
+    // Test i32 (default)
+    let length_i32: unit!(m, i32) = 5i32.meters();
+    let area_i32: unit!(m^2, i32) = length_i32 * length_i32;
+    assert_eq!(area_i32.value, 25i32);
+    
+    // Test f32 using explicit type annotation (no unit methods available)
+    let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
+    let area_f32: unit!(m^2, f32) = length_f32 * length_f32;
+    assert_eq!(area_f32.value, 25.0f32);
+    
+    // Test i8 using explicit type annotation
+    let length_i8: unit!(m, i8) = quantity!(5, m, i8);
+    let area_i8: unit!(m^2, i8) = length_i8 * length_i8;
+    assert_eq!(area_i8.value, 25i8);
+    
+    // Test i16 using explicit type annotation
+    let length_i16: unit!(m, i16) = quantity!(5, m, i16);
+    let area_i16: unit!(m^2, i16) = length_i16 * length_i16;
+    assert_eq!(area_i16.value, 25i16);
+    
+    // Test i64 using explicit type annotation
+    let length_i64: unit!(m, i64) = quantity!(5, m, i64);
+    let area_i64: unit!(m^2, i64) = length_i64 * length_i64;
+    assert_eq!(area_i64.value, 25i64);
+    
+    // Test i128 using explicit type annotation
+    let length_i128: unit!(m, i128) = quantity!(5, m, i128);
+    let area_i128: unit!(m^2, i128) = length_i128 * length_i128;
+    assert_eq!(area_i128.value, 25i128);
+    
+    // Test u8 using explicit type annotation
+    let length_u8: unit!(m, u8) = quantity!(5, m, u8);
+    let area_u8: unit!(m^2, u8) = length_u8 * length_u8;
+    assert_eq!(area_u8.value, 25u8);
+    
+    // Test u16 using explicit type annotation
+    let length_u16: unit!(m, u16) = quantity!(5, m, u16);
+    let area_u16: unit!(m^2, u16) = length_u16 * length_u16;
+    assert_eq!(area_u16.value, 25u16);
+    
+    // Test u32 using explicit type annotation
+    let length_u32: unit!(m, u32) = quantity!(5, m, u32);
+    let area_u32: unit!(m^2, u32) = length_u32 * length_u32;
+    assert_eq!(area_u32.value, 25u32);
+    
+    // Test u64 using explicit type annotation
+    let length_u64: unit!(m, u64) = quantity!(5, m, u64);
+    let area_u64: unit!(m^2, u64) = length_u64 * length_u64;
+    assert_eq!(area_u64.value, 25u64);
+    
+    // Test u128 using explicit type annotation
+    let length_u128: unit!(m, u128) = quantity!(5, m, u128);
+    let area_u128: unit!(m^2, u128) = length_u128 * length_u128;
+    assert_eq!(area_u128.value, 25u128);
+    
+    println!("All types arithmetic available test passed!");
+}
+
+#[test]
+fn test_all_types_with_quantity_macro() {
+    use whippyunits::default_declarators::*;
+    
+    println!("=== Testing All Types with quantity! Macro ===");
+    
+    // Test that all types work with the quantity! macro for creating quantities
+    // and that arithmetic operations work correctly
+    
+    // Float types
+    let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
+    let length_f64: unit!(m, f64) = quantity!(5.0, m, f64);
+    
+    // Signed integer types
+    let length_i8: unit!(m, i8) = quantity!(5, m, i8);
+    let length_i16: unit!(m, i16) = quantity!(5, m, i16);
+    let length_i32: unit!(m, i32) = quantity!(5, m, i32);
+    let length_i64: unit!(m, i64) = quantity!(5, m, i64);
+    let length_i128: unit!(m, i128) = quantity!(5, m, i128);
+    
+    // Unsigned integer types
+    let length_u8: unit!(m, u8) = quantity!(5, m, u8);
+    let length_u16: unit!(m, u16) = quantity!(5, m, u16);
+    let length_u32: unit!(m, u32) = quantity!(5, m, u32);
+    let length_u64: unit!(m, u64) = quantity!(5, m, u64);
+    let length_u128: unit!(m, u128) = quantity!(5, m, u128);
+    
+    // Test arithmetic operations
+    let area_f32: unit!(m^2, f32) = length_f32 * length_f32;
+    let area_f64: unit!(m^2, f64) = length_f64 * length_f64;
+    let area_i8: unit!(m^2, i8) = length_i8 * length_i8;
+    let area_i16: unit!(m^2, i16) = length_i16 * length_i16;
+    let area_i32: unit!(m^2, i32) = length_i32 * length_i32;
+    let area_i64: unit!(m^2, i64) = length_i64 * length_i64;
+    let area_i128: unit!(m^2, i128) = length_i128 * length_i128;
+    let area_u8: unit!(m^2, u8) = length_u8 * length_u8;
+    let area_u16: unit!(m^2, u16) = length_u16 * length_u16;
+    let area_u32: unit!(m^2, u32) = length_u32 * length_u32;
+    let area_u64: unit!(m^2, u64) = length_u64 * length_u64;
+    let area_u128: unit!(m^2, u128) = length_u128 * length_u128;
+    
+    // Verify results
+    assert_eq!(area_f32.value, 25.0f32);
+    assert_eq!(area_f64.value, 25.0f64);
+    assert_eq!(area_i8.value, 25i8);
+    assert_eq!(area_i16.value, 25i16);
+    assert_eq!(area_i32.value, 25i32);
+    assert_eq!(area_i64.value, 25i64);
+    assert_eq!(area_i128.value, 25i128);
+    assert_eq!(area_u8.value, 25u8);
+    assert_eq!(area_u16.value, 25u16);
+    assert_eq!(area_u32.value, 25u32);
+    assert_eq!(area_u64.value, 25u64);
+    assert_eq!(area_u128.value, 25u128);
+    
+    // Test compound operations
+    let mass_f32: unit!(kg, f32) = quantity!(2.0, kg, f32);
+    let mass_f64: unit!(kg, f64) = quantity!(2.0, kg, f64);
+    let mass_i32: unit!(kg, i32) = quantity!(2, kg, i32);
+    let mass_u32: unit!(kg, u32) = quantity!(2, kg, u32);
+    
+    let force_f32: unit!(N, f32) = mass_f32 * quantity!(9.81, m/s^2, f32);
+    let force_f64: unit!(N, f64) = mass_f64 * quantity!(9.81, m/s^2, f64);
+    let force_i32: unit!(N, i32) = mass_i32 * quantity!(9, m/s^2, i32);
+    let force_u32: unit!(N, u32) = mass_u32 * quantity!(9, m/s^2, u32);
+    
+    assert!((force_f32.value - 19.62f32).abs() < 0.01f32);
+    assert!((force_f64.value - 19.62f64).abs() < 0.01f64);
+    assert_eq!(force_i32.value, 18i32); // 2 * 9 = 18
+    assert_eq!(force_u32.value, 18u32); // 2 * 9 = 18
+    
+    println!("All types with quantity! macro test passed!");
+}
+

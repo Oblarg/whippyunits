@@ -179,21 +179,31 @@ macro_rules! define_int_rescale {
                 >
             ),
             (
-                SCALE_P2_FROM, SCALE_P2_TO,
-                SCALE_P3_FROM, SCALE_P3_TO,
-                SCALE_P5_FROM, SCALE_P5_TO,
-                SCALE_P10_FROM, SCALE_P10_TO,
-                SCALE_PI_FROM, SCALE_PI_TO,
+                SCALE_P2_FROM, SCALE_P3_FROM, SCALE_P5_FROM, SCALE_P10_FROM, SCALE_PI_FROM,
+                SCALE_P2_TO, SCALE_P3_TO, SCALE_P5_TO, SCALE_P10_TO, SCALE_PI_TO,
             ),
             $rescale_fn, $T,
         );
     };
 }
+// Float rescale functions
 define_float_rescale!(rescale, f64);
 define_float_rescale!(rescale_f64, f64);
+define_float_rescale!(rescale_f32, f32);
 
-define_int_rescale!(rescale_i64, i64);
+// Integer rescale functions
+define_int_rescale!(rescale_i8, i8);
+define_int_rescale!(rescale_i16, i16);
 define_int_rescale!(rescale_i32, i32);
+define_int_rescale!(rescale_i64, i64);
+define_int_rescale!(rescale_i128, i128);
+
+// Unsigned integer rescale functions
+define_int_rescale!(rescale_u8, u8);
+define_int_rescale!(rescale_u16, u16);
+define_int_rescale!(rescale_u32, u32);
+define_int_rescale!(rescale_u64, u64);
+define_int_rescale!(rescale_u128, u128);
 
 #[macro_export]
 macro_rules! define_arithmetic {
@@ -323,10 +333,26 @@ macro_rules! define_arithmetic {
         );
     }
 }
+// Float arithmetic implementations
+define_arithmetic!(f32, rescale_f32);
 define_arithmetic!(f64, rescale_f64);
+
+// Integer arithmetic implementations
+define_arithmetic!(i8, rescale_i8);
+define_arithmetic!(i16, rescale_i16);
 define_arithmetic!(i32, rescale_i32);
+define_arithmetic!(i64, rescale_i64);
+define_arithmetic!(i128, rescale_i128);
+
+// Unsigned integer arithmetic implementations
+define_arithmetic!(u8, rescale_u8);
+define_arithmetic!(u16, rescale_u16);
+define_arithmetic!(u32, rescale_u32);
+define_arithmetic!(u64, rescale_u64);
+define_arithmetic!(u128, rescale_u128);
 
 
+// Display traits for all supported types
 define_display_traits!(
     (
         const MASS_EXPONENT: i16,

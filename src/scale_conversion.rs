@@ -214,7 +214,7 @@ macro_rules! _define_float_rescale {
         ) -> $($float_rescale_output_type)* {
             let rescale_factor = aggregate_scale_factor_float(
                 $($float_rescale_aggregate_args)*
-            );
+            ) as $T;
             Quantity::new(
                 quantity.value * rescale_factor
             )
@@ -245,7 +245,7 @@ macro_rules! _define_int_rescale {
             
             // Numerical stability: check for potential overflow on multiplication
             // If value * num would overflow, divide first; otherwise multiply first
-            let result = if quantity.value.abs() > <$T>::max_value() / num.abs() {
+            let result = if quantity.value > <$T>::max_value() / num {
                 // Potential overflow: divide first to reduce intermediate value
                 (quantity.value / den) * num
             } else {

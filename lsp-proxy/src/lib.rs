@@ -988,6 +988,7 @@ impl WhippyUnitsTypeConverter {
         let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
+            eprintln!("DEBUG: Inlay hint processing Quantity type: '{}'", full_match);
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if this is a type definition or const generic context (like rescale functions)
@@ -1031,20 +1032,30 @@ impl WhippyUnitsTypeConverter {
                     // For partially resolved types, leverage existing prettyprint logic
                     // First try to look up recognized dimension names
                     let exponents = vec![params.mass_exp, params.length_exp, params.time_exp, params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp, params.luminous_intensity_exp, params.angle_exp];
-                    if let Some(dimension_info) = lookup_dimension_name(exponents.clone()) {
+                    let base_type = if let Some(dimension_info) = lookup_dimension_name(exponents.clone()) {
                         dimension_info.dimension_name.to_string()
                     } else {
                         // For unrecognized composite types, show dimension symbols (M, L, T)
                         generate_dimension_symbols(exponents)
-                    }
+                    };
+                    
+                    // Append storage type suffix for partially resolved types too
+                    let result = format!("{}_{}", base_type, params.generic_type);
+                    eprintln!("DEBUG: Partially resolved - base_type: '{}', generic_type: '{}', result: '{}'", base_type, params.generic_type, result);
+                    result
                 } else {
-                    // Use the new ultra-terse inlay hint API
-                    pretty_print_quantity_inlay_hint(
+                    // Use the new ultra-terse inlay hint API and append storage type suffix
+                    let unit_literal = pretty_print_quantity_inlay_hint(
                         params.mass_exp, params.length_exp, params.time_exp,
                         params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                         params.luminous_intensity_exp, params.angle_exp,
                         params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
-                    )
+                    );
+                    
+                    // Append storage type suffix (e.g., "mN_f64", "kg_i32")
+                    let result = format!("{}_{}", unit_literal, params.generic_type);
+                    eprintln!("DEBUG: Inlay hint - unit_literal: '{}', generic_type: '{}', result: '{}'", unit_literal, params.generic_type, result);
+                    result
                 }
             } else {
                 caps[0].to_string()
@@ -1076,12 +1087,16 @@ impl WhippyUnitsTypeConverter {
         // Extract the generic type parameter (last parameter if it's not a number)
         let generic_type = if params.len() > 0 {
             let last_param = params_str.split(',').last().unwrap_or("f64").trim();
+            eprintln!("DEBUG: parse_quantity_params - last_param: '{}', params_str: '{}'", last_param, params_str);
             if last_param.parse::<i16>().is_err() && last_param != "_" && last_param != "9223372036854775807" {
+                eprintln!("DEBUG: parse_quantity_params - extracted generic_type: '{}'", last_param);
                 last_param.to_string()
             } else {
+                eprintln!("DEBUG: parse_quantity_params - defaulting to f64");
                 "f64".to_string() // Default to f64
             }
         } else {
+            eprintln!("DEBUG: parse_quantity_params - no params, defaulting to f64");
             "f64".to_string()
         };
         
