@@ -23,7 +23,7 @@ let distance = 5.0.meters();
 // or...
 let distance = quantity!(5.0, m);
 // or, in annotated context (see section on literals below)...
-let distance = 5.0m;
+let distance = 5.0m_f64;
 
 // multiplication tracks dimensions
 let area = 5.0.meters() * 5.0.meters();

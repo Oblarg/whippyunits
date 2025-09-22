@@ -330,15 +330,19 @@ impl InlayHintProcessor {
     fn prune_inlay_hint_exponents(&self, pretty_type: &str) -> String {
         // In our pretty-printed output, we use Unicode superscripts like ¹, ², ³, etc.
         // We want to remove ¹ (superscript 1) but keep all other superscripts
-        // Note: ⁻¹ is a single Unicode character for "superscript negative one"
-        // We need to handle this specially to avoid breaking it
+        // For negative exponents, we want to preserve the full -1 to make it clear
         let mut result = pretty_type.to_string();
         
-        // First, replace ⁻¹ with ⁻ (superscript minus) to preserve the negative sign
-        result = result.replace("⁻¹", "⁻");
+        // Remove standalone ¹ (but preserve ⁻¹ as it represents a meaningful negative exponent)
+        // Since ⁻¹ is two separate Unicode characters (⁻ + ¹), we need to handle this carefully
+        // First, temporarily replace ⁻¹ with a placeholder to protect it
+        result = result.replace("⁻¹", "PLACEHOLDER_MINUS_ONE");
         
         // Then remove standalone ¹
         result = result.replace("¹", "");
+        
+        // Finally, restore the ⁻¹
+        result = result.replace("PLACEHOLDER_MINUS_ONE", "⁻¹");
         
         result
     }
@@ -551,7 +555,7 @@ mod tests {
             ("mm¹", "mm"),           // ^1 should be removed
             ("mm²", "mm²"),          // ^2 should be preserved
             ("mm³", "mm³"),          // ^3 should be preserved
-            ("mm⁻¹", "mm⁻"),         // ^-1 becomes ^- (the 1 is removed)
+            ("mm⁻¹", "mm⁻¹"),        // ^-1 should be preserved (meaningful negative exponent)
             ("m¹s²", "ms²"),         // ^1 should be removed, ^2 preserved
             ("kg¹m²s⁻²", "kgm²s⁻²"), // ^1 should be removed, others preserved
         ];

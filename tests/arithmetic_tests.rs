@@ -1016,5 +1016,7 @@ fn test_all_types_with_quantity_macro() {
     assert_eq!(force_u32.value, 18u32); // 2 * 9 = 18
     
     println!("All types with quantity! macro test passed!");
+
+    let velocity = quantity!(1, mm/s, i32);
 }
 
