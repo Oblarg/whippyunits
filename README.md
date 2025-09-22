@@ -10,6 +10,7 @@ A pure rust units-of-measure library for applied numerical analysis.
 - **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
 - **Scale-generic dimension DSL**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension(BespokeQuantity, V * T^2 / L)`
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
+- **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
 - **No hidden/unnecessary flops**: Rescaling uses lossless log-scale arithmetic at all steps prior to exponentiation
 - **Scoped storage preferences**: Set the storage scale individually for each scope
 - **Language server integration**: Customized type rendering and text completion for unit types
