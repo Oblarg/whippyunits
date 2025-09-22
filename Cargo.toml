@@ -21,6 +21,7 @@ whippyunits-default-dimensions = { path = "./default-dimensions" }
 num-traits = "0.2"
 nalgebra = "0.34.0"
 ndarray = "0.16.1"
+culit = "0.1"
 
 [dev-dependencies]
 trybuild = "1.0"
@@ -35,6 +36,10 @@ left_hand_wins = []
 [lib]
 name = "whippyunits"
 path = "src/lib.rs"
+
+[[example]]
+name = "custom_literals_demo"
+path = "examples/custom_literals_demo.rs"
 
 
 
