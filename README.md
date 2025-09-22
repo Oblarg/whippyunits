@@ -4,12 +4,14 @@ A pure rust units-of-measure library for applied numerical analysis.
 
 ## Features
 
-- **Simple syntax**: `5.meters()`, `2.0.kilograms()`, `1.hours()`
+- **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
+- **Powerful unit literal DSL**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V * s^2 / m)`
 - **Compile-time dimensional safety**: Catch dimensionally-incoherent expressions at compile time
 - **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
-- **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors.
-- **No hidden/unnecessary flops**: Rescaling uses lossless log-scale arithmetic at all steps *except* final data-value rescaling; since exponentiation is by lookup-table, fixed-point computations can remain fully fixed-point
-- **Scoped storage preferences**: Set the storage scale (eventually: backing datatype) individually for each scope
+- **Scale-generic dimension DSL**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension(BespokeQuantity, V * T^2 / L)`
+- **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
+- **No hidden/unnecessary flops**: Rescaling uses lossless log-scale arithmetic at all steps prior to exponentiation
+- **Scoped storage preferences**: Set the storage scale individually for each scope
 - **Language server integration**: Customized type rendering and text completion for unit types
 
 ## Example
@@ -19,6 +21,8 @@ A pure rust units-of-measure library for applied numerical analysis.
 let distance = 5.0.meters();
 // or...
 let distance = quantity!(5.0, m);
+// or, in annotated context (see section on literals below)...
+let distance = 5.0m;
 
 // multiplication tracks dimensions
 let area = 5.0.meters() * 5.0.meters();
@@ -92,6 +96,32 @@ let meters_squared: impl Area = area(1.0.meters(), 1.0.meters());
 define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 ```
 
+## Declarator Literals
+
+Use the `#[whippy_literals]` attribute to enable custom literals with unit suffixes:
+
+```rust
+#[whippy_literals]
+fn example() {
+    let distance = 100.0m;    // 100.0 meters (default backing storage is f64)
+    let mass = 10g_i32;       // 10 grams (i32)
+}
+```
+
+Supports all SI base units and prefixed units (mm, kg, μs, etc.) with type suffixes (f64, f32, i32, i64, u32, u64).
+
+## Imperial and Affine Declarators
+
+Imperial units with automatic SI conversion:
+
+```rust
+let length = 12.0.inches();     // converts to centimeters
+let mass = 2.0.pounds();        // converts to kilograms
+let temp = 32.0.fahrenheit();   // converts to kelvin (affine)
+```
+
+Affine quantities (like temperature) handle zero-point offsets automatically. Celsius and Fahrenheit are stored as Kelvin internally with proper conversion factors.
+
 ## Human-readable display and debug format
 
 ```rust
@@ -106,6 +136,37 @@ println!("{}", joule);
 // (1) Quantity<μ(kg·m²·s⁻²); μJ; Energy>
 println!("{:?}", joule);
 // (1_f64) Quantity<micro(kilogram·meter²·second⁻²); microJoule; Energy; [mass¹, length², time⁻², current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁻⁶, π⁰]>
+```
+
+## Print Format with Rescaling
+
+Format quantities in any compatible unit with automatic conversion:
+
+```rust
+let distance = 5.0.kilometers();
+println!("{}", distance.format_as("miles").unwrap());     // "3.1068559611866697 mi"
+println!("{}", distance.format_as("feet").unwrap());      // "16404.199475065616 ft"
+
+// With precision control
+println!("{}", distance.format_as_with_precision("miles", 2).unwrap()); // "3.11 mi"
+```
+
+Use the `format_as!` macro for inline formatting: `format!("Distance: {}", format_as!(distance, "km"))`
+
+## CLI Pretty Printer
+
+The `whippyunits-pretty` tool transforms complex compiler error messages into readable formats:
+
+```bash
+# Pipe rustc output through the pretty printer
+cargo check 2>&1 | whippyunits-pretty
+# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+# Into:     Quantity<m; Length>
+
+# Verbose mode with full dimension info
+cargo check 2>&1 | whippyunits-pretty --verbose
+# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+# Into:     Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁰, π⁰] f64>
 ```
 
 ## LSP Proxy
