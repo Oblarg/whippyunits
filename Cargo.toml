@@ -37,9 +37,6 @@ left_hand_wins = []
 name = "whippyunits"
 path = "src/lib.rs"
 
-[[example]]
-name = "custom_literals_demo"
-path = "examples/custom_literals_demo.rs"
 
 
 

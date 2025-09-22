@@ -1,4 +1,4 @@
-use whippyunits_default_dimensions::lookup_unit_literal;
+use whippyunits_default_dimensions::{lookup_unit_literal, convert_long_name_to_short};
 
 /// Represents a parsed format specifier for unit conversion
 #[derive(Debug, Clone, PartialEq)]
@@ -44,6 +44,7 @@ pub fn format_with_unit(
     let target_unit_info = lookup_unit_literal(&spec.target_unit)
         .ok_or_else(|| format!("Unknown unit: {}", spec.target_unit))?;
     
+    
     // Format the value with precision if specified
     let formatted_value = if let Some(precision) = spec.precision {
         format!("{:.precision$}", value, precision = precision)
@@ -58,5 +59,24 @@ pub fn format_with_unit(
         formatted_value
     };
     
-    Ok(format!("{} {}", final_value, target_unit_info.symbol))
+    // For prefixed units (like "km"), use the original unit symbol for display
+    // For base units (like "gram"), use the symbol from the unit info
+    let display_unit = if spec.target_unit.len() > target_unit_info.symbol.len() {
+        // This might be a long name prefixed unit - try to convert to short form
+        if let Some(short_form) = convert_long_name_to_short(&spec.target_unit) {
+            short_form
+        } else {
+            // This is a short prefixed unit (like "km") - use the original unit symbol
+            spec.target_unit.clone()
+        }
+    } else if spec.target_unit == target_unit_info.symbol {
+        // This is a base unit symbol (like "g") - use the symbol from the unit info
+        target_unit_info.symbol.to_string()
+    } else {
+        // This is a base unit long name (like "gram") - use the symbol from the unit info
+        target_unit_info.symbol.to_string()
+    };
+    
+    Ok(format!("{} {}", final_value, display_unit))
 }
+

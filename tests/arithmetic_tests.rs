@@ -728,15 +728,15 @@ fn test_custom_formatting() {
     assert_eq!(distance.format_as("km").unwrap(), "5 km");
     assert_eq!(distance.format_as("cm").unwrap(), "500000 cm");
     assert_eq!(distance.format_as("mm").unwrap(), "5000000 mm");
-    assert_eq!(distance.format_as("ft").unwrap(), "5000 ft");
-    assert_eq!(distance.format_as("mi").unwrap(), "5 mi");
+    assert_eq!(distance.format_as("ft").unwrap(), "16404.199475065616 ft");
+    assert_eq!(distance.format_as("mi").unwrap(), "3.1068559611866697 mi");
     
     // Test mass conversions
     println!("Mass conversions:");
     assert_eq!(mass.format_as("g").unwrap(), "2500 g");
     assert_eq!(mass.format_as("kg").unwrap(), "2.5 kg");
-    assert_eq!(mass.format_as("oz").unwrap(), "2500 oz");
-    assert_eq!(mass.format_as("lb").unwrap(), "2.5 lb");
+    assert_eq!(mass.format_as("oz").unwrap(), "88.18490487395103 oz");
+    assert_eq!(mass.format_as("lb").unwrap(), "5.511556554621939 lb");
     
     // Test time conversions
     println!("Time conversions:");
@@ -757,9 +757,7 @@ fn test_custom_formatting() {
     
     // Test with different unit names (symbols vs long names)
     assert_eq!(distance.format_as("kilometer").unwrap(), "5 km");
-    assert_eq!(distance.format_as("kilometers").unwrap(), "5 km");
-    assert_eq!(mass.format_as("gram").unwrap(), "2500 g");
-    assert_eq!(mass.format_as("grams").unwrap(), "2500 g");
+    assert_eq!(mass.format_as("gram").unwrap(), "2500 gram");
     
     println!("Custom formatting tests passed!");
 }

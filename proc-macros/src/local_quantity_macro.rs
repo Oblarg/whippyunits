@@ -2,7 +2,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Ident, Type, parse::{Parse, ParseStream, Result}};
 use syn::token::Comma;
-use whippyunits_default_dimensions::scale_type_to_unit_symbol;
+use whippyunits_default_dimensions::{
+    scale_type_to_unit_symbol, 
+    get_unit_dimensions, 
+    dimension_exponents_to_unit_expression
+};
 
 /// Input for the local quantity macro
 /// This takes a unit identifier, local scale parameters, and optional storage type
@@ -72,7 +76,7 @@ impl LocalQuantityMacroInput {
         let unit_name = self.unit_ident.to_string();
         
         // Use the specified storage type or default to f64
-        let storage_type = self.storage_type.unwrap_or_else(|| {
+        let storage_type = self.storage_type.clone().unwrap_or_else(|| {
             syn::parse_str::<Type>("f64").unwrap()
         });
         
@@ -86,134 +90,52 @@ impl LocalQuantityMacroInput {
         let luminosity_base = scale_type_to_unit_symbol(&self.luminosity_scale.to_string()).unwrap_or_else(|| "cd".to_string());
         let angle_base = scale_type_to_unit_symbol(&self.angle_scale.to_string()).unwrap_or_else(|| "rad".to_string());
         
-        // Extract the scale identifiers for use in quote
-        let mass_scale = self.mass_scale;
-        let length_scale = self.length_scale;
-        let time_scale = self.time_scale;
-        let current_scale = self.current_scale;
-        let temperature_scale = self.temperature_scale;
-        let amount_scale = self.amount_scale;
-        let luminosity_scale = self.luminosity_scale;
-        let angle_scale = self.angle_scale;
-        
-        // Create identifiers for the base units
-        let mass_base_ident = syn::parse_str::<Ident>(&mass_base).unwrap();
-        let length_base_ident = syn::parse_str::<Ident>(&length_base).unwrap();
-        let time_base_ident = syn::parse_str::<Ident>(&time_base).unwrap();
-        let current_base_ident = syn::parse_str::<Ident>(&current_base).unwrap();
-        let _temperature_base_ident = syn::parse_str::<Ident>(&temperature_base).unwrap();
-        let _amount_base_ident = syn::parse_str::<Ident>(&amount_base).unwrap();
-        let luminosity_base_ident = syn::parse_str::<Ident>(&luminosity_base).unwrap();
-        let _angle_base_ident = syn::parse_str::<Ident>(&angle_base).unwrap();
-        
-        // Map unit identifiers to their dimensions and return the appropriate local scale type
-        match unit_name.as_str() {
-            // Mass units - map to local mass scale
-            "kg" | "g" | "mg" | "ug" | "ng" | "pg" | "fg" | "ag" | "zg" | "yg" |
-            "Mg" | "Gg" | "Tg" | "Pg" | "Eg" | "Zg" | "Yg" => {
-                quote! { whippyunits::default_declarators::#mass_scale<#storage_type> }
-            },
-            // Length units - map to local length scale
-            "m" | "mm" | "um" | "nm" | "pm" | "fm" | "am" | "zm" | "ym" |
-            "km" | "Mm" | "Gm" | "Tm" | "Pm" | "Em" | "Zm" | "Ym" => {
-                quote! { whippyunits::default_declarators::#length_scale<#storage_type> }
-            },
-            // Time units - map to local time scale
-            "s" | "ms" | "us" | "ns" | "ps" | "fs" | "as" | "zs" | "ys" |
-            "ks" | "Ms" | "Gs" | "Ts" | "Ps" | "Es" | "Zs" | "Ys" => {
-                quote! { whippyunits::default_declarators::#time_scale<#storage_type> }
-            },
-            // Current units - map to local current scale
-            "A" | "mA" | "uA" | "nA" | "pA" | "fA" | "aA" | "zA" | "yA" |
-            "kA" | "MA" | "GA" | "TA" | "PA" | "EA" | "ZA" | "YA" => {
-                quote! { whippyunits::default_declarators::#current_scale<#storage_type> }
-            },
-            // Temperature units - map to local temperature scale
-            "K" | "mK" | "uK" | "nK" | "pK" | "fK" | "aK" | "zK" | "yK" |
-            "kK" | "MK" | "GK" | "TK" | "PK" | "EK" | "ZK" | "YK" => {
-                quote! { whippyunits::default_declarators::#temperature_scale<#storage_type> }
-            },
-            // Amount units - map to local amount scale
-            "mol" | "mmol" | "umol" | "nmol" | "pmol" | "fmol" | "amol" | "zmol" | "ymol" |
-            "kmol" | "Mmol" | "Gmol" | "Tmol" | "Pmol" | "Emol" | "Zmol" | "Ymol" => {
-                quote! { whippyunits::default_declarators::#amount_scale<#storage_type> }
-            },
-            // Luminosity units - map to local luminosity scale
-            "cd" | "mcd" | "ucd" | "ncd" | "pcd" | "fcd" | "acd" | "zcd" | "ycd" |
-            "kcd" | "Mcd" | "Gcd" | "Tcd" | "Pcd" | "Ecd" | "Zcd" | "Ycd" => {
-                quote! { whippyunits::default_declarators::#luminosity_scale<#storage_type> }
-            },
-            // Angle units - map to local angle scale
-            "rad" | "mrad" | "urad" | "nrad" | "prad" | "frad" | "arad" | "zrad" | "yrad" |
-            "krad" | "Mrad" | "Grad" | "Trad" | "Prad" | "Erad" | "Zrad" | "Yrad" => {
-                quote! { whippyunits::default_declarators::#angle_scale<#storage_type> }
-            },
-            // Compound units - decompose and reconstruct using local scales
-            "J" => {
-                // Joule = kg * m^2 / s^2
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^2, #storage_type) }
-            },
-            "N" => {
-                // Newton = kg * m / s^2
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident / #time_base_ident^2, #storage_type) }
-            },
-            "W" => {
-                // Watt = kg * m^2 / s^3
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / #time_base_ident^3, #storage_type) }
-            },
-            "Pa" => {
-                // Pascal = kg / (m * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident / (#length_base_ident * #time_base_ident^2), #storage_type) }
-            },
-            "Hz" => {
-                // Hertz = 1 / s
-                quote! { whippyunits::unit!(1 / #time_base_ident, #storage_type) }
-            },
-            "C" => {
-                // Coulomb = A * s
-                quote! { whippyunits::unit!(#current_base_ident * #time_base_ident, #storage_type) }
-            },
-            "V" => {
-                // Volt = kg * m^2 / (A * s^3)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^3), #storage_type) }
-            },
-            "F" => {
-                // Farad = A^2 * s^4 / (kg * m^2)
-                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^4 / (#mass_base_ident * #length_base_ident^2), #storage_type) }
-            },
-            "Ω" => {
-                // Ohm = kg * m^2 / (A^2 * s^3)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^3), #storage_type) }
-            },
-            "S" => {
-                // Siemens = A^2 * s^3 / (kg * m^2)
-                quote! { whippyunits::unit!(#current_base_ident^2 * #time_base_ident^3 / (#mass_base_ident * #length_base_ident^2), #storage_type) }
-            },
-            "H" => {
-                // Henry = kg * m^2 / (A^2 * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident^2 * #time_base_ident^2), #storage_type) }
-            },
-            "T" => {
-                // Tesla = kg / (A * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident / (#current_base_ident * #time_base_ident^2), #storage_type) }
-            },
-            "Wb" => {
-                // Weber = kg * m^2 / (A * s^2)
-                quote! { whippyunits::unit!(#mass_base_ident * #length_base_ident^2 / (#current_base_ident * #time_base_ident^2), #storage_type) }
-            },
-            "lm" => {
-                // Lumen = cd * sr (steradian is dimensionless)
-                quote! { whippyunits::unit!(#luminosity_base_ident, #storage_type) }
-            },
-            "lx" => {
-                // Lux = cd / m^2
-                quote! { whippyunits::unit!(#luminosity_base_ident / #length_base_ident^2, #storage_type) }
-            },
-            // For other units, fall back to the original unit type
-            _ => {
-                let unit_ident = self.unit_ident;
-                quote! { whippyunits::unit!(#unit_ident, #storage_type) }
+        // Use data-driven approach to map unit identifiers to their dimensions
+        if let Some(dimensions) = get_unit_dimensions(&unit_name) {
+            // Check if it's a simple base unit (single dimension = 1, others = 0)
+            if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
+                quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
+            } else {
+                // It's a compound unit - generate the unit expression
+                let base_units = [
+                    (mass_base.as_str(), mass_base.as_str()),
+                    (length_base.as_str(), length_base.as_str()), 
+                    (time_base.as_str(), time_base.as_str()),
+                    (current_base.as_str(), current_base.as_str()),
+                    (temperature_base.as_str(), temperature_base.as_str()),
+                    (amount_base.as_str(), amount_base.as_str()),
+                    (luminosity_base.as_str(), luminosity_base.as_str()),
+                    (angle_base.as_str(), angle_base.as_str())
+                ];
+                
+                let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
+                let unit_expr_ident = syn::parse_str::<Ident>(&unit_expr).unwrap_or_else(|_| {
+                    // If parsing fails, fall back to the original unit
+                    self.unit_ident.clone()
+                });
+                
+                quote! { whippyunits::unit!(#unit_expr_ident, #storage_type) }
             }
+        } else {
+            // For unknown units, fall back to the original unit type
+            let unit_ident = self.unit_ident;
+            quote! { whippyunits::unit!(#unit_ident, #storage_type) }
+        }
+    }
+    
+    /// Get the appropriate scale identifier for given dimension exponents
+    /// Returns Some(scale_ident) if it's a simple base unit, None for compound units
+    fn get_scale_for_dimensions(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> Option<Ident> {
+        match dimensions {
+            (1, 0, 0, 0, 0, 0, 0, 0) => Some(self.mass_scale.clone()),
+            (0, 1, 0, 0, 0, 0, 0, 0) => Some(self.length_scale.clone()),
+            (0, 0, 1, 0, 0, 0, 0, 0) => Some(self.time_scale.clone()),
+            (0, 0, 0, 1, 0, 0, 0, 0) => Some(self.current_scale.clone()),
+            (0, 0, 0, 0, 1, 0, 0, 0) => Some(self.temperature_scale.clone()),
+            (0, 0, 0, 0, 0, 1, 0, 0) => Some(self.amount_scale.clone()),
+            (0, 0, 0, 0, 0, 0, 1, 0) => Some(self.luminosity_scale.clone()),
+            (0, 0, 0, 0, 0, 0, 0, 1) => Some(self.angle_scale.clone()),
+            _ => None, // Compound unit
         }
     }
 }
