@@ -180,12 +180,11 @@ impl DefineGenericDimensionInput {
                 const SCALE_P2: i16,
                 const SCALE_P3: i16,
                 const SCALE_P5: i16,
-                const SCALE_P10: i16,
                 const SCALE_PI: i16,
                 T
             > #trait_name for whippyunits::quantity_type::Quantity<
                 #mass_exp, #length_exp, #time_exp, #current_exp, #temp_exp, #amount_exp, #lum_exp, #angle_exp,
-                SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+                SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
                 T
             > {
                 type Unit = Self;

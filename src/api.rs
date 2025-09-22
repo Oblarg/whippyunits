@@ -11,15 +11,14 @@ use std::fmt;
 define_aggregate_scale_factor_rational!(
     // params
     (
-        scale_p2_from: i16, scale_p3_from: i16, scale_p5_from: i16, scale_p10_from: i16, scale_pi_from: i16,
-        scale_p2_to: i16, scale_p3_to: i16, scale_p5_to: i16, scale_p10_to: i16, scale_pi_to: i16,
+        scale_p2_from: i16, scale_p3_from: i16, scale_p5_from: i16, scale_pi_from: i16,
+        scale_p2_to: i16, scale_p3_to: i16, scale_p5_to: i16, scale_pi_to: i16,
     ),
     // diff expressions
     (
         let diff_scale_p2 = scale_p2_from - scale_p2_to;
         let diff_scale_p3 = scale_p3_from - scale_p3_to;
         let diff_scale_p5 = scale_p5_from - scale_p5_to;
-        let diff_scale_p10 = scale_p10_from - scale_p10_to;
         let diff_scale_pi = scale_pi_from - scale_pi_to;
     ),
     // pow expressions
@@ -27,26 +26,24 @@ define_aggregate_scale_factor_rational!(
         let (num2, den2) = pow2(diff_scale_p2 as i32);
         let (num3, den3) = pow3(diff_scale_p3 as i32);
         let (num5, den5) = pow5(diff_scale_p5 as i32);
-        let (num10, den10) = pow10(diff_scale_p10 as i32);
         let (num_pi, den_pi) = powPi(diff_scale_pi as i32);
     ),
     // num and den expressions
-    (num2 * num3 * num5 * num10 * num_pi),
-    (den2 * den3 * den5 * den10 * den_pi),
+    (num2 * num3 * num5 * num_pi),
+    (den2 * den3 * den5 * den_pi),
 );
 
 define_aggregate_scale_factor_float!(
     // params
     (
-        scale_p2_from: i16, scale_p3_from: i16, scale_p5_from: i16, scale_p10_from: i16, scale_pi_from: i16,
-        scale_p2_to: i16, scale_p3_to: i16, scale_p5_to: i16, scale_p10_to: i16, scale_pi_to: i16,
+        scale_p2_from: i16, scale_p3_from: i16, scale_p5_from: i16, scale_pi_from: i16,
+        scale_p2_to: i16, scale_p3_to: i16, scale_p5_to: i16, scale_pi_to: i16,
     ),
     // diff expressions
     (
         let diff_scale_p2 = scale_p2_from - scale_p2_to;
         let diff_scale_p3 = scale_p3_from - scale_p3_to;
         let diff_scale_p5 = scale_p5_from - scale_p5_to;
-        let diff_scale_p10 = scale_p10_from - scale_p10_to;
         let diff_scale_pi = scale_pi_from - scale_pi_to;
     ),
     // pow expressions
@@ -54,11 +51,10 @@ define_aggregate_scale_factor_float!(
         let pow_2 = (2 as f64).powi(diff_scale_p2 as i32);
         let pow_3 = (3 as f64).powi(diff_scale_p3 as i32);
         let pow_5 = (5 as f64).powi(diff_scale_p5 as i32);
-        let pow_10 = (10 as f64).powi(diff_scale_p10 as i32);
         let pow_pi = (std::f64::consts::PI).powi(diff_scale_pi as i32);
     ),
     // final expression
-    (pow_2 * pow_3 * pow_5 * pow_10 * pow_pi),
+    (pow_2 * pow_3 * pow_5 * pow_pi),
 );
 
 macro_rules! define_float_rescale {
@@ -76,7 +72,6 @@ macro_rules! define_float_rescale {
                 const SCALE_P2_FROM: i16, const SCALE_P2_TO: i16,
                 const SCALE_P3_FROM: i16, const SCALE_P3_TO: i16,
                 const SCALE_P5_FROM: i16, const SCALE_P5_TO: i16,
-                const SCALE_P10_FROM: i16, const SCALE_P10_TO: i16,
                 const SCALE_PI_FROM: i16, const SCALE_PI_TO: i16,
             ),
             (
@@ -92,7 +87,6 @@ macro_rules! define_float_rescale {
                     SCALE_P2_FROM,
                     SCALE_P3_FROM,
                     SCALE_P5_FROM,
-                    SCALE_P10_FROM,
                     SCALE_PI_FROM,
                     $T,
                 >
@@ -110,14 +104,13 @@ macro_rules! define_float_rescale {
                     SCALE_P2_TO,
                     SCALE_P3_TO,
                     SCALE_P5_TO,
-                    SCALE_P10_TO,
                     SCALE_PI_TO,
                     $T,
                 >
             ),
             (
-                SCALE_P2_FROM, SCALE_P3_FROM, SCALE_P5_FROM, SCALE_P10_FROM, SCALE_PI_FROM,
-                SCALE_P2_TO, SCALE_P3_TO, SCALE_P5_TO, SCALE_P10_TO, SCALE_PI_TO,
+                SCALE_P2_FROM, SCALE_P3_FROM, SCALE_P5_FROM, SCALE_PI_FROM,
+                SCALE_P2_TO, SCALE_P3_TO, SCALE_P5_TO, SCALE_PI_TO,
             ),
             $rescale_fn, $T,
         );
@@ -139,7 +132,6 @@ macro_rules! define_int_rescale {
                 const SCALE_P2_FROM: i16, const SCALE_P2_TO: i16,
                 const SCALE_P3_FROM: i16, const SCALE_P3_TO: i16,
                 const SCALE_P5_FROM: i16, const SCALE_P5_TO: i16,
-                const SCALE_P10_FROM: i16, const SCALE_P10_TO: i16,
                 const SCALE_PI_FROM: i16, const SCALE_PI_TO: i16,
             ),
             (
@@ -155,7 +147,6 @@ macro_rules! define_int_rescale {
                     SCALE_P2_FROM,
                     SCALE_P3_FROM,
                     SCALE_P5_FROM,
-                    SCALE_P10_FROM,
                     SCALE_PI_FROM,
                     $T,
                 >
@@ -173,14 +164,13 @@ macro_rules! define_int_rescale {
                     SCALE_P2_TO,
                     SCALE_P3_TO,
                     SCALE_P5_TO,
-                    SCALE_P10_TO,
                     SCALE_PI_TO,
                     $T,
                 >
             ),
             (
-                SCALE_P2_FROM, SCALE_P3_FROM, SCALE_P5_FROM, SCALE_P10_FROM, SCALE_PI_FROM,
-                SCALE_P2_TO, SCALE_P3_TO, SCALE_P5_TO, SCALE_P10_TO, SCALE_PI_TO,
+                SCALE_P2_FROM, SCALE_P3_FROM, SCALE_P5_FROM, SCALE_PI_FROM,
+                SCALE_P2_TO, SCALE_P3_TO, SCALE_P5_TO, SCALE_PI_TO,
             ),
             $rescale_fn, $T,
         );
@@ -222,7 +212,6 @@ macro_rules! define_arithmetic {
             const SCALE_P2: i16,
             const SCALE_P3: i16,
             const SCALE_P5: i16,
-            const SCALE_P10: i16,
             const SCALE_PI: i16,
         ),
         // single dimension, multiple scales
@@ -235,8 +224,8 @@ macro_rules! define_arithmetic {
             const AMOUNT_EXPONENT: i16,
             const LUMINOSITY_EXPONENT: i16,
             const ANGLE_EXPONENT: i16,
-            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_P10_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_P10_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
         ),
         
         // multiple dimension, multiple scales
@@ -249,8 +238,8 @@ macro_rules! define_arithmetic {
             const AMOUNT_EXPONENT_1: i16, const AMOUNT_EXPONENT_2: i16,
             const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
             const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
-            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_P10_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_P10_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
         ),
         // inversion where clauses
         (
@@ -265,35 +254,29 @@ macro_rules! define_arithmetic {
             (): IsI16<{ -SCALE_P2 }>,
             (): IsI16<{ -SCALE_P3 }>,
             (): IsI16<{ -SCALE_P5 }>,
-            (): IsI16<{ -SCALE_P10 }>,
             (): IsI16<{ -SCALE_PI }>
         ),
         // add min scale where clauses
         (
             (): IsI16<{ min_scale(
                 2, 
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_P10_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_P10_2, SCALE_PI_2,
+                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
+                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
                 3, 
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_P10_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_P10_2, SCALE_PI_2,
+                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
+                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
                 5, 
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_P10_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_P10_2, SCALE_PI_2,
-            )}>,
-            (): IsI16<{ min_scale(
-                10, 
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_P10_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_P10_2, SCALE_PI_2,
+                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
+                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
                 i16::Max, 
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_P10_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_P10_2, SCALE_PI_2,
+                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
+                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>
         ),
         // mul output dimension where clauses
@@ -309,7 +292,6 @@ macro_rules! define_arithmetic {
             (): IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
             (): IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
             (): IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_P10_1 + SCALE_P10_2 }>,
             (): IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
         ),
         // div output dimension where clauses
@@ -325,7 +307,6 @@ macro_rules! define_arithmetic {
             (): IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
             (): IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
             (): IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_P10_1 - SCALE_P10_2 }>,
             (): IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
         ),
             // other parameters
@@ -366,7 +347,6 @@ define_display_traits!(
         const SCALE_P2: i16,
         const SCALE_P3: i16,
         const SCALE_P5: i16,
-        const SCALE_P10: i16,
         const SCALE_PI: i16,
     ),
     (
@@ -381,7 +361,6 @@ define_display_traits!(
         SCALE_P2,
         SCALE_P3,
         SCALE_P5,
-        SCALE_P10,
         SCALE_PI,
     )
 );

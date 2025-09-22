@@ -128,14 +128,14 @@ Affine quantities (like temperature) handle zero-point offsets automatically. Ce
 println!("{}", 5.0.millimeters()); 
 // (5) Quantity<mm; Length>
 println!("{:?}", 5.0.meters()); 
-// (5_f64) Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁰, π⁰]>
+// (5_f64) Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰]>
 
 // Even handles complex SI values with correct aggregate-power-of-10 prefixing:
 let joule = 1.0.milligrams() * 1.0.meters() * 1.0.meters() / 1.0.seconds() / 1.0.seconds();
 println!("{}", joule);
 // (1) Quantity<μ(kg·m²·s⁻²); μJ; Energy>
 println!("{:?}", joule);
-// (1_f64) Quantity<micro(kilogram·meter²·second⁻²); microJoule; Energy; [mass¹, length², time⁻², current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁻⁶, π⁰]>
+// (1_f64) Quantity<micro(kilogram·meter²·second⁻²); microJoule; Energy; [mass¹, length², time⁻², current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁻⁶, 3⁰, 5⁻⁶, π⁰]>
 ```
 
 ## Print Format with Rescaling
@@ -160,13 +160,13 @@ The `whippyunits-pretty` tool transforms complex compiler error messages into re
 ```bash
 # Pipe rustc output through the pretty printer
 cargo check 2>&1 | whippyunits-pretty
-# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
 # Into:     Quantity<m; Length>
 
 # Verbose mode with full dimension info
 cargo check 2>&1 | whippyunits-pretty --verbose
-# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
-# Into:     Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁰, π⁰] f64>
+# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+# Into:     Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
 ```
 
 ## LSP Proxy
@@ -177,22 +177,22 @@ The `lsp-proxy/` directory contains a Language Server Protocol proxy that interc
     * verbosely in hover info, including best-effort interpretation of partially-resolved types:
         ```rust
         // fully-resolved
-        let result: Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁰, π⁰] f64>
+        let result: Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
         size = 8, align = 0x8, no Drop
 
         Raw:
 
-        let result: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+        let result: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
         size = 8, align = 0x8, no Drop
 
         // partially-resolved - may happen intentionally in scale-generic code,
         // or may happen due to rust-analyzer being lazy about const generic evaluation
-        let frequency: Quantity<secondˀ; [mass⁰, length⁰, timeˀ, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, 10⁰, π⁰] f64>
+        let frequency: Quantity<secondˀ; [mass⁰, length⁰, timeˀ, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
         size = 8, align = 0x8, no Drop
 
         Raw:
 
-        let frequency: Quantity<0, 0, _, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
+        let frequency: Quantity<0, 0, _, 0, 0, 0, 0, 0, 0, 0, 0, 0>
         size = 8, align = 0x8, no Drop
         ```
     * tersely in inlay hints with backing datatype suffix (also including best-effort interpretation...):

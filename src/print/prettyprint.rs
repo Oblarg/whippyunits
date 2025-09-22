@@ -98,15 +98,16 @@ define_calculate_total_scale_p10!(
         scale_p2: i16,
         scale_p3: i16,
         scale_p5: i16,
-        scale_p10: i16,
         scale_pi: i16
     ),
     (
-        let mut total_scale_p10: i16 = scale_p10;
-        // only check pure powers of 10 on composite units
-        if scale_p2 == scale_p5 && scale_p3 == 0 {
-            total_scale_p10 += scale_p2;
+        let mut total_scale_p10: i16 = 0;
+        // In the new system, powers of 10 are represented as equal powers of 2 and 5
+        // So we need to find the minimum of p2 and p5 to get the power of 10
+        if scale_p2 == scale_p5 {
+            total_scale_p10 = scale_p2;
         }
+        // Note: scale_p3 and scale_pi don't contribute to powers of 10
         total_scale_p10
     )
 );
@@ -124,13 +125,12 @@ fn generate_prefixed_si_unit(
     scale_p2: i16,
     scale_p3: i16,
     scale_p5: i16,
-    scale_p10: i16,
     scale_pi: i16,
     base_si_unit: &str,
     long_name: bool,
 ) -> String {
     let total_scale_p10 = calculate_total_scale_p10(
-        scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
+        scale_p2, scale_p3, scale_p5, scale_pi
     );
     
     if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
@@ -146,13 +146,12 @@ fn generate_prefixed_systematic_unit(
     scale_p2: i16,
     scale_p3: i16,
     scale_p5: i16,
-    scale_p10: i16,
     scale_pi: i16,
     base_unit: &str,
     long_name: bool,
 ) -> String {
     let total_scale_p10 = calculate_total_scale_p10(
-        scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
+        scale_p2, scale_p3, scale_p5, scale_pi
     );
     
     // Check if this is a pure unit (not compound)
@@ -344,17 +343,16 @@ define_pretty_print_quantity!(
         scale_p2: i16,
         scale_p3: i16,
         scale_p5: i16,
-        scale_p10: i16,
         scale_pi: i16
     ),
     (
         mass_exponent, length_exponent, time_exponent, electric_current_exponent, temperature_exponent, amount_of_substance_exponent, luminous_intensity_exponent, angle_exponent
     ),
     (
-        scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
+        scale_p2, scale_p3, scale_p5, scale_pi
     ),
     format!(
-        "; [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}] [2{}, 3{}, 5{}, 10{}, π{}]",
+        "; [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}] [2{}, 3{}, 5{}, π{}]",
         to_unicode_superscript(mass_exponent, true),
         to_unicode_superscript(length_exponent, true),
         to_unicode_superscript(time_exponent, true),
@@ -366,7 +364,6 @@ define_pretty_print_quantity!(
         format_scale_exponent(scale_p2),
         format_scale_exponent(scale_p3),
         format_scale_exponent(scale_p5),
-        format_scale_exponent(scale_p10),
         format_scale_exponent(scale_pi)
     )
 );
@@ -467,7 +464,6 @@ define_pretty_print_quantity_helpers!(
         scale_p2: i16,
         scale_p3: i16,
         scale_p5: i16,
-        scale_p10: i16,
         scale_pi: i16
     ),
     (
@@ -481,6 +477,6 @@ define_pretty_print_quantity_helpers!(
         angle_exponent
     ),
     (
-        scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
+        scale_p2, scale_p3, scale_p5, scale_pi
     )
 );

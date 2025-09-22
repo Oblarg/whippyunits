@@ -41,7 +41,7 @@ pub struct UnitLiteralInfo {
     pub long_name: &'static str,
     pub type_name: &'static str, // The actual type name (e.g., "Kilometer", "Meter")
     pub dimension_exponents: DimensionExponents,
-    pub scale_factors: (i16, i16, i16, i16, i16), // p2, p3, p5, p10, pi
+    pub scale_factors: (i16, i16, i16, i16), // p2, p3, p5, pi
     pub conversion_factor: Option<f64>, // Conversion factor to base SI unit (None for SI base units)
 }
 
@@ -582,30 +582,24 @@ pub const BASE_UNITS: &[BaseUnitInfo] = &[
 /// This includes all the units defined in default_declarators and imperial_declarators
 pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
     // Base SI units only - prefixing handled systematically by proc macro
-    UnitLiteralInfo { symbol: "m", long_name: "meter", type_name: "Meter", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "g", long_name: "gram", type_name: "Gram", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -3, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "s", long_name: "second", type_name: "Second", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "A", long_name: "ampere", type_name: "Ampere", dimension_exponents: (0, 0, 0, 1, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "K", long_name: "kelvin", type_name: "Kelvin", dimension_exponents: (0, 0, 0, 0, 1, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "mol", long_name: "mole", type_name: "Mole", dimension_exponents: (0, 0, 0, 0, 0, 1, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "cd", long_name: "candela", type_name: "Candela", dimension_exponents: (0, 0, 0, 0, 0, 0, 1, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    UnitLiteralInfo { symbol: "rad", long_name: "radian", type_name: "Radian", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1), scale_factors: (0, 0, 0, 0, 0), conversion_factor: None },
-    
-    // Additional time units
-    UnitLiteralInfo { symbol: "min", long_name: "minute", type_name: "Minute", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(60.0) },
-    UnitLiteralInfo { symbol: "h", long_name: "hour", type_name: "Hour", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(3600.0) },
-    UnitLiteralInfo { symbol: "d", long_name: "day", type_name: "Day", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(86400.0) },
-    UnitLiteralInfo { symbol: "yr", long_name: "year", type_name: "Year", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(31557600.0) },
+    UnitLiteralInfo { symbol: "m", long_name: "meter", type_name: "Meter", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "g", long_name: "gram", type_name: "Gram", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (-3, 0, -3, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "s", long_name: "second", type_name: "Second", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "A", long_name: "ampere", type_name: "Ampere", dimension_exponents: (0, 0, 0, 1, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "K", long_name: "kelvin", type_name: "Kelvin", dimension_exponents: (0, 0, 0, 0, 1, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "mol", long_name: "mole", type_name: "Mole", dimension_exponents: (0, 0, 0, 0, 0, 1, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "cd", long_name: "candela", type_name: "Candela", dimension_exponents: (0, 0, 0, 0, 0, 0, 1, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
+    UnitLiteralInfo { symbol: "rad", long_name: "radian", type_name: "Radian", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1), scale_factors: (0, 0, 0, 0), conversion_factor: None },
     
     // Imperial length units
-    UnitLiteralInfo { symbol: "in", long_name: "inch", type_name: "Inch", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -2, 0), conversion_factor: Some(0.0254) }, // 1 in = 2.54 cm = 0.0254 m
-    UnitLiteralInfo { symbol: "yd", long_name: "yard", type_name: "Yard", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(0.9144) }, // 1 yd = 0.9144 m
-    UnitLiteralInfo { symbol: "ft", long_name: "foot", type_name: "Foot", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(0.3048) }, // 1 ft = 0.3048 m
-    UnitLiteralInfo { symbol: "mi", long_name: "mile", type_name: "Mile", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 3, 0), conversion_factor: Some(1609.344) }, // 1 mi = 1.609344 km
+    UnitLiteralInfo { symbol: "in", long_name: "inch", type_name: "Inch", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (-2, 0, -2, 0), conversion_factor: Some(0.0254) }, // 1 in = 2.54 cm = 0.0254 m
+    UnitLiteralInfo { symbol: "yd", long_name: "yard", type_name: "Yard", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: Some(0.9144) }, // 1 yd = 0.9144 m
+    UnitLiteralInfo { symbol: "ft", long_name: "foot", type_name: "Foot", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: Some(0.3048) }, // 1 ft = 0.3048 m
+    UnitLiteralInfo { symbol: "mi", long_name: "mile", type_name: "Mile", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (3, 0, 3, 0), conversion_factor: Some(1609.344) }, // 1 mi = 1.609344 km
     
     // Imperial mass units
-    UnitLiteralInfo { symbol: "oz", long_name: "ounce", type_name: "Ounce", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, -2, 0), conversion_factor: Some(0.028349523125) }, // 1 oz = 0.028349523125 kg
-    UnitLiteralInfo { symbol: "lb", long_name: "pound", type_name: "Pound", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0, 0), conversion_factor: Some(0.45359237) }, // 1 lb = 0.45359237 kg
+    UnitLiteralInfo { symbol: "oz", long_name: "ounce", type_name: "Ounce", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (-2, 0, -2, 0), conversion_factor: Some(0.028349523125) }, // 1 oz = 0.028349523125 kg
+    UnitLiteralInfo { symbol: "lb", long_name: "pound", type_name: "Pound", dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: Some(0.45359237) }, // 1 lb = 0.45359237 kg
 ];
 
 /// Look up dimension information by name (case-insensitive)

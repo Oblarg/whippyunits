@@ -4,7 +4,7 @@ use crate::api::aggregate_scale_factor_float;
 use whippyunits_default_dimensions::lookup_unit_literal;
 
 /// Calculate the conversion factor from the source unit to the target unit
-fn calculate_conversion_factor<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_P10: i16, const SCALE_PI: i16>(
+fn calculate_conversion_factor<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>(
     unit: &str, 
     target_unit_info: &whippyunits_default_dimensions::UnitLiteralInfo
 ) -> f64 {
@@ -14,18 +14,20 @@ fn calculate_conversion_factor<const SCALE_P2: i16, const SCALE_P3: i16, const S
     ) {
         // This is a prefixed unit - create the target scale factors from the base unit + prefix
         let prefix_scale = prefix_info.scale_factor;
-        let (target_p2, target_p3, target_p5, target_p10, target_pi) = (
-            target_unit_info.scale_factors.0,
-            target_unit_info.scale_factors.1,
-            target_unit_info.scale_factors.2,
-            target_unit_info.scale_factors.3 + prefix_scale,
-            target_unit_info.scale_factors.4
+        // Convert the target unit's scale factors to use only prime factors
+        // The old system had scale_factors.3 as SCALE_P10, now we need to put that in p2 and p5
+        // The prefix_scale is the power of 10, so we add it to both p2 and p5
+        let (target_p2, target_p3, target_p5, target_pi) = (
+            target_unit_info.scale_factors.0 + prefix_scale, // p2 gets prefix
+            target_unit_info.scale_factors.1,                // p3 unchanged
+            target_unit_info.scale_factors.2 + prefix_scale, // p5 gets prefix
+            target_unit_info.scale_factors.3                 // pi unchanged
         );
         
         // Calculate conversion factor from source to target
         let result = aggregate_scale_factor_float(
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-            target_p2, target_p3, target_p5, target_p10, target_pi
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
+            target_p2, target_p3, target_p5, target_pi
         );
         result
     } else {
@@ -43,18 +45,17 @@ fn calculate_conversion_factor<const SCALE_P2: i16, const SCALE_P3: i16, const S
                     if unit.len() == expected_length_singular || unit.len() == expected_length_plural {
                         // Found a long name prefixed unit - get the prefix scale factor
                         let prefix_scale = prefix.scale_factor;
-                        let (target_p2, target_p3, target_p5, target_p10, target_pi) = (
-                            target_unit_info.scale_factors.0,
-                            target_unit_info.scale_factors.1,
-                            target_unit_info.scale_factors.2,
-                            target_unit_info.scale_factors.3 + prefix_scale,
-                            target_unit_info.scale_factors.4
+                        let (target_p2, target_p3, target_p5, target_pi) = (
+                            target_unit_info.scale_factors.0 + prefix_scale, // p2 gets prefix
+                            target_unit_info.scale_factors.1,                // p3 unchanged
+                            target_unit_info.scale_factors.2 + prefix_scale, // p5 gets prefix
+                            target_unit_info.scale_factors.3                 // pi unchanged
                         );
                         
                         // Calculate conversion factor from source to target
                         let result = aggregate_scale_factor_float(
-                            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-                            target_p2, target_p3, target_p5, target_p10, target_pi
+                            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
+                            target_p2, target_p3, target_p5, target_pi
                         );
                         return result;
                     }
@@ -68,10 +69,15 @@ fn calculate_conversion_factor<const SCALE_P2: i16, const SCALE_P3: i16, const S
             1.0 / unit_conversion_factor
         } else {
             // Use the scale factors from the target unit info
-            let (p2, p3, p5, p10, pi) = target_unit_info.scale_factors;
+            let (p2, p3, p5, pi) = (
+                target_unit_info.scale_factors.0, // p2
+                target_unit_info.scale_factors.1, // p3
+                target_unit_info.scale_factors.2, // p5
+                target_unit_info.scale_factors.3  // pi
+            );
             aggregate_scale_factor_float(
-                SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-                p2, p3, p5, p10, pi
+                SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
+                p2, p3, p5, pi
             )
         }
     }
@@ -95,7 +101,6 @@ impl<
     const SCALE_P2: i16,
     const SCALE_P3: i16,
     const SCALE_P5: i16,
-    const SCALE_P10: i16,
     const SCALE_PI: i16,
     T
 > QuantityFormatExt for Quantity<
@@ -110,7 +115,6 @@ impl<
     SCALE_P2,
     SCALE_P3,
     SCALE_P5,
-    SCALE_P10,
     SCALE_PI,
     T
 >
@@ -147,7 +151,7 @@ where
         }
         
         // Calculate conversion factor using the helper function
-        let conversion_factor = calculate_conversion_factor::<SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI>(unit, target_unit_info);
+        let conversion_factor = calculate_conversion_factor::<SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI>(unit, target_unit_info);
         
         // Convert and format
         let original_value: f64 = self.value.into();
@@ -184,7 +188,7 @@ where
         }
         
         // Calculate conversion factor using the helper function
-        let conversion_factor = calculate_conversion_factor::<SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI>(unit, target_unit_info);
+        let conversion_factor = calculate_conversion_factor::<SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI>(unit, target_unit_info);
         
         // Convert and format
         let converted_value = self.value.into() * conversion_factor;

@@ -28,7 +28,6 @@ macro_rules! inverse_quantity_type {
             SCALE_P2,
             SCALE_P3,
             SCALE_P5,
-            SCALE_P10,
             SCALE_PI,
             $T
         >
@@ -50,7 +49,6 @@ macro_rules! addition_input {
             SCALE_P2,
             SCALE_P3,
             SCALE_P5,
-            SCALE_P10,
             SCALE_PI,
             $T
         >
@@ -68,7 +66,6 @@ macro_rules! addition_input {
             SCALE_P2_1,
             SCALE_P3_1,
             SCALE_P5_1,
-            SCALE_P10_1,
             SCALE_PI_1,
             $T
         >
@@ -86,7 +83,6 @@ macro_rules! addition_input {
             SCALE_P2_2,
             SCALE_P3_2,
             SCALE_P5_2,
-            SCALE_P10_2,
             SCALE_PI_2,
             $T
         >
@@ -108,7 +104,6 @@ macro_rules! multiplication_input {
             SCALE_P2_1,
             SCALE_P3_1,
             SCALE_P5_1,
-            SCALE_P10_1,
             SCALE_PI_1,
             $T
         >
@@ -126,7 +121,6 @@ macro_rules! multiplication_input {
             SCALE_P2_2,
             SCALE_P3_2,
             SCALE_P5_2,
-            SCALE_P10_2,
             SCALE_PI_2,
             $T
         >
@@ -148,7 +142,6 @@ macro_rules! multiplication_output {
             { SCALE_P2_1 $log_op SCALE_P2_2 },
             { SCALE_P3_1 $log_op SCALE_P3_2 },
             { SCALE_P5_1 $log_op SCALE_P5_2 },
-            { SCALE_P10_1 $log_op SCALE_P10_2 },
             { SCALE_PI_1 $log_op SCALE_PI_2 },
             $T
         >

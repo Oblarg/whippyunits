@@ -814,7 +814,7 @@ fn test_i32_quantity_declarators() {
 #[test]
 fn test_unit_macro_with_different_types() {
     use whippyunits::default_declarators::*;
-    
+        
     // Test unit macro with default f64 backing
     let length_f64: unit!(m) = 5.0.meters();
     assert_eq!(length_f64.value, 5.0f64);

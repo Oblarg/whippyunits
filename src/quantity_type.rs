@@ -26,7 +26,6 @@ pub struct Quantity<
     const SCALE_P2: i16,
     const SCALE_P3: i16,
     const SCALE_P5: i16,
-    const SCALE_P10: i16,
     const SCALE_PI: i16,
     T = f64
 > {
@@ -45,7 +44,6 @@ impl<
     const SCALE_P2: i16,
     const SCALE_P3: i16,
     const SCALE_P5: i16,
-    const SCALE_P10: i16,
     const SCALE_PI: i16,
     T
 >
@@ -61,7 +59,6 @@ impl<
         SCALE_P2,
         SCALE_P3,
         SCALE_P5,
-        SCALE_P10,
         SCALE_PI,
         T
     >
@@ -78,7 +75,6 @@ impl<
     const SCALE_P2: i16,
     const SCALE_P3: i16,
     const SCALE_P5: i16,
-    const SCALE_P10: i16,
     const SCALE_PI: i16,
 > From<
     Quantity<
@@ -93,7 +89,6 @@ impl<
         SCALE_P2,
         SCALE_P3,
         SCALE_P5,
-        SCALE_P10,
         SCALE_PI,
         f64
     >
@@ -111,7 +106,6 @@ impl<
         SCALE_P2,
         SCALE_P3,
         SCALE_P5,
-        SCALE_P10,
         SCALE_PI,
         f64
     >
@@ -141,7 +135,6 @@ macro_rules! define_from_for_radians {
                 0,
                 0,
                 0,
-                0,
                 f64
             >
         > for f64
@@ -155,7 +148,6 @@ macro_rules! define_from_for_radians {
                 0,
                 0,
                 $exponent,
-                0, 
                 0, 
                 0, 
                 0, 
@@ -180,7 +172,6 @@ macro_rules! define_from_for_radians {
             const SCALE_P2: i16,
             const SCALE_P3: i16,
             const SCALE_P5: i16,
-            const SCALE_P10: i16,
             const SCALE_PI: i16,
         > From<
             Quantity<
@@ -207,7 +198,6 @@ macro_rules! define_from_for_radians {
             SCALE_P2,
             SCALE_P3,
             SCALE_P5,
-            SCALE_P10,
             SCALE_PI,
             f64
         >
@@ -266,7 +256,6 @@ macro_rules! quantity_type {
             SCALE_P2,
             SCALE_P3,
             SCALE_P5,
-            SCALE_P10,
             SCALE_PI,
             T
         >
@@ -284,7 +273,6 @@ macro_rules! quantity_type {
             SCALE_P2,
             SCALE_P3,
             SCALE_P5,
-            SCALE_P10,
             SCALE_PI,
             $T
         >

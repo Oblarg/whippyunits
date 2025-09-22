@@ -78,10 +78,10 @@ impl UnitExpr {
     }
     
     /// Evaluate the unit expression to get dimension exponents and scale factors
-    pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+    pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
             UnitExpr::Unit(unit) => {
-                let (mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, p10, pi) = 
+                let (mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi) = 
                     get_unit_dimensions(&unit.name.to_string());
                 (
                     mass * unit.exponent,
@@ -95,32 +95,31 @@ impl UnitExpr {
                     p2 * unit.exponent,
                     p3 * unit.exponent,
                     p5 * unit.exponent,
-                    p10 * unit.exponent,
                     pi * unit.exponent,
                 )
             },
             UnitExpr::Mul(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, p10a, pia) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, p10b, pib) = b.evaluate();
+                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, pia) = a.evaluate();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, pib) = b.evaluate();
                 (
                     ma + mb, la + lb, ta + tb, ca + cb, tempa + tempb, aa + ab, luma + lumb, anga + angb,
-                    p2a + p2b, p3a + p3b, p5a + p5b, p10a + p10b, pia + pib
+                    p2a + p2b, p3a + p3b, p5a + p5b, pia + pib
                 )
             },
             UnitExpr::Div(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, p10a, pia) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, p10b, pib) = b.evaluate();
+                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, pia) = a.evaluate();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, pib) = b.evaluate();
                 (
                     ma - mb, la - lb, ta - tb, ca - cb, tempa - tempb, aa - ab, luma - lumb, anga - angb,
-                    p2a - p2b, p3a - p3b, p5a - p5b, p10a - p10b, pia - pib
+                    p2a - p2b, p3a - p3b, p5a - p5b, pia - pib
                 )
             },
             UnitExpr::Pow(base, exp) => {
-                let (m, l, t, c, temp, a, lum, ang, p2, p3, p5, p10, pi) = base.evaluate();
+                let (m, l, t, c, temp, a, lum, ang, p2, p3, p5, pi) = base.evaluate();
                 let exp_val: i16 = exp.base10_parse().unwrap();
                 (
                     m * exp_val, l * exp_val, t * exp_val, c * exp_val, temp * exp_val, a * exp_val, 
-                    lum * exp_val, ang * exp_val, p2 * exp_val, p3 * exp_val, p5 * exp_val, p10 * exp_val, pi * exp_val
+                    lum * exp_val, ang * exp_val, p2 * exp_val, p3 * exp_val, p5 * exp_val, pi * exp_val
                 )
             }
         }
@@ -197,8 +196,8 @@ fn get_time_scale_factors(base_unit: &str) -> (i16, i16, i16) {
 }
 
 /// Get dimension exponents and scale factors for a unit
-/// Returns (mass, length, time, current, temperature, amount, luminosity, angle, p2, p3, p5, p10, pi)
-fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+/// Returns (mass, length, time, current, temperature, amount, luminosity, angle, p2, p3, p5, pi)
+fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
     let (prefix, base_unit) = parse_unit_name(unit_name);
     
     // Get base unit dimensions and inherent scale
@@ -214,17 +213,17 @@ fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i
     // Get special time scale factors
     let (p2, p3, p5) = get_time_scale_factors(base_unit);
     
-    // Determine where to put the scale factor based on the unit type
-    // Time and Angle units use p2 and p5 positions (multiply to give power of 10), others use p10 position
-    let (final_p2, final_p5, final_p10) = if time > 0 || angle > 0 {
-        // Time or angle units: scale factor goes in both p2 and p5 positions
-        (final_scale, final_scale, 0)
+    // All units now use p2 and p5 positions to represent powers of 10 as 2^n × 5^n
+    // This ensures a strict bijection between type identities and mathematical meaning
+    let (final_p2, final_p5) = if time > 0 || angle > 0 {
+        // Time or angle units: combine existing factors with power of 10
+        (p2 + final_scale, p5 + final_scale)
     } else {
-        // Other units: scale factor goes in p10 position
-        (p2, p5, final_scale)
+        // Other units: put power of 10 in both p2 and p5 positions
+        (final_scale, final_scale)
     };
     
-    (mass, length, time, current, temp, amount, lum, angle, final_p2, p3, final_p5, final_p10, 0)
+    (mass, length, time, current, temp, amount, lum, angle, final_p2, p3, final_p5, 0)
 }
 
 /// Input for the unit macro
@@ -255,7 +254,7 @@ impl Parse for UnitMacroInput {
 impl UnitMacroInput {
     pub fn expand(self) -> TokenStream {
         let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, 
-             p2, p3, p5, p10, pi) = self.unit_expr.evaluate();
+             p2, p3, p5, pi) = self.unit_expr.evaluate();
         
         // Use the specified storage type or default to f64
         let storage_type = self.storage_type.unwrap_or_else(|| {
@@ -265,7 +264,7 @@ impl UnitMacroInput {
         quote! {
             whippyunits::quantity_type::Quantity<
                 #mass_exp, #length_exp, #time_exp, #current_exp, #temp_exp, #amount_exp, #lum_exp, #angle_exp,
-                #p2, #p3, #p5, #p10, #pi,
+                #p2, #p3, #p5, #pi,
                 #storage_type
             >
         }

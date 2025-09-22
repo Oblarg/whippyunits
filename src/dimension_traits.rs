@@ -1,17 +1,19 @@
 use crate::quantity_type::Quantity;
 
+/// Macro to define dimension traits for atomic dimensions
+/// 
+/// This macro generates a trait and its implementation for a specific atomic dimension.
+/// It follows the same pattern as the default declarators but focuses only on the
+/// trait definition and implementation for scale-generic quantities.
 #[macro_export]
-macro_rules! define_dimension_traits {
+macro_rules! define_atomic_dimension_trait {
     (
-        $mass_unused:expr,
-        $length_unused:expr,
-        $time_unused_p2:expr, $time_unused_p3:expr, $time_unused_p5:expr
+        $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, 
+        $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
+        $trait_name:ident
     ) => {
-        // ===========================================================================
-        // MASS-like units
-        // ===========================================================================
-
-        pub trait Mass {
+        /// Trait for quantities with the specified atomic dimension
+        pub trait $trait_name {
             type Unit;
         }
 
@@ -20,111 +22,26 @@ macro_rules! define_dimension_traits {
             const SCALE_P2: i16,
             const SCALE_P3: i16,
             const SCALE_P5: i16,
-            const SCALE_P10: i16,
             const SCALE_PI: i16,
             T>
-        Mass
+        $trait_name
         for Quantity<
-            1, 0, 0, 0, 0, 0, 0, 0,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-            T> {
-            type Unit = Self;
-        }
-
-        // ===========================================================================
-        // LENGTH-like units
-        // ===========================================================================
-
-        pub trait Length {
-            type Unit;
-        }
-
-        #[rustfmt::skip]
-        impl<
-            const SCALE_P2: i16,
-            const SCALE_P3: i16,
-            const SCALE_P5: i16,
-            const SCALE_P10: i16,
-            const SCALE_PI: i16,
-            T>
-        Length
-        for Quantity<
-            0, 1, 0, 0, 0, 0, 0, 0,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-            T> {
-            type Unit = Self;
-        }
-
-        pub trait Area {
-            type Unit;
-        }
-
-        #[rustfmt::skip]
-        impl<
-            const SCALE_P2: i16,
-            const SCALE_P3: i16,
-            const SCALE_P5: i16,
-            const SCALE_P10: i16,
-            const SCALE_PI: i16,
-            T>
-        Area
-        for Quantity<
-            0, 2, 0, 0, 0, 0, 0, 0,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-            T> {
-            type Unit = Self;
-        }
-
-        // ===========================================================================
-        // TIME-like units
-        // ===========================================================================
-
-        pub trait Time {
-            type Unit;
-        }
-
-        #[rustfmt::skip]
-        impl<
-            const SCALE_P2: i16,
-            const SCALE_P3: i16,
-            const SCALE_P5: i16,
-            const SCALE_P10: i16,
-            const SCALE_PI: i16,
-            T>
-        Time
-        for Quantity<
-            0, 0, 1, 0, 0, 0, 0, 0,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
-            T> {
-            type Unit = Self;
-        }
-
-        pub trait Frequency {
-            type Unit;
-        }
-
-        #[rustfmt::skip]
-        impl<
-            const SCALE_P2: i16,
-            const SCALE_P3: i16,
-            const SCALE_P5: i16,
-            const SCALE_P10: i16,
-            const SCALE_PI: i16,
-            T>
-        Frequency
-        for Quantity<
-            0, 0, -1, 0, 0, 0, 0, 0,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_P10, SCALE_PI,
+            $mass_exp, $length_exp, $time_exp, $current_exp, 
+            $temperature_exp, $amount_exp, $luminosity_exp, $angle_exp,
+            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
             T> {
             type Unit = Self;
         }
     };
 }
 
-// Define the traits with 0 values for all non-strict modes (same as strict now)
-define_dimension_traits!(
-    0,
-    0,
-    0, 0, 0
-);
+// Define traits for all 8 atomic dimensions (SI base quantities)
+define_atomic_dimension_trait!(1, 0, 0, 0, 0, 0, 0, 0, Mass);
+define_atomic_dimension_trait!(0, 1, 0, 0, 0, 0, 0, 0, Length);
+define_atomic_dimension_trait!(0, 0, 1, 0, 0, 0, 0, 0, Time);
+define_atomic_dimension_trait!(0, 0, 0, 1, 0, 0, 0, 0, Current);
+define_atomic_dimension_trait!(0, 0, 0, 0, 1, 0, 0, 0, Temperature);
+define_atomic_dimension_trait!(0, 0, 0, 0, 0, 1, 0, 0, Amount);
+define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 1, 0, Luminosity);
+define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 0, 1, Angle);
 

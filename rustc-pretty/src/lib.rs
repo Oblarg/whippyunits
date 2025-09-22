@@ -161,7 +161,6 @@ impl WhippyUnitsTypeConverter {
                     scale_p2: i16::MIN,
                     scale_p3: i16::MIN,
                     scale_p5: i16::MIN,
-                    scale_p10: i16::MIN,
                     scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
@@ -175,7 +174,7 @@ impl WhippyUnitsTypeConverter {
                     params.mass_exp, params.length_exp, params.time_exp,
                     params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                     params.luminous_intensity_exp, params.angle_exp,
-                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
+                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
                     &params.generic_type,
                     true, // verbose
                     true, // show_type_in_brackets for rustc output
@@ -219,7 +218,6 @@ impl WhippyUnitsTypeConverter {
                     scale_p2: i16::MIN,
                     scale_p3: i16::MIN,
                     scale_p5: i16::MIN,
-                    scale_p10: i16::MIN,
                     scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
@@ -247,7 +245,7 @@ impl WhippyUnitsTypeConverter {
                         params.mass_exp, params.length_exp, params.time_exp,
                         params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                         params.luminous_intensity_exp, params.angle_exp,
-                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
                         &params.generic_type,
                         false, // not verbose
                         false, // don't show type in brackets for clean mode
@@ -292,8 +290,8 @@ impl WhippyUnitsTypeConverter {
             "f64".to_string()
         };
         
-        // Handle new 14-parameter format (8 dimension exponents + 5 aggregated scale parameters + 1 type)
-        if params.len() >= 14 {
+        // Handle new 13-parameter format (8 dimension exponents + 4 aggregated scale parameters + 1 type)
+        if params.len() >= 13 {
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
                 length_exp: params[1].unwrap_or(0),
@@ -306,12 +304,11 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[8].unwrap_or(0),
                 scale_p3: params[9].unwrap_or(0),
                 scale_p5: params[10].unwrap_or(0),
-                scale_p10: params[11].unwrap_or(0),
-                scale_pi: params[12].unwrap_or(0),
+                scale_pi: params[11].unwrap_or(0),
                 generic_type,
             })
-        } else if params.len() >= 13 {
-            // Handle 13-parameter format (8 dimension exponents + 5 scale parameters, no explicit type)
+        } else if params.len() >= 12 {
+            // Handle 12-parameter format (8 dimension exponents + 4 scale parameters, no explicit type)
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
                 length_exp: params[1].unwrap_or(0),
@@ -324,8 +321,7 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[8].unwrap_or(0),
                 scale_p3: params[9].unwrap_or(0),
                 scale_p5: params[10].unwrap_or(0),
-                scale_p10: params[11].unwrap_or(0),
-                scale_pi: params[12].unwrap_or(0),
+                scale_pi: params[11].unwrap_or(0),
                 generic_type,
             })
         } else if params.len() >= 8 {
@@ -342,7 +338,6 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[5].unwrap_or(0),
                 scale_p3: params[6].unwrap_or(0),
                 scale_p5: params[7].unwrap_or(0),
-                scale_p10: params[1].unwrap_or(0), // mass_scale_p10 in old format
                 scale_pi: 0,
                 generic_type,
             })
@@ -416,7 +411,6 @@ struct QuantityParams {
     scale_p2: i16,
     scale_p3: i16,
     scale_p5: i16,
-    scale_p10: i16,
     scale_pi: i16,
     generic_type: String,
 }

@@ -109,12 +109,12 @@ impl LocalQuantityMacroInput {
                 ];
                 
                 let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
-                let unit_expr_ident = syn::parse_str::<Ident>(&unit_expr).unwrap_or_else(|_| {
+                let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
                     // If parsing fails, fall back to the original unit
-                    self.unit_ident.clone()
+                    syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
                 });
                 
-                quote! { whippyunits::unit!(#unit_expr_ident, #storage_type) }
+                quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
             }
         } else {
             // For unknown units, fall back to the original unit type

@@ -294,8 +294,7 @@ macro_rules! define_base_units {
                     // Create the quantity using the default quantity! macro (source type)
                     let default_quantity = $crate::quantity!($value, $unit);
                     
-                    // The target type needs to use the local scale parameters
-                    // For now, we'll use type inference to let rescale_f64 determine the target
+                    
                     let target_quantity: local_unit_type!($unit) = $crate::api::rescale_f64(default_quantity);
                     target_quantity
                 }
@@ -305,7 +304,6 @@ macro_rules! define_base_units {
                     // Create the quantity using the default quantity! macro with f64 storage type
                     let default_quantity = $crate::quantity!($value, $unit, f64);
                     
-                    // Rescale to the preferred unit with f64 storage type
                     let target_quantity: local_unit_type!($unit, f64) = $crate::api::rescale_f64(default_quantity);
                     target_quantity
                 }
@@ -315,7 +313,6 @@ macro_rules! define_base_units {
                     // Create the quantity using the default quantity! macro with i32 storage type
                     let default_quantity = $crate::quantity!($value, $unit, i32);
                     
-                    // Rescale to the preferred unit with i32 storage type
                     let target_quantity: local_unit_type!($unit, i32) = $crate::api::rescale_i32(default_quantity);
                     target_quantity
                 }
@@ -325,7 +322,6 @@ macro_rules! define_base_units {
                     // Create the quantity using the default quantity! macro with i64 storage type
                     let default_quantity = $crate::quantity!($value, $unit, i64);
                     
-                    // Rescale to the preferred unit with i64 storage type
                     let target_quantity: local_unit_type!($unit, i64) = $crate::api::rescale_i64(default_quantity);
                     target_quantity
                 }

@@ -629,23 +629,16 @@ impl LspProxy {
     fn extract_quantity_type(&self, generic_params: &str, scale_suffix: &str) -> String {
         // Parse the generic parameters to extract values
         let mut mass_exp = 0;
-        let mut mass_scale = 0;
         let mut length_exp = 0;
-        let mut length_scale = 0;
         let mut time_exp = 0;
-        let mut time_p2 = 0;
-        let mut time_p3 = 0;
-        let mut time_p5 = 0;
+        let mut scale_p2 = 0;
+        let mut scale_p3 = 0;
+        let mut scale_p5 = 0;
+        let mut scale_pi = 0;
         
         // Extract MASS_EXPONENT
         if let Some(cap) = Regex::new(r"const MASS_EXPONENT: i16 = (\d+)").unwrap().captures(generic_params) {
             mass_exp = cap[1].parse().unwrap_or(0);
-        }
-        
-        // Extract MASS_SCALE_P10 with the specified suffix
-        let mass_scale_pattern = format!(r"const MASS_SCALE_P10_{}: i16 = (-?\d+)", scale_suffix);
-        if let Some(cap) = Regex::new(&mass_scale_pattern).unwrap().captures(generic_params) {
-            mass_scale = cap[1].parse().unwrap_or(0);
         }
         
         // Extract LENGTH_EXPONENT
@@ -653,33 +646,27 @@ impl LspProxy {
             length_exp = cap[1].parse().unwrap_or(0);
         }
         
-        // Extract LENGTH_SCALE_P10 with the specified suffix
-        let length_scale_pattern = format!(r"const LENGTH_SCALE_P10_{}: i16 = (-?\d+)", scale_suffix);
-        if let Some(cap) = Regex::new(&length_scale_pattern).unwrap().captures(generic_params) {
-            length_scale = cap[1].parse().unwrap_or(0);
-        }
-        
         // Extract TIME_EXPONENT
         if let Some(cap) = Regex::new(r"const TIME_EXPONENT: i16 = (\d+)").unwrap().captures(generic_params) {
             time_exp = cap[1].parse().unwrap_or(0);
         }
         
-        // Extract TIME_SCALE_P2 with the specified suffix
-        let time_p2_pattern = format!(r"const TIME_SCALE_P2_{}: i16 = (-?\d+)", scale_suffix);
-        if let Some(cap) = Regex::new(&time_p2_pattern).unwrap().captures(generic_params) {
-            time_p2 = cap[1].parse().unwrap_or(0);
+        // Extract unified scale parameters with the specified suffix
+        let p2_pattern = format!(r"const SCALE_P2_{}: i16 = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&p2_pattern).unwrap().captures(generic_params) {
+            scale_p2 = cap[1].parse().unwrap_or(0);
         }
-        
-        // Extract TIME_SCALE_P3 with the specified suffix
-        let time_p3_pattern = format!(r"const TIME_SCALE_P3_{}: i16 = (-?\d+)", scale_suffix);
-        if let Some(cap) = Regex::new(&time_p3_pattern).unwrap().captures(generic_params) {
-            time_p3 = cap[1].parse().unwrap_or(0);
+        let p3_pattern = format!(r"const SCALE_P3_{}: i16 = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&p3_pattern).unwrap().captures(generic_params) {
+            scale_p3 = cap[1].parse().unwrap_or(0);
         }
-        
-        // Extract TIME_SCALE_P5 with the specified suffix
-        let time_p5_pattern = format!(r"const TIME_SCALE_P5_{}: i16 = (-?\d+)", scale_suffix);
-        if let Some(cap) = Regex::new(&time_p5_pattern).unwrap().captures(generic_params) {
-            time_p5 = cap[1].parse().unwrap_or(0);
+        let p5_pattern = format!(r"const SCALE_P5_{}: i16 = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&p5_pattern).unwrap().captures(generic_params) {
+            scale_p5 = cap[1].parse().unwrap_or(0);
+        }
+        let pi_pattern = format!(r"const SCALE_PI_{}: i16 = (-?\d+)", scale_suffix);
+        if let Some(cap) = Regex::new(&pi_pattern).unwrap().captures(generic_params) {
+            scale_pi = cap[1].parse().unwrap_or(0);
         }
         
         // Use the prettyprint API to generate a readable type
@@ -687,7 +674,7 @@ impl LspProxy {
         pretty_print_quantity_type(
             mass_exp, length_exp, time_exp,
             0, 0, 0, 0, 0, // electric_current_exp, temperature_exp, amount_of_substance_exp, luminous_intensity_exp, angle_exp
-            time_p2, time_p3, time_p5, mass_scale, 0, // scale_p2, scale_p3, scale_p5, scale_p10, scale_pi
+            scale_p2, scale_p3, scale_p5, scale_pi, // scale_p2, scale_p3, scale_p5, scale_pi
             "f64", // generic_type
             false, // not verbose
             false, // don't show type in brackets for this context
@@ -879,7 +866,6 @@ impl WhippyUnitsTypeConverter {
                     scale_p2: i16::MIN,
                     scale_p3: i16::MIN,
                     scale_p5: i16::MIN,
-                    scale_p10: i16::MIN,
                     scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
@@ -894,7 +880,7 @@ impl WhippyUnitsTypeConverter {
                     params.mass_exp, params.length_exp, params.time_exp,
                     params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                     params.luminous_intensity_exp, params.angle_exp,
-                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
+                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
                     &params.generic_type,
                     true, // verbose
                     true, // show_type_in_brackets for LSP hover
@@ -942,7 +928,6 @@ impl WhippyUnitsTypeConverter {
                     scale_p2: i16::MIN,
                     scale_p3: i16::MIN,
                     scale_p5: i16::MIN,
-                    scale_p10: i16::MIN,
                     scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
@@ -968,7 +953,7 @@ impl WhippyUnitsTypeConverter {
                         params.mass_exp, params.length_exp, params.time_exp,
                         params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                         params.luminous_intensity_exp, params.angle_exp,
-                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
                         &params.generic_type,
                         false, // not verbose
                         false, // don't show type in brackets for clean mode
@@ -1018,7 +1003,6 @@ impl WhippyUnitsTypeConverter {
                     scale_p2: i16::MIN,
                     scale_p3: i16::MIN,
                     scale_p5: i16::MIN,
-                    scale_p10: i16::MIN,
                     scale_pi: i16::MIN,
                     generic_type: "f64".to_string(),
                 })
@@ -1049,7 +1033,7 @@ impl WhippyUnitsTypeConverter {
                         params.mass_exp, params.length_exp, params.time_exp,
                         params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                         params.luminous_intensity_exp, params.angle_exp,
-                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_p10, params.scale_pi,
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
                     );
                     
                     // Append storage type suffix (e.g., "mN_f64", "kg_i32")
@@ -1100,8 +1084,8 @@ impl WhippyUnitsTypeConverter {
             "f64".to_string()
         };
         
-        // Handle new 14-parameter format (8 dimension exponents + 5 aggregated scale parameters + 1 type)
-        if params.len() >= 14 {
+        // Handle new 13-parameter format (8 dimension exponents + 4 aggregated scale parameters + 1 type)
+        if params.len() >= 13 {
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
                 length_exp: params[1].unwrap_or(0),
@@ -1114,12 +1098,11 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[8].unwrap_or(0),
                 scale_p3: params[9].unwrap_or(0),
                 scale_p5: params[10].unwrap_or(0),
-                scale_p10: params[11].unwrap_or(0),
-                scale_pi: params[12].unwrap_or(0),
+                scale_pi: params[11].unwrap_or(0),
                 generic_type,
             })
-        } else if params.len() >= 13 {
-            // Handle 13-parameter format (8 dimension exponents + 5 scale parameters, no explicit type)
+        } else if params.len() >= 12 {
+            // Handle 12-parameter format (8 dimension exponents + 4 scale parameters, no explicit type)
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
                 length_exp: params[1].unwrap_or(0),
@@ -1132,8 +1115,7 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[8].unwrap_or(0),
                 scale_p3: params[9].unwrap_or(0),
                 scale_p5: params[10].unwrap_or(0),
-                scale_p10: params[11].unwrap_or(0),
-                scale_pi: params[12].unwrap_or(0),
+                scale_pi: params[11].unwrap_or(0),
                 generic_type,
             })
         } else if params.len() >= 8 {
@@ -1150,7 +1132,6 @@ impl WhippyUnitsTypeConverter {
                 scale_p2: params[5].unwrap_or(0),
                 scale_p3: params[6].unwrap_or(0),
                 scale_p5: params[7].unwrap_or(0),
-                scale_p10: params[1].unwrap_or(0), // mass_scale_p10 in old format
                 scale_pi: 0,
                 generic_type,
             })
@@ -1254,7 +1235,6 @@ struct QuantityParams {
     scale_p2: i16,
     scale_p3: i16,
     scale_p5: i16,
-    scale_p10: i16,
     scale_pi: i16,
     generic_type: String,
 }
