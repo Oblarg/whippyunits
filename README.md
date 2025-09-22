@@ -4,7 +4,7 @@ A pure rust units-of-measure library for applied numerical analysis.
 
 ## Features
 
-- **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
+- **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m_f64`)
 - **Powerful unit literal DSL**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V * s^2 / m)`
 - **Compile-time dimensional safety**: Catch dimensionally-incoherent expressions at compile time
 - **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
@@ -103,7 +103,7 @@ Use the `#[whippy_literals]` attribute to enable custom literals with unit suffi
 ```rust
 #[whippy_literals]
 fn example() {
-    let distance = 100.0m;    // 100.0 meters (default backing storage is f64)
+    let distance = 100.0m_f64;    // 100.0 meters (f64)
     let mass = 10g_i32;       // 10 grams (i32)
 }
 ```
