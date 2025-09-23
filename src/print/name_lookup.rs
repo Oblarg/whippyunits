@@ -1,4 +1,4 @@
-use whippyunits_default_dimensions::lookup_dimension_by_exponents;
+use whippyunits_default_dimensions::{lookup_dimension_by_exponents, UNIT_LITERALS};
 
 /// Configuration for a unit dimension
 #[derive(Debug, Clone)]
@@ -104,6 +104,55 @@ fn get_unit_config(index: usize) -> UnitConfig {
     }
 }
 
+/// Look up a unit literal by its dimension exponents and scale factors
+/// Returns the unit name/symbol if found, otherwise None
+fn lookup_unit_literal_by_scale_factors(
+    exponents: &[i16],
+    scale_factors: (i16, i16, i16, i16),
+    long_name: bool
+) -> Option<&'static str> {
+    // Convert Vec<i16> to tuple for comparison
+    if exponents.len() != 8 {
+        return None;
+    }
+    
+    let exponents_tuple = (exponents[0], exponents[1], exponents[2], exponents[3], 
+                          exponents[4], exponents[5], exponents[6], exponents[7]);
+    
+    UNIT_LITERALS.iter()
+        .find(|unit_info| {
+            unit_info.dimension_exponents == exponents_tuple && 
+            unit_info.scale_factors == scale_factors
+        })
+        .map(|unit_info| if long_name { unit_info.long_name } else { unit_info.symbol })
+}
+
+/// Generate systematic unit name with scale factors
+/// This version can look up unit literals by their scale factors
+pub fn generate_systematic_unit_name_with_scale_factors(
+    exponents: Vec<i16>,
+    scale_factors: (i16, i16, i16, i16),
+    long_name: bool
+) -> String {
+    // Check if all exponents are unknown
+    if exponents.iter().all(|&exp| exp == i16::MIN) {
+        return "?".to_string();
+    }
+
+    // check if the unit is "pure" (e.g. if only one exponent is nonzero)
+    let is_pure = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
+    
+    // For pure units, first try to find a unit literal that matches the scale factors
+    if is_pure {
+        if let Some(unit_name) = lookup_unit_literal_by_scale_factors(&exponents, scale_factors, long_name) {
+            return unit_name.to_string();
+        }
+    }
+    
+    // Fall back to the original logic
+    generate_systematic_unit_name(exponents, long_name)
+}
+
 pub fn generate_systematic_unit_name(
     exponents: Vec<i16>,
     long_name: bool
@@ -135,6 +184,21 @@ pub fn generate_systematic_unit_name(
 
     // check if the unit is "pure" (e.g. if only one exponent is nonzero)
     let is_pure = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
+    
+    // For pure units, first try to find a unit literal that matches the scale factors
+    if is_pure {
+        // Find the non-zero exponent and its index
+        if let Some((dimension_index, &exponent)) = exponents.iter().enumerate().find(|(_, &exp)| exp != 0) {
+            // For time units, we need to check if there's a unit literal that matches
+            // We'll need to get the scale factors from somewhere - for now, let's check if it's a time unit
+            if dimension_index == 2 && exponent == 1 { // Time dimension with exponent 1
+                // This is a pure time unit - check if we can find a matching unit literal
+                // We need to get the scale factors from the context, but for now let's use a different approach
+                // Let's check if this is one of our known time units by looking at the scale factors
+                // For now, we'll fall back to the original logic but this needs to be enhanced
+            }
+        }
+    }
     
     // Map all exponents to corresponding unit configs, render, gather, then join
     let unit_parts: Vec<String> = exponents

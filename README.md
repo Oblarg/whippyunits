@@ -159,15 +159,29 @@ Use the `format_as!` macro for inline formatting: `format!("Distance: {}", forma
 The `whippyunits-pretty` tool transforms complex compiler error messages into readable formats:
 
 ```bash
-# Pipe rustc output through the pretty printer
-cargo check 2>&1 | whippyunits-pretty
-# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
-# Into:     Quantity<m; Length>
+error[E0308]: mismatched types
+  --> tests/test_incoherent_addition.rs:11:28
+   |
+11 |     let _result = length + time;
+   |                            ^^^^ expected `1`, found `0`
+   |
+   = note: expected struct `Mˀ·L·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ`
+              found struct `Mˀ·T·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ`
 
-# Verbose mode with full dimension info
-cargo check 2>&1 | whippyunits-pretty --verbose
-# Converts: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
-# Into:     Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
+For more information about this error, try `rustc --explain E0308`.
+
+// without prettifying...
+
+error[E0308]: mismatched types
+  --> tests/test_incoherent_addition.rs:11:28
+   |
+11 |     let _result = length + time;
+   |                            ^^^^ expected `1`, found `0`
+   |
+   = note: expected struct `Quantity<_, 1, 0, _, _, _, _, _, _, _, _, _>`
+              found struct `Quantity<_, 0, 1, _, _, _, _, _, _, _, _, _>`
+
+For information about this error, try `rustc --explain E0308`.
 ```
 
 ## LSP Proxy

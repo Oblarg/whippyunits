@@ -1164,6 +1164,21 @@ impl WhippyUnitsTypeConverter {
                         }
                     }
                 }
+            } else if params.len() >= 12 {
+                // 12-parameter format (8 dimension exponents + 4 scale parameters)
+                // Check if any dimension has a non-zero exponent but sentinel scale values
+                for i in 0..8 {
+                    let exp = params[i].parse::<i16>().unwrap_or(0);
+                    if exp != 0 {
+                        // Check if any scale parameter has sentinel value (indices 8-11)
+                        for j in 8..12 {
+                            let scale = if params[j] == "_" { i16::MIN } else { params[j].parse::<i16>().unwrap_or(i16::MAX) };
+                            if scale == i16::MIN {
+                                return true; // Has exponent but unknown scale
+                            }
+                        }
+                    }
+                }
             } else if params.len() >= 8 {
                 // Legacy format - check old structure
                 let mass_exp = params[0].parse::<i16>().unwrap_or(0);

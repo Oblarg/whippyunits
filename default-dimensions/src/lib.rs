@@ -591,6 +591,12 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
     UnitLiteralInfo { symbol: "cd", long_name: "candela", type_name: "Candela", dimension_exponents: (0, 0, 0, 0, 0, 0, 1, 0), scale_factors: (0, 0, 0, 0), conversion_factor: None },
     UnitLiteralInfo { symbol: "rad", long_name: "radian", type_name: "Radian", dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1), scale_factors: (0, 0, 0, 0), conversion_factor: None },
     
+    // Base-60 time units
+    UnitLiteralInfo { symbol: "min", long_name: "minute", type_name: "Minute", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (2, 1, 1, 0), conversion_factor: Some(60.0) }, // 1 min = 60 s = 2^2 * 3 * 5
+    UnitLiteralInfo { symbol: "h", long_name: "hour", type_name: "Hour", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (4, 2, 2, 0), conversion_factor: Some(3600.0) }, // 1 h = 3600 s = 2^4 * 3^2 * 5^2
+    UnitLiteralInfo { symbol: "hr", long_name: "hour", type_name: "Hour", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (4, 2, 2, 0), conversion_factor: Some(3600.0) }, // 1 hr = 3600 s = 2^4 * 3^2 * 5^2
+    UnitLiteralInfo { symbol: "d", long_name: "day", type_name: "Day", dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0), scale_factors: (7, 3, 2, 0), conversion_factor: Some(86400.0) }, // 1 d = 86400 s = 2^7 * 3^3 * 5^2
+    
     // Imperial length units
     UnitLiteralInfo { symbol: "in", long_name: "inch", type_name: "Inch", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (-2, 0, -2, 0), conversion_factor: Some(0.0254) }, // 1 in = 2.54 cm = 0.0254 m
     UnitLiteralInfo { symbol: "yd", long_name: "yard", type_name: "Yard", dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0), scale_factors: (0, 0, 0, 0), conversion_factor: Some(0.9144) }, // 1 yd = 0.9144 m

@@ -115,8 +115,8 @@ macro_rules! define_float_rescale {
             $rescale_fn, $T,
         );
     };
-    
 }
+
 macro_rules! define_int_rescale {
     ($rescale_fn:ident, $T:ty) => {
         $crate::_define_int_rescale!(

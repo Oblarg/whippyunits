@@ -1,4 +1,4 @@
-use crate::print::name_lookup::generate_systematic_unit_name;
+use crate::print::name_lookup::{generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors};
 use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::utils::{to_unicode_superscript, get_si_prefix};
 use whippyunits_default_dimensions::DIMENSION_LOOKUP;
@@ -121,6 +121,37 @@ fn generate_si_unit_with_scale(total_scale_p10: i16, base_si_unit: &str, _long_n
     }
 }
 
+/// Format scale factors by calculating the actual numeric value
+fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
+    // Calculate the actual numeric value: 2^p2 * 3^p3 * 5^p5 * π^pi
+    let mut value = 1.0;
+    
+    if scale_p2 != 0 {
+        value *= 2.0_f64.powi(scale_p2 as i32);
+    }
+    if scale_p3 != 0 {
+        value *= 3.0_f64.powi(scale_p3 as i32);
+    }
+    if scale_p5 != 0 {
+        value *= 5.0_f64.powi(scale_p5 as i32);
+    }
+    if scale_pi != 0 {
+        value *= std::f64::consts::PI.powi(scale_pi as i32);
+    }
+    
+    // If the value is 1.0, no scaling needed
+    if value == 1.0 {
+        String::new()
+    } else {
+        // Format as integer if it's a whole number, otherwise show with reasonable precision
+        if value.fract() == 0.0 {
+            format!("({})", value as i64)
+        } else {
+            format!("({})", value)
+        }
+    }
+}
+
 fn generate_prefixed_si_unit(
     scale_p2: i16,
     scale_p3: i16,
@@ -136,8 +167,21 @@ fn generate_prefixed_si_unit(
     if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
         format!("{}{}", prefix, base_si_unit)
     } else {
-        // Fall back to SI unit with 10^n notation when SI prefix lookup fails
-        generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
+        // Check if this is a pure power of 10 (p2 == p5 and p3 == 0 and pi == 0)
+        let is_pure_power_of_10 = scale_p2 == scale_p5 && scale_p3 == 0 && scale_pi == 0;
+        
+        if is_pure_power_of_10 {
+            // Fall back to SI unit with 10^n notation when SI prefix lookup fails
+            generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
+        } else {
+            // Not a pure power of 10, show the scale factors explicitly
+            let scale_factors = format_scale_factors(scale_p2, scale_p3, scale_p5, scale_pi);
+            if scale_factors.is_empty() {
+                base_si_unit.to_string()
+            } else {
+                format!("{}{}", scale_factors, base_si_unit)
+            }
+        }
     }
 }
 
@@ -249,8 +293,9 @@ macro_rules! define_pretty_print_quantity {
             };
             
             // Generate systematic unit literal (base unit without prefix)
-            let base_systematic_literal = generate_systematic_unit_name(
+            let base_systematic_literal = generate_systematic_unit_name_with_scale_factors(
                 [$($dimension_args)*].to_vec(),
+                ($($scale_args)*),
                 verbose, // Use full names in verbose mode, symbols in non-verbose mode
             );
             
@@ -410,8 +455,9 @@ macro_rules! define_pretty_print_quantity_helpers {
         pub fn pretty_print_quantity_inlay_hint(
             $($dimension_signature_params)*
         ) -> String {
-            let systematic_literal = generate_systematic_unit_name(
+            let systematic_literal = generate_systematic_unit_name_with_scale_factors(
                 [$($dimension_args)*].to_vec(),
+                ($($scale_args)*),
                 false
             );
             

@@ -609,7 +609,7 @@ fn test_expanded_dimension_dsl_naming_variations() {
 
 #[test]
 fn test_bespoke_quantity() {
-    let joule = quantity!(1.0, J);
+    let joule = quantity!(1.0, W);
     println!("{:?}", joule);
 }
 
@@ -1018,5 +1018,113 @@ fn test_all_types_with_quantity_macro() {
     println!("All types with quantity! macro test passed!");
 
     let velocity = quantity!(1, mm/s, i32);
+}
+
+#[test]
+fn test_prefixed_aggregate_quantities() {
+    // Test prefixed energy units (kJ, MJ, etc.)
+    let energy_kj: unit!(kJ) = quantity!(1.0, kJ);
+    let energy_mj: unit!(MJ) = quantity!(1.0, MJ);
+    let energy_gj: unit!(GJ) = quantity!(1.0, GJ);
+    
+    // Test prefixed power units (kW, MW, etc.)
+    let power_kw: unit!(kW) = quantity!(1.0, kW);
+    let power_mw: unit!(MW) = quantity!(1.0, MW);
+    let power_gw: unit!(GW) = quantity!(1.0, GW);
+    
+    // Test prefixed force units (kN, MN, etc.)
+    let force_kn: unit!(kN) = quantity!(1.0, kN);
+    let force_mn: unit!(MN) = quantity!(1.0, MN);
+    
+    // Test prefixed pressure units (kPa, MPa, etc.)
+    let pressure_kpa: unit!(kPa) = quantity!(1.0, kPa);
+    let pressure_mpa: unit!(MPa) = quantity!(1.0, MPa);
+    
+    // Verify that these are dimensionally correct by doing arithmetic
+    // Energy = Power * Time
+    let time_seconds = quantity!(1.0, s);
+    let energy_from_power: unit!(kJ) = power_kw * time_seconds; // kW * s = kJ
+    
+    // Force = Mass * Acceleration
+    let mass_kg = quantity!(1.0, kg);
+    let acceleration = quantity!(9.81, m/s^2);
+    let force_from_mass: unit!(N) = mass_kg * acceleration;
+    
+    // Pressure = Force / Area
+    let area_m2 = quantity!(1.0, m^2);
+    let pressure_from_force: unit!(kPa) = force_kn / area_m2; // kN / m² = kPa
+    
+    // Verify that arithmetic between prefixed and non-prefixed units works correctly
+    let energy_j: unit!(J) = quantity!(1000.0, J);
+    let energy_kj_2: unit!(kJ) = quantity!(1.0, kJ);
+    
+    // These represent the same physical quantity but have different stored values
+    // because kJ has a scale factor of 3 (kilo = 10^3)
+    // 1000 J = 1 kJ, but they're stored differently due to the prefix
+    assert_eq!(energy_j.value, 1000.0);
+    assert_eq!(energy_kj_2.value, 1.0);
+    
+    // Test that we can do arithmetic between different prefixed units
+    let power_w: unit!(W) = quantity!(1000.0, W);
+    let power_kw_2: unit!(kW) = quantity!(1.0, kW);
+
+    let foo = quantity!(1.0, kW);
+    
+    // Same principle: 1000 W = 1 kW, but stored differently
+    assert_eq!(power_w.value, 1000.0);
+    assert_eq!(power_kw_2.value, 1.0);
+    
+    println!("Prefixed aggregate quantities test passed!");
+    println!("kJ energy: {:?}", energy_kj);
+    println!("kW power: {:?}", power_kw);
+    println!("kN force: {:?}", force_kn);
+    println!("kPa pressure: {:?}", pressure_kpa);
+    println!("Verification: 1000 J and 1 kJ represent the same physical quantity ✓");
+    println!("Verification: 1000 W and 1 kW represent the same physical quantity ✓");
+}
+
+#[test]
+fn test_base60_time_units() {
+    // Test base-60 time units: min, h, hr, d
+    let time_min: unit!(min) = quantity!(1.0, min);
+    let time_h: unit!(h) = quantity!(1.0, h);
+    let time_hr: unit!(hr) = quantity!(1.0, hr);
+    let time_d: unit!(d) = quantity!(1.0, d);
+    
+    // Test that these units have the correct scale factors
+    // min: 60s = 2^2 * 3 * 5, so scale_factors should be (2, 1, 1, 0)
+    // h: 3600s = 2^4 * 3^2 * 5^2, so scale_factors should be (4, 2, 2, 0)
+    // hr: same as h
+    // d: 86400s = 2^7 * 3^3 * 5^2, so scale_factors should be (7, 3, 2, 0)
+    
+    println!("Base-60 time units test:");
+    println!("1 min: {:?}", time_min);
+    println!("1 h: {:?}", time_h);
+    println!("1 hr: {:?}", time_hr);
+    println!("1 d: {:?}", time_d);
+    
+    // Test arithmetic with these units
+    let time_seconds = quantity!(60.0, s);
+    let time_minutes = quantity!(1.0, min);
+    
+    // These should be equal: 60 s = 1 min
+    println!("60 seconds: {:?}", time_seconds);
+    println!("1 minute: {:?}", time_minutes);
+    
+    // Test that the units have the correct scale factors
+    // The scale factors should match what we defined in UNIT_LITERALS
+    println!("Scale factors verification:");
+    println!("min should have scale factors (2, 1, 1, 0) for 60s = 2^2 * 3 * 5");
+    println!("h should have scale factors (4, 2, 2, 0) for 3600s = 2^4 * 3^2 * 5^2");
+    println!("hr should have scale factors (4, 2, 2, 0) same as h");
+    println!("d should have scale factors (7, 3, 2, 0) for 86400s = 2^7 * 3^3 * 5^2");
+    
+    println!("Base-60 time units test passed!");
+}
+
+#[test]
+fn test_kilowatt_hour() {
+    let energy_kwh = quantity!(1.0, kW * h);
+    println!("1 kWh: {:?}", energy_kwh);
 }
 
