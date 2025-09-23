@@ -156,7 +156,7 @@ Use the `format_as!` macro for inline formatting: `format!("Distance: {}", forma
 
 ## CLI Pretty Printer
 
-The `whippyunits-pretty` tool transforms complex compiler error messages into readable formats:
+The `whippyunits-pretty` tool provides type prettyprinting in compiler errors:
 
 ```bash
 error[E0308]: mismatched types
