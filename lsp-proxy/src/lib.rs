@@ -352,7 +352,6 @@ impl LspProxy {
         
         // Pattern 3: impl<const PARAMS...> Mul<f64> for Quantity<...> (scalar multiplication)
         if result.contains("impl<") && result.contains("Mul<f64>") && result.contains("for Quantity<") {
-            eprintln!("DEBUG: Pattern 3 matched - scalar Mul<f64>");
             result = self.simplify_scalar_signature(&result, "Mul");
         }
         
@@ -373,17 +372,13 @@ impl LspProxy {
         
         // Pattern 7: impl<const PARAMS...> Mul for Quantity<...> (ambiguous case - check function signature)
         if result.contains("impl<") && result.contains("Mul for") && !result.contains("Mul<") && !result.contains("Mul<f64>") && !result.contains("for f64") {
-            eprintln!("DEBUG: Pattern 7 matched - ambiguous Mul for");
             // Check if this is actually a Quantity-Quantity multiplication by looking at the function signature
             if result.contains("fn mul(self, other: Quantity<") {
-                eprintln!("DEBUG: Pattern 7 - Quantity-Quantity case");
                 result = self.simplify_mul_div_signature(&result, "Mul");
             } else if result.contains("fn mul(self, other: f64)") {
-                eprintln!("DEBUG: Pattern 7 - scalar case");
                 // This is a scalar multiplication
                 result = self.simplify_scalar_signature(&result, "Mul");
             } else {
-                eprintln!("DEBUG: Pattern 7 - default case");
                 // Default to quantity-quantity multiplication for impl<...> Mul for Quantity<...>
                 result = self.simplify_mul_div_signature(&result, "Mul");
             }
@@ -973,7 +968,6 @@ impl WhippyUnitsTypeConverter {
         let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
-            eprintln!("DEBUG: Inlay hint processing Quantity type: '{}'", full_match);
             
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if this is a type definition or const generic context (like rescale functions)
@@ -1025,7 +1019,6 @@ impl WhippyUnitsTypeConverter {
                     
                     // Append storage type suffix for partially resolved types too
                     let result = format!("{}_{}", base_type, params.generic_type);
-                    eprintln!("DEBUG: Partially resolved - base_type: '{}', generic_type: '{}', result: '{}'", base_type, params.generic_type, result);
                     result
                 } else {
                     // Use the new ultra-terse inlay hint API and append storage type suffix
@@ -1038,7 +1031,6 @@ impl WhippyUnitsTypeConverter {
                     
                     // Append storage type suffix (e.g., "mN_f64", "kg_i32")
                     let result = format!("{}_{}", unit_literal, params.generic_type);
-                    eprintln!("DEBUG: Inlay hint - unit_literal: '{}', generic_type: '{}', result: '{}'", unit_literal, params.generic_type, result);
                     result
                 }
             } else {
@@ -1071,16 +1063,12 @@ impl WhippyUnitsTypeConverter {
         // Extract the generic type parameter (last parameter if it's not a number)
         let generic_type = if params.len() > 0 {
             let last_param = params_str.split(',').last().unwrap_or("f64").trim();
-            eprintln!("DEBUG: parse_quantity_params - last_param: '{}', params_str: '{}'", last_param, params_str);
             if last_param.parse::<i16>().is_err() && last_param != "_" && last_param != "9223372036854775807" {
-                eprintln!("DEBUG: parse_quantity_params - extracted generic_type: '{}'", last_param);
                 last_param.to_string()
             } else {
-                eprintln!("DEBUG: parse_quantity_params - defaulting to f64");
                 "f64".to_string() // Default to f64
             }
         } else {
-            eprintln!("DEBUG: parse_quantity_params - no params, defaulting to f64");
             "f64".to_string()
         };
         

@@ -21,6 +21,7 @@ fn format_scale_exponent(scale: i16) -> String {
 /// 
 /// This function uses the atomic dimension symbols from the default-dimensions
 /// source of truth to generate composite dimension symbols.
+/// Solved dimensions (non-zero exponents) are shown first, followed by all other dimensions (with ˀ).
 pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
     // Get atomic dimension symbols from the source of truth
     let atomic_symbols: Vec<&str> = DIMENSION_LOOKUP
@@ -29,18 +30,45 @@ pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
         .map(|info| info.symbol.unwrap_or("?"))
         .collect();
     
-    let parts: Vec<String> = exponents
-        .iter()
-        .enumerate()
-        .filter(|(_, &exp)| exp != 0)
-        .map(|(idx, &exp)| {
+    let mut parts: Vec<String> = Vec::new();
+    
+    // First, add solved dimensions (non-zero, non--32768 exponents)
+    for (idx, &exp) in exponents.iter().enumerate() {
+        if exp != 0 && exp != -32768 {
             let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
             let superscript = to_unicode_superscript(exp, false);
-            format!("{}{}", symbol, superscript)
-        })
-        .collect();
+            parts.push(format!("{}{}", symbol, superscript));
+        }
+    }
     
-    if parts.is_empty() { "?".to_string() } else { parts.join("·") }
+    // Then, add all unsolved dimensions (exponents == -32768) with ˀ
+    for (idx, &exp) in exponents.iter().enumerate() {
+        if exp == -32768 {  // Only add unsolved dimensions
+            let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
+            parts.push(format!("{}{}", symbol, "ˀ"));
+        }
+    }
+    
+    if parts.is_empty() { 
+        "?".to_string() 
+    } else { 
+        // Reorder: solved dimensions first, then unsolved dimensions
+        let mut solved_parts = Vec::new();
+        let mut unsolved_parts = Vec::new();
+        
+        for part in parts {
+            if part.ends_with("ˀ") {
+                unsolved_parts.push(part);
+            } else {
+                solved_parts.push(part);
+            }
+        }
+        
+        // Combine: solved first, then unsolved
+        let mut ordered_parts = solved_parts;
+        ordered_parts.extend(unsolved_parts);
+        ordered_parts.join("·")
+    }
 }
 
 #[macro_export]
