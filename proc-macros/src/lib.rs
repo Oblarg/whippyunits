@@ -24,7 +24,15 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
-/// Our custom annotation macro that generates custom literals and delegates to culit
+/// Macro to define default custom literals for whippyunits
+/// This generates the custom_literal module with all unit macros
+#[proc_macro]
+pub fn define_default_literals(_input: TokenStream) -> TokenStream {
+    let custom_literal_module = culit_macro::generate_custom_literal_module();
+    TokenStream::from(custom_literal_module)
+}
+
+/// Our custom annotation macro that delegates to culit for scope tagging
 #[proc_macro_attribute]
 pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
     use quote::quote;
@@ -35,11 +43,8 @@ pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
     match input {
         syn::Item::Fn(func) => {
             let func_tokens = quote! { #func };
-            let custom_literal_module = culit_macro::generate_custom_literal_module();
             
             let expanded = quote! {
-                #custom_literal_module
-                
                 #[culit::culit]
                 #func_tokens
             };
@@ -48,11 +53,8 @@ pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         syn::Item::Mod(module) => {
             let module_tokens = quote! { #module };
-            let custom_literal_module = culit_macro::generate_custom_literal_module();
             
             let expanded = quote! {
-                #custom_literal_module
-                
                 #[culit::culit]
                 #module_tokens
             };

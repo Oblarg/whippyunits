@@ -76,8 +76,6 @@ The `define_generic_dimension!` macro makes it easy to write contracts that are 
 use core::ops::Mul;
 use whippyunits::define_generic_dimension;
 
-// define scale-generic dimension trait Length, representing primitive dimension Length
-define_generic_dimension!(Length, Length);
 // define scale-generic dimension trait Area, representing a product of lengths
 define_generic_dimension!(Area, Length^2);
 
@@ -99,10 +97,12 @@ define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 
 ## Declarator Literals
 
-Use the `#[whippy_literals]` attribute to enable custom literals with unit suffixes:
+Use the `define_default_literals!()` macro to define custom literals and the `#[culit::culit]` attribute for scope tagging:
 
 ```rust
-#[whippy_literals]
+whippyunits::define_default_literals!();
+
+#[culit::culit]
 fn example() {
     let distance = 100.0m_f64;    // 100.0 meters (f64)
     let mass = 10g_i32;       // 10 grams (i32)

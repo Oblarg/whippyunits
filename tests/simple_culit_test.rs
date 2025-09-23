@@ -2,7 +2,9 @@
 
 use whippyunits::*;
 
-#[whippy_literals]
+whippyunits::define_default_literals!();
+
+#[culit::culit]
 #[test]
 fn test_simple_custom_literals() {
     // Test float literals with float suffixes (these go to float module)
@@ -27,7 +29,6 @@ fn test_simple_custom_literals() {
     println!("Time: {} (should be time)", time.value);
     println!("Distance: {} (should be length)", distance_i32.value);
     
-    // Test prettyprint to see what's happening with the mass unit
     println!("Mass prettyprint: {}", mass);
     println!("Distance prettyprint: {}", distance);
     println!("Time prettyprint: {}", time);
