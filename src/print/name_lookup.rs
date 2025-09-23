@@ -122,7 +122,8 @@ fn lookup_unit_literal_by_scale_factors(
     UNIT_LITERALS.iter()
         .find(|unit_info| {
             unit_info.dimension_exponents == exponents_tuple && 
-            unit_info.scale_factors == scale_factors
+            unit_info.scale_factors == scale_factors &&
+            unit_info.conversion_factor.is_none()  // Only consider pure SI units, not imperial units
         })
         .map(|unit_info| if long_name { unit_info.long_name } else { unit_info.symbol })
 }

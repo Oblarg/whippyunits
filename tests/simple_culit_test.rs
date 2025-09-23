@@ -27,5 +27,10 @@ fn test_simple_custom_literals() {
     println!("Time: {} (should be time)", time.value);
     println!("Distance: {} (should be length)", distance_i32.value);
     
+    // Test prettyprint to see what's happening with the mass unit
+    println!("Mass prettyprint: {}", mass);
+    println!("Distance prettyprint: {}", distance);
+    println!("Time prettyprint: {}", time);
+    
     println!("Custom literals test passed!");
 }
