@@ -42,32 +42,23 @@ pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
     }
     
     // Then, add all unsolved dimensions (exponents == -32768) with ˀ
+    let mut unsolved_parts = Vec::new();
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp == -32768 {  // Only add unsolved dimensions
             let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
-            parts.push(format!("{}{}", symbol, "ˀ"));
+            unsolved_parts.push(format!("{}{}", symbol, "ˀ"));
         }
+    }
+    
+    // If we have unsolved dimensions, wrap them in parentheses
+    if !unsolved_parts.is_empty() {
+        parts.push(format!("({})", unsolved_parts.join("·")));
     }
     
     if parts.is_empty() { 
         "?".to_string() 
     } else { 
-        // Reorder: solved dimensions first, then unsolved dimensions
-        let mut solved_parts = Vec::new();
-        let mut unsolved_parts = Vec::new();
-        
-        for part in parts {
-            if part.ends_with("ˀ") {
-                unsolved_parts.push(part);
-            } else {
-                solved_parts.push(part);
-            }
-        }
-        
-        // Combine: solved first, then unsolved
-        let mut ordered_parts = solved_parts;
-        ordered_parts.extend(unsolved_parts);
-        ordered_parts.join("·")
+        parts.join("·")
     }
 }
 

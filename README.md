@@ -165,8 +165,8 @@ error[E0308]: mismatched types
 11 |     let _result = length + time;
    |                            ^^^^ expected `1`, found `0`
    |
-   = note: expected struct `L·Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ`
-              found struct `T·Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ`
+   = note: expected struct `L·(Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ)`
+              found struct `T·(Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ)`
 
 For more information about this error, try `rustc --explain E0308`.
 
