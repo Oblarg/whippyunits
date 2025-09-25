@@ -21,7 +21,7 @@ whippyunits-default-dimensions = { path = "./default-dimensions" }
 num-traits = "0.2"
 nalgebra = "0.34.0"
 ndarray = "0.16.1"
-culit = "0.1"
+culit = "0.4"
 
 [dev-dependencies]
 trybuild = "1.0"

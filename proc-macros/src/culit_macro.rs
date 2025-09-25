@@ -23,12 +23,12 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
             
             match *type_suffix {
                 "f64" | "f32" => {
-                    // Float literals: ($before_decimal:literal $after_decimal:literal $exponent:literal)
+                    // Float literals: ($value:literal) - simplified contract for culit 0.4
                     float_macros.push(quote! {
                         #[macro_export]
                         macro_rules! #macro_name_ident {
-                            ($before_decimal:literal $after_decimal:literal $exponent:literal) => {{
-                                let value: #type_ident = format!("{}.{}{}", $before_decimal, $after_decimal, $exponent).parse().unwrap();
+                            ($value:literal) => {{
+                                let value: #type_ident = $value;
                                 quantity!(value, #unit_ident, #type_ident)
                             }};
                         }
@@ -36,12 +36,12 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
                     });
                 }
                 "i32" | "i64" | "u32" | "u64" => {
-                    // Integer literals: ($value:literal $base:literal)
+                    // Integer literals: ($value:literal) - simplified contract for culit 0.4
                     int_macros.push(quote! {
                         #[macro_export]
                         macro_rules! #macro_name_ident {
-                            ($value:literal $base:literal) => {{
-                                let value: #type_ident = #type_ident::from_str_radix($value, $base).unwrap();
+                            ($value:literal) => {{
+                                let value: #type_ident = $value;
                                 quantity!(value, #unit_ident, #type_ident)
                             }};
                         }
@@ -53,29 +53,30 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
         }
     }
     
-    // Generate shortname macros for all units (delegates to unit! macro with new)
-    // These use the same parsing patterns but delegate to unit! instead of quantity!
+    // Generate shortname macros for all units (calls local declarator methods directly)
+    // These use the same parsing patterns but call methods like .meters(), .grams(), etc.
     for unit_symbol in &unit_symbols {
         let macro_name_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
-        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
         
-        // Create shortname macro for float module (matches float pattern)
+        // Get the method name from the unit symbol using default-dimensions data
+        let method_name = get_method_name_for_unit_symbol(unit_symbol);
+        let method_ident = syn::Ident::new(&method_name, proc_macro2::Span::call_site());
+        
+        // Create shortname macro for float module (matches float pattern) - simplified contract for culit 0.4
         float_macros.push(quote! {
             macro_rules! #macro_name_ident {
-                ($before_decimal:literal $after_decimal:literal $exponent:literal) => {{
-                    let value: f64 = format!("{}.{}{}", $before_decimal, $after_decimal, $exponent).parse().unwrap();
-                    <whippyunits::unit!(#unit_ident)>::new(value)
+                ($value:literal) => {{
+                    $value.#method_ident()
                 }};
             }
             pub(crate) use #macro_name_ident;
         });
         
-        // Create shortname macro for int module (matches int pattern)
+        // Create shortname macro for int module (matches int pattern) - simplified contract for culit 0.4
         int_macros.push(quote! {
             macro_rules! #macro_name_ident {
-                ($value:literal $base:literal) => {{
-                    let value: i32 = i32::from_str_radix($value, $base).unwrap();
-                    <whippyunits::unit!(#unit_ident)>::new(value)
+                ($value:literal) => {{
+                    $value.#method_ident()
                 }};
             }
             pub(crate) use #macro_name_ident;
@@ -89,10 +90,99 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
                 #(#float_macros)*
             }
             
-            pub mod int {
+            pub mod integer {
                 #(#int_macros)*
             }
         }
+    }
+}
+
+/// Get the method name for a unit symbol using default-dimensions data
+/// Maps unit symbols like "m", "kg", "s" to method names like "meters", "kilograms", "seconds"
+fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
+    // First, try to find the unit in UNIT_LITERALS
+    if let Some(unit_info) = whippyunits_default_dimensions::lookup_unit_literal(unit_symbol) {
+        return make_plural(unit_info.long_name);
+    }
+    
+    // If not found, try to parse as a prefixed unit
+    if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
+        if let Some(base_unit_info) = whippyunits_default_dimensions::lookup_unit_literal(base_symbol) {
+            let base_method = make_plural(base_unit_info.long_name);
+            let prefix_name = get_prefix_name(prefix);
+            return format!("{}{}", prefix_name, base_method);
+        }
+    }
+    
+    // Fallback: convert symbol to a reasonable method name
+    unit_symbol.to_string()
+}
+
+/// Convert singular unit names to plural method names
+/// Simply adds 's' to the end of the long name
+fn make_plural(singular: &str) -> String {
+    format!("{}s", singular)
+}
+
+/// Check if a unit symbol is a prefixed base unit (e.g., "km", "cm", "mm")
+fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&str, &str)> {
+    // Try to find a base unit that this unit name ends with
+    for base_unit in whippyunits_default_dimensions::BASE_UNITS {
+        if base_unit.symbol == "dimensionless" {
+            continue;
+        }
+        
+        if unit_symbol.ends_with(base_unit.symbol) {
+            let prefix_part = &unit_symbol[..unit_symbol.len() - base_unit.symbol.len()];
+            
+            // If no prefix, it should have been found in the direct lookup above
+            if prefix_part.is_empty() {
+                continue;
+            }
+            
+            // Check if this is a valid prefix
+            if whippyunits_default_dimensions::lookup_si_prefix(prefix_part).is_some() {
+                return Some((base_unit.symbol, prefix_part));
+            }
+        }
+    }
+    
+    None
+}
+
+/// Get the prefix name for a prefix symbol (e.g., "k" -> "kilo", "m" -> "milli")
+fn get_prefix_name(prefix_symbol: &str) -> String {
+    if let Some(prefix_info) = whippyunits_default_dimensions::lookup_si_prefix(prefix_symbol) {
+        // Convert the long name to a method-friendly name
+        match prefix_info.long_name {
+            "kilo" => "kilo".to_string(),
+            "milli" => "milli".to_string(),
+            "micro" => "micro".to_string(),
+            "nano" => "nano".to_string(),
+            "pico" => "pico".to_string(),
+            "femto" => "femto".to_string(),
+            "atto" => "atto".to_string(),
+            "zepto" => "zepto".to_string(),
+            "yocto" => "yocto".to_string(),
+            "ronto" => "ronto".to_string(),
+            "quecto" => "quecto".to_string(),
+            "deca" => "deca".to_string(),
+            "hecto" => "hecto".to_string(),
+            "mega" => "mega".to_string(),
+            "giga" => "giga".to_string(),
+            "tera" => "tera".to_string(),
+            "peta" => "peta".to_string(),
+            "exa" => "exa".to_string(),
+            "zetta" => "zetta".to_string(),
+            "yotta" => "yotta".to_string(),
+            "ronna" => "ronna".to_string(),
+            "quetta" => "quetta".to_string(),
+            "deci" => "deci".to_string(),
+            "centi" => "centi".to_string(),
+            _ => prefix_info.long_name.to_string(),
+        }
+    } else {
+        prefix_symbol.to_string()
     }
 }
 

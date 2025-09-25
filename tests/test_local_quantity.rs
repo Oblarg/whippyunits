@@ -2,12 +2,13 @@ use whippyunits::define_base_units;
 use whippyunits::api::*;
 
 // Set up scoped preferences with different units
-define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);
+define_base_units!(Kilogram, Kilometer, Second, Ampere, Kelvin, Mole, Candela, Radian);
 
 #[culit::culit]
 #[test]
 fn test_local_quantity_macro() {
-    let test = 1.0m_f64;
+    let test_int = 1m;
+    let test_float = 1.0m;
     
     // Test with f64 (default)
     let energy_f64 = quantity!(100.0, J);
