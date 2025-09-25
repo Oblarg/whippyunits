@@ -1128,3 +1128,26 @@ fn test_kilowatt_hour() {
     println!("1 kWh: {:?}", energy_kwh);
 }
 
+#[test]
+fn test_scale_factor_display() {
+    println!("\n=== Scale Factor Display Test ===");
+    
+    // Test kilowatt-hour - should show (3600000) in both systematic literal and SI unit
+    let energy_kwh = quantity!(1.0, kW * h);
+    println!("Energy kWh: {:?}", energy_kwh);
+    
+    // Test with a unit that has a large scale factor
+    let energy_j = quantity!(1.0, J);
+    println!("Energy J: {:?}", energy_j);
+    
+    // Test with a unit that has no scale factor (should not show parentheses)
+    let length_m = quantity!(1.0, m);
+    println!("Length m: {:?}", length_m);
+    
+    // Test with a unit that has a small scale factor
+    let length_mm = quantity!(1.0, mm);
+    println!("Length mm: {:?}", length_mm);
+    
+    println!("Scale factor display test completed!");
+}
+

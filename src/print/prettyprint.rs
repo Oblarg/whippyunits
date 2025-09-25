@@ -280,8 +280,15 @@ fn generate_prefixed_systematic_unit(
             format!("{}({})", prefix, unit_without_parens)
         }
     } else {
-        // No SI prefix available, return base unit as-is
-        base_unit.to_string()
+        // No SI prefix available, check if we need to add numerical scale factor
+        let scale_factors = format_scale_factors(scale_p2, scale_p3, scale_p5, scale_pi);
+        if scale_factors.is_empty() {
+            // No scaling needed, return base unit as-is
+            base_unit.to_string()
+        } else {
+            // Add numerical scale factor prefix
+            format!("{}{}", scale_factors, base_unit)
+        }
     }
 }       
 
