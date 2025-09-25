@@ -1,6 +1,7 @@
 //! Simple test to verify custom literals work
 
 use whippyunits::*;
+use whippyunits::default_declarators::*;
 
 whippyunits::define_default_literals!();
 
@@ -13,7 +14,7 @@ fn test_simple_custom_literals() {
     let time = 30.0s_f64;
 
     // Test integer literals with integer suffixes (these go to int module)
-    let distance_i32 = 10m_i32;
+    let distance_i32 = 10m;
     
     // These should now create proper unit types using the quantity! macro
     // We can test that they have the correct values by accessing the .value field

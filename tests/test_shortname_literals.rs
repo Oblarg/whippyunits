@@ -1,16 +1,17 @@
 //! Test shortname custom literals like 5.0m
 
 use whippyunits::*;
+use whippyunits::default_declarators::*;
 
-whippyunits::define_default_literals!();
+define_default_literals!();
 
 #[culit::culit]
 #[test]
 fn test_shortname_custom_literals() {
     // Test shortname literals that delegate to unit! macro
-    let distance = 5.0m;
-    let mass = 2.5kg;
-    let time = 10.0s;
+    let distance: unit!(m) = 5.0m;
+    let mass: unit!(kg) = 2.5kg;
+    let time: unit!(s) = 10.0s;
     
     // These should create proper unit types using the unit! macro with new initialization
     // We can test that they have the correct values by accessing the .value field

@@ -66,7 +66,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
         float_macros.push(quote! {
             macro_rules! #macro_name_ident {
                 ($value:literal) => {{
-                    $value.#method_ident()
+                    ($value as f64).#method_ident()
                 }};
             }
             pub(crate) use #macro_name_ident;
@@ -76,7 +76,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
         int_macros.push(quote! {
             macro_rules! #macro_name_ident {
                 ($value:literal) => {{
-                    $value.#method_ident()
+                    ($value as i32).#method_ident()
                 }};
             }
             pub(crate) use #macro_name_ident;
@@ -85,6 +85,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     }
     
     quote! {
+        #[allow(unused_macros)]
         pub mod custom_literal {
             pub mod float {
                 #(#float_macros)*
@@ -102,7 +103,16 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
 fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     // First, try to find the unit in UNIT_LITERALS
     if let Some(unit_info) = whippyunits_default_dimensions::lookup_unit_literal(unit_symbol) {
-        return make_plural(unit_info.long_name);
+        // Check if this is actually a prefixed unit that was returned as base unit
+        if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
+            // This is a prefixed unit, so we need to construct the proper method name
+            let base_method = make_plural(unit_info.long_name);
+            let prefix_name = get_prefix_name(prefix);
+            return format!("{}{}", prefix_name, base_method);
+        } else {
+            // This is a direct unit, use it as-is
+            return make_plural(unit_info.long_name);
+        }
     }
     
     // If not found, try to parse as a prefixed unit

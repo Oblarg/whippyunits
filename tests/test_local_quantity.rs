@@ -4,6 +4,9 @@ use whippyunits::api::*;
 // Set up scoped preferences with different units
 define_base_units!(Kilogram, Kilometer, Second, Ampere, Kelvin, Mole, Candela, Radian);
 
+// Define custom literals separately
+whippyunits::define_default_literals!();
+
 #[culit::culit]
 #[test]
 fn test_local_quantity_macro() {

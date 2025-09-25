@@ -23,10 +23,10 @@ macro_rules! define_quantity {
             >;
         )*
         
-        // Generate extension trait implementations for f64 (default)
-        impl $trait_name<f64> for f64 {
+        // Generate default extension trait implementation (uses default f64)
+        impl $trait_name for f64 {
             $(
-                fn $fn_name(self) -> $scale_name<f64> {
+                fn $fn_name(self) -> $scale_name {
                     Quantity::new(self)
                 }
             )*
