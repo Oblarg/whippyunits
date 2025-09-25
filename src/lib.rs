@@ -36,6 +36,6 @@ pub use whippyunits_proc_macros::define_generic_dimension;
 pub use whippyunits_proc_macros::proc_unit as unit;
 pub use whippyunits_proc_macros::local_unit_type;
 pub use whippyunits_proc_macros::whippy_literals;
-pub use whippyunits_proc_macros::define_default_literals;
+pub use whippyunits_proc_macros::define_literals;
 
 

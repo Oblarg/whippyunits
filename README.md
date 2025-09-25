@@ -97,10 +97,10 @@ define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 
 ## Declarator Literals
 
-Use the `define_default_literals!()` macro to define custom literals and the `#[culit::culit]` attribute for scope tagging:
+Use the `define_literals!()` macro to define custom literals and the `#[culit::culit]` attribute for scope tagging:
 
 ```rust
-whippyunits::define_default_literals!();
+whippyunits::define_literals!();
 
 #[culit::culit]
 fn example() {

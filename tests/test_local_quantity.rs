@@ -5,7 +5,7 @@ use whippyunits::api::*;
 define_base_units!(Kilogram, Kilometer, Second, Ampere, Kelvin, Mole, Candela, Radian);
 
 // Define custom literals separately
-whippyunits::define_default_literals!();
+whippyunits::define_literals!();
 
 #[culit::culit]
 #[test]

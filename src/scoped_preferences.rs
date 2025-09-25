@@ -55,12 +55,12 @@ macro_rules! define_base_units {
         $luminosity_scale:ident,
         $angle_scale:ident
     ) => {
-        // Note: Users must call define_default_literals!() separately to get custom literals.
+        // Note: Users must call define_literals!() separately to get custom literals.
         // This macro only defines the scoped preferences and local quantity types.
         // 
         // Example usage:
         //   define_base_units!(Kilogram, Kilometer, Second, Ampere, Kelvin, Mole, Candela, Radian);
-        //   whippyunits::define_default_literals!(); // Required for custom literals like 5.0m, 2.5kg
+        //   whippyunits::define_literals!(); // Required for custom literals like 5.0m, 2.5kg
 
         $crate::define_local_quantity!(
             $mass_scale,

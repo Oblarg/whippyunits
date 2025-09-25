@@ -27,7 +27,7 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// Macro to define default custom literals for whippyunits
 /// This generates the custom_literal module with all unit macros
 #[proc_macro]
-pub fn define_default_literals(_input: TokenStream) -> TokenStream {
+pub fn define_literals(_input: TokenStream) -> TokenStream {
     let custom_literal_module = culit_macro::generate_custom_literal_module();
     TokenStream::from(custom_literal_module)
 }
