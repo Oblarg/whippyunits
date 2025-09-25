@@ -11,7 +11,7 @@ fn test_simple_custom_literals() {
     let distance = 100.0m_f64;
     let mass = 5.5kg_f64;
     let time = 30.0s_f64;
-    
+
     // Test integer literals with integer suffixes (these go to int module)
     let distance_i32 = 10m_i32;
     

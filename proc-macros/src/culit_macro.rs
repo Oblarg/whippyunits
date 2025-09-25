@@ -11,6 +11,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     let mut float_macros = Vec::new();
     let mut int_macros = Vec::new();
     
+    // Generate typed macros (existing functionality)
     for unit_symbol in &unit_symbols {
         for type_suffix in &type_suffixes {
             let macro_name = format!("{}_{}", unit_symbol, type_suffix);
@@ -28,7 +29,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
                         macro_rules! #macro_name_ident {
                             ($before_decimal:literal $after_decimal:literal $exponent:literal) => {{
                                 let value: #type_ident = format!("{}.{}{}", $before_decimal, $after_decimal, $exponent).parse().unwrap();
-                                whippyunits::quantity!(value, #unit_ident, #type_ident)
+                                quantity!(value, #unit_ident, #type_ident)
                             }};
                         }
                         pub(crate) use #macro_name_ident;
@@ -41,7 +42,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
                         macro_rules! #macro_name_ident {
                             ($value:literal $base:literal) => {{
                                 let value: #type_ident = #type_ident::from_str_radix($value, $base).unwrap();
-                                whippyunits::quantity!(value, #unit_ident, #type_ident)
+                                quantity!(value, #unit_ident, #type_ident)
                             }};
                         }
                         pub(crate) use #macro_name_ident;
@@ -50,6 +51,36 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
                 _ => continue,
             };
         }
+    }
+    
+    // Generate shortname macros for all units (delegates to unit! macro with new)
+    // These use the same parsing patterns but delegate to unit! instead of quantity!
+    for unit_symbol in &unit_symbols {
+        let macro_name_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
+        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
+        
+        // Create shortname macro for float module (matches float pattern)
+        float_macros.push(quote! {
+            macro_rules! #macro_name_ident {
+                ($before_decimal:literal $after_decimal:literal $exponent:literal) => {{
+                    let value: f64 = format!("{}.{}{}", $before_decimal, $after_decimal, $exponent).parse().unwrap();
+                    <whippyunits::unit!(#unit_ident)>::new(value)
+                }};
+            }
+            pub(crate) use #macro_name_ident;
+        });
+        
+        // Create shortname macro for int module (matches int pattern)
+        int_macros.push(quote! {
+            macro_rules! #macro_name_ident {
+                ($value:literal $base:literal) => {{
+                    let value: i32 = i32::from_str_radix($value, $base).unwrap();
+                    <whippyunits::unit!(#unit_ident)>::new(value)
+                }};
+            }
+            pub(crate) use #macro_name_ident;
+        });
+        
     }
     
     quote! {
@@ -88,5 +119,16 @@ fn get_all_unit_symbols() -> Vec<String> {
     
     symbols.sort();
     symbols.dedup();
+    
+    // Filter out Rust keywords
+    let rust_keywords = [
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while", "async", "await", "dyn"
+    ];
+    
+    symbols.retain(|symbol| !rust_keywords.contains(&symbol.as_str()));
+    
     symbols
 }

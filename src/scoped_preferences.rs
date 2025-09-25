@@ -55,6 +55,9 @@ macro_rules! define_base_units {
         $luminosity_scale:ident,
         $angle_scale:ident
     ) => {
+        // Generate custom literals within this scope
+        $crate::define_default_literals!();
+
         $crate::define_local_quantity!(
             $mass_scale,
             LocalMass,
