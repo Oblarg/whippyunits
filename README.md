@@ -1,18 +1,18 @@
 # WhippyUnits
 
-A pure rust units-of-measure library for applied numerical analysis.
+A zero-cost, pure rust units-of-measure library for applied computation.
 
 ## Features
 
-- **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m_f64`)
-- **Powerful unit literal DSL**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V * s^2 / m)`
-- **Compile-time dimensional safety**: Catch dimensionally-incoherent expressions at compile time
+- **Compile-time dimensional safety**: Catch dimensional and scale coherence errors at compile-time
+- **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
+- **Unit literal DSL**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V * s^2 / m)`
 - **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
-- **Scale-generic dimension DSL**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension(BespokeQuantity, V * T^2 / L)`
+- **Scale-generic dimension DSL**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V * T^2 / L)`
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
 - **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
-- **No hidden/unnecessary flops**: Rescaling uses lossless log-scale arithmetic at all steps prior to exponentiation
-- **Scoped storage preferences**: Set the storage scale individually for each scope
+- **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; integer types are guaranteed to use pure integer math, and floating point types use no more float math than necessary
+- **Scoped base unit preferences**: Use `define_base_units!` to change the default storage units for a scope, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
 - **Language server integration**: Customized type rendering and text completion for unit types
 
 ## Example
