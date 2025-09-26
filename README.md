@@ -23,7 +23,7 @@ let distance = 5.0.meters();
 // or...
 let distance = quantity!(5.0, m);
 // or, in annotated context (see section on literals below)...
-let distance = 5.0m_f64;
+let distance = 5.0m;
 
 // multiplication tracks dimensions
 let area = 5.0.meters() * 5.0.meters();
@@ -34,29 +34,6 @@ let area = quantity!(5.0 * 5.0, m^2);
 let legal = area + area;
 // dimensionally incoherent operations generate compile-time error
 let illegal = area + distance;
-
-// in some other source...
-
-fn foo() {
-    // scoped preferences lets you control the native units of your API
-    // by generating traits and declarators fixed to scale preferences of your choosing
-    define_base_units!(
-        Kilogram,
-        // Local declarators will now use millimeters
-        Millimeter,
-        Second,
-        Ampere,
-        Kelvin,
-        Mole,
-        Candela,
-        Radian
-    );
-
-    // automatically stored as 5000.0 millimeters
-    let distance_in_millimeters = 5.0.meters();
-
-    ...
-}
 
 // The generic `rescale` function makes multiscale addition both ergonomic and safe:
 
@@ -97,15 +74,16 @@ define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 
 ## Declarator Literals
 
-Use the `define_literals!()` macro to define custom literals and the `#[culit::culit]` attribute for scope tagging:
+Use the `define_literals!()` macro to enable the use of unit literals in scopes tagged with the `#[culit::culit]` attribute:
 
 ```rust
 whippyunits::define_literals!();
 
 #[culit::culit]
 fn example() {
-    let distance = 100.0m_f64;    // 100.0 meters (f64)
-    let mass = 10g_i32;       // 10 grams (i32)
+    let distance = 100.0m; // 100.0 meters (f64)
+    let mass = 10g;        // 10 grams (i32)
+    let energy = 1.0J_f32; // 1 joule (f32)
 }
 ```
 
@@ -122,6 +100,34 @@ let temp = 32.0.fahrenheit();   // converts to kelvin (affine)
 ```
 
 Affine quantities (like temperature) handle zero-point offsets automatically. Celsius and Fahrenheit are stored as Kelvin internally with proper conversion factors.
+
+## Scope-local base unit preferences
+
+Use the `define_base_units!` macro to define a local declarator syntax that obeys a given set of base SI scale preferences for storage:
+
+```rust
+define_base_units!(
+    Kilogram,
+    // Local declarators will now use millimeters instead of meters
+    Millimeter,
+    Second,
+    Ampere,
+    Kelvin,
+    Mole,
+    Candela,
+    Radian
+);
+
+#[culit::culit]
+fn example() {
+    let distance = 1.0.meters();      // automatically stores as 1000.0 millimeters
+    let distance = quantity!(1.0, m); // so does this
+    let distance = 1.0m;              // and so does this!
+
+    // compound/derived units are "lifted" to the provided scale preferences
+    let energy = 1.0J; // kg * mm^2 / s^2 yields microJoules, so this stores as 1000.0 * 1000.0 microJoules
+}
+```
 
 ## Human-readable display and debug format
 

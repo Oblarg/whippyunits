@@ -26,7 +26,7 @@ define_aggregate_scale_factor_rational!(
         let (num2, den2) = pow2(diff_scale_p2 as i32);
         let (num3, den3) = pow3(diff_scale_p3 as i32);
         let (num5, den5) = pow5(diff_scale_p5 as i32);
-        let (num_pi, den_pi) = powPi(diff_scale_pi as i32);
+        let (num_pi, den_pi) = pow_pi(diff_scale_pi as i32);
     ),
     // num and den expressions
     (num2 * num3 * num5 * num_pi),
@@ -48,10 +48,10 @@ define_aggregate_scale_factor_float!(
     ),
     // pow expressions
     (
-        let pow_2 = (2 as f64).powi(diff_scale_p2 as i32);
-        let pow_3 = (3 as f64).powi(diff_scale_p3 as i32);
-        let pow_5 = (5 as f64).powi(diff_scale_p5 as i32);
-        let pow_pi = (std::f64::consts::PI).powi(diff_scale_pi as i32);
+        let pow_2 = crate::scale_conversion::pow2_float(diff_scale_p2 as i32);
+        let pow_3 = crate::scale_conversion::pow3_float(diff_scale_p3 as i32);
+        let pow_5 = crate::scale_conversion::pow5_float(diff_scale_p5 as i32);
+        let pow_pi = crate::scale_conversion::pow_pi_float(diff_scale_pi as i32);
     ),
     // final expression
     (pow_2 * pow_3 * pow_5 * pow_pi),

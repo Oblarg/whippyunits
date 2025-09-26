@@ -1,4 +1,3 @@
-use crate::quantity_type::Quantity;
 
 
 pub const fn pow2(exp: i32) -> (i128, i128) {
@@ -78,7 +77,7 @@ pub const fn pow5(exp: i32) -> (i128, i128) {
 
 /// Compute π^exp using the rational approximation 710/113
 /// Returns (numerator, denominator) for π^exp
-pub const fn powPi(exp: i32) -> (i128, i128) {
+pub const fn pow_pi(exp: i32) -> (i128, i128) {
     match exp {
         -3 => (113 * 113 * 113, 710 * 710 * 710), // π^(-3) = (113/710)^3
         -2 => (113 * 113, 710 * 710),             // π^(-2) = (113/710)^2
@@ -88,6 +87,97 @@ pub const fn powPi(exp: i32) -> (i128, i128) {
         2 => (710 * 710, 113 * 113),              // π^2 = (710/113)^2
         3 => (710 * 710 * 710, 113 * 113 * 113),  // π^3 = (710/113)^3
         _ => (1, 1), // we'll only test small values during prototyping
+    }
+}
+
+// Float lookup tables for const evaluation
+pub const fn pow2_float(exp: i32) -> f64 {
+    match exp {
+        -9 => 1.0 / 512.0,
+        -8 => 1.0 / 256.0,
+        -7 => 1.0 / 128.0,
+        -6 => 1.0 / 64.0,
+        -5 => 1.0 / 32.0,
+        -4 => 1.0 / 16.0,
+        -3 => 1.0 / 8.0,
+        -2 => 1.0 / 4.0,
+        -1 => 1.0 / 2.0,
+        0 => 1.0,
+        1 => 2.0,
+        2 => 4.0,
+        3 => 8.0,
+        4 => 16.0,
+        5 => 32.0,
+        6 => 64.0,
+        7 => 128.0,
+        8 => 256.0,
+        9 => 512.0,
+        _ => 1.0, // we'll only test small values during prototyping
+    }
+}
+
+pub const fn pow3_float(exp: i32) -> f64 {
+    match exp {
+        -9 => 1.0 / 19683.0,
+        -8 => 1.0 / 6561.0,
+        -7 => 1.0 / 2187.0,
+        -6 => 1.0 / 729.0,
+        -5 => 1.0 / 243.0,
+        -4 => 1.0 / 81.0,
+        -3 => 1.0 / 27.0,
+        -2 => 1.0 / 9.0,
+        -1 => 1.0 / 3.0,
+        0 => 1.0,
+        1 => 3.0,
+        2 => 9.0,
+        3 => 27.0,
+        4 => 81.0,
+        5 => 243.0,
+        6 => 729.0,
+        7 => 2187.0,
+        8 => 6561.0,
+        9 => 19683.0,
+        _ => 1.0, // we'll only test small values during prototyping
+    }
+}
+
+pub const fn pow5_float(exp: i32) -> f64 {
+    match exp {
+        -9 => 1.0 / 1953125.0,
+        -8 => 1.0 / 390625.0,
+        -7 => 1.0 / 78125.0,
+        -6 => 1.0 / 15625.0,
+        -5 => 1.0 / 3125.0,
+        -4 => 1.0 / 625.0,
+        -3 => 1.0 / 125.0,
+        -2 => 1.0 / 25.0,
+        -1 => 1.0 / 5.0,
+        0 => 1.0,
+        1 => 5.0,
+        2 => 25.0,
+        3 => 125.0,
+        4 => 625.0,
+        5 => 3125.0,
+        6 => 15625.0,
+        7 => 78125.0,
+        8 => 390625.0,
+        9 => 1953125.0,
+        _ => 1.0, // we'll only test small values during prototyping
+    }
+}
+
+/// Compute π^exp using float values for const evaluation
+/// Uses the standard f64::consts::PI value
+pub const fn pow_pi_float(exp: i32) -> f64 {
+    match exp {
+        -3 => 1.0 / (std::f64::consts::PI * std::f64::consts::PI * std::f64::consts::PI), // π^(-3)
+        -2 => 1.0 / (std::f64::consts::PI * std::f64::consts::PI),                       // π^(-2)
+        -1 => 1.0 / std::f64::consts::PI,                                                // π^(-1)
+        0 => 1.0,                                                                        // π^0 = 1
+        1 => std::f64::consts::PI,                                                       // π^1
+        2 => std::f64::consts::PI * std::f64::consts::PI,                               // π^2
+        3 => std::f64::consts::PI * std::f64::consts::PI * std::f64::consts::PI,        // π^3
+        _ => 1.0, // we'll only test small values during prototyping
     }
 }
 
@@ -120,7 +210,7 @@ macro_rules! define_aggregate_scale_factor_float {
         ($($aggregate_scale_factor_pow_exprs:tt)*),
         ($($aggregate_scale_factor_expr:tt)*),
     ) => {
-        pub fn aggregate_scale_factor_float(
+        pub const fn aggregate_scale_factor_float(
             $($aggregate_scale_factor_params)*
         ) -> f64 {
             $($aggregate_scale_factor_diff_exprs)*
@@ -183,7 +273,7 @@ macro_rules! _define_float_rescale {
         $fn:ident, $T:ty,
     ) => {
         #[rustfmt::skip]
-        pub fn $fn<
+        pub const fn $fn<
             $($float_rescale_const_params)*
         > (
             quantity: $($float_rescale_input_type)*,
@@ -208,7 +298,7 @@ macro_rules! _define_int_rescale {
         $fn:ident, $T:ty,
     ) => {
         #[rustfmt::skip]
-        pub fn $fn<
+        pub const fn $fn<
             $($int_rescale_const_params)*
         > (
             quantity: $($int_rescale_input_type)*,
