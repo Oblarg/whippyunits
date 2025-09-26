@@ -5,6 +5,7 @@ mod define_generic_dimension;
 mod unit_macro;
 mod local_quantity_macro;
 mod culit_macro;
+mod pow_lookup_macro;
 
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
@@ -30,6 +31,22 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 pub fn define_literals(_input: TokenStream) -> TokenStream {
     let custom_literal_module = culit_macro::generate_custom_literal_module();
     TokenStream::from(custom_literal_module)
+}
+
+/// Generate exponentiation lookup tables with parametric range
+/// Usage: pow_lookup!(base: 2, range: -20..=20, type: rational)
+#[proc_macro]
+pub fn pow_lookup(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as pow_lookup_macro::PowLookupInput);
+    input.expand().into()
+}
+
+/// Generate π exponentiation lookup tables with rational approximation
+/// Usage: pow_pi_lookup!(range: -10..=10, type: rational)
+#[proc_macro]
+pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as pow_lookup_macro::PiPowLookupInput);
+    input.expand().into()
 }
 
 /// Our custom annotation macro that delegates to culit for scope tagging
