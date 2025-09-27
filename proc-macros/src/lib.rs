@@ -1,11 +1,27 @@
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
+use quote::quote;
 
 mod define_generic_dimension;
 mod unit_macro;
 mod local_quantity_macro;
 mod culit_macro;
 mod pow_lookup_macro;
+
+/// Helper macro to compute unit dimensions for a unit expression
+/// Usage: compute_unit_dimensions!(unit_expr)
+/// Returns a tuple of 12 i16 values representing the dimensions
+#[proc_macro]
+pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
+    let unit_expr: unit_macro::UnitExpr = syn::parse(input).expect("Expected unit expression");
+    
+    let dimensions = unit_expr.evaluate();
+    
+    let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11) = dimensions;
+    quote! {
+        (#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7, #d8, #d9, #d10, #d11)
+    }.into()
+}
 
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {

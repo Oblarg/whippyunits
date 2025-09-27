@@ -158,6 +158,14 @@ pub fn generate_systematic_unit_name(
     exponents: Vec<i16>,
     long_name: bool
 ) -> String {
+    generate_systematic_unit_name_with_format(exponents, long_name, crate::print::prettyprint::UnitFormat::Unicode)
+}
+
+pub fn generate_systematic_unit_name_with_format(
+    exponents: Vec<i16>,
+    long_name: bool,
+    format: crate::print::prettyprint::UnitFormat
+) -> String {
     // Helper function to get unicode exponent
     fn get_unicode_exponent(exp: i16) -> String {
         crate::print::utils::to_unicode_superscript(exp, false)
@@ -169,10 +177,15 @@ pub fn generate_systematic_unit_name(
         exponent: i16,
         long_name: bool,
         is_pure_unit: bool,
+        format: crate::print::prettyprint::UnitFormat,
     ) -> String { 
         if exponent != 0 {
             let base_name = unit_data.get_display_name(long_name);
-            format!("{}{}", base_name, get_unicode_exponent(exponent))
+            let exponent_str = match format {
+                crate::print::prettyprint::UnitFormat::Unicode => get_unicode_exponent(exponent),
+                crate::print::prettyprint::UnitFormat::Ucum => if exponent == 1 { String::new() } else { exponent.to_string() },
+            };
+            format!("{}{}", base_name, exponent_str)
         } else {
             "".to_string()
         }  
@@ -201,27 +214,73 @@ pub fn generate_systematic_unit_name(
         }
     }
     
-    // Map all exponents to corresponding unit configs, render, gather, then join
-    let unit_parts: Vec<String> = exponents
-        .iter()
-        .enumerate()
-        .map(|(index, &exp)| {
-            let config = get_unit_config(index);
+    match format {
+        crate::print::prettyprint::UnitFormat::Unicode => {
+            // Original Unicode logic
+            let unit_parts: Vec<String> = exponents
+                .iter()
+                .enumerate()
+                .map(|(index, &exp)| {
+                    let config = get_unit_config(index);
+                    let part = render_unit_part(config, exp, long_name, is_pure, format);
+                    part
+                })
+                .filter(|part| !part.is_empty())
+                .collect();
+
+            let result = unit_parts.join("·");
+
+            if is_pure {
+                result
+            } else {
+                format!("({})", result)
+            }
+        },
+        crate::print::prettyprint::UnitFormat::Ucum => {
+            // UCUM format: separate positive and negative exponents
+            let mut numerator_parts = Vec::new();
+            let mut denominator_parts = Vec::new();
             
-            // TODO: hook into method that handles 2s and 5s
-            let part = render_unit_part(config, exp, long_name, is_pure);
-               
-            part
-        })
-        .filter(|part| !part.is_empty())  // Filter out empty parts
-        .collect();
-
-    let result = unit_parts.join("·");
-
-    if is_pure {
-        result
-    } else {
-        format!("({})", result)
+            for (index, &exp) in exponents.iter().enumerate() {
+                if exp != 0 && exp != i16::MIN {
+                    let config = get_unit_config(index);
+                    let base_name = config.get_display_name(long_name);
+                    
+                    if exp > 0 {
+                        // Positive exponents go in numerator
+                        let exponent_str = if exp == 1 { String::new() } else { exp.to_string() };
+                        numerator_parts.push(format!("{}{}", base_name, exponent_str));
+                    } else {
+                        // Negative exponents go in denominator
+                        let exponent_str = if exp == -1 { String::new() } else { (-exp).to_string() };
+                        denominator_parts.push(format!("{}{}", base_name, exponent_str));
+                    }
+                }
+            }
+            
+            // Construct the final unit string
+            let mut unit_string = String::new();
+            
+            if numerator_parts.is_empty() && denominator_parts.is_empty() {
+                return "1".to_string();
+            }
+            
+            if numerator_parts.is_empty() {
+                unit_string.push('1');
+            } else {
+                unit_string.push_str(&numerator_parts.join("."));
+            }
+            
+            if !denominator_parts.is_empty() {
+                if denominator_parts.len() == 1 {
+                    unit_string.push_str(&format!("/{}", denominator_parts[0]));
+                } else {
+                    unit_string.push_str(&format!("/{}", denominator_parts.join(".")));
+                }
+            }
+            
+            unit_string
+        }
     }
 }
 

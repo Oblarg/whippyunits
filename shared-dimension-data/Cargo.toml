@@ -1,7 +1,0 @@
-[package]
-name = "whippyunits-shared-dimension-data"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-name = "whippyunits_shared_dimension_data"

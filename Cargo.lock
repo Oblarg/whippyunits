@@ -363,6 +363,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dca6411025b24b60bfa7ec1fe1f8e710ac09782dca409ee8237ba74b51295fd"
 dependencies = [
  "serde_core",
+ "serde_derive",
 ]
 
 [[package]]
@@ -523,6 +524,8 @@ dependencies = [
  "num-traits",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
  "syn",
  "trybuild",
  "whippyunits-default-dimensions",
@@ -543,10 +546,6 @@ dependencies = [
  "whippyunits",
  "whippyunits-default-dimensions",
 ]
-
-[[package]]
-name = "whippyunits-shared-dimension-data"
-version = "0.1.0"
 
 [[package]]
 name = "wide"

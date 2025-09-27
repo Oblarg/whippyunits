@@ -234,7 +234,7 @@ fn get_time_scale_factors(base_unit: &str) -> (i16, i16, i16) {
 
 /// Get dimension exponents and scale factors for a unit
 /// Returns (mass, length, time, current, temperature, amount, luminosity, angle, p2, p3, p5, pi)
-fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+pub fn get_unit_dimensions(unit_name: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
     // First check if this is a unit literal (like min, h, hr, d)
     if let Some(unit_literal_info) = UNIT_LITERALS.iter().find(|info| info.symbol == unit_name) {
         let (mass, length, time, current, temp, amount, lum, angle) = unit_literal_info.dimension_exponents;

@@ -3,6 +3,15 @@ use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::utils::{to_unicode_superscript, get_si_prefix};
 use whippyunits_default_dimensions::DIMENSION_LOOKUP;
 
+/// Format configuration for unit symbol generation
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UnitFormat {
+    /// Unicode format with superscripts and special characters (default)
+    Unicode,
+    /// UCUM format with plain text exponents and dots
+    Ucum,
+}
+
 // Helper function to get unicode exponent
 fn get_unicode_exponent(exp: i16) -> String {
     to_unicode_superscript(exp, false)
@@ -23,6 +32,24 @@ fn format_scale_exponent(scale: i16) -> String {
 /// source of truth to generate composite dimension symbols.
 /// Solved dimensions (non-zero exponents) are shown first, followed by all other dimensions (with ˀ).
 pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
+    generate_dimension_symbols_with_format(exponents, UnitFormat::Unicode)
+}
+
+/// Generate dimension symbols with specified format
+pub fn generate_dimension_symbols_with_format(exponents: Vec<i16>, format: UnitFormat) -> String {
+    // Dimension symbols only support Unicode format
+    // UCUM format should use unit name generation instead
+    match format {
+        UnitFormat::Unicode => generate_dimension_symbols_unicode(exponents),
+        UnitFormat::Ucum => {
+            // For UCUM format, redirect to unit name generation
+            crate::print::name_lookup::generate_systematic_unit_name_with_format(exponents, false, format)
+        }
+    }
+}
+
+/// Generate dimension symbols in Unicode format (original behavior)
+fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
     // Get atomic dimension symbols from the source of truth
     let atomic_symbols: Vec<&str> = DIMENSION_LOOKUP
         .iter()
@@ -61,6 +88,7 @@ pub fn generate_dimension_symbols(exponents: Vec<i16>) -> String {
         parts.join("·")
     }
 }
+
 
 #[macro_export]
 macro_rules! define_generate_verbose_dimension_names {
