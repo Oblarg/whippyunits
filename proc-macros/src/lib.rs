@@ -7,6 +7,7 @@ mod define_generic_dimension;
 mod local_quantity_macro;
 mod pow_lookup_macro;
 mod unit_macro;
+mod radian_erasure_macro;
 
 /// Helper macro to compute unit dimensions for a unit expression
 /// Usage: compute_unit_dimensions!(unit_expr)
@@ -63,6 +64,14 @@ pub fn pow_lookup(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as pow_lookup_macro::PiPowLookupInput);
+    input.expand().into()
+}
+
+/// Generate all radian erasure implementations (both to scalar and to dimensionless quantities)
+/// Usage: generate_all_radian_erasures!()
+#[proc_macro]
+pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as radian_erasure_macro::AllRadianErasuresInput);
     input.expand().into()
 }
 

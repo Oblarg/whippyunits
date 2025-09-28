@@ -126,6 +126,45 @@ fn test_radian_erasure() {
 }
 
 #[test]
+fn test_dimensionless_to_scalar_conversion() {
+    // Test basic dimensionless to scalar conversion (zero scale)
+    let dimensionless: unit!(1) = quantity!(42.0, 1);
+    let scalar_f64: f64 = dimensionless.into();
+    assert_eq!(scalar_f64, 42.0);
+    
+    // Test dimensionless with non-zero scale (should rescale)
+    // 100mm / 1m = 0.1 (dimensionless with scale)
+    let dimensionless_scaled = 100.0.millimeters() / 1.0.meters();
+    let scalar_rescaled: f64 = dimensionless_scaled.into();
+    assert_eq!(scalar_rescaled, 0.1);
+    
+    // Test with different numeric types
+    let dimensionless_i32 = 5.millimeters() / 1.meters();
+    let scalar_i32: i32 = dimensionless_i32.into();
+    assert_eq!(scalar_i32, 0); // 0.005 rounds to 0 for i32
+}
+
+#[test]
+fn test_radian_erasure_with_scale() {
+    // Test basic radian to scalar conversion (zero scale)
+    let radians_zero_scale: unit!(rad) = quantity!(3.14159, rad);
+    let scalar_f64: f64 = radians_zero_scale.into();
+    assert_eq!(scalar_f64, 3.14159);
+    
+    // Test radian with non-zero scale (should rescale)
+    // Create a radian quantity with scale by using a scaled unit
+    let radians_scaled = 180.0.degrees(); // This should be radians with scale
+    let scalar_rescaled: f64 = radians_scaled.into();
+    // 180 degrees = π radians, but with scale conversion
+    assert!((scalar_rescaled - std::f64::consts::PI).abs() < 1e-10);
+    
+    // Test with different numeric types - use a simpler case
+    let radians_simple = quantity!(1, rad, i32);
+    let scalar_i32: i32 = radians_simple.into();
+    assert_eq!(scalar_i32, 1);
+}
+
+#[test]
 fn test_quantity_division() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();

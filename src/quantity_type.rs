@@ -71,40 +71,98 @@ impl<
 // from/into for dimensionless quantities
 
 // proper dimensionless quantities (all exponents are 0, scales irrelevant)
-impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
-    From<Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, f64>> for f64
-{
-    fn from(
-        other: Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, f64>,
-    ) -> f64 {
-        other.value
-    }
+macro_rules! define_from_dimensionless {
+    ($type:ty, $rescale_fn:ident) => {
+        // General case for all scales - rescale from current scale to 0
+        impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
+            From<Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $type>> for $type
+        {
+            fn from(
+                other: Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $type>,
+            ) -> $type {
+                // If all scales are zero, just return the raw value
+                if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
+                    other.value
+                } else {
+                    // Use the provided rescale function
+                    crate::api::$rescale_fn::<
+                        0, 0, 0, 0, 0, 0, 0, 0,
+                        SCALE_P2, 0, SCALE_P3, 0, SCALE_P5, 0, SCALE_PI, 0
+                    >(other).value
+                }
+            }
+        }
+    };
+}
+
+define_from_dimensionless!(f32, rescale_f32);
+define_from_dimensionless!(f64, rescale_f64);
+define_from_dimensionless!(i16, rescale_i16);
+define_from_dimensionless!(i32, rescale_i32);
+define_from_dimensionless!(i64, rescale_i64);
+define_from_dimensionless!(i128, rescale_i128);
+
+// Pure radian power to scalar with scale handling - handles both zero and non-zero scales
+macro_rules! define_from_for_radians_with_scale {
+    ($exponent:expr, $type:ty, $rescale_fn:ident) => {
+        impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
+            From<Quantity<0, 0, 0, 0, 0, 0, 0, $exponent, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $type>> for $type
+        {
+            fn from(
+                other: Quantity<0, 0, 0, 0, 0, 0, 0, $exponent, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $type>,
+            ) -> $type {
+                // If all scales are zero, just return the raw value
+                if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
+                    other.value
+                } else {
+                    // Use the provided rescale function
+                    crate::api::$rescale_fn::<
+                        0, 0, 0, 0, 0, 0, 0, $exponent,
+                        SCALE_P2, 0, SCALE_P3, 0, SCALE_P5, 0, SCALE_PI, 0
+                    >(other).value
+                }
+            }
+        }
+    };
 }
 
 // radians can be identified as dimensionless (all exponents are 0 except angle, angle scale radians)
 // trait resolution rules mean we have to manually template this out over different angle exponents...
 
 macro_rules! define_from_for_radians {
-    ($exponent:expr) => {
-        impl From<Quantity<0, 0, 0, 0, 0, 0, 0, $exponent, 0, 0, 0, 0, f64>> for f64 {
-            fn from(other: Quantity<0, 0, 0, 0, 0, 0, 0, $exponent, 0, 0, 0, 0, f64>) -> f64 {
-                other.value
-            }
-        }
+    ($exponent:expr, $($type:ty),+ $(,)?) => {
+        $(
+            // Removed direct-to-scalar implementation - now handled by define_from_for_radians_with_scale!
 
-        // TODO: This second impl has unconstrained const parameters
-        // Need to figure out the correct approach for angle conversions
-        impl<
-                const MASS_EXPONENT: i16,
-                const LENGTH_EXPONENT: i16,
-                const TIME_EXPONENT: i16,
-                const CURRENT_EXPONENT: i16,
-                const TEMPERATURE_EXPONENT: i16,
-                const AMOUNT_EXPONENT: i16,
-                const LUMINOSITY_EXPONENT: i16,
-            >
-            From<
-                Quantity<
+            // TODO: This second impl has unconstrained const parameters
+            // Need to figure out the correct approach for angle conversions
+            impl<
+                    const MASS_EXPONENT: i16,
+                    const LENGTH_EXPONENT: i16,
+                    const TIME_EXPONENT: i16,
+                    const CURRENT_EXPONENT: i16,
+                    const TEMPERATURE_EXPONENT: i16,
+                    const AMOUNT_EXPONENT: i16,
+                    const LUMINOSITY_EXPONENT: i16,
+                >
+                From<
+                    Quantity<
+                        MASS_EXPONENT,
+                        LENGTH_EXPONENT,
+                        TIME_EXPONENT,
+                        CURRENT_EXPONENT,
+                        TEMPERATURE_EXPONENT,
+                        AMOUNT_EXPONENT,
+                        LUMINOSITY_EXPONENT,
+                        $exponent,
+                        0,
+                        0,
+                        0,
+                        0,
+                        $type,
+                    >,
+                >
+                for Quantity<
                     MASS_EXPONENT,
                     LENGTH_EXPONENT,
                     TIME_EXPONENT,
@@ -112,71 +170,40 @@ macro_rules! define_from_for_radians {
                     TEMPERATURE_EXPONENT,
                     AMOUNT_EXPONENT,
                     LUMINOSITY_EXPONENT,
-                    $exponent,
                     0,
                     0,
                     0,
                     0,
-                    f64,
-                >,
-            >
-            for Quantity<
-                MASS_EXPONENT,
-                LENGTH_EXPONENT,
-                TIME_EXPONENT,
-                CURRENT_EXPONENT,
-                TEMPERATURE_EXPONENT,
-                AMOUNT_EXPONENT,
-                LUMINOSITY_EXPONENT,
-                0,
-                0,
-                0,
-                0,
-                0,
-                f64,
-            >
-        {
-            fn from(
-                other: Quantity<
-                    MASS_EXPONENT,
-                    LENGTH_EXPONENT,
-                    TIME_EXPONENT,
-                    CURRENT_EXPONENT,
-                    TEMPERATURE_EXPONENT,
-                    AMOUNT_EXPONENT,
-                    LUMINOSITY_EXPONENT,
-                    $exponent,
                     0,
-                    0,
-                    0,
-                    0,
-                    f64,
-                >,
-            ) -> Self {
-                Self { value: other.value }
+                    $type,
+                >
+            {
+                fn from(
+                    other: Quantity<
+                        MASS_EXPONENT,
+                        LENGTH_EXPONENT,
+                        TIME_EXPONENT,
+                        CURRENT_EXPONENT,
+                        TEMPERATURE_EXPONENT,
+                        AMOUNT_EXPONENT,
+                        LUMINOSITY_EXPONENT,
+                        $exponent,
+                        0,
+                        0,
+                        0,
+                        0,
+                        $type,
+                    >,
+                ) -> Self {
+                    Self { value: other.value }
+                }
             }
-        }
+        )+
     };
 }
 
-define_from_for_radians!(-9);
-define_from_for_radians!(-8);
-define_from_for_radians!(-7);
-define_from_for_radians!(-6);
-define_from_for_radians!(-5);
-define_from_for_radians!(-4);
-define_from_for_radians!(-3);
-define_from_for_radians!(-2);
-define_from_for_radians!(-1);
-define_from_for_radians!(1);
-define_from_for_radians!(2);
-define_from_for_radians!(3);
-define_from_for_radians!(4);
-define_from_for_radians!(5);
-define_from_for_radians!(6);
-define_from_for_radians!(7);
-define_from_for_radians!(8);
-define_from_for_radians!(9);
+// Generate all radian erasure implementations using unified proc macro
+whippyunits_proc_macros::generate_all_radian_erasures!(9);
 
 #[macro_export]
 macro_rules! quantity_type {
