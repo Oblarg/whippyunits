@@ -1,8 +1,8 @@
 //! Generated Arithmetic Quantity Types with Full Base Unit Dimensions
-//! 
+//!
 //! This file is auto-generated from dimension_data.rs and includes support
 //! for all base unit dimensions defined in the system.
-//! 
+//!
 //! Base dimensions supported:
 //! //! - mass (primes: [10])
 //! - length (primes: [10])

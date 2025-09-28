@@ -1,19 +1,19 @@
 #![feature(impl_trait_in_bindings)]
 
 use whippyunits::api::rescale;
-use whippyunits::unit;
-use whippyunits::quantity;
 use whippyunits::default_declarators;
 use whippyunits::default_declarators::*;
 use whippyunits::define_generic_dimension;
 use whippyunits::imperial_declarators::*;
+use whippyunits::quantity;
+use whippyunits::unit;
 
 #[test]
 fn test_addition_same_scale() {
     let m1 = 5.0.meters();
 
     let area = m1 * m1;
-    
+
     // Same scale addition should work
     let result = m1 + 3.0.meters();
     assert_eq!(result.value, 8.0);
@@ -30,7 +30,7 @@ fn test_addition_same_scale() {
 #[test]
 fn test_add_assign() {
     let mut m1 = 5.0.meters();
-    
+
     // Same scale addition should work
     m1 += 3.0.meters();
     assert_eq!(m1.value, 8.0);
@@ -40,11 +40,11 @@ fn test_add_assign() {
 fn test_subtraction_same_scale() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();
-    
+
     // Same scale subtraction should work
     let result: unit!(m) = m1 - 2.0.meters();
     assert_eq!(result.value, 3.0);
-    
+
     let result: unit!(s) = s1 - 5.0.seconds();
     assert_eq!(result.value, 25.0);
 }
@@ -57,11 +57,11 @@ fn test_subtraction_same_scale() {
 fn test_multiplication_same_scale() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();
-    
+
     // Same scale multiplication should work
     let result: unit!(m) = m1 * 2.0;
     assert_eq!(result.value, 10.0);
-    
+
     let result: unit!(s) = s1 * 3.0;
     assert_eq!(result.value, 90.0);
 }
@@ -70,11 +70,11 @@ fn test_multiplication_same_scale() {
 fn test_division_same_scale() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();
-    
+
     // Same scale division should work
     let result: unit!(m) = m1 / 2.0;
     assert_eq!(result.value, 2.5);
-    
+
     let result: unit!(s) = s1 / 3.0;
     assert_eq!(result.value, 10.0);
 }
@@ -83,9 +83,9 @@ fn test_division_same_scale() {
 fn test_quantity_multiplication() {
     let m1 = 5.0.amperes();
     let s1 = 30.0.seconds();
-    
+
     // Multiplying quantities should combine dimensions
-    let result= m1 * s1;
+    let result = m1 * s1;
     println!("result: {:?}", result);
     // Result should be length * time = distance * time
     assert_eq!(result.value, 150.0); // 5m * 30s = 150 m·s
@@ -99,7 +99,7 @@ fn test_scalar_from_radians() {
     let inverse_radians = 1.0 / radians;
     let inverse_square_radians = 1.0 / square_radians;
     let inverse_cube_radians = 1.0 / cube_radians;
-    
+
     let scalar: f64 = radians.into();
     assert_eq!(scalar, 5.0);
     let scalar: f64 = square_radians.into();
@@ -116,17 +116,20 @@ fn test_scalar_from_radians() {
 
 #[test]
 fn test_radian_erasure() {
-    // let composite_with_radians = 5.0.radians() / 3.0.seconds();
-    // let composite_with_radians_erased: unit!(1 / s) = composite_with_radians.into();
-    // println!("composite_with_radians_erased: {:?}", composite_with_radians_erased);
-    // assert_eq!(composite_with_radians_erased.value, 5.0 / 3.0);
+    let composite_with_radians = 5.0.radians() / 3.0.seconds();
+    let composite_with_radians_erased: unit!(1 / s) = composite_with_radians.into();
+    println!(
+        "composite_with_radians_erased: {:?}",
+        composite_with_radians_erased
+    );
+    assert_eq!(composite_with_radians_erased.value, 5.0 / 3.0);
 }
 
 #[test]
 fn test_quantity_division() {
     let m1 = 5.0.meters();
     let s1 = 30.0.seconds();
-    
+
     // Dividing quantities should combine dimensions
     let result = m1 / s1;
     println!("result: {:?}", result);
@@ -137,24 +140,24 @@ fn test_quantity_division() {
 #[test]
 fn test_scalar_quantity_multiplication() {
     let m1 = 5.0.meters();
-    
+
     // Scalar * Quantity should work
     let result: unit!(m) = 3.0 * m1;
     assert_eq!(result.value, 15.0);
-    
+
     // Quantity * Scalar should work
-    let result: unit!(m) = m1 * 4.0; 
+    let result: unit!(m) = m1 * 4.0;
     assert_eq!(result.value, 20.0);
 }
 
 #[test]
 fn test_scalar_quantity_division() {
     let m1 = 5.0.meters();
-    
+
     // Quantity / Scalar should work
     let result: unit!(m) = m1 / 2.0;
     assert_eq!(result.value, 2.5);
-    
+
     // Scalar / Quantity should work (inverts dimensions)
     let result: unit!(1 / m) = 10.0 / m1;
     assert_eq!(result.value, 2.0); // 10 / 5m = 2 m^-1
@@ -163,7 +166,7 @@ fn test_scalar_quantity_division() {
 #[test]
 fn test_quantity_scalar_multiplication() {
     let m1 = 5.0.meters();
-    
+
     // Quantity * Scalar should work
     let result: unit!(m) = m1 * 4.0;
     assert_eq!(result.value, 20.0);
@@ -172,7 +175,7 @@ fn test_quantity_scalar_multiplication() {
 #[test]
 fn test_quantity_scalar_division() {
     let m1 = 5.0.meters();
-    
+
     // Quantity / Scalar should work
     let result: unit!(m) = m1 / 2.0;
     assert_eq!(result.value, 2.5);
@@ -181,12 +184,11 @@ fn test_quantity_scalar_division() {
 #[test]
 fn test_quantity_scalar_multiplication_assign() {
     let mut m1 = 5.0.meters();
-    
+
     // Quantity * Scalar should work
     m1 *= 4.0;
     assert_eq!(m1.value, 20.0);
 }
-
 
 // ============================================================================
 // Rescale Tests
@@ -195,37 +197,40 @@ fn test_quantity_scalar_multiplication_assign() {
 #[test]
 fn test_rescale_length() {
     let m1: unit!(m) = 5.0.meters();
-    
+
     // Rescale from meters to kilometers
     let result: Kilometer = rescale(m1);
     assert_eq!(result.value, 0.005); // 5m = 0.005km
-    
+
     // Rescale from meters to millimeters
     let result: Millimeter = rescale(m1);
     assert_eq!(result.value, 5000.0); // 5m = 5000mm
 }
 
 #[test]
-fn test_rescale_mass() {    
+fn test_rescale_mass() {
     // Rescale from grams to kilograms
     let result: Kilogram = rescale(100.0.grams());
     assert_eq!(result.value, 0.1); // 100g = 0.1kg
-    
+
     // Rescale from grams to milligrams
     let result: Milligram = rescale(100.0.grams());
     assert_eq!(result.value, 100000.0); // 100g = 100000mg
 
-    println!("{:?}", 1.kilograms() * 1.meters() * 1.meters() / 1.seconds() / 1.seconds());
+    println!(
+        "{:?}",
+        1.kilograms() * 1.meters() * 1.meters() / 1.seconds() / 1.seconds()
+    );
 }
 
 #[test]
 fn test_rescale_time() {
     let s1 = 30.0.seconds();
-    
+
     // Rescale from seconds to minutes
     let result: Minute = rescale(s1);
     assert_eq!(result.value, 0.5); // 30s = 0.5min
-    
+
     // Rescale from seconds to milliseconds
     let result: Millisecond = rescale(s1);
     assert_eq!(result.value, 30000.0); // 30s = 30000ms
@@ -239,15 +244,15 @@ fn test_rescale_time() {
 fn test_negative_quantities() {
     let neg_m = (-3.0).meters();
     let pos_m = 5.0.meters();
-    
+
     // Addition with negative
     let result = neg_m + pos_m;
     assert_eq!(result.value, 2.0);
-    
+
     // Subtraction with negative
     let result = pos_m - neg_m;
     assert_eq!(result.value, 8.0);
-    
+
     // Multiplication with negative
     let result = neg_m * 2.0;
     assert_eq!(result.value, -6.0);
@@ -257,11 +262,11 @@ fn test_negative_quantities() {
 fn test_large_numbers() {
     let large_m = 1000000.0.meters();
     let small_m = 0.000001.meters();
-    
+
     // Addition with large numbers
     let result = large_m + small_m;
     assert_eq!(result.value, 1000000.000001);
-    
+
     // Multiplication with large numbers
     let result = large_m * 2.0;
     assert_eq!(result.value, 2000000.0);
@@ -274,7 +279,7 @@ fn test_large_numbers() {
 #[test]
 fn test_chain_operations() {
     let m1 = 5.0.meters();
-    
+
     // Chain multiple operations
     let result = m1 + m1 - 2.0.meters() * 3.0 / 2.0;
     // 5m + 5m - (2m * 3) / 2 = 10m - 3m = 7m
@@ -289,7 +294,7 @@ fn test_chain_operations() {
 fn test_si_prefixes_mass() {
     // Test SI prefixes for mass using existing declarators
     let _mg: unit!(mg) = 1.0.milligrams(); // milligram
-    let _g: unit!(g) = 1.0.grams();   // gram
+    let _g: unit!(g) = 1.0.grams(); // gram
     let _kg: unit!(kg) = 1.0.kilograms(); // kilogram
 }
 
@@ -300,7 +305,7 @@ fn test_si_prefixes_length() {
     let _nm: unit!(nm) = 1.0.nanometers(); // nanometer
     let _um: unit!(um) = 1.0.micrometers(); // micrometer (using 'u' as ASCII substitute for μ)
     let _mm: unit!(mm) = 1.0.millimeters(); // millimeter
-    let _m: unit!(m) = 1.0.meters();   // meter
+    let _m: unit!(m) = 1.0.meters(); // meter
     let _km: unit!(km) = 1.0.kilometers(); // kilometer
     let _Mm: unit!(Mm) = 1.0.megameters(); // megameter
     let _Gm: unit!(Gm) = 1.0.gigameters(); // gigameter
@@ -317,7 +322,7 @@ fn test_si_prefixes_time() {
     let _ns: unit!(ns) = 1.0.nanoseconds(); // nanosecond
     let _us: unit!(us) = 1.0.microseconds(); // microsecond (using 'u' as ASCII substitute for μ)
     let _ms: unit!(ms) = 1.0.milliseconds(); // millisecond
-    let _s: unit!(s) = 1.0.seconds();   // second
+    let _s: unit!(s) = 1.0.seconds(); // second
     let _ks: unit!(ks) = 1.0.kiloseconds(); // kilosecond
     let _Ms: unit!(Ms) = 1.0.megaseconds(); // megasecond
     let _Gs: unit!(Gs) = 1.0.gigaseconds(); // gigasecond
@@ -335,7 +340,7 @@ fn test_si_prefixes_current() {
     let _nA: unit!(nA) = 1.0.nanoamperes(); // nanoampere
     let _uA: unit!(uA) = 1.0.microamperes(); // microampere (using 'u' as ASCII substitute for μ)
     let _mA: unit!(mA) = 1.0.milliamperes(); // milliampere
-    let _A: unit!(A) = 1.0.amperes();   // ampere
+    let _A: unit!(A) = 1.0.amperes(); // ampere
     let _kA: unit!(kA) = 1.0.kiloamperes(); // kiloampere
     let _MA: unit!(MA) = 1.0.megaamperes(); // megaampere
     let _GA: unit!(GA) = 1.0.gigaamperes(); // gigaampere
@@ -353,7 +358,7 @@ fn test_si_prefixes_temperature() {
     let _nK: unit!(nK) = 1.0.nanokelvins(); // nanokelvin
     let _uK: unit!(uK) = 1.0.microkelvins(); // microkelvin (using 'u' as ASCII substitute for μ)
     let _mK: unit!(mK) = 1.0.millikelvins(); // millikelvin
-    let _K: unit!(K) = 1.0.kelvins();   // kelvin
+    let _K: unit!(K) = 1.0.kelvins(); // kelvin
     let _kK: unit!(kK) = 1.0.kilokelvins(); // kilokelvin
     let _MK: unit!(MK) = 1.0.megakelvins(); // megakelvin
     let _GK: unit!(GK) = 1.0.gigakelvins(); // gigakelvin
@@ -371,7 +376,7 @@ fn test_si_prefixes_amount() {
     let _nmol: unit!(nmol) = 1.0.nanomoles(); // nanomole
     let _umol: unit!(umol) = 1.0.micromoles(); // micromole (using 'u' as ASCII substitute for μ)
     let _mmol: unit!(mmol) = 1.0.millimoles(); // millimole
-    let _mol: unit!(mol) = 1.0.moles();   // mole
+    let _mol: unit!(mol) = 1.0.moles(); // mole
     let _kmol: unit!(kmol) = 1.0.kilomoles(); // kilomole
     let _Mmol: unit!(Mmol) = 1.0.megamoles(); // megamole
     let _Gmol: unit!(Gmol) = 1.0.gigamoles(); // gigamole
@@ -389,7 +394,7 @@ fn test_si_prefixes_luminosity() {
     let _ncd: unit!(ncd) = 1.0.nanocandelas(); // nanocandela
     let _ucd: unit!(ucd) = 1.0.microcandelas(); // microcandela (using 'u' as ASCII substitute for μ)
     let _mcd: unit!(mcd) = 1.0.millicandelas(); // millicandela
-    let _cd: unit!(cd) = 1.0.candelas();   // candela
+    let _cd: unit!(cd) = 1.0.candelas(); // candela
     let _kcd: unit!(kcd) = 1.0.kilocandelas(); // kilocandela
     let _Mcd: unit!(Mcd) = 1.0.megacandelas(); // megacandela
     let _Gcd: unit!(Gcd) = 1.0.gigacandelas(); // gigacandela
@@ -407,7 +412,7 @@ fn test_si_prefixes_angle() {
     let _nrad: unit!(nrad) = 1.0.nanoradians(); // nanoradian
     let _urad: unit!(urad) = 1.0.microradians(); // microradian (using 'u' as ASCII substitute for μ)
     let _mrad: unit!(mrad) = 1.0.milliradians(); // milliradian
-    let _rad: unit!(rad) = 1.0.radians();   // radian
+    let _rad: unit!(rad) = 1.0.radians(); // radian
     let _krad: unit!(krad) = 1.0.kiloradians(); // kiloradian
     let _Mrad: unit!(Mrad) = 1.0.megaradians(); // megaradian
     let _Grad: unit!(Grad) = 1.0.gigaradians(); // gigaradian
@@ -421,15 +426,20 @@ fn test_si_prefixes_angle() {
 #[test]
 fn test_si_prefix_compound_units() {
     // Test SI prefixes in compound units
-    let _kg_m_s2: unit!(kg * m / s^2) = 1.0.kilograms() * 1.0.meters() / (1.0.seconds() * 1.0.seconds());
-    let _mg_mm_ms2: unit!(mg * mm / ms^2) = 1.0.milligrams() * 1.0.millimeters() / (1.0.milliseconds() * 1.0.milliseconds());
-    let _Gg_Gm_Gs2: unit!(Gg * Gm / Gs^2) = 1.0.gigagrams() * 1.0.gigameters() / (1.0.gigaseconds() * 1.0.gigaseconds());
-    
-    // These should all be the same type (force)
-    let force1: unit!(kg * m / s^2) = 1.0.kilograms() * 1.0.meters() / (1.0.seconds() * 1.0.seconds());
-    let force2: unit!(mg * mm / ms^2) = 1.0.milligrams() * 1.0.millimeters() / (1.0.milliseconds() * 1.0.milliseconds());
+    let _kg_m_s2: unit!(kg * m / s ^ 2) =
+        1.0.kilograms() * 1.0.meters() / (1.0.seconds() * 1.0.seconds());
+    let _mg_mm_ms2: unit!(mg * mm / ms ^ 2) =
+        1.0.milligrams() * 1.0.millimeters() / (1.0.milliseconds() * 1.0.milliseconds());
+    let _Gg_Gm_Gs2: unit!(Gg * Gm / Gs ^ 2) =
+        1.0.gigagrams() * 1.0.gigameters() / (1.0.gigaseconds() * 1.0.gigaseconds());
 
-    let area = quantity!(1.0, m^2);
+    // These should all be the same type (force)
+    let force1: unit!(kg * m / s ^ 2) =
+        1.0.kilograms() * 1.0.meters() / (1.0.seconds() * 1.0.seconds());
+    let force2: unit!(mg * mm / ms ^ 2) =
+        1.0.milligrams() * 1.0.millimeters() / (1.0.milliseconds() * 1.0.milliseconds());
+
+    let area = quantity!(1.0, m ^ 2);
     println!("{:?}", area);
 
     let frequency = quantity!(1.0, 1 / s);
@@ -449,8 +459,18 @@ fn test_generic_dimension() {
 #[test]
 fn test_expanded_dimension_dsl_basic() {
     // Test basic SI dimensions
-    define_generic_dimension!(BasicDimensions, Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle);
-    
+    define_generic_dimension!(
+        BasicDimensions,
+        Mass,
+        Length,
+        Time,
+        Current,
+        Temperature,
+        Amount,
+        Luminosity,
+        Angle
+    );
+
     let mass: impl BasicDimensions = quantity!(1.0, kg);
     let length: impl BasicDimensions = quantity!(1.0, m);
     let time: impl BasicDimensions = quantity!(1.0, s);
@@ -459,7 +479,7 @@ fn test_expanded_dimension_dsl_basic() {
     let amount: impl BasicDimensions = quantity!(1.0, mol);
     let luminosity: impl BasicDimensions = quantity!(1.0, cd);
     let angle: impl BasicDimensions = quantity!(1.0, rad);
-    
+
     println!("Basic dimensions test passed");
 }
 
@@ -467,11 +487,11 @@ fn test_expanded_dimension_dsl_basic() {
 fn test_expanded_dimension_dsl_geometric() {
     // Test geometric dimensions
     define_generic_dimension!(GeometricDimensions, Area, Volume, Wavenumber);
-    
-    let area: impl GeometricDimensions = quantity!(1.0, m^2);
-    let volume: impl GeometricDimensions = quantity!(1.0, m^3);
+
+    let area: impl GeometricDimensions = quantity!(1.0, m ^ 2);
+    let volume: impl GeometricDimensions = quantity!(1.0, m ^ 3);
     let wavenumber: impl GeometricDimensions = quantity!(1.0, 1 / m);
-    
+
     println!("Geometric dimensions test passed");
 }
 
@@ -479,112 +499,153 @@ fn test_expanded_dimension_dsl_geometric() {
 fn test_expanded_dimension_dsl_kinematic() {
     // Test kinematic dimensions
     define_generic_dimension!(KinematicDimensions, Frequency, Velocity, Acceleration, Jerk);
-    
+
     let frequency: impl KinematicDimensions = quantity!(1.0, 1 / s);
     let velocity: impl KinematicDimensions = quantity!(1.0, m / s);
-    let acceleration: impl KinematicDimensions = quantity!(1.0, m / s^2);
-    let jerk: impl KinematicDimensions = quantity!(1.0, m / s^3);
-    
+    let acceleration: impl KinematicDimensions = quantity!(1.0, m / s ^ 2);
+    let jerk: impl KinematicDimensions = quantity!(1.0, m / s ^ 3);
+
     println!("Kinematic dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_dynamic() {
     // Test dynamic dimensions
-    define_generic_dimension!(DynamicDimensions, Momentum, Force, Energy, Power, Action, Pressure);
-    
+    define_generic_dimension!(
+        DynamicDimensions,
+        Momentum,
+        Force,
+        Energy,
+        Power,
+        Action,
+        Pressure
+    );
+
     let momentum: impl DynamicDimensions = quantity!(1.0, kg * m / s);
-    let force: impl DynamicDimensions = quantity!(1.0, kg * m / s^2);
-    let energy: impl DynamicDimensions = quantity!(1.0, kg * m^2 / s^2);
-    let power: impl DynamicDimensions = quantity!(1.0, kg * m^2 / s^3);
-    let action: impl DynamicDimensions = quantity!(1.0, kg * m^2 / s);
-    let pressure: impl DynamicDimensions = quantity!(1.0, kg / (m * s^2));
-    
+    let force: impl DynamicDimensions = quantity!(1.0, kg * m / s ^ 2);
+    let energy: impl DynamicDimensions = quantity!(1.0, kg * m ^ 2 / s ^ 2);
+    let power: impl DynamicDimensions = quantity!(1.0, kg * m ^ 2 / s ^ 3);
+    let action: impl DynamicDimensions = quantity!(1.0, kg * m ^ 2 / s);
+    let pressure: impl DynamicDimensions = quantity!(1.0, kg / (m * s ^ 2));
+
     println!("Dynamic dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_density() {
     // Test density dimensions
-    define_generic_dimension!(DensityDimensions, Linear_mass_density, Surface_mass_density, Density);
-    
+    define_generic_dimension!(
+        DensityDimensions,
+        Linear_mass_density,
+        Surface_mass_density,
+        Density
+    );
+
     let linear_density: impl DensityDimensions = quantity!(1.0, kg / m);
-    let surface_density: impl DensityDimensions = quantity!(1.0, kg / m^2);
-    let volume_density: impl DensityDimensions = quantity!(1.0, kg / m^3);
-    
+    let surface_density: impl DensityDimensions = quantity!(1.0, kg / m ^ 2);
+    let volume_density: impl DensityDimensions = quantity!(1.0, kg / m ^ 3);
+
     println!("Density dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_electrical() {
     // Test electrical dimensions
-    define_generic_dimension!(ElectricalDimensions, Charge, Potential, Resistance, Conductance, Capacitance, Inductance);
-    
+    define_generic_dimension!(
+        ElectricalDimensions,
+        Charge,
+        Potential,
+        Resistance,
+        Conductance,
+        Capacitance,
+        Inductance
+    );
+
     let charge: impl ElectricalDimensions = quantity!(1.0, C);
     let potential: impl ElectricalDimensions = quantity!(1.0, V);
     let resistance: impl ElectricalDimensions = quantity!(1.0, Ω);
     let conductance: impl ElectricalDimensions = quantity!(1.0, S);
     let capacitance: impl ElectricalDimensions = quantity!(1.0, F);
     let inductance: impl ElectricalDimensions = quantity!(1.0, H);
-    
+
     println!("Electrical dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_thermodynamic() {
     // Test thermodynamic dimensions
-    define_generic_dimension!(ThermodynamicDimensions, Entropy, Specific_heat_capacity, Molar_heat_capacity, Thermal_conductivity);
-    
+    define_generic_dimension!(
+        ThermodynamicDimensions,
+        Entropy,
+        Specific_heat_capacity,
+        Molar_heat_capacity,
+        Thermal_conductivity
+    );
+
     let entropy: impl ThermodynamicDimensions = quantity!(1.0, J / K);
     let specific_heat: impl ThermodynamicDimensions = quantity!(1.0, J / (kg * K));
     let molar_heat: impl ThermodynamicDimensions = quantity!(1.0, J / (mol * K));
     let thermal_conductivity: impl ThermodynamicDimensions = quantity!(1.0, W / (m * K));
-    
+
     println!("Thermodynamic dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_chemical() {
     // Test chemical dimensions
-    define_generic_dimension!(ChemicalDimensions, Molar_mass, Molar_volume, Molar_concentration, Molar_energy);
-    
+    define_generic_dimension!(
+        ChemicalDimensions,
+        Molar_mass,
+        Molar_volume,
+        Molar_concentration,
+        Molar_energy
+    );
+
     let molar_mass: impl ChemicalDimensions = quantity!(1.0, kg / mol);
-    let molar_volume: impl ChemicalDimensions = quantity!(1.0, m^3 / mol);
-    let molar_concentration: impl ChemicalDimensions = quantity!(1.0, mol / m^3);
+    let molar_volume: impl ChemicalDimensions = quantity!(1.0, m ^ 3 / mol);
+    let molar_concentration: impl ChemicalDimensions = quantity!(1.0, mol / m ^ 3);
     let molar_energy: impl ChemicalDimensions = quantity!(1.0, J / mol);
-    
+
     println!("Chemical dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_photometric() {
     // Test photometric dimensions
-    define_generic_dimension!(PhotometricDimensions, Illuminance, Luminous_exposure, Luminous_efficacy);
-    
+    define_generic_dimension!(
+        PhotometricDimensions,
+        Illuminance,
+        Luminous_exposure,
+        Luminous_efficacy
+    );
+
     let illuminance: impl PhotometricDimensions = quantity!(1.0, lx);
     let luminous_exposure: impl PhotometricDimensions = quantity!(1.0, lx * s);
     let luminous_efficacy: impl PhotometricDimensions = quantity!(1.0, lm / W);
-    
+
     println!("Photometric dimensions test passed");
 }
 
 #[test]
 fn test_expanded_dimension_dsl_complex_expressions() {
     // Test complex dimension expressions using arithmetic operations
-    define_generic_dimension!(ForceExpression, Mass * Length / Time^2);
-    define_generic_dimension!(EnergyExpression, Mass * Length^2 / Time^2);
-    define_generic_dimension!(PressureExpression, Mass / Length / Time^2);
-    define_generic_dimension!(PowerExpression, Mass * Length^2 / Time^3);
-    define_generic_dimension!(ElectricFieldExpression, Mass * Length / Time^3 / Current);
-    define_generic_dimension!(CapacitanceExpression, Time^4 * Current^2 / Mass / Length^2);
-    
+    define_generic_dimension!(ForceExpression, Mass * Length / Time ^ 2);
+    define_generic_dimension!(EnergyExpression, Mass * Length ^ 2 / Time ^ 2);
+    define_generic_dimension!(PressureExpression, Mass / Length / Time ^ 2);
+    define_generic_dimension!(PowerExpression, Mass * Length ^ 2 / Time ^ 3);
+    define_generic_dimension!(ElectricFieldExpression, Mass * Length / Time ^ 3 / Current);
+    define_generic_dimension!(
+        CapacitanceExpression,
+        Time ^ 4 * Current ^ 2 / Mass / Length ^ 2
+    );
+
     let force: impl ForceExpression = quantity!(1.0, N);
     let energy: impl EnergyExpression = quantity!(1.0, J);
     let pressure: impl PressureExpression = quantity!(1.0, Pa);
     let power: impl PowerExpression = quantity!(1.0, W);
     let electric_field: impl ElectricFieldExpression = quantity!(1.0, V / m);
     let capacitance: impl CapacitanceExpression = quantity!(1.0, F);
-    
+
     println!("Complex dimension expressions test passed");
 }
 
@@ -594,16 +655,16 @@ fn test_expanded_dimension_dsl_naming_variations() {
     define_generic_dimension!(DensityVariations, VolumeMassDensity, LinearMassDensity);
     define_generic_dimension!(ViscosityVariations, Viscosity, KinematicViscosity);
     define_generic_dimension!(ElectricalVariations, ElectricCharge, ElectricPotential);
-    
-    let volume_density: impl DensityVariations = quantity!(1.0, kg / m^3);
+
+    let volume_density: impl DensityVariations = quantity!(1.0, kg / m ^ 3);
     let linear_density: impl DensityVariations = quantity!(1.0, kg / m);
-    
+
     let dynamic_viscosity: impl ViscosityVariations = quantity!(1.0, Pa * s);
     let kinematic_viscosity: impl ViscosityVariations = quantity!(1.0, St);
-    
+
     let charge: impl ElectricalVariations = quantity!(1.0, C);
     let potential: impl ElectricalVariations = quantity!(1.0, V);
-    
+
     println!("Naming variations test passed");
 }
 
@@ -616,28 +677,28 @@ fn test_bespoke_quantity() {
 #[test]
 fn test_dimension_symbols_in_dsl() {
     // Test that we can use dimension symbols in the DSL
-    define_generic_dimension!(SymbolTest, L, M, T, L^2, M * L^2 / T^2);
-    
+    define_generic_dimension!(SymbolTest, L, M, T, L ^ 2, M * L ^ 2 / T ^ 2);
+
     let length: impl SymbolTest = quantity!(1.0, m);
     let mass: impl SymbolTest = quantity!(1.0, kg);
     let time: impl SymbolTest = quantity!(1.0, s);
-    let area: impl SymbolTest = quantity!(1.0, m^2);
+    let area: impl SymbolTest = quantity!(1.0, m ^ 2);
     let energy: impl SymbolTest = quantity!(1.0, J);
-    
+
     println!("Dimension symbols DSL test passed");
 }
 
 #[test]
 fn test_mixed_dimension_names_and_symbols() {
     // Test that we can mix dimension names and symbols in the same DSL
-    define_generic_dimension!(MixedTest, Length, M, Time, L^2, Mass * L^2 / T^2);
-    
+    define_generic_dimension!(MixedTest, Length, M, Time, L ^ 2, Mass * L ^ 2 / T ^ 2);
+
     let length: impl MixedTest = quantity!(1.0, m);
     let mass: impl MixedTest = quantity!(1.0, kg);
     let time: impl MixedTest = quantity!(1.0, s);
-    let area: impl MixedTest = quantity!(1.0, m^2);
+    let area: impl MixedTest = quantity!(1.0, m ^ 2);
     let energy: impl MixedTest = quantity!(1.0, J);
-    
+
     println!("Mixed dimension names and symbols DSL test passed");
 }
 
@@ -647,26 +708,35 @@ fn test_prettyprint_dimension_symbols() {
     let force = quantity!(1.0, N);
     let energy = quantity!(1.0, J);
     let pressure = quantity!(1.0, Pa);
-    
+
     println!("=== Recognized Composite Dimensions ===");
     println!("Force verbose: {:?}", force);
     println!("Energy verbose: {:?}", energy);
     println!("Pressure verbose: {:?}", pressure);
-    
+
     // Test non-verbose mode (should still use dimension names for recognized composites)
-    println!("Force non-verbose: {}", format!("{:?}", force).replace("verbose", "terse"));
-    println!("Energy non-verbose: {}", format!("{:?}", energy).replace("verbose", "terse"));
-    println!("Pressure non-verbose: {}", format!("{:?}", pressure).replace("verbose", "terse"));
-    
+    println!(
+        "Force non-verbose: {}",
+        format!("{:?}", force).replace("verbose", "terse")
+    );
+    println!(
+        "Energy non-verbose: {}",
+        format!("{:?}", energy).replace("verbose", "terse")
+    );
+    println!(
+        "Pressure non-verbose: {}",
+        format!("{:?}", pressure).replace("verbose", "terse")
+    );
+
     // Test with truly unrecognized dimensions (should use symbols in non-verbose mode)
     println!("\n=== Unrecognized Composite Dimensions ===");
     // Create dimensions that don't exist in the lookup table
-    let custom_dim1 = quantity!(1.0, kg * m^3 / s^4);  // M·L³·T⁻⁴ (not in lookup table)
-    let custom_dim2 = quantity!(1.0, kg^2 * m / s^3);  // M²·L·T⁻³ (not in lookup table)
-    
+    let custom_dim1 = quantity!(1.0, kg * m ^ 3 / s ^ 4); // M·L³·T⁻⁴ (not in lookup table)
+    let custom_dim2 = quantity!(1.0, kg ^ 2 * m / s ^ 3); // M²·L·T⁻³ (not in lookup table)
+
     println!("Custom dim1 verbose (Debug): {:?}", custom_dim1);
     println!("Custom dim2 verbose (Debug): {:?}", custom_dim2);
-    
+
     println!("Custom dim1 non-verbose (Display): {}", custom_dim1);
     println!("Custom dim2 non-verbose (Display): {}", custom_dim2);
 }
@@ -710,19 +780,19 @@ fn test_imperial_units() {
 #[test]
 fn test_custom_formatting() {
     use whippyunits::print::custom_display::QuantityFormatExt;
-    
+
     println!("\n=== Custom Formatting Tests ===");
-    
+
     // Test basic unit conversion formatting
     let distance = 5000.0.meters();
     let mass = 2.5.kilograms();
     let time = 90.0.seconds();
-    
+
     println!("Original values:");
     println!("  Distance: {}", distance);
     println!("  Mass: {}", mass);
     println!("  Time: {}", time);
-    
+
     // Test distance conversions
     println!("\nDistance conversions:");
     assert_eq!(distance.format_as("km").unwrap(), "5 km");
@@ -730,35 +800,41 @@ fn test_custom_formatting() {
     assert_eq!(distance.format_as("mm").unwrap(), "5000000 mm");
     assert_eq!(distance.format_as("ft").unwrap(), "16404.199475065616 ft");
     assert_eq!(distance.format_as("mi").unwrap(), "3.1068559611866697 mi");
-    
+
     // Test mass conversions
     println!("Mass conversions:");
     assert_eq!(mass.format_as("g").unwrap(), "2500 g");
     assert_eq!(mass.format_as("kg").unwrap(), "2.5 kg");
     assert_eq!(mass.format_as("oz").unwrap(), "88.18490487395103 oz");
     assert_eq!(mass.format_as("lb").unwrap(), "5.511556554621939 lb");
-    
+
     // Test time conversions
     println!("Time conversions:");
     assert_eq!(time.format_as("s").unwrap(), "90 s");
     assert_eq!(time.format_as("min").unwrap(), "1.5 min");
     assert_eq!(time.format_as("h").unwrap(), "0.025 h");
-    
+
     // Test precision formatting
     println!("Precision formatting:");
-    assert_eq!(distance.format_as_with_precision("km", 2).unwrap(), "5.00 km");
-    assert_eq!(distance.format_as_with_precision("cm", 0).unwrap(), "500000 cm");
+    assert_eq!(
+        distance.format_as_with_precision("km", 2).unwrap(),
+        "5.00 km"
+    );
+    assert_eq!(
+        distance.format_as_with_precision("cm", 0).unwrap(),
+        "500000 cm"
+    );
     assert_eq!(mass.format_as_with_precision("g", 1).unwrap(), "2500.0 g");
-    
+
     // Test error cases
     println!("Error cases:");
     assert!(distance.format_as("kg").is_err()); // Wrong dimension
     assert!(distance.format_as("unknown_unit").is_err()); // Unknown unit
-    
+
     // Test with different unit names (symbols vs long names)
     assert_eq!(distance.format_as("kilometer").unwrap(), "5 km");
     assert_eq!(mass.format_as("gram").unwrap(), "2500 gram");
-    
+
     println!("Custom formatting tests passed!");
 }
 
@@ -766,105 +842,108 @@ fn test_custom_formatting() {
 fn test_format_syntax_demonstration() {
     use whippyunits::default_declarators::*;
     use whippyunits::format_quantity;
-    
+
     println!("\n=== Custom Format Syntax Demonstration ===");
-    
+
     // Create a mass quantity
     let mass = 2.5.kilograms();
-    
+
     println!("Original mass: {}", mass);
-    
+
     // Demonstrate the {:kg} syntax using format_quantity! macro
     println!("\nformat_quantity! macro (simulating {{:kg}} syntax):");
     println!("  {}", format_quantity!("Mass: {:g}", &mass));
     println!("  {}", format_quantity!("Mass: {:kg}", &mass));
-    
+
     println!("Format syntax demonstration completed!");
 }
 
 #[test]
 fn test_i32_quantity_declarators() {
     use whippyunits::default_declarators::*;
-    
+
     // Test that the existing i32 implementation works (creates f64-backed quantities)
     let mass_i32 = 5.grams();
     let length_i32 = 10.meters();
-    
+
     // Test arithmetic operations
     let area_i32 = length_i32 * length_i32;
     println!("i32 Area: {:?}", area_i32);
-    
+
     // Test that the values are actually i32 (native i32-backed quantities!)
     assert_eq!(mass_i32.value, 5i32);
     assert_eq!(length_i32.value, 10i32);
     assert_eq!(area_i32.value, 100i32);
-    
+
     // Test that f64 declarators still work (backward compatibility)
     let mass_f64 = 5.0.grams();
     let length_f64 = 10.0.meters();
 
-    let foo = quantity!(1.0, g * m^2 / s^2);
-    
+    let foo = quantity!(1.0, g * m ^ 2 / s ^ 2);
+
     assert_eq!(mass_f64.value, 5.0f64);
     assert_eq!(length_f64.value, 10.0f64);
-    
+
     println!("i32 quantity declarators test passed!");
 }
 
 #[test]
 fn test_unit_macro_with_different_types() {
     use whippyunits::default_declarators::*;
-        
+
     // Test unit macro with default f64 backing
     let length_f64: unit!(m) = 5.0.meters();
     assert_eq!(length_f64.value, 5.0f64);
-    
+
     // Test unit macro with i32 backing
     let length_i32: unit!(m, i32) = 5.meters();
     assert_eq!(length_i32.value, 5i32);
-    
+
     // Test complex unit expressions with different types
-    let area_i32: unit!(m^2, i32) = 5.meters() * 10.meters();
+    let area_i32: unit!(m ^ 2, i32) = 5.meters() * 10.meters();
     assert_eq!(area_i32.value, 50i32);
-    
+
     // Test that the unit macro correctly generates the right type
     // This verifies the macro expansion works correctly
     let _length_type_check: unit!(m, i32) = 5.meters();
-    let _area_type_check: unit!(m^2, i32) = 5.meters() * 10.meters();
-    
+    let _area_type_check: unit!(m ^ 2, i32) = 5.meters() * 10.meters();
+
     println!("Unit macro with different backing types test passed!");
 }
 
 #[test]
 fn test_imperial_declarators_generic_storage_types() {
     // Test imperial length declarators with different storage types
-    
+
     // Test f64 (default)
     let length_f64: default_declarators::Centimeter<f64> = 12.0.inches();
     assert_eq!(length_f64.value, 12.0 * 2.54);
-    
+
     // Test i32
     let length_i32: default_declarators::Centimeter<i32> = 12i32.inches();
     assert_eq!(length_i32.value, (12.0 * 2.54) as i32);
-    
+
     // Test i64
     let length_i64: default_declarators::Centimeter<i64> = 12i64.inches();
     assert_eq!(length_i64.value, (12.0 * 2.54) as i64);
-    
+
     // Test imperial mass declarators
     let mass_f64: default_declarators::Kilogram<f64> = 2.0.pounds();
     assert_eq!(mass_f64.value, 2.0 * 0.45359237);
-    
+
     let mass_i32: default_declarators::Kilogram<i32> = 2i32.pounds();
     assert_eq!(mass_i32.value, (2.0 * 0.45359237) as i32);
-    
+
     // Test imperial temperature declarators (affine)
     let temp_f64: Fahrenheit<f64> = 32.0.fahrenheit();
-    assert_eq!(temp_f64.value, 32.0 * 5.0/9.0 + 255.3722222222222);
-    
+    assert_eq!(temp_f64.value, 32.0 * 5.0 / 9.0 + 255.3722222222222);
+
     let temp_i32: Fahrenheit<i32> = 32i32.fahrenheit();
-    assert_eq!(temp_i32.value, (32.0 * 5.0/9.0 + 255.3722222222222) as i32);
-    
+    assert_eq!(
+        temp_i32.value,
+        (32.0 * 5.0 / 9.0 + 255.3722222222222) as i32
+    );
+
     println!("Imperial declarators with different storage types test passed!");
 }
 
@@ -875,116 +954,116 @@ fn test_imperial_declarators_generic_storage_types() {
 #[test]
 fn test_all_types_arithmetic_available() {
     use whippyunits::default_declarators::*;
-    
+
     println!("=== Testing All Types Arithmetic Available ===");
-    
+
     // Test that arithmetic operations work for all types using explicit type annotations
     // This tests that the arithmetic implementations are available for all types
-    
+
     // Test f64 (default)
     let length_f64: unit!(m, f64) = 5.0.meters();
-    let area_f64: unit!(m^2, f64) = length_f64 * length_f64;
+    let area_f64: unit!(m ^ 2, f64) = length_f64 * length_f64;
     assert_eq!(area_f64.value, 25.0f64);
-    
+
     // Test i32 (default)
     let length_i32: unit!(m, i32) = 5i32.meters();
-    let area_i32: unit!(m^2, i32) = length_i32 * length_i32;
+    let area_i32: unit!(m ^ 2, i32) = length_i32 * length_i32;
     assert_eq!(area_i32.value, 25i32);
-    
+
     // Test f32 using explicit type annotation (no unit methods available)
     let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
-    let area_f32: unit!(m^2, f32) = length_f32 * length_f32;
+    let area_f32: unit!(m ^ 2, f32) = length_f32 * length_f32;
     assert_eq!(area_f32.value, 25.0f32);
-    
+
     // Test i8 using explicit type annotation
     let length_i8: unit!(m, i8) = quantity!(5, m, i8);
-    let area_i8: unit!(m^2, i8) = length_i8 * length_i8;
+    let area_i8: unit!(m ^ 2, i8) = length_i8 * length_i8;
     assert_eq!(area_i8.value, 25i8);
-    
+
     // Test i16 using explicit type annotation
     let length_i16: unit!(m, i16) = quantity!(5, m, i16);
-    let area_i16: unit!(m^2, i16) = length_i16 * length_i16;
+    let area_i16: unit!(m ^ 2, i16) = length_i16 * length_i16;
     assert_eq!(area_i16.value, 25i16);
-    
+
     // Test i64 using explicit type annotation
     let length_i64: unit!(m, i64) = quantity!(5, m, i64);
-    let area_i64: unit!(m^2, i64) = length_i64 * length_i64;
+    let area_i64: unit!(m ^ 2, i64) = length_i64 * length_i64;
     assert_eq!(area_i64.value, 25i64);
-    
+
     // Test i128 using explicit type annotation
     let length_i128: unit!(m, i128) = quantity!(5, m, i128);
-    let area_i128: unit!(m^2, i128) = length_i128 * length_i128;
+    let area_i128: unit!(m ^ 2, i128) = length_i128 * length_i128;
     assert_eq!(area_i128.value, 25i128);
-    
+
     // Test u8 using explicit type annotation
     let length_u8: unit!(m, u8) = quantity!(5, m, u8);
-    let area_u8: unit!(m^2, u8) = length_u8 * length_u8;
+    let area_u8: unit!(m ^ 2, u8) = length_u8 * length_u8;
     assert_eq!(area_u8.value, 25u8);
-    
+
     // Test u16 using explicit type annotation
     let length_u16: unit!(m, u16) = quantity!(5, m, u16);
-    let area_u16: unit!(m^2, u16) = length_u16 * length_u16;
+    let area_u16: unit!(m ^ 2, u16) = length_u16 * length_u16;
     assert_eq!(area_u16.value, 25u16);
-    
+
     // Test u32 using explicit type annotation
     let length_u32: unit!(m, u32) = quantity!(5, m, u32);
-    let area_u32: unit!(m^2, u32) = length_u32 * length_u32;
+    let area_u32: unit!(m ^ 2, u32) = length_u32 * length_u32;
     assert_eq!(area_u32.value, 25u32);
-    
+
     // Test u64 using explicit type annotation
     let length_u64: unit!(m, u64) = quantity!(5, m, u64);
-    let area_u64: unit!(m^2, u64) = length_u64 * length_u64;
+    let area_u64: unit!(m ^ 2, u64) = length_u64 * length_u64;
     assert_eq!(area_u64.value, 25u64);
-    
+
     // Test u128 using explicit type annotation
     let length_u128: unit!(m, u128) = quantity!(5, m, u128);
-    let area_u128: unit!(m^2, u128) = length_u128 * length_u128;
+    let area_u128: unit!(m ^ 2, u128) = length_u128 * length_u128;
     assert_eq!(area_u128.value, 25u128);
-    
+
     println!("All types arithmetic available test passed!");
 }
 
 #[test]
 fn test_all_types_with_quantity_macro() {
     use whippyunits::default_declarators::*;
-    
+
     println!("=== Testing All Types with quantity! Macro ===");
-    
+
     // Test that all types work with the quantity! macro for creating quantities
     // and that arithmetic operations work correctly
-    
+
     // Float types
     let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
     let length_f64: unit!(m, f64) = quantity!(5.0, m, f64);
-    
+
     // Signed integer types
     let length_i8: unit!(m, i8) = quantity!(5, m, i8);
     let length_i16: unit!(m, i16) = quantity!(5, m, i16);
     let length_i32: unit!(m, i32) = quantity!(5, m, i32);
     let length_i64: unit!(m, i64) = quantity!(5, m, i64);
     let length_i128: unit!(m, i128) = quantity!(5, m, i128);
-    
+
     // Unsigned integer types
     let length_u8: unit!(m, u8) = quantity!(5, m, u8);
     let length_u16: unit!(m, u16) = quantity!(5, m, u16);
     let length_u32: unit!(m, u32) = quantity!(5, m, u32);
     let length_u64: unit!(m, u64) = quantity!(5, m, u64);
     let length_u128: unit!(m, u128) = quantity!(5, m, u128);
-    
+
     // Test arithmetic operations
-    let area_f32: unit!(m^2, f32) = length_f32 * length_f32;
-    let area_f64: unit!(m^2, f64) = length_f64 * length_f64;
-    let area_i8: unit!(m^2, i8) = length_i8 * length_i8;
-    let area_i16: unit!(m^2, i16) = length_i16 * length_i16;
-    let area_i32: unit!(m^2, i32) = length_i32 * length_i32;
-    let area_i64: unit!(m^2, i64) = length_i64 * length_i64;
-    let area_i128: unit!(m^2, i128) = length_i128 * length_i128;
-    let area_u8: unit!(m^2, u8) = length_u8 * length_u8;
-    let area_u16: unit!(m^2, u16) = length_u16 * length_u16;
-    let area_u32: unit!(m^2, u32) = length_u32 * length_u32;
-    let area_u64: unit!(m^2, u64) = length_u64 * length_u64;
-    let area_u128: unit!(m^2, u128) = length_u128 * length_u128;
-    
+    let area_f32: unit!(m ^ 2, f32) = length_f32 * length_f32;
+    let area_f64: unit!(m ^ 2, f64) = length_f64 * length_f64;
+    let area_i8: unit!(m ^ 2, i8) = length_i8 * length_i8;
+    let area_i16: unit!(m ^ 2, i16) = length_i16 * length_i16;
+    let area_i32: unit!(m ^ 2, i32) = length_i32 * length_i32;
+    let area_i64: unit!(m ^ 2, i64) = length_i64 * length_i64;
+    let area_i128: unit!(m ^ 2, i128) = length_i128 * length_i128;
+    let area_u8: unit!(m ^ 2, u8) = length_u8 * length_u8;
+    let area_u16: unit!(m ^ 2, u16) = length_u16 * length_u16;
+    let area_u32: unit!(m ^ 2, u32) = length_u32 * length_u32;
+    let area_u64: unit!(m ^ 2, u64) = length_u64 * length_u64;
+    let area_u128: unit!(m ^ 2, u128) = length_u128 * length_u128;
+
     // Verify results
     assert_eq!(area_f32.value, 25.0f32);
     assert_eq!(area_f64.value, 25.0f64);
@@ -998,26 +1077,26 @@ fn test_all_types_with_quantity_macro() {
     assert_eq!(area_u32.value, 25u32);
     assert_eq!(area_u64.value, 25u64);
     assert_eq!(area_u128.value, 25u128);
-    
+
     // Test compound operations
     let mass_f32: unit!(kg, f32) = quantity!(2.0, kg, f32);
     let mass_f64: unit!(kg, f64) = quantity!(2.0, kg, f64);
     let mass_i32: unit!(kg, i32) = quantity!(2, kg, i32);
     let mass_u32: unit!(kg, u32) = quantity!(2, kg, u32);
-    
-    let force_f32: unit!(N, f32) = mass_f32 * quantity!(9.81, m/s^2, f32);
-    let force_f64: unit!(N, f64) = mass_f64 * quantity!(9.81, m/s^2, f64);
-    let force_i32: unit!(N, i32) = mass_i32 * quantity!(9, m/s^2, i32);
-    let force_u32: unit!(N, u32) = mass_u32 * quantity!(9, m/s^2, u32);
-    
+
+    let force_f32: unit!(N, f32) = mass_f32 * quantity!(9.81, m / s ^ 2, f32);
+    let force_f64: unit!(N, f64) = mass_f64 * quantity!(9.81, m / s ^ 2, f64);
+    let force_i32: unit!(N, i32) = mass_i32 * quantity!(9, m / s ^ 2, i32);
+    let force_u32: unit!(N, u32) = mass_u32 * quantity!(9, m / s ^ 2, u32);
+
     assert!((force_f32.value - 19.62f32).abs() < 0.01f32);
     assert!((force_f64.value - 19.62f64).abs() < 0.01f64);
     assert_eq!(force_i32.value, 18i32); // 2 * 9 = 18
     assert_eq!(force_u32.value, 18u32); // 2 * 9 = 18
-    
+
     println!("All types with quantity! macro test passed!");
 
-    let velocity = quantity!(1, mm/s, i32);
+    let velocity = quantity!(1, mm / s, i32);
 }
 
 #[test]
@@ -1026,54 +1105,54 @@ fn test_prefixed_aggregate_quantities() {
     let energy_kj: unit!(kJ) = quantity!(1.0, kJ);
     let energy_mj: unit!(MJ) = quantity!(1.0, MJ);
     let energy_gj: unit!(GJ) = quantity!(1.0, GJ);
-    
+
     // Test prefixed power units (kW, MW, etc.)
     let power_kw: unit!(kW) = quantity!(1.0, kW);
     let power_mw: unit!(MW) = quantity!(1.0, MW);
     let power_gw: unit!(GW) = quantity!(1.0, GW);
-    
+
     // Test prefixed force units (kN, MN, etc.)
     let force_kn: unit!(kN) = quantity!(1.0, kN);
     let force_mn: unit!(MN) = quantity!(1.0, MN);
-    
+
     // Test prefixed pressure units (kPa, MPa, etc.)
     let pressure_kpa: unit!(kPa) = quantity!(1.0, kPa);
     let pressure_mpa: unit!(MPa) = quantity!(1.0, MPa);
-    
+
     // Verify that these are dimensionally correct by doing arithmetic
     // Energy = Power * Time
     let time_seconds = quantity!(1.0, s);
     let energy_from_power: unit!(kJ) = power_kw * time_seconds; // kW * s = kJ
-    
+
     // Force = Mass * Acceleration
     let mass_kg = quantity!(1.0, kg);
-    let acceleration = quantity!(9.81, m/s^2);
+    let acceleration = quantity!(9.81, m / s ^ 2);
     let force_from_mass: unit!(N) = mass_kg * acceleration;
-    
+
     // Pressure = Force / Area
-    let area_m2 = quantity!(1.0, m^2);
+    let area_m2 = quantity!(1.0, m ^ 2);
     let pressure_from_force: unit!(kPa) = force_kn / area_m2; // kN / m² = kPa
-    
+
     // Verify that arithmetic between prefixed and non-prefixed units works correctly
     let energy_j: unit!(J) = quantity!(1000.0, J);
     let energy_kj_2: unit!(kJ) = quantity!(1.0, kJ);
-    
+
     // These represent the same physical quantity but have different stored values
     // because kJ has a scale factor of 3 (kilo = 10^3)
     // 1000 J = 1 kJ, but they're stored differently due to the prefix
     assert_eq!(energy_j.value, 1000.0);
     assert_eq!(energy_kj_2.value, 1.0);
-    
+
     // Test that we can do arithmetic between different prefixed units
     let power_w: unit!(W) = quantity!(1000.0, W);
     let power_kw_2: unit!(kW) = quantity!(1.0, kW);
 
     let foo = quantity!(1.0, kW);
-    
+
     // Same principle: 1000 W = 1 kW, but stored differently
     assert_eq!(power_w.value, 1000.0);
     assert_eq!(power_kw_2.value, 1.0);
-    
+
     println!("Prefixed aggregate quantities test passed!");
     println!("kJ energy: {:?}", energy_kj);
     println!("kW power: {:?}", power_kw);
@@ -1090,27 +1169,27 @@ fn test_base60_time_units() {
     let time_h: unit!(h) = quantity!(1.0, h);
     let time_hr: unit!(hr) = quantity!(1.0, hr);
     let time_d: unit!(d) = quantity!(1.0, d);
-    
+
     // Test that these units have the correct scale factors
     // min: 60s = 2^2 * 3 * 5, so scale_factors should be (2, 1, 1, 0)
     // h: 3600s = 2^4 * 3^2 * 5^2, so scale_factors should be (4, 2, 2, 0)
     // hr: same as h
     // d: 86400s = 2^7 * 3^3 * 5^2, so scale_factors should be (7, 3, 2, 0)
-    
+
     println!("Base-60 time units test:");
     println!("1 min: {:?}", time_min);
     println!("1 h: {:?}", time_h);
     println!("1 hr: {:?}", time_hr);
     println!("1 d: {:?}", time_d);
-    
+
     // Test arithmetic with these units
     let time_seconds = quantity!(60.0, s);
     let time_minutes = quantity!(1.0, min);
-    
+
     // These should be equal: 60 s = 1 min
     println!("60 seconds: {:?}", time_seconds);
     println!("1 minute: {:?}", time_minutes);
-    
+
     // Test that the units have the correct scale factors
     // The scale factors should match what we defined in UNIT_LITERALS
     println!("Scale factors verification:");
@@ -1118,7 +1197,7 @@ fn test_base60_time_units() {
     println!("h should have scale factors (4, 2, 2, 0) for 3600s = 2^4 * 3^2 * 5^2");
     println!("hr should have scale factors (4, 2, 2, 0) same as h");
     println!("d should have scale factors (7, 3, 2, 0) for 86400s = 2^7 * 3^3 * 5^2");
-    
+
     println!("Base-60 time units test passed!");
 }
 
@@ -1131,23 +1210,22 @@ fn test_kilowatt_hour() {
 #[test]
 fn test_scale_factor_display() {
     println!("\n=== Scale Factor Display Test ===");
-    
+
     // Test kilowatt-hour - should show (3600000) in both systematic literal and SI unit
     let energy_kwh = quantity!(1.0, kW * h);
     println!("Energy kWh: {:?}", energy_kwh);
-    
+
     // Test with a unit that has a large scale factor
     let energy_j = quantity!(1.0, J);
     println!("Energy J: {:?}", energy_j);
-    
+
     // Test with a unit that has no scale factor (should not show parentheses)
     let length_m = quantity!(1.0, m);
     println!("Length m: {:?}", length_m);
-    
+
     // Test with a unit that has a small scale factor
     let length_mm = quantity!(1.0, mm);
     println!("Length mm: {:?}", length_mm);
-    
+
     println!("Scale factor display test completed!");
 }
-

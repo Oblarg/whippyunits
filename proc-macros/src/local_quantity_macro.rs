@@ -1,11 +1,12 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, Type, parse::{Parse, ParseStream, Result}};
 use syn::token::Comma;
+use syn::{
+    parse::{Parse, ParseStream, Result},
+    Ident, Type,
+};
 use whippyunits_default_dimensions::{
-    scale_type_to_unit_symbol, 
-    get_unit_dimensions, 
-    dimension_exponents_to_unit_expression
+    dimension_exponents_to_unit_expression, get_unit_dimensions, scale_type_to_unit_symbol,
 };
 
 /// Input for the local quantity macro
@@ -27,10 +28,10 @@ impl Parse for LocalQuantityMacroInput {
     fn parse(input: ParseStream) -> Result<Self> {
         // Parse the unit identifier first
         let unit_ident: Ident = input.parse()?;
-        
+
         // Expect a comma
         let _comma: Comma = input.parse()?;
-        
+
         // Parse the local scale parameters
         let mass_scale: Ident = input.parse()?;
         let _comma: Comma = input.parse()?;
@@ -47,7 +48,7 @@ impl Parse for LocalQuantityMacroInput {
         let luminosity_scale: Ident = input.parse()?;
         let _comma: Comma = input.parse()?;
         let angle_scale: Ident = input.parse()?;
-        
+
         // Check if there's a comma followed by a storage type parameter
         let storage_type = if input.peek(Comma) {
             let _comma: Comma = input.parse()?;
@@ -55,7 +56,7 @@ impl Parse for LocalQuantityMacroInput {
         } else {
             None
         };
-        
+
         Ok(LocalQuantityMacroInput {
             unit_ident,
             mass_scale,
@@ -74,22 +75,31 @@ impl Parse for LocalQuantityMacroInput {
 impl LocalQuantityMacroInput {
     pub fn expand(self) -> TokenStream {
         let unit_name = self.unit_ident.to_string();
-        
+
         // Use the specified storage type or default to f64
-        let storage_type = self.storage_type.clone().unwrap_or_else(|| {
-            syn::parse_str::<Type>("f64").unwrap()
-        });
-        
+        let storage_type = self
+            .storage_type
+            .clone()
+            .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
+
         // Get the actual unit symbols for each scale type before moving the values
-        let mass_base = scale_type_to_unit_symbol(&self.mass_scale.to_string()).unwrap_or_else(|| "g".to_string());
-        let length_base = scale_type_to_unit_symbol(&self.length_scale.to_string()).unwrap_or_else(|| "m".to_string());
-        let time_base = scale_type_to_unit_symbol(&self.time_scale.to_string()).unwrap_or_else(|| "s".to_string());
-        let current_base = scale_type_to_unit_symbol(&self.current_scale.to_string()).unwrap_or_else(|| "A".to_string());
-        let temperature_base = scale_type_to_unit_symbol(&self.temperature_scale.to_string()).unwrap_or_else(|| "K".to_string());
-        let amount_base = scale_type_to_unit_symbol(&self.amount_scale.to_string()).unwrap_or_else(|| "mol".to_string());
-        let luminosity_base = scale_type_to_unit_symbol(&self.luminosity_scale.to_string()).unwrap_or_else(|| "cd".to_string());
-        let angle_base = scale_type_to_unit_symbol(&self.angle_scale.to_string()).unwrap_or_else(|| "rad".to_string());
-        
+        let mass_base = scale_type_to_unit_symbol(&self.mass_scale.to_string())
+            .unwrap_or_else(|| "g".to_string());
+        let length_base = scale_type_to_unit_symbol(&self.length_scale.to_string())
+            .unwrap_or_else(|| "m".to_string());
+        let time_base = scale_type_to_unit_symbol(&self.time_scale.to_string())
+            .unwrap_or_else(|| "s".to_string());
+        let current_base = scale_type_to_unit_symbol(&self.current_scale.to_string())
+            .unwrap_or_else(|| "A".to_string());
+        let temperature_base = scale_type_to_unit_symbol(&self.temperature_scale.to_string())
+            .unwrap_or_else(|| "K".to_string());
+        let amount_base = scale_type_to_unit_symbol(&self.amount_scale.to_string())
+            .unwrap_or_else(|| "mol".to_string());
+        let luminosity_base = scale_type_to_unit_symbol(&self.luminosity_scale.to_string())
+            .unwrap_or_else(|| "cd".to_string());
+        let angle_base = scale_type_to_unit_symbol(&self.angle_scale.to_string())
+            .unwrap_or_else(|| "rad".to_string());
+
         // Use data-driven approach to map unit identifiers to their dimensions
         if let Some(dimensions) = get_unit_dimensions(&unit_name) {
             // Check if it's a simple base unit (single dimension = 1, others = 0)
@@ -99,21 +109,22 @@ impl LocalQuantityMacroInput {
                 // It's a compound unit - generate the unit expression
                 let base_units = [
                     (mass_base.as_str(), mass_base.as_str()),
-                    (length_base.as_str(), length_base.as_str()), 
+                    (length_base.as_str(), length_base.as_str()),
                     (time_base.as_str(), time_base.as_str()),
                     (current_base.as_str(), current_base.as_str()),
                     (temperature_base.as_str(), temperature_base.as_str()),
                     (amount_base.as_str(), amount_base.as_str()),
                     (luminosity_base.as_str(), luminosity_base.as_str()),
-                    (angle_base.as_str(), angle_base.as_str())
+                    (angle_base.as_str(), angle_base.as_str()),
                 ];
-                
+
                 let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
-                let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
-                    // If parsing fails, fall back to the original unit
-                    syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
-                });
-                
+                let unit_expr_parsed =
+                    syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                        // If parsing fails, fall back to the original unit
+                        syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
+                    });
+
                 quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
             }
         } else {
@@ -122,10 +133,13 @@ impl LocalQuantityMacroInput {
             quote! { whippyunits::unit!(#unit_ident, #storage_type) }
         }
     }
-    
+
     /// Get the appropriate scale identifier for given dimension exponents
     /// Returns Some(scale_ident) if it's a simple base unit, None for compound units
-    fn get_scale_for_dimensions(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> Option<Ident> {
+    fn get_scale_for_dimensions(
+        &self,
+        dimensions: (i16, i16, i16, i16, i16, i16, i16, i16),
+    ) -> Option<Ident> {
         match dimensions {
             (1, 0, 0, 0, 0, 0, 0, 0) => Some(self.mass_scale.clone()),
             (0, 1, 0, 0, 0, 0, 0, 0) => Some(self.length_scale.clone()),

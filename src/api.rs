@@ -1,12 +1,12 @@
-use crate::IsI16;
-use crate::scale_conversion::*;
-use crate::quantity_type::*;
-use crate::print::prettyprint::*;
-use crate::define_aggregate_scale_factor_rational;
 use crate::define_aggregate_scale_factor_float;
+use crate::define_aggregate_scale_factor_rational;
 use crate::define_display_traits;
-use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
+use crate::print::prettyprint::*;
+use crate::quantity_type::*;
+use crate::scale_conversion::*;
+use crate::IsI16;
 use std::fmt;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 define_aggregate_scale_factor_rational!(
     // params
@@ -227,7 +227,7 @@ macro_rules! define_arithmetic {
             const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
             const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
         ),
-        
+
         // multiple dimension, multiple scales
         (
             const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
@@ -259,22 +259,22 @@ macro_rules! define_arithmetic {
         // add min scale where clauses
         (
             (): IsI16<{ min_scale(
-                2, 
+                2,
                 SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
                 SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
-                3, 
+                3,
                 SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
                 SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
-                5, 
+                5,
                 SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
                 SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>,
             (): IsI16<{ min_scale(
-                i16::Max, 
+                i16::Max,
                 SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
                 SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
             )}>
@@ -331,7 +331,6 @@ define_arithmetic!(u16, rescale_u16);
 define_arithmetic!(u32, rescale_u32);
 define_arithmetic!(u64, rescale_u64);
 define_arithmetic!(u128, rescale_u128);
-
 
 // Display traits for all supported types
 define_display_traits!(

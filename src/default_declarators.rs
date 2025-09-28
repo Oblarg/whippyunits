@@ -1,5 +1,5 @@
-use crate::quantity_type::Quantity;
 use crate::define_generic_dimension;
+use crate::quantity_type::Quantity;
 
 macro_rules! define_quantity {
     (
@@ -13,7 +13,7 @@ macro_rules! define_quantity {
                 fn $fn_name(self) -> $scale_name<T>;
             )*
         }
-        
+
         // Generate the type definitions (generic with f64 default)
         $(
             pub type $scale_name<T = f64> = Quantity<
@@ -22,7 +22,7 @@ macro_rules! define_quantity {
                 T,
             >;
         )*
-        
+
         // Generate default extension trait implementation (uses default f64)
         impl $trait_name for f64 {
             $(
@@ -31,7 +31,7 @@ macro_rules! define_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i32
         impl $trait_name<i32> for i32 {
             $(
@@ -56,12 +56,12 @@ macro_rules! define_affine_quantity {
                 fn $fn_name(self) -> $scale_name;
             )*
         }
-        
+
         // Generate the type definitions (all stored in the same scale)
         $(
             pub type $scale_name = $storage_scale;
         )*
-        
+
         // Generate extension trait implementations for f64
         impl $trait_name for f64 {
             $(
@@ -70,7 +70,7 @@ macro_rules! define_affine_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i32
         impl $trait_name for i32 {
             $(
@@ -83,37 +83,51 @@ macro_rules! define_affine_quantity {
 }
 
 define_quantity!(
-    1, 0, 0, 0, 0, 0, 0, 0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
     SIMass,
-    (Quectogram, quectograms, -33, 0, -33, 0),  // -3 (gram base) + -30 (quecto)
-    (Rontogram, rontograms, -30, 0, -30, 0),    // -3 (gram base) + -27 (ronto)
-    (Yoctogram, yoctograms, -27, 0, -27, 0),    // -3 (gram base) + -24 (yocto)
-    (Zeptogram, zeptograms, -24, 0, -24, 0),    // -3 (gram base) + -21 (zepto)
-    (Attogram, attograms, -21, 0, -21, 0),      // -3 (gram base) + -18 (atto)
-    (Femtogram, femtograms, -18, 0, -18, 0),    // -3 (gram base) + -15 (femto)
-    (Picogram, picograms, -15, 0, -15, 0),      // -3 (gram base) + -12 (pico)
-    (Nanogram, nanograms, -12, 0, -12, 0),      // -3 (gram base) + -9 (nano)
-    (Microgram, micrograms, -9, 0, -9, 0),      // -3 (gram base) + -6 (micro)
-    (Milligram, milligrams, -6, 0, -6, 0),      // -3 (gram base) + -3 (milli)
-    (Centigram, centigrams, -5, 0, -5, 0),      // -3 (gram base) + -2 (centi)
-    (Decigram, decigrams, -4, 0, -4, 0),        // -3 (gram base) + -1 (deci)
-    (Gram, grams, -3, 0, -3, 0),                // -3 (gram base) + 0 (no prefix)
-    (Decagram, decagrams, -2, 0, -2, 0),        // -3 (gram base) + 1 (deca)
-    (Hectogram, hectograms, -1, 0, -1, 0),      // -3 (gram base) + 2 (hecto)
-    (Kilogram, kilograms, 0, 0, 0, 0),          // -3 (gram base) + 3 (kilo)
-    (Megagram, megagrams, 3, 0, 3, 0),          // -3 (gram base) + 6 (mega)
-    (Gigagram, gigagrams, 6, 0, 6, 0),          // -3 (gram base) + 9 (giga)
-    (Teragram, teragrams, 9, 0, 9, 0),          // -3 (gram base) + 12 (tera)
-    (Petagram, petagrams, 12, 0, 12, 0),        // -3 (gram base) + 15 (peta)
-    (Exagram, exagrams, 15, 0, 15, 0),          // -3 (gram base) + 18 (exa)
-    (Zettagram, zettagrams, 18, 0, 18, 0),      // -3 (gram base) + 21 (zetta)
-    (Yottagram, yottagrams, 21, 0, 21, 0),      // -3 (gram base) + 24 (yotta)
-    (Ronagram, ronagrams, 24, 0, 24, 0),        // -3 (gram base) + 27 (ronna)
-    (Quettagram, quettagrams, 27, 0, 27, 0)     // -3 (gram base) + 30 (quetta)
+    (Quectogram, quectograms, -33, 0, -33, 0), // -3 (gram base) + -30 (quecto)
+    (Rontogram, rontograms, -30, 0, -30, 0),   // -3 (gram base) + -27 (ronto)
+    (Yoctogram, yoctograms, -27, 0, -27, 0),   // -3 (gram base) + -24 (yocto)
+    (Zeptogram, zeptograms, -24, 0, -24, 0),   // -3 (gram base) + -21 (zepto)
+    (Attogram, attograms, -21, 0, -21, 0),     // -3 (gram base) + -18 (atto)
+    (Femtogram, femtograms, -18, 0, -18, 0),   // -3 (gram base) + -15 (femto)
+    (Picogram, picograms, -15, 0, -15, 0),     // -3 (gram base) + -12 (pico)
+    (Nanogram, nanograms, -12, 0, -12, 0),     // -3 (gram base) + -9 (nano)
+    (Microgram, micrograms, -9, 0, -9, 0),     // -3 (gram base) + -6 (micro)
+    (Milligram, milligrams, -6, 0, -6, 0),     // -3 (gram base) + -3 (milli)
+    (Centigram, centigrams, -5, 0, -5, 0),     // -3 (gram base) + -2 (centi)
+    (Decigram, decigrams, -4, 0, -4, 0),       // -3 (gram base) + -1 (deci)
+    (Gram, grams, -3, 0, -3, 0),               // -3 (gram base) + 0 (no prefix)
+    (Decagram, decagrams, -2, 0, -2, 0),       // -3 (gram base) + 1 (deca)
+    (Hectogram, hectograms, -1, 0, -1, 0),     // -3 (gram base) + 2 (hecto)
+    (Kilogram, kilograms, 0, 0, 0, 0),         // -3 (gram base) + 3 (kilo)
+    (Megagram, megagrams, 3, 0, 3, 0),         // -3 (gram base) + 6 (mega)
+    (Gigagram, gigagrams, 6, 0, 6, 0),         // -3 (gram base) + 9 (giga)
+    (Teragram, teragrams, 9, 0, 9, 0),         // -3 (gram base) + 12 (tera)
+    (Petagram, petagrams, 12, 0, 12, 0),       // -3 (gram base) + 15 (peta)
+    (Exagram, exagrams, 15, 0, 15, 0),         // -3 (gram base) + 18 (exa)
+    (Zettagram, zettagrams, 18, 0, 18, 0),     // -3 (gram base) + 21 (zetta)
+    (Yottagram, yottagrams, 21, 0, 21, 0),     // -3 (gram base) + 24 (yotta)
+    (Ronagram, ronagrams, 24, 0, 24, 0),       // -3 (gram base) + 27 (ronna)
+    (Quettagram, quettagrams, 27, 0, 27, 0)    // -3 (gram base) + 30 (quetta)
 );
 
 define_quantity!(
-    0, 1, 0, 0, 0, 0, 0, 0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
     SILength,
     (Quectometer, quectometers, -30, 0, -30, 0),
     (Rontometer, rontometers, -27, 0, -27, 0),
@@ -143,7 +157,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 1, 0, 0, 0, 0, 0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
     SITime,
     (Quectosecond, quectoseconds, -30, 0, -30, 0),
     (Rontosecond, rontoseconds, -27, 0, -27, 0),
@@ -173,7 +194,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 1, 0, 0, 0, 0, 0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
     CommonTime,
     (Minute, minutes, 2, 1, 1, 0),
     (Hour, hours, 4, 2, 2, 0),
@@ -181,7 +209,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 0, 1, 0, 0, 0, 0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
     SICurrent,
     (Quectoampere, quectoamperes, -30, 0, -30, 0),
     (Rontoampere, rontoamperes, -27, 0, -27, 0),
@@ -211,7 +246,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 0, 0, 1, 0, 0, 0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
     SITemperature,
     (Quectokelvin, quectokelvins, -30, 0, -30, 0),
     (Rontokelvin, rontokelvins, -27, 0, -27, 0),
@@ -241,14 +283,28 @@ define_quantity!(
 );
 
 define_affine_quantity!(
-    0, 0, 0, 0, 1, 0, 0, 0,  // temperature dimension
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0, // temperature dimension
     CommonTemperature,
     Kelvin,
-    (Celsius, celsius, 273.15),  // °C to K: C + 273.15
+    (Celsius, celsius, 273.15), // °C to K: C + 273.15
 );
 
 define_quantity!(
-    0, 0, 0, 0, 0, 1, 0, 0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
     SIAmount,
     (Quectomole, quectomoles, -30, 0, -30, 0),
     (Rontomole, rontomoles, -27, 0, -27, 0),
@@ -278,7 +334,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 0, 0, 0, 0, 1, 0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
     SILuminosity,
     (Quectocandela, quectocandelas, -30, 0, -30, 0),
     (Rontocandela, rontocandelas, -27, 0, -27, 0),
@@ -308,7 +371,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 0, 0, 0, 0, 0, 1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
     SIAngle,
     (Quectoradian, quectoradians, -30, 0, -30, 0),
     (Rontoradian, rontoradians, -27, 0, -27, 0),
@@ -338,7 +408,14 @@ define_quantity!(
 );
 
 define_quantity!(
-    0, 0, 0, 0, 0, 0, 0, 1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
     CommonAngle,
     (Turn, turns, 1, 0, 0, 1),
     (Degrees, degrees, -2, -2, -1, 1),

@@ -23,20 +23,25 @@ impl Parse for PowLookupInput {
         // Parse: <name>, <base>, <max_exp>, <output_type>
         let name: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
-        
+
         let base: Expr = input.parse()?;
         input.parse::<Token![,]>()?;
-        
+
         let max_exp: syn::LitInt = input.parse()?;
         input.parse::<Token![,]>()?;
-        
+
         let type_ident: Ident = input.parse()?;
         let output_type = match type_ident.to_string().as_str() {
             "rational" => OutputType::Rational,
             "float" => OutputType::Float,
-            _ => return Err(syn::Error::new_spanned(&type_ident, "Expected 'rational' or 'float'")),
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    &type_ident,
+                    "Expected 'rational' or 'float'",
+                ))
+            }
         };
-        
+
         Ok(PowLookupInput {
             name,
             base,
@@ -50,16 +55,21 @@ impl PowLookupInput {
     pub fn expand(self) -> proc_macro2::TokenStream {
         let base = &self.base;
         let max_exp = self.max_exp;
-        
+
         match self.output_type {
             OutputType::Rational => self.expand_rational(base, -max_exp, max_exp),
             OutputType::Float => self.expand_float(base, -max_exp, max_exp),
         }
     }
-    
-    fn expand_rational(&self, base: &Expr, range_start: i32, range_end: i32) -> proc_macro2::TokenStream {
+
+    fn expand_rational(
+        &self,
+        base: &Expr,
+        range_start: i32,
+        range_end: i32,
+    ) -> proc_macro2::TokenStream {
         let mut match_arms = Vec::new();
-        
+
         for exp in range_start..=range_end {
             let (num, den) = if exp >= 0 {
                 // For positive exponents: (base^exp, 1)
@@ -68,19 +78,19 @@ impl PowLookupInput {
                 // For negative exponents: (1, base^|exp|)
                 (quote! { 1 }, base_to_power(base, -exp))
             };
-            
+
             match_arms.push(quote! {
                 #exp => (#num, #den),
             });
         }
-        
+
         // Add default case
         match_arms.push(quote! {
             _ => (1, 1), // fallback for out-of-range values
         });
-        
+
         let func_name = &self.name;
-        
+
         quote! {
             pub const fn #func_name(exp: i32) -> (i128, i128) {
                 match exp {
@@ -89,10 +99,15 @@ impl PowLookupInput {
             }
         }
     }
-    
-    fn expand_float(&self, base: &Expr, range_start: i32, range_end: i32) -> proc_macro2::TokenStream {
+
+    fn expand_float(
+        &self,
+        base: &Expr,
+        range_start: i32,
+        range_end: i32,
+    ) -> proc_macro2::TokenStream {
         let mut match_arms = Vec::new();
-        
+
         for exp in range_start..=range_end {
             let value = if exp >= 0 {
                 // For positive exponents: base^exp
@@ -102,19 +117,19 @@ impl PowLookupInput {
                 let power = base_to_power_float(base, -exp);
                 quote! { 1.0 / (#power) }
             };
-            
+
             match_arms.push(quote! {
                 #exp => #value,
             });
         }
-        
+
         // Add default case
         match_arms.push(quote! {
             _ => 1.0, // fallback for out-of-range values
         });
-        
+
         let func_name = &self.name;
-        
+
         quote! {
             pub const fn #func_name(exp: i32) -> f64 {
                 match exp {
@@ -168,17 +183,22 @@ impl Parse for PiPowLookupInput {
         // Parse: <name>, <max_exp>, <output_type>
         let name: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
-        
+
         let max_exp: syn::LitInt = input.parse()?;
         input.parse::<Token![,]>()?;
-        
+
         let type_ident: Ident = input.parse()?;
         let output_type = match type_ident.to_string().as_str() {
             "rational" => OutputType::Rational,
             "float" => OutputType::Float,
-            _ => return Err(syn::Error::new_spanned(&type_ident, "Expected 'rational' or 'float'")),
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    &type_ident,
+                    "Expected 'rational' or 'float'",
+                ))
+            }
         };
-        
+
         Ok(PiPowLookupInput {
             name,
             max_exp: max_exp.base10_parse()?,
@@ -190,16 +210,16 @@ impl Parse for PiPowLookupInput {
 impl PiPowLookupInput {
     pub fn expand(self) -> proc_macro2::TokenStream {
         let max_exp = self.max_exp;
-        
+
         match self.output_type {
             OutputType::Rational => self.expand_pi_rational(-max_exp, max_exp),
             OutputType::Float => self.expand_pi_float(-max_exp, max_exp),
         }
     }
-    
+
     fn expand_pi_rational(&self, range_start: i32, range_end: i32) -> proc_macro2::TokenStream {
         let mut match_arms = Vec::new();
-        
+
         for exp in range_start..=range_end {
             let (num, den) = if exp >= 0 {
                 // For positive exponents: (710^exp, 113^exp)
@@ -212,19 +232,19 @@ impl PiPowLookupInput {
                 let den_val = 710_i128.pow((-exp) as u32);
                 (quote! { #num_val }, quote! { #den_val })
             };
-            
+
             match_arms.push(quote! {
                 #exp => (#num, #den),
             });
         }
-        
+
         // Add default case
         match_arms.push(quote! {
             _ => (1, 1), // fallback for out-of-range values
         });
-        
+
         let func_name = &self.name;
-        
+
         quote! {
             pub const fn #func_name(exp: i32) -> (i128, i128) {
                 match exp {
@@ -233,10 +253,10 @@ impl PiPowLookupInput {
             }
         }
     }
-    
+
     fn expand_pi_float(&self, range_start: i32, range_end: i32) -> proc_macro2::TokenStream {
         let mut match_arms = Vec::new();
-        
+
         for exp in range_start..=range_end {
             let value = if exp >= 0 {
                 // For positive exponents: π^exp
@@ -264,19 +284,19 @@ impl PiPowLookupInput {
                     quote! { 1.0 / (#result) }
                 }
             };
-            
+
             match_arms.push(quote! {
                 #exp => #value,
             });
         }
-        
+
         // Add default case
         match_arms.push(quote! {
             _ => 1.0, // fallback for out-of-range values
         });
-        
+
         let func_name = &self.name;
-        
+
         quote! {
             pub const fn #func_name(exp: i32) -> f64 {
                 match exp {

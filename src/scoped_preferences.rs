@@ -22,7 +22,7 @@ macro_rules! define_local_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i32
         impl $trait_name<i32> for i32 {
             $(
@@ -31,7 +31,7 @@ macro_rules! define_local_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i64
         impl $trait_name<i64> for i64 {
             $(
@@ -57,7 +57,7 @@ macro_rules! define_base_units {
     ) => {
         // Note: Users must call define_literals!() separately to get custom literals.
         // This macro only defines the scoped preferences and local quantity types.
-        // 
+        //
         // Example usage:
         //   define_base_units!(Kilogram, Kilometer, Second, Ampere, Kelvin, Mole, Candela, Radian);
         //   whippyunits::define_literals!(); // Required for custom literals like 5.0m, 2.5kg
@@ -285,10 +285,31 @@ macro_rules! define_base_units {
         #[macro_export]
         macro_rules! local_unit_type {
             ($unit:expr) => {
-                $crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale)
+                $crate::local_unit_type!(
+                    $unit,
+                    $mass_scale,
+                    $length_scale,
+                    $time_scale,
+                    $current_scale,
+                    $temperature_scale,
+                    $amount_scale,
+                    $luminosity_scale,
+                    $angle_scale
+                )
             };
             ($unit:expr, $storage_type:ty) => {
-                $crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale, $storage_type)
+                $crate::local_unit_type!(
+                    $unit,
+                    $mass_scale,
+                    $length_scale,
+                    $time_scale,
+                    $current_scale,
+                    $temperature_scale,
+                    $amount_scale,
+                    $luminosity_scale,
+                    $angle_scale,
+                    $storage_type
+                )
             };
         }
 
@@ -296,43 +317,38 @@ macro_rules! define_base_units {
         // and then rescales to the preferred units using the existing machinery
         #[macro_export]
         macro_rules! quantity {
-            ($value:expr, $unit:expr) => {
-                {
-                    // Create the quantity using the default quantity! macro (source type)
-                    let default_quantity = $crate::quantity!($value, $unit);
-                    
-                    
-                    let target_quantity: local_unit_type!($unit) = $crate::api::rescale_f64(default_quantity);
-                    target_quantity
-                }
-            };
-            ($value:expr, $unit:expr, f64) => {
-                {
-                    // Create the quantity using the default quantity! macro with f64 storage type
-                    let default_quantity = $crate::quantity!($value, $unit, f64);
-                    
-                    let target_quantity: local_unit_type!($unit, f64) = $crate::api::rescale_f64(default_quantity);
-                    target_quantity
-                }
-            };
-            ($value:expr, $unit:expr, i32) => {
-                {
-                    // Create the quantity using the default quantity! macro with i32 storage type
-                    let default_quantity = $crate::quantity!($value, $unit, i32);
-                    
-                    let target_quantity: local_unit_type!($unit, i32) = $crate::api::rescale_i32(default_quantity);
-                    target_quantity
-                }
-            };
-            ($value:expr, $unit:expr, i64) => {
-                {
-                    // Create the quantity using the default quantity! macro with i64 storage type
-                    let default_quantity = $crate::quantity!($value, $unit, i64);
-                    
-                    let target_quantity: local_unit_type!($unit, i64) = $crate::api::rescale_i64(default_quantity);
-                    target_quantity
-                }
-            };
+            ($value:expr, $unit:expr) => {{
+                // Create the quantity using the default quantity! macro (source type)
+                let default_quantity = $crate::quantity!($value, $unit);
+
+                let target_quantity: local_unit_type!($unit) =
+                    $crate::api::rescale_f64(default_quantity);
+                target_quantity
+            }};
+            ($value:expr, $unit:expr, f64) => {{
+                // Create the quantity using the default quantity! macro with f64 storage type
+                let default_quantity = $crate::quantity!($value, $unit, f64);
+
+                let target_quantity: local_unit_type!($unit, f64) =
+                    $crate::api::rescale_f64(default_quantity);
+                target_quantity
+            }};
+            ($value:expr, $unit:expr, i32) => {{
+                // Create the quantity using the default quantity! macro with i32 storage type
+                let default_quantity = $crate::quantity!($value, $unit, i32);
+
+                let target_quantity: local_unit_type!($unit, i32) =
+                    $crate::api::rescale_i32(default_quantity);
+                target_quantity
+            }};
+            ($value:expr, $unit:expr, i64) => {{
+                // Create the quantity using the default quantity! macro with i64 storage type
+                let default_quantity = $crate::quantity!($value, $unit, i64);
+
+                let target_quantity: local_unit_type!($unit, i64) =
+                    $crate::api::rescale_i64(default_quantity);
+                target_quantity
+            }};
         }
     };
 }

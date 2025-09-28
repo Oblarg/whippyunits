@@ -1,7 +1,7 @@
 //! Simple test to verify custom literals work
 
-use whippyunits::*;
 use whippyunits::default_declarators::*;
+use whippyunits::*;
 
 whippyunits::define_literals!();
 
@@ -15,24 +15,24 @@ fn test_simple_custom_literals() {
 
     // Test integer literals with integer suffixes (these go to int module)
     let distance_i32 = 10m;
-    
+
     // These should now create proper unit types using the quantity! macro
     // We can test that they have the correct values by accessing the .value field
     assert_eq!(distance.value, 100.0);
     assert_eq!(mass.value, 5.5);
     assert_eq!(time.value, 30.0);
     assert_eq!(distance_i32.value, 10);
-    
+
     // Test that they are actually proper unit types with correct dimensions
     // distance should be length (m), mass should be mass (kg), time should be time (s)
     println!("Distance: {} (should be length)", distance.value);
     println!("Mass: {} (should be mass)", mass.value);
     println!("Time: {} (should be time)", time.value);
     println!("Distance: {} (should be length)", distance_i32.value);
-    
+
     println!("Mass prettyprint: {}", mass);
     println!("Distance prettyprint: {}", distance);
     println!("Time prettyprint: {}", time);
-    
+
     println!("Custom literals test passed!");
 }

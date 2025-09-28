@@ -1,12 +1,12 @@
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
 use quote::quote;
+use syn::parse_macro_input;
 
-mod define_generic_dimension;
-mod unit_macro;
-mod local_quantity_macro;
 mod culit_macro;
+mod define_generic_dimension;
+mod local_quantity_macro;
 mod pow_lookup_macro;
+mod unit_macro;
 
 /// Helper macro to compute unit dimensions for a unit expression
 /// Usage: compute_unit_dimensions!(unit_expr)
@@ -14,13 +14,14 @@ mod pow_lookup_macro;
 #[proc_macro]
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     let unit_expr: unit_macro::UnitExpr = syn::parse(input).expect("Expected unit expression");
-    
+
     let dimensions = unit_expr.evaluate();
-    
+
     let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11) = dimensions;
     quote! {
         (#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7, #d8, #d9, #d10, #d11)
-    }.into()
+    }
+    .into()
 }
 
 #[proc_macro]
@@ -70,32 +71,35 @@ pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
 pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
     use quote::quote;
     use syn::parse_macro_input;
-    
+
     let input = parse_macro_input!(item);
-    
+
     match input {
         syn::Item::Fn(func) => {
             let func_tokens = quote! { #func };
-            
+
             let expanded = quote! {
                 #[culit::culit]
                 #func_tokens
             };
-            
+
             TokenStream::from(expanded)
         }
         syn::Item::Mod(module) => {
             let module_tokens = quote! { #module };
-            
+
             let expanded = quote! {
                 #[culit::culit]
                 #module_tokens
             };
-            
+
             TokenStream::from(expanded)
         }
         _ => {
-            let error = syn::Error::new_spanned(&input, "whippy_literals can only be applied to functions or modules");
+            let error = syn::Error::new_spanned(
+                &input,
+                "whippy_literals can only be applied to functions or modules",
+            );
             TokenStream::from(error.to_compile_error())
         }
     }
@@ -104,26 +108,27 @@ pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_parse_input() {
         // Test that the macro can parse valid input
         let input = "LengthOrMass, Length, Mass";
         let parsed = syn::parse_str::<define_generic_dimension::DefineGenericDimensionInput>(input);
         assert!(parsed.is_ok());
-        
+
         let parsed = parsed.unwrap();
         assert_eq!(parsed.trait_name.to_string(), "LengthOrMass");
         assert_eq!(parsed.dimension_exprs.len(), 2);
     }
-    
+
     #[test]
     fn test_expand_macro() {
         // Test that the macro expands without panicking
         let input = syn::parse_str::<define_generic_dimension::DefineGenericDimensionInput>(
-            "LengthOrMass, Length, Mass"
-        ).unwrap();
-        
+            "LengthOrMass, Length, Mass",
+        )
+        .unwrap();
+
         let expanded = input.expand();
         // The expanded code should contain the trait name
         let expanded_str = expanded.to_string();

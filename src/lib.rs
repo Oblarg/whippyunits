@@ -17,14 +17,14 @@ impl<const S: i16> IsI16<S> for () {}
 pub mod arithmetic_quantity_types;
 pub mod default_declarators;
 pub mod imperial_declarators;
-pub mod scoped_preferences;
 pub mod scale_conversion;
+pub mod scoped_preferences;
 // #[macro_use]
 // pub mod quantity_type;
-pub mod quantity_type;
-pub mod print;
 pub mod arithmetic;
 pub mod dimension_traits;
+pub mod print;
+pub mod quantity_type;
 // #[macro_use]
 // pub mod api;
 pub mod api;
@@ -38,11 +38,9 @@ pub use scoped_preferences::*;
 
 // Re-export the proc macros for consumers to use
 pub use whippyunits_proc_macros::define_generic_dimension;
-pub use whippyunits_proc_macros::proc_unit as unit;
-pub use whippyunits_proc_macros::local_unit_type;
-pub use whippyunits_proc_macros::whippy_literals;
 pub use whippyunits_proc_macros::define_literals;
+pub use whippyunits_proc_macros::local_unit_type;
+pub use whippyunits_proc_macros::proc_unit as unit;
+pub use whippyunits_proc_macros::whippy_literals;
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs
-
-

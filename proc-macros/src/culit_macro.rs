@@ -7,20 +7,20 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     // Get all unit symbols from the canonical data
     let unit_symbols = get_all_unit_symbols();
     let type_suffixes = vec!["f64", "f32", "i32", "i64", "u32", "u64"];
-    
+
     let mut float_macros = Vec::new();
     let mut int_macros = Vec::new();
-    
+
     // Generate typed macros (existing functionality)
     for unit_symbol in &unit_symbols {
         for type_suffix in &type_suffixes {
             let macro_name = format!("{}_{}", unit_symbol, type_suffix);
             let macro_name_ident = syn::Ident::new(&macro_name, proc_macro2::Span::call_site());
-            
+
             let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
-            
+
             let type_ident = syn::parse_str::<syn::Type>(type_suffix).unwrap();
-            
+
             match *type_suffix {
                 "f64" | "f32" => {
                     // Float literals: ($value:literal) - simplified contract for culit 0.4
@@ -52,16 +52,16 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
             };
         }
     }
-    
+
     // Generate shortname macros for all units (calls local declarator methods directly)
     // These use the same parsing patterns but call methods like .meters(), .grams(), etc.
     for unit_symbol in &unit_symbols {
         let macro_name_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
-        
+
         // Get the method name from the unit symbol using default-dimensions data
         let method_name = get_method_name_for_unit_symbol(unit_symbol);
         let method_ident = syn::Ident::new(&method_name, proc_macro2::Span::call_site());
-        
+
         // Create shortname macro for float module (matches float pattern) - simplified contract for culit 0.4
         float_macros.push(quote! {
             macro_rules! #macro_name_ident {
@@ -71,7 +71,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
             }
             pub(crate) use #macro_name_ident;
         });
-        
+
         // Create shortname macro for int module (matches int pattern) - simplified contract for culit 0.4
         int_macros.push(quote! {
             macro_rules! #macro_name_ident {
@@ -81,16 +81,15 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
             }
             pub(crate) use #macro_name_ident;
         });
-        
     }
-    
+
     quote! {
         #[allow(unused_macros)]
         pub mod custom_literal {
             pub mod float {
                 #(#float_macros)*
             }
-            
+
             pub mod integer {
                 #(#int_macros)*
             }
@@ -114,16 +113,18 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
             return make_plural(unit_info.long_name);
         }
     }
-    
+
     // If not found, try to parse as a prefixed unit
     if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
-        if let Some(base_unit_info) = whippyunits_default_dimensions::lookup_unit_literal(base_symbol) {
+        if let Some(base_unit_info) =
+            whippyunits_default_dimensions::lookup_unit_literal(base_symbol)
+        {
             let base_method = make_plural(base_unit_info.long_name);
             let prefix_name = get_prefix_name(prefix);
             return format!("{}{}", prefix_name, base_method);
         }
     }
-    
+
     // Fallback: convert symbol to a reasonable method name
     unit_symbol.to_string()
 }
@@ -141,22 +142,22 @@ fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&str, &str)> {
         if base_unit.symbol == "dimensionless" {
             continue;
         }
-        
+
         if unit_symbol.ends_with(base_unit.symbol) {
             let prefix_part = &unit_symbol[..unit_symbol.len() - base_unit.symbol.len()];
-            
+
             // If no prefix, it should have been found in the direct lookup above
             if prefix_part.is_empty() {
                 continue;
             }
-            
+
             // Check if this is a valid prefix
             if whippyunits_default_dimensions::lookup_si_prefix(prefix_part).is_some() {
                 return Some((base_unit.symbol, prefix_part));
             }
         }
     }
-    
+
     None
 }
 
@@ -200,14 +201,14 @@ fn get_prefix_name(prefix_symbol: &str) -> String {
 /// This is the single source of truth for what units should have custom literals
 fn get_all_unit_symbols() -> Vec<String> {
     let mut symbols = Vec::new();
-    
+
     // Add base units from the canonical data
     for unit in BASE_UNITS.iter() {
         if unit.symbol != "dimensionless" {
             symbols.push(unit.symbol.to_string());
         }
     }
-    
+
     // Add prefixed units from the canonical data
     for prefix in SI_PREFIXES.iter() {
         for unit in BASE_UNITS.iter() {
@@ -216,19 +217,19 @@ fn get_all_unit_symbols() -> Vec<String> {
             }
         }
     }
-    
+
     symbols.sort();
     symbols.dedup();
-    
+
     // Filter out Rust keywords
     let rust_keywords = [
         "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
         "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
         "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn"
+        "use", "where", "while", "async", "await", "dyn",
     ];
-    
+
     symbols.retain(|symbol| !rust_keywords.contains(&symbol.as_str()));
-    
+
     symbols
 }

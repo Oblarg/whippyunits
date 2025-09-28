@@ -1,4 +1,3 @@
-
 macro_rules! define_imperial_quantity {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
@@ -11,7 +10,7 @@ macro_rules! define_imperial_quantity {
                 fn $fn_name(self) -> $crate::default_declarators::$storage_scale<T>;
             )*
         }
-        
+
         // Generate extension trait implementations for f64 (default)
         impl $trait_name<f64> for f64 {
             $(
@@ -20,7 +19,7 @@ macro_rules! define_imperial_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i32
         impl $trait_name<i32> for i32 {
             $(
@@ -29,7 +28,7 @@ macro_rules! define_imperial_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i64
         impl $trait_name<i64> for i64 {
             $(
@@ -42,16 +41,30 @@ macro_rules! define_imperial_quantity {
 }
 
 define_imperial_quantity!(
-    0, 1, 0, 0, 0, 0, 0, 0,  // length dimension
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0, // length dimension
     ImperialLength,
-    (inches, 2.54, Centimeter),     
+    (inches, 2.54, Centimeter),
     (feet, 0.3048, Meter),
     (yards, 0.9144, Meter),
     (miles, 1.609344, Kilometer),
 );
 
 define_imperial_quantity!(
-    1, 0, 0, 0, 0, 0, 0, 0,  // mass dimension
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0, // mass dimension
     ImperialMass,
     (ounces, 28.349523125, Gram),
     (pounds, 0.45359237, Kilogram),
@@ -72,12 +85,12 @@ macro_rules! define_imperial_affine_quantity {
                 fn $fn_name(self) -> $scale_name<T>;
             )*
         }
-        
+
         // Generate the type definitions (all stored in the same scale, generic with f64 default)
         $(
             pub type $scale_name<T = f64> = $crate::default_declarators::$storage_scale<T>;
         )*
-        
+
         // Generate extension trait implementations for f64 (default)
         impl $trait_name<f64> for f64 {
             $(
@@ -86,7 +99,7 @@ macro_rules! define_imperial_affine_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i32
         impl $trait_name<i32> for i32 {
             $(
@@ -95,7 +108,7 @@ macro_rules! define_imperial_affine_quantity {
                 }
             )*
         }
-        
+
         // Generate extension trait implementations for i64
         impl $trait_name<i64> for i64 {
             $(
@@ -108,9 +121,16 @@ macro_rules! define_imperial_affine_quantity {
 }
 
 define_imperial_affine_quantity!(
-    0, 0, 0, 0, 1, 0, 0, 0,  // temperature dimension
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0, // temperature dimension
     ImperialTemperature,
     Kelvin,
-    (Fahrenheit, fahrenheit, 5.0/9.0, 255.3722222222222),  // °F to K: (F - 32) * 5/9 + 273.15
-    (Rankine, rankine, 5.0/9.0, 0.0),                      // °R to K: R * 5/9
+    (Fahrenheit, fahrenheit, 5.0 / 9.0, 255.3722222222222), // °F to K: (F - 32) * 5/9 + 273.15
+    (Rankine, rankine, 5.0 / 9.0, 0.0),                     // °R to K: R * 5/9
 );

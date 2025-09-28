@@ -6,7 +6,7 @@
 #[test]
 fn test_compile_failures() {
     let t = trybuild::TestCases::new();
-    
+
     // Test that adding quantities with different dimensions fails to compile
     t.compile_fail("tests/compile_fail/*.rs");
 }

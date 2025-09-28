@@ -1,6 +1,6 @@
-use std::fmt;
 use crate::print::prettyprint::pretty_print_quantity_value;
 use crate::quantity_type::Quantity;
+use std::fmt;
 
 #[macro_export]
 macro_rules! define_display_traits {

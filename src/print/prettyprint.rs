@@ -1,6 +1,8 @@
-use crate::print::name_lookup::{generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors};
 use crate::print::name_lookup::lookup_dimension_name;
-use crate::print::utils::{to_unicode_superscript, get_si_prefix};
+use crate::print::name_lookup::{
+    generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors,
+};
+use crate::print::utils::{get_si_prefix, to_unicode_superscript};
 use whippyunits_default_dimensions::DIMENSION_LOOKUP;
 
 /// Format configuration for unit symbol generation
@@ -27,7 +29,7 @@ fn format_scale_exponent(scale: i16) -> String {
 }
 
 /// Generate dimension symbols from atomic dimension symbols and exponents
-/// 
+///
 /// This function uses the atomic dimension symbols from the default-dimensions
 /// source of truth to generate composite dimension symbols.
 /// Solved dimensions (non-zero exponents) are shown first, followed by all other dimensions (with ˀ).
@@ -43,7 +45,9 @@ pub fn generate_dimension_symbols_with_format(exponents: Vec<i16>, format: UnitF
         UnitFormat::Unicode => generate_dimension_symbols_unicode(exponents),
         UnitFormat::Ucum => {
             // For UCUM format, redirect to unit name generation
-            crate::print::name_lookup::generate_systematic_unit_name_with_format(exponents, false, format)
+            crate::print::name_lookup::generate_systematic_unit_name_with_format(
+                exponents, false, format,
+            )
         }
     }
 }
@@ -56,9 +60,9 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
         .take(8) // First 8 are the atomic dimensions
         .map(|info| info.symbol.unwrap_or("?"))
         .collect();
-    
+
     let mut parts: Vec<String> = Vec::new();
-    
+
     // First, add solved dimensions (non-zero, non--32768 exponents)
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp != 0 && exp != -32768 {
@@ -67,28 +71,28 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
             parts.push(format!("{}{}", symbol, superscript));
         }
     }
-    
+
     // Then, add all unsolved dimensions (exponents == -32768) with ˀ
     let mut unsolved_parts = Vec::new();
     for (idx, &exp) in exponents.iter().enumerate() {
-        if exp == -32768 {  // Only add unsolved dimensions
+        if exp == -32768 {
+            // Only add unsolved dimensions
             let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
             unsolved_parts.push(format!("{}{}", symbol, "ˀ"));
         }
     }
-    
+
     // If we have unsolved dimensions, wrap them in parentheses
     if !unsolved_parts.is_empty() {
         parts.push(format!("({})", unsolved_parts.join("·")));
     }
-    
-    if parts.is_empty() { 
-        "?".to_string() 
-    } else { 
+
+    if parts.is_empty() {
+        "?".to_string()
+    } else {
         parts.join("·")
     }
 }
-
 
 #[macro_export]
 macro_rules! define_generate_verbose_dimension_names {
@@ -101,31 +105,29 @@ macro_rules! define_generate_verbose_dimension_names {
                 $($dimension_names)*
             ].iter()
             .filter(|(idx, _)| exponents[*idx] != 0)
-            .map(|(idx, name)| if exponents[*idx] == 1 { 
-                name.to_string() 
-            } else { 
+            .map(|(idx, name)| if exponents[*idx] == 1 {
+                name.to_string()
+            } else {
                 let superscript = to_unicode_superscript(exponents[*idx], false);
                 format!("{}{}", name, superscript)
             })
             .collect();
-            
+
             if parts.is_empty() { "?".to_string() } else { parts.join("·") }
         }
     };
 }
 
-define_generate_verbose_dimension_names!(
-    (
-        (0, "Mass"),
-        (1, "Length"),
-        (2, "Time"),
-        (3, "Current"),
-        (4, "Temperature"),
-        (5, "Amount"),
-        (6, "Luminosity"),
-        (7, "Angle")
-    )
-);
+define_generate_verbose_dimension_names!((
+    (0, "Mass"),
+    (1, "Length"),
+    (2, "Time"),
+    (3, "Current"),
+    (4, "Temperature"),
+    (5, "Amount"),
+    (6, "Luminosity"),
+    (7, "Angle")
+));
 
 #[macro_export]
 macro_rules! define_calculate_total_scale_p10 {
@@ -160,11 +162,19 @@ define_calculate_total_scale_p10!(
 );
 
 /// Generate SI unit with 10^n notation when no standard prefix is available
-fn generate_si_unit_with_scale(total_scale_p10: i16, base_si_unit: &str, _long_name: bool) -> String {
+fn generate_si_unit_with_scale(
+    total_scale_p10: i16,
+    base_si_unit: &str,
+    _long_name: bool,
+) -> String {
     if total_scale_p10 == 0 {
         base_si_unit.to_string()
     } else {
-        format!("10{} {}", to_unicode_superscript(total_scale_p10, false), base_si_unit)
+        format!(
+            "10{} {}",
+            to_unicode_superscript(total_scale_p10, false),
+            base_si_unit
+        )
     }
 }
 
@@ -172,7 +182,7 @@ fn generate_si_unit_with_scale(total_scale_p10: i16, base_si_unit: &str, _long_n
 fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
     // Calculate the actual numeric value: 2^p2 * 3^p3 * 5^p5 * π^pi
     let mut value = 1.0;
-    
+
     if scale_p2 != 0 {
         value *= 2.0_f64.powi(scale_p2 as i32);
     }
@@ -185,7 +195,7 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
     if scale_pi != 0 {
         value *= std::f64::consts::PI.powi(scale_pi as i32);
     }
-    
+
     // If the value is 1.0, no scaling needed
     if value == 1.0 {
         String::new()
@@ -207,16 +217,14 @@ fn generate_prefixed_si_unit(
     base_si_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(
-        scale_p2, scale_p3, scale_p5, scale_pi
-    );
-    
+    let total_scale_p10 = calculate_total_scale_p10(scale_p2, scale_p3, scale_p5, scale_pi);
+
     if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
         format!("{}{}", prefix, base_si_unit)
     } else {
         // Check if this is a pure power of 10 (p2 == p5 and p3 == 0 and pi == 0)
         let is_pure_power_of_10 = scale_p2 == scale_p5 && scale_p3 == 0 && scale_pi == 0;
-        
+
         if is_pure_power_of_10 {
             // Fall back to SI unit with 10^n notation when SI prefix lookup fails
             generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
@@ -241,13 +249,11 @@ fn generate_prefixed_systematic_unit(
     base_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(
-        scale_p2, scale_p3, scale_p5, scale_pi
-    );
-    
+    let total_scale_p10 = calculate_total_scale_p10(scale_p2, scale_p3, scale_p5, scale_pi);
+
     // Check if this is a pure unit (not compound)
     let is_pure_unit = !base_unit.contains("·");
-    
+
     // For pure units, check if we need to apply base scale offset
     let effective_scale_p10 = if is_pure_unit {
         // Check if this is a pure unit with base scale offset (like mass with "gram")
@@ -262,28 +268,38 @@ fn generate_prefixed_systematic_unit(
         // The individual parts already have their base scale offsets applied
         total_scale_p10
     };
-    
-    
+
     if let Some(prefix) = get_si_prefix(effective_scale_p10, long_name) {
         if is_pure_unit {
             // Check if this is a pure unit with an exponent
             // Find the non-zero exponent (there should be exactly one for a pure unit)
-            if let Some((dimension_index, &exponent)) = exponents.iter().enumerate().find(|(_, &exp)| exp != 0) {
+            if let Some((dimension_index, &exponent)) =
+                exponents.iter().enumerate().find(|(_, &exp)| exp != 0)
+            {
                 // Check if the scale is a multiple of the exponent
                 if effective_scale_p10 % exponent == 0 {
                     // Factor the prefix: divide scale by exponent
                     let factored_scale = effective_scale_p10 / exponent;
-                    
+
                     // Get the prefix for the factored scale
                     if let Some(factored_prefix) = get_si_prefix(factored_scale, long_name) {
                         // Get the base unit name without any scale or exponent
                         let base_unit_name = generate_systematic_unit_name(
-                            exponents.iter().enumerate().map(|(i, &exp)| if i == dimension_index { 1 } else { 0 }).collect(),
-                            long_name
+                            exponents
+                                .iter()
+                                .enumerate()
+                                .map(|(i, &exp)| if i == dimension_index { 1 } else { 0 })
+                                .collect(),
+                            long_name,
                         );
-                        
+
                         // Apply the factored prefix to the base unit name, then add the exponent
-                        format!("{}{}{}", factored_prefix, base_unit_name, get_unicode_exponent(exponent))
+                        format!(
+                            "{}{}{}",
+                            factored_prefix,
+                            base_unit_name,
+                            get_unicode_exponent(exponent)
+                        )
                     } else {
                         // Fallback to original behavior
                         format!("{}{}", prefix, base_unit)
@@ -301,7 +317,7 @@ fn generate_prefixed_systematic_unit(
             // For compound units: "milli(meter·second)"
             // The base_unit already has parentheses from generate_systematic_unit_name, so we need to remove them
             let unit_without_parens = if base_unit.starts_with("(") && base_unit.ends_with(")") {
-                &base_unit[1..base_unit.len()-1]
+                &base_unit[1..base_unit.len() - 1]
             } else {
                 base_unit
             };
@@ -318,11 +334,15 @@ fn generate_prefixed_systematic_unit(
             format!("{}{}", scale_factors, base_unit)
         }
     }
-}       
+}
 
 /// Helper function to format scale values, handling sentinel values
 fn format_scale_value(scale: i16) -> String {
-    if scale == i16::MAX { "unused".to_string() } else { scale.to_string() }
+    if scale == i16::MAX {
+        "unused".to_string()
+    } else {
+        scale.to_string()
+    }
 }
 
 #[macro_export]
@@ -345,14 +365,14 @@ macro_rules! define_pretty_print_quantity {
             } else {
                 String::new()
             };
-            
+
             // Generate systematic unit literal (base unit without prefix)
             let base_systematic_literal = generate_systematic_unit_name_with_scale_factors(
                 [$($dimension_args)*].to_vec(),
                 ($($scale_args)*),
                 verbose, // Use full names in verbose mode, symbols in non-verbose mode
             );
-            
+
             // Apply SI prefix to the systematic unit literal
             let systematic_literal = generate_prefixed_systematic_unit(
                 [$($dimension_args)*].to_vec(),
@@ -360,10 +380,10 @@ macro_rules! define_pretty_print_quantity {
                 &base_systematic_literal,
                 verbose,
             );
-            
+
             // Look up dimension name
             let dimension_info = lookup_dimension_name([$($dimension_args)*].to_vec());
-            
+
             // Generate SI shortname - use dimension-specific SI unit if available, otherwise don't show a shortname
             let unit_shortname = if let Some(ref info) = dimension_info {
                 if let Some(base_si_unit) = if verbose {
@@ -385,7 +405,7 @@ macro_rules! define_pretty_print_quantity {
                 // Unknown dimension, don't show a unit shortname to avoid stuttering
                 String::new()
             };
-            
+
             let dimension_name = if let Some(ref info) = dimension_info {
                 // For recognized composite dimensions, always use the dimension name (e.g., "Force", "Energy")
                 // regardless of verbose/non-verbose mode, since these are established names
@@ -399,7 +419,7 @@ macro_rules! define_pretty_print_quantity {
                     generate_dimension_symbols([$($dimension_args)*].to_vec())
                 }
             };
-            
+
             let primary = if systematic_literal.is_empty() { &dimension_name } else { &systematic_literal };
             let secondary = if !unit_shortname.is_empty() && unit_shortname != systematic_literal {
                 format!("; {}; {}", unit_shortname, dimension_name)
@@ -423,7 +443,7 @@ macro_rules! define_pretty_print_quantity {
             } else {
                 String::new()
             };
-            
+
             format!("{}Quantity<{}{}{}>", value_prefix, primary, secondary, verbose_info)
         }
     };
@@ -514,7 +534,7 @@ macro_rules! define_pretty_print_quantity_helpers {
                 ($($scale_args)*),
                 false
             );
-            
+
             // Apply SI prefix to the systematic unit literal
             let prefixed_systematic_literal = generate_prefixed_systematic_unit(
                 [$($dimension_args)*].to_vec(),
@@ -522,7 +542,7 @@ macro_rules! define_pretty_print_quantity_helpers {
                 &systematic_literal,
                 false, // Use short names for inlay hints
             );
-            
+
             // Check if we have a recognized dimension with a specific SI unit
             if let Some(info) = lookup_dimension_name([$($dimension_args)*].to_vec()) {
                 if let Some(si_shortname) = info.unit_si_shortname_symbol {
@@ -532,7 +552,7 @@ macro_rules! define_pretty_print_quantity_helpers {
                         si_shortname,
                         false, // Use short names for inlay hints
                     );
-                    
+
                     // Return the prefixed SI unit if it's different from the systematic literal
                     if prefixed_si_unit != prefixed_systematic_literal {
                         prefixed_si_unit
@@ -567,13 +587,13 @@ define_pretty_print_quantity_helpers!(
         scale_pi: i16
     ),
     (
-        mass_exponent, 
-        length_exponent, 
-        time_exponent, 
-        electric_current_exponent, 
-        temperature_exponent, 
-        amount_of_substance_exponent, 
-        luminous_intensity_exponent, 
+        mass_exponent,
+        length_exponent,
+        time_exponent,
+        electric_current_exponent,
+        temperature_exponent,
+        amount_of_substance_exponent,
+        luminous_intensity_exponent,
         angle_exponent
     ),
     (
