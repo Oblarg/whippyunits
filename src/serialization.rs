@@ -289,9 +289,9 @@ fn get_unit_dimensions_from_ucum(unit: &str) -> Result<(i16, i16, i16, i16, i16,
     
     // Convert p10 to p2 and p5 representation
     let (p2_final, p5_final) = if final_scale >= 0 {
-        (0, final_scale)
+        (p2, p5 + final_scale)
     } else {
-        (final_scale.abs(), 0)
+        (p2 + final_scale.abs(), p5)
     };
     
     Ok((mass, length, time, current, temp, amount, lum, angle, p2_final, p3, p5_final, 0))
@@ -391,17 +391,18 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 /// 
 /// This macro:
 /// 1. Parses the JSON to extract value and unit
-/// 2. Uses deserialize_core to validate dimensions and rescale if needed
-/// 3. Returns a `quantity!(value, <unit_literal>)`
+/// 2. Uses deserialize_core_quantity to validate dimensions and rescale if needed
+/// 3. Returns a Quantity directly (optimized - no quantity! macro needed)
 #[macro_export]
 macro_rules! from_json {
     ($json:expr, $unit:expr) => {
         {
             match $crate::serialization::parse_json_input($json) {
                 Ok((value, unit_str)) => {
-                    // Use deserialize_core to handle dimension checking and rescaling
+                    // Use deserialize_core_quantity to handle dimension checking and rescaling
+                    // Returns Quantity directly - no need for quantity! macro
                     const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                    match $crate::serialization::deserialize_core::<
+                    $crate::serialization::deserialize_core_quantity::<
                         { dimensions.0 },
                         { dimensions.1 },
                         { dimensions.2 },
@@ -413,11 +414,9 @@ macro_rules! from_json {
                         { dimensions.8 },
                         { dimensions.9 },
                         { dimensions.10 },
-                        { dimensions.11 }
-                    >(value, &unit_str) {
-                        Ok(converted_value) => Ok($crate::quantity!(converted_value, $unit)),
-                        Err(e) => Err(e),
-                    }
+                        { dimensions.11 },
+                        f64
+                    >(value, &unit_str)
                 },
                 Err(e) => Err(e),
             }
@@ -427,9 +426,10 @@ macro_rules! from_json {
         {
             match $crate::serialization::parse_json_input($json) {
                 Ok((value, unit_str)) => {
-                    // Use deserialize_core to handle dimension checking and rescaling
+                    // Use deserialize_core_quantity to handle dimension checking and rescaling
+                    // Returns Quantity directly - no need for quantity! macro
                     const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                    match $crate::serialization::deserialize_core::<
+                    $crate::serialization::deserialize_core_quantity::<
                         { dimensions.0 },
                         { dimensions.1 },
                         { dimensions.2 },
@@ -441,14 +441,9 @@ macro_rules! from_json {
                         { dimensions.8 },
                         { dimensions.9 },
                         { dimensions.10 },
-                        { dimensions.11 }
-                    >(value, &unit_str) {
-                        Ok(converted_value) => {
-                            let typed_value = converted_value as $storage_type;
-                            Ok($crate::quantity!(typed_value, $unit, $storage_type))
-                        },
-                        Err(e) => Err(e),
-                    }
+                        { dimensions.11 },
+                        $storage_type
+                    >(value, &unit_str)
                 },
                 Err(e) => Err(e),
             }
@@ -462,17 +457,18 @@ macro_rules! from_json {
 /// 
 /// This macro:
 /// 1. Parses the string to extract value and unit (space-separated)
-/// 2. Uses deserialize_core to validate dimensions and rescale if needed
-/// 3. Returns a `quantity!(value, <unit_literal>)`
+/// 2. Uses deserialize_core_quantity to validate dimensions and rescale if needed
+/// 3. Returns a Quantity directly (optimized - no quantity! macro needed)
 #[macro_export]
 macro_rules! from_string {
     ($string:expr, $unit:expr) => {
         {
             match $crate::serialization::parse_string_input($string) {
                 Ok((value, unit_str)) => {
-                    // Use deserialize_core to handle dimension checking and rescaling
+                    // Use deserialize_core_quantity to handle dimension checking and rescaling
+                    // Returns Quantity directly - no need for quantity! macro
                     const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                    match $crate::serialization::deserialize_core::<
+                    $crate::serialization::deserialize_core_quantity::<
                         { dimensions.0 },
                         { dimensions.1 },
                         { dimensions.2 },
@@ -484,11 +480,9 @@ macro_rules! from_string {
                         { dimensions.8 },
                         { dimensions.9 },
                         { dimensions.10 },
-                        { dimensions.11 }
-                    >(value, &unit_str) {
-                        Ok(converted_value) => Ok($crate::quantity!(converted_value, $unit)),
-                        Err(e) => Err(e),
-                    }
+                        { dimensions.11 },
+                        f64
+                    >(value, &unit_str)
                 },
                 Err(e) => Err(e),
             }
@@ -498,9 +492,10 @@ macro_rules! from_string {
         {
             match $crate::serialization::parse_string_input($string) {
                 Ok((value, unit_str)) => {
-                    // Use deserialize_core to handle dimension checking and rescaling
+                    // Use deserialize_core_quantity to handle dimension checking and rescaling
+                    // Returns Quantity directly - no need for quantity! macro
                     const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                    match $crate::serialization::deserialize_core::<
+                    $crate::serialization::deserialize_core_quantity::<
                         { dimensions.0 },
                         { dimensions.1 },
                         { dimensions.2 },
@@ -512,14 +507,9 @@ macro_rules! from_string {
                         { dimensions.8 },
                         { dimensions.9 },
                         { dimensions.10 },
-                        { dimensions.11 }
-                    >(value, &unit_str) {
-                        Ok(converted_value) => {
-                            let typed_value = converted_value as $storage_type;
-                            Ok($crate::quantity!(typed_value, $unit, $storage_type))
-                        },
-                        Err(e) => Err(e),
-                    }
+                        { dimensions.11 },
+                        $storage_type
+                    >(value, &unit_str)
                 },
                 Err(e) => Err(e),
             }
@@ -584,6 +574,40 @@ pub fn deserialize_core<const MASS_EXPONENT: i16, const LENGTH_EXPONENT: i16, co
     // Calculate conversion factor if needed
     let conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
     Ok(value * conversion_factor)
+}
+
+/// Core deserialization logic that returns a Quantity directly (optimized version)
+/// This single function handles both f64 and custom storage types
+pub fn deserialize_core_quantity<const MASS_EXPONENT: i16, const LENGTH_EXPONENT: i16, const TIME_EXPONENT: i16, const CURRENT_EXPONENT: i16,
+                    const TEMPERATURE_EXPONENT: i16, const AMOUNT_EXPONENT: i16, const LUMINOSITY_EXPONENT: i16, const ANGLE_EXPONENT: i16,
+                    const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16, T>(
+    value: f64, unit_str: &str
+) -> Result<Quantity<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT,
+                       SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T>, SerializationError> 
+where
+    T: From<f64> + Copy,
+{
+    // Parse UCUM unit to get dimensions
+    let parsed_dims = parse_ucum_unit(unit_str)
+        .map_err(|e| SerializationError::ParseError(format!("Failed to parse UCUM unit: {}", e)))?;
+    
+    // Get target dimensions from const generics
+    let target_dims = vec![MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI];
+    
+    // Check if dimensions match
+    if !dimensions_match(&parsed_dims, &target_dims) {
+        return Err(SerializationError::DimensionMismatch {
+            expected: target_dims,
+            actual: parsed_dims,
+        });
+    }
+    
+    // Calculate conversion factor if needed
+    let conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
+    let converted_value = value * conversion_factor;
+    
+    // Construct Quantity directly using const parameters - no need for quantity! macro
+    Ok(Quantity::new(converted_value.into()))
 }
 
 /// Get dimensions from a quantity by creating a temporary quantity and extracting its dimensions
