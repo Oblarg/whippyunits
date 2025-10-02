@@ -794,7 +794,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Minute",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
         scale_factors: (2, 1, 1, 0),
-        conversion_factor: Some(60.0),
+        conversion_factor: None,
     }, // 1 min = 60 s = 2^2 * 3 * 5
     UnitLiteralInfo {
         symbol: "h",
@@ -802,7 +802,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Hour",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
         scale_factors: (4, 2, 2, 0),
-        conversion_factor: Some(3600.0),
+        conversion_factor: None,
     }, // 1 h = 3600 s = 2^4 * 3^2 * 5^2
     UnitLiteralInfo {
         symbol: "hr",
@@ -810,7 +810,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Hour",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
         scale_factors: (4, 2, 2, 0),
-        conversion_factor: Some(3600.0),
+        conversion_factor: None,
     }, // 1 hr = 3600 s = 2^4 * 3^2 * 5^2
     UnitLiteralInfo {
         symbol: "d",
@@ -818,7 +818,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Day",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
         scale_factors: (7, 3, 2, 0),
-        conversion_factor: Some(86400.0),
+        conversion_factor: None,
     }, // 1 d = 86400 s = 2^7 * 3^3 * 5^2
     // Imperial length units
     UnitLiteralInfo {

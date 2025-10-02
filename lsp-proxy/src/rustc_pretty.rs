@@ -2,11 +2,11 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 
-use crate::{WhippyUnitsTypeConverter, DisplayConfig};
+use crate::{unit_formatter::{UnitFormatter, DisplayConfig}};
 
 /// Pretty printer for rustc output with whippyunits type formatting
 pub struct RustcPrettyPrinter {
-    type_converter: WhippyUnitsTypeConverter,
+    formatter: UnitFormatter,
     display_config: DisplayConfig,
     quantity_regex: Regex,
     error_regex: Regex,
@@ -21,7 +21,7 @@ impl RustcPrettyPrinter {
 
     pub fn with_config(display_config: DisplayConfig) -> Self {
         Self {
-            type_converter: WhippyUnitsTypeConverter::new(),
+            formatter: UnitFormatter::new(),
             display_config,
             quantity_regex: Regex::new(r"Quantity<([^>]+)>").unwrap(),
             error_regex: Regex::new(r"^error\[([^\]]+)\]: (.+)$").unwrap(),
@@ -50,7 +50,7 @@ impl RustcPrettyPrinter {
             debug!("Processing line with whippyunits types: {}", line);
             
             // Apply type conversion
-            let processed = self.type_converter.convert_types_in_text_with_config(
+            let processed = self.formatter.format_types(
                 line, 
                 &self.display_config
             );

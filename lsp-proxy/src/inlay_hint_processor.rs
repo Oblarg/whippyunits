@@ -1,32 +1,38 @@
 use serde_json::{json, Value};
-use crate::{WhippyUnitsTypeConverter, DisplayConfig};
+use crate::{unit_formatter::{UnitFormatter, DisplayConfig}, quantity_detection};
 use anyhow::Result;
 
 /// Process inlay hint responses to pretty-print whippyunits types
 #[derive(Clone)]
 pub struct InlayHintProcessor {
-    converter: WhippyUnitsTypeConverter,
+    formatter: UnitFormatter,
     display_config: DisplayConfig,
 }
 
 impl InlayHintProcessor {
     pub fn new() -> Self {
         Self {
-            converter: WhippyUnitsTypeConverter::new(),
+            formatter: UnitFormatter::new(),
             display_config: DisplayConfig::default(),
         }
     }
 
     pub fn with_config(display_config: DisplayConfig) -> Self {
         Self {
-            converter: WhippyUnitsTypeConverter::new(),
+            formatter: UnitFormatter::new(),
             display_config,
         }
     }
 
     /// Process an inlay hint response, converting whippyunits types to pretty format
     pub fn process_inlay_hint_response(&self, message: &str) -> Result<String> {
-        // Parse the JSON message
+        // Fast string search to detect if this message contains Quantity types
+        if !self.contains_quantity_types_fast(message) {
+            // No Quantity types detected, return original message unchanged
+            return Ok(message.to_string());
+        }
+        
+        // Parse the JSON message only if we detected Quantity types
         let mut json_value: Value = serde_json::from_str(message)?;
         
         // Check if this is an inlay hint response with results
@@ -88,23 +94,19 @@ impl InlayHintProcessor {
         Ok(())
     }
 
+    /// Fast string search to detect Quantity types without deserialization
+    /// This performs a performant string search for "Quantity<" patterns
+    fn contains_quantity_types_fast(&self, json_payload: &str) -> bool {
+        quantity_detection::contains_quantity_types_fast(json_payload)
+    }
+
     /// Check if a label array contains a whippyunits type
-    fn contains_whippyunits_type(&self, label_array: &[Value]) -> bool {
-        // Look for "Quantity" as a literal value in any label part
-        for part in label_array {
-            if let Some(value) = part.get("value") {
-                if let Some(text) = value.as_str() {
-                    if text == "Quantity" {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
+    pub fn contains_whippyunits_type(&self, label_array: &[Value]) -> bool {
+        quantity_detection::contains_whippyunits_type(label_array)
     }
 
     /// Convert a whippyunits inlay hint to pretty format
-    fn convert_whippyunits_hint(&self, label_array: &mut Vec<Value>) -> Result<()> {
+    pub fn convert_whippyunits_hint(&self, label_array: &mut Vec<Value>) -> Result<()> {
         // Find the parts we need to work with
         let mut quantity_part_index = None;
         let mut generic_params_part_index = None;
@@ -133,8 +135,8 @@ impl InlayHintProcessor {
             // Construct the full type string
             let full_type = format!("Quantity{}", generic_params);
             
-            // For inlay hints, use the ultra-terse format that shows only the unit literal with storage type suffix
-            let pretty_type = self.converter.convert_types_in_text_inlay_hint(&full_type);
+            // For inlay hints, use the full Quantity<unit, type> format
+            let pretty_type = self.formatter.format_types_inlay_hint(&full_type);
             
             // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
             let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
@@ -289,7 +291,17 @@ impl InlayHintProcessor {
             pretty_type
         };
         
-        // Check for backing datatype suffix
+        // Check for new Quantity<unit, datatype> format
+        if clean_type.starts_with("Quantity<") && clean_type.ends_with('>') {
+            let inner = &clean_type[9..clean_type.len()-1]; // Remove "Quantity<" and ">"
+            if let Some(comma_pos) = inner.rfind(',') {
+                let unit_part = self.convert_pretty_type_to_unit_macro(inner[..comma_pos].trim());
+                let datatype = inner[comma_pos + 1..].trim().to_string();
+                return (unit_part, datatype);
+            }
+        }
+        
+        // Check for old backing datatype suffix format (fallback for compatibility)
         if let Some(underscore_pos) = clean_type.rfind('_') {
             let suffix = &clean_type[underscore_pos + 1..];
             if suffix == "f64" || suffix == "f32" || suffix == "i64" || suffix == "i32" || 
@@ -325,7 +337,7 @@ impl InlayHintProcessor {
     }
 
     /// Prune ^1 exponents from inlay hint display while keeping meaningful exponents
-    fn prune_inlay_hint_exponents(&self, pretty_type: &str) -> String {
+    pub fn prune_inlay_hint_exponents(&self, pretty_type: &str) -> String {
         // In our pretty-printed output, we use Unicode superscripts like ¹, ², ³, etc.
         // We want to remove ¹ (superscript 1) but keep all other superscripts
         // For negative exponents, we want to preserve the full -1 to make it clear
@@ -364,203 +376,3 @@ impl InlayHintProcessor {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_contains_whippyunits_type() {
-        let processor = InlayHintProcessor::new();
-        
-        // Test with whippyunits type
-        let label_with_quantity = vec![
-            json!({"value": ": "}),
-            json!({"value": "Quantity", "location": {"uri": "file://test.rs", "range": {"start": {"line": 1, "character": 0}, "end": {"line": 1, "character": 8}}}}),
-            json!({"value": "<1, 0, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 0>"})
-        ];
-        assert!(processor.contains_whippyunits_type(&label_with_quantity));
-        
-        // Test without whippyunits type
-        let label_without_quantity = vec![
-            json!({"value": ": "}),
-            json!({"value": "String"}),
-            json!({"value": "()"})
-        ];
-        assert!(!processor.contains_whippyunits_type(&label_without_quantity));
-    }
-
-    #[test]
-    fn test_convert_whippyunits_hint() {
-        let processor = InlayHintProcessor::new();
-        
-        let mut label_array = vec![
-            json!({"value": ": "}),
-            json!({
-                "value": "Quantity", 
-                "location": {
-                    "uri": "file://test.rs", 
-                    "range": {
-                        "start": {"line": 1, "character": 0}, 
-                        "end": {"line": 1, "character": 8}
-                    }
-                }
-            }),
-            json!({"value": "<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"})
-        ];
-        
-        processor.convert_whippyunits_hint(&mut label_array).unwrap();
-        
-        // Should have 2 parts now (removed generic params)
-        assert_eq!(label_array.len(), 2);
-        
-        // First part should still be ": "
-        assert_eq!(label_array[0]["value"], ": ");
-        
-        // Second part should be pretty-printed and have location preserved
-        let second_part = &label_array[1];
-        assert!(second_part["value"].as_str().unwrap().contains("m"));
-        assert!(second_part.get("location").is_some());
-    }
-
-    #[test]
-    fn test_process_inlay_hint_response() {
-        let processor = InlayHintProcessor::new();
-        
-        let response = json!({
-            "jsonrpc": "2.0",
-            "id": 2,
-            "result": [
-                {
-                    "position": {"line": 12, "character": 17},
-                    "label": [
-                        {"value": ": "},
-                        {
-                            "value": "Quantity",
-                            "location": {
-                                "uri": "file://test.rs",
-                                "range": {
-                                    "start": {"line": 1, "character": 0},
-                                    "end": {"line": 1, "character": 8}
-                                }
-                            }
-                        },
-                        {"value": "<0, 9223372036854775807, 1, 0, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
-                    ],
-                    "kind": 1,
-                    "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
-                }
-            ]
-        });
-        
-        let response_str = serde_json::to_string(&response).unwrap();
-        let processed = processor.process_inlay_hint_response(&response_str).unwrap();
-        
-        // Should contain pretty-printed type
-        assert!(processed.contains("m"));
-        // Should preserve all metadata
-        assert!(processed.contains("location"));
-        assert!(processed.contains("resolve_range"));
-        assert!(processed.contains("data"));
-    }
-
-    #[test]
-    fn test_real_inlay_hint_transformation() {
-        let processor = InlayHintProcessor::new();
-        
-        // Real inlay hint response from our test output
-        let real_response = json!({
-            "jsonrpc": "2.0",
-            "id": 2,
-            "result": [
-                {
-                    "position": {"line": 12, "character": 17},
-                    "label": [
-                        {"value": ": "},
-                        {
-                            "value": "Quantity",
-                            "location": {
-                                "uri": "file:///Users/emichaelbarnettgmail.com/Developer/whippyunits/src/lib.rs",
-                                "range": {
-                                    "start": {"line": 64, "character": 11},
-                                    "end": {"line": 64, "character": 19}
-                                }
-                            }
-                        },
-                        {"value": "<0, 9223372036854775807, 1, -1, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807>"}
-                    ],
-                    "kind": 1,
-                    "paddingLeft": false,
-                    "paddingRight": false,
-                    "data": {
-                        "file_id": 0,
-                        "hash": "11030576060064372646",
-                        "resolve_range": {
-                            "start": {"line": 12, "character": 8},
-                            "end": {"line": 12, "character": 17}
-                        },
-                        "version": 1
-                    }
-                }
-            ]
-        });
-        
-        let response_str = serde_json::to_string(&real_response).unwrap();
-        let processed = processor.process_inlay_hint_response(&response_str).unwrap();
-        
-        // Parse the processed result to verify the transformation
-        let processed_json: Value = serde_json::from_str(&processed).unwrap();
-        let result_array = processed_json["result"].as_array().unwrap();
-        let hint = &result_array[0];
-        let label_array = hint["label"].as_array().unwrap();
-        
-        // Should have 2 parts now (removed generic params)
-        assert_eq!(label_array.len(), 2);
-        
-        // First part should be ": "
-        assert_eq!(label_array[0]["value"], ": ");
-        
-        // Second part should be pretty-printed and have location preserved
-        let second_part = &label_array[1];
-        let pretty_value = second_part["value"].as_str().unwrap();
-        
-        // Should contain the pretty-printed type
-        assert!(pretty_value.contains("m"));
-        println!("Original: Quantity<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>");
-        println!("Pretty: '{}'", pretty_value);
-        
-        // Should preserve the location for click-to-source
-        assert!(second_part.get("location").is_some());
-        let location = &second_part["location"];
-        assert_eq!(location["uri"], "file:///Users/emichaelbarnettgmail.com/Developer/whippyunits/src/lib.rs");
-        
-        // Should preserve all other metadata
-        assert!(hint.get("position").is_some());
-        assert!(hint.get("kind").is_some());
-        assert!(hint.get("data").is_some());
-        assert!(hint["data"].get("resolve_range").is_some());
-        
-        println!("Original: Quantity<1, -1, 0, 9223372036854775807, 0, 9223372036854775807, 9223372036854775807, 9223372036854775807, 9223372036854775807>");
-        println!("Pretty: '{}'", pretty_value);
-        println!("Pretty value length: {}", pretty_value.len());
-    }
-
-    #[test]
-    fn test_inlay_hint_exponent_pruning() {
-        let processor = InlayHintProcessor::new();
-        
-        // Test that ^1 exponents are pruned but meaningful exponents are preserved
-        let test_cases = vec![
-            ("mm¹", "mm"),           // ^1 should be removed
-            ("mm²", "mm²"),          // ^2 should be preserved
-            ("mm³", "mm³"),          // ^3 should be preserved
-            ("mm⁻¹", "mm⁻¹"),        // ^-1 should be preserved (meaningful negative exponent)
-            ("m¹s²", "ms²"),         // ^1 should be removed, ^2 preserved
-            ("kg¹m²s⁻²", "kgm²s⁻²"), // ^1 should be removed, others preserved
-        ];
-        
-        for (input, expected) in test_cases {
-            let result = processor.prune_inlay_hint_exponents(input);
-            assert_eq!(result, expected, "Failed for input: {}", input);
-        }
-    }
-}
