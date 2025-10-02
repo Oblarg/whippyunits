@@ -9,9 +9,9 @@ whippyunits::define_literals!();
 #[test]
 fn test_simple_custom_literals() {
     // Test float literals with float suffixes (these go to float module)
-    let distance = 100.0m_f64;
-    let mass = 5.5kg_f64;
-    let time = 30.0s_f64;
+    let distance = 100.0m;
+    let mass = 5.5kg;
+    let time = 30.0s;
 
     // Test integer literals with integer suffixes (these go to int module)
     let distance_i32 = 10m;
@@ -41,21 +41,21 @@ fn test_simple_custom_literals() {
 #[test]
 fn test_compound_unit_custom_literals() {
     // Test compound unit literals (J, W, N, Pa, Hz, C, V, F, Ω, S, H, T, Wb, lm, lx)
-    let energy = 1.5J_f64;        // Joules
-    let power = 2.0W_f64;         // Watts
-    let force = 10.0N_f64;        // Newtons
-    let pressure = 100.0Pa_f64;   // Pascals
-    let frequency = 50.0Hz_f64;   // Hertz
-    let charge = 1.0C_f64;        // Coulombs
-    let voltage = 12.0V_f64;      // Volts
-    let capacitance = 0.1F_f64;   // Farads
-    let resistance = 100.0Ω_f64; // Ohms
-    let conductance = 0.01S_f64;  // Siemens
-    let inductance = 0.5H_f64;    // Henrys
-    let magnetic_field = 1.0T_f64; // Tesla
-    let magnetic_flux = 0.1Wb_f64; // Weber
-    let luminous_flux = 100.0lm_f64; // Lumen
-    let illuminance = 50.0lx_f64; // Lux
+    let energy = 1.5J;        // Joules
+    let power = 2.0W;         // Watts
+    let force = 10.0N;        // Newtons
+    let pressure = 100.0Pa;   // Pascals
+    let frequency = 50.0Hz;   // Hertz
+    let charge = 1.0C;        // Coulombs
+    let voltage = 12.0V;      // Volts
+    let capacitance = 0.1F;   // Farads
+    let resistance = 100.0Ω; // Ohms
+    let conductance = 0.01S;  // Siemens
+    let inductance = 0.5H;    // Henrys
+    let magnetic_field = 1.0T; // Tesla
+    let magnetic_flux = 0.1Wb; // Weber
+    let luminous_flux = 100.0lm; // Lumen
+    let illuminance = 50.0lx; // Lux
 
     // Test integer compound unit literals
     let energy_i32 = 5J;
@@ -84,9 +84,9 @@ fn test_compound_unit_custom_literals() {
     assert_eq!(force_i32.value, 20);
 
     // Test prefixed compound units
-    let kilojoule = 1.5kJ_f64;    // kilojoules
-    let milliwatt = 100.0mW_f64;  // milliwatts
-    let kilonewton = 5.0kN_f64;   // kilonewtons
+    let kilojoule = 1.5kJ;    // kilojoules
+    let milliwatt = 100.0mW;  // milliwatts
+    let kilonewton = 5.0kN;   // kilonewtons
 
     assert_eq!(kilojoule.value, 1.5);
     assert_eq!(milliwatt.value, 100.0);
@@ -119,11 +119,11 @@ fn test_compound_unit_custom_literals() {
 #[test]
 fn test_angular_unit_custom_literals() {
     // Test all angular unit literals with float suffixes
-    let radian = 1.0rad_f64;        // radian (base SI unit)
-    let degree = 90.0deg_f64;       // degree (π/180 rad)
+    let radian = 1.0rad;        // radian (base SI unit)
+    let degree = 90.0deg;       // degree (π/180 rad)
     let rotation = 0.5rot_f64;      // rotation (2π rad)
     let turn = 0.25turn_f64;        // turn (2π rad)
-    let arcsecond = 3600.0arcsec_f64; // arcsecond (π/(180*3600) rad)
+    let arcsecond = 3600.0arcsec; // arcsecond (π/(180*3600) rad)
     let arcminute = 60.0arcmin_f64;   // arcminute (π/(180*60) rad)
     let gon = 100.0gon_f64;         // gon (π/200 rad)
     let gradian = 100.0grad_f64;    // gradian (π/200 rad)

@@ -908,7 +908,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         long_name: "arcsecond",
         type_name: "Arcsecond",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-4, -2, -1, 1),
+        scale_factors: (-6, -4, -3, 1),
         conversion_factor: None,
     }, // 1 arcsec = π/(180*3600) rad = 2^-4 * 3^-2 * 5^-1 * π^1
     UnitLiteralInfo {
@@ -916,7 +916,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         long_name: "arcminute",
         type_name: "Arcminute",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-2, -1, -1, 1),
+        scale_factors: (-4, -3, -2, 1),
         conversion_factor: None,
     }, // 1 arcmin = π/(180*60) rad = 2^-2 * 3^-1 * 5^-1 * π^1
     UnitLiteralInfo {
