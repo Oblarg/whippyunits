@@ -7,6 +7,7 @@ use syn::{
 };
 use whippyunits_default_dimensions::{
     dimension_exponents_to_unit_expression, get_unit_dimensions, scale_type_to_unit_symbol,
+    COMPOUND_UNITS, SI_PREFIXES,
 };
 
 /// Input for the local quantity macro
@@ -106,26 +107,54 @@ impl LocalQuantityMacroInput {
             if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
                 quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
             } else {
-                // It's a compound unit - generate the unit expression
-                let base_units = [
-                    (mass_base.as_str(), mass_base.as_str()),
-                    (length_base.as_str(), length_base.as_str()),
-                    (time_base.as_str(), time_base.as_str()),
-                    (current_base.as_str(), current_base.as_str()),
-                    (temperature_base.as_str(), temperature_base.as_str()),
-                    (amount_base.as_str(), amount_base.as_str()),
-                    (luminosity_base.as_str(), luminosity_base.as_str()),
-                    (angle_base.as_str(), angle_base.as_str()),
-                ];
+                // It's a compound unit - check if it's a prefixed compound unit
+                if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(&unit_name) {
+                    // For prefixed compound units (like kJ, mW), we need to convert to base unit first
+                    // then apply local scale conversion. This ensures kJ gets converted to μJ like J does.
+                    // Generate the unit expression using the local base units, just like non-prefixed compound units
+                    let base_units = [
+                        (mass_base.as_str(), mass_base.as_str()),
+                        (length_base.as_str(), length_base.as_str()),
+                        (time_base.as_str(), time_base.as_str()),
+                        (current_base.as_str(), current_base.as_str()),
+                        (temperature_base.as_str(), temperature_base.as_str()),
+                        (amount_base.as_str(), amount_base.as_str()),
+                        (luminosity_base.as_str(), luminosity_base.as_str()),
+                        (angle_base.as_str(), angle_base.as_str()),
+                    ];
 
-                let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
-                let unit_expr_parsed =
-                    syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
-                        // If parsing fails, fall back to the original unit
-                        syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
-                    });
+                    let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
+                    let unit_expr_parsed =
+                        syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                            // If parsing fails, fall back to the base unit
+                            syn::parse_str::<syn::Expr>(base_symbol).unwrap()
+                        });
 
-                quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
+                    quote! { 
+                        whippyunits::unit!(#unit_expr_parsed, #storage_type) 
+                    }
+                } else {
+                    // For non-prefixed compound units (like J, W, N), generate the unit expression
+                    let base_units = [
+                        (mass_base.as_str(), mass_base.as_str()),
+                        (length_base.as_str(), length_base.as_str()),
+                        (time_base.as_str(), time_base.as_str()),
+                        (current_base.as_str(), current_base.as_str()),
+                        (temperature_base.as_str(), temperature_base.as_str()),
+                        (amount_base.as_str(), amount_base.as_str()),
+                        (luminosity_base.as_str(), luminosity_base.as_str()),
+                        (angle_base.as_str(), angle_base.as_str()),
+                    ];
+
+                    let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
+                    let unit_expr_parsed =
+                        syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                            // If parsing fails, fall back to the original unit
+                            syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
+                        });
+
+                    quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
+                }
             }
         } else {
             // For unknown units, fall back to the original unit type
@@ -152,4 +181,26 @@ impl LocalQuantityMacroInput {
             _ => None, // Compound unit
         }
     }
+}
+
+/// Check if a unit symbol is a prefixed compound unit (kJ, mW, etc.)
+fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
+    // Try to find a compound unit that this unit name ends with
+    for compound_unit in COMPOUND_UNITS {
+        if unit_symbol.ends_with(compound_unit.symbol) {
+            let prefix_part = &unit_symbol[..unit_symbol.len() - compound_unit.symbol.len()];
+
+            // If no prefix, it should have been found in the direct lookup above
+            if prefix_part.is_empty() {
+                continue;
+            }
+
+            // Check if this is a valid prefix
+            if SI_PREFIXES.iter().any(|prefix| prefix.symbol == prefix_part) {
+                return Some((compound_unit.symbol, prefix_part));
+            }
+        }
+    }
+
+    None
 }

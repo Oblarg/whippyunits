@@ -151,14 +151,14 @@ Format quantities in any compatible unit with automatic conversion:
 
 ```rust
 let distance = 5.0.kilometers();
-println!("{}", distance.format_as("miles").unwrap());     // "3.1068559611866697 mi"
-println!("{}", distance.format_as("feet").unwrap());      // "16404.199475065616 ft"
+println!("{}", distance.fmt("miles"));     // "3.1068559611866697 mi"
+println!("{}", distance.fmt("feet"));      // "16404.199475065616 ft"
 
-// With precision control
-println!("{}", distance.format_as_with_precision("miles", 2).unwrap()); // "3.11 mi"
+// With precision control using format specifiers
+println!("{:.2}", distance.fmt("miles")); // "3.11 mi"
 ```
 
-Use the `format_as!` macro for inline formatting: `format!("Distance: {}", format_as!(distance, "km"))`
+Use the new `fmt()` method for inline formatting: `println!("Distance: {}", distance.fmt("km"))`
 
 ## CLI Pretty Printer
 

@@ -222,14 +222,14 @@ impl PiPowLookupInput {
 
         for exp in range_start..=range_end {
             let (num, den) = if exp >= 0 {
-                // For positive exponents: (710^exp, 113^exp)
-                let num_val = 710_i128.pow(exp as u32);
+                // For positive exponents: (355^exp, 113^exp)
+                let num_val = 355_i128.pow(exp as u32);
                 let den_val = 113_i128.pow(exp as u32);
                 (quote! { #num_val }, quote! { #den_val })
             } else {
-                // For negative exponents: (113^|exp|, 710^|exp|)
+                // For negative exponents: (113^|exp|, 355^|exp|)
                 let num_val = 113_i128.pow((-exp) as u32);
-                let den_val = 710_i128.pow((-exp) as u32);
+                let den_val = 355_i128.pow((-exp) as u32);
                 (quote! { #num_val }, quote! { #den_val })
             };
 

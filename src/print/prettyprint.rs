@@ -373,13 +373,19 @@ macro_rules! define_pretty_print_quantity {
                 verbose, // Use full names in verbose mode, symbols in non-verbose mode
             );
 
-            // Apply SI prefix to the systematic unit literal
-            let systematic_literal = generate_prefixed_systematic_unit(
-                [$($dimension_args)*].to_vec(),
-                $($scale_args)*,
-                &base_systematic_literal,
-                verbose,
-            );
+            // Check if we found a unit literal match - if so, use it directly without conversion factor
+            let systematic_literal = if base_systematic_literal != generate_systematic_unit_name([$($dimension_args)*].to_vec(), verbose) {
+                // We found a unit literal match, use it directly
+                base_systematic_literal
+            } else {
+                // No unit literal match, apply SI prefix to the systematic unit literal
+                generate_prefixed_systematic_unit(
+                    [$($dimension_args)*].to_vec(),
+                    $($scale_args)*,
+                    &base_systematic_literal,
+                    verbose,
+                )
+            };
 
             // Look up dimension name
             let dimension_info = lookup_dimension_name([$($dimension_args)*].to_vec());
@@ -535,13 +541,19 @@ macro_rules! define_pretty_print_quantity_helpers {
                 false
             );
 
-            // Apply SI prefix to the systematic unit literal
-            let prefixed_systematic_literal = generate_prefixed_systematic_unit(
-                [$($dimension_args)*].to_vec(),
-                $($scale_args)*,
-                &systematic_literal,
-                false, // Use short names for inlay hints
-            );
+            // Check if we found a unit literal match - if so, use it directly without conversion factor
+            let prefixed_systematic_literal = if systematic_literal != generate_systematic_unit_name([$($dimension_args)*].to_vec(), false) {
+                // We found a unit literal match, use it directly
+                systematic_literal
+            } else {
+                // No unit literal match, apply SI prefix to the systematic unit literal
+                generate_prefixed_systematic_unit(
+                    [$($dimension_args)*].to_vec(),
+                    $($scale_args)*,
+                    &systematic_literal,
+                    false, // Use short names for inlay hints
+                )
+            };
 
             // Check if we have a recognized dimension with a specific SI unit
             if let Some(info) = lookup_dimension_name([$($dimension_args)*].to_vec()) {

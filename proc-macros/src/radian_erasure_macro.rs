@@ -51,6 +51,7 @@ impl RadianErasureInput {
 
         let mut expansions = Vec::new();
 
+        // Generate same-type conversions
         for (type_name, rescale_fn) in types {
             for &exponent in &exponents {
                 let type_ident = syn::parse_str::<Ident>(type_name).unwrap();
@@ -61,6 +62,36 @@ impl RadianErasureInput {
                 
                 let expansion = quote! {
                     define_from_for_radians_with_scale!(#exponent_lit, #type_ident, #rescale_ident);
+                };
+                
+                expansions.push(expansion);
+            }
+        }
+
+        // Generate cross-type conversions for common type pairs
+        let cross_type_pairs = [
+            (("f32", "rescale_f32"), ("f64", "rescale_f64")),
+            (("f64", "rescale_f64"), ("f32", "rescale_f32")),
+            (("i32", "rescale_i32"), ("f32", "rescale_f32")),
+            (("i32", "rescale_i32"), ("f64", "rescale_f64")),
+            (("i64", "rescale_i64"), ("f32", "rescale_f32")),
+            (("i64", "rescale_i64"), ("f64", "rescale_f64")),
+            (("f32", "rescale_f32"), ("i32", "rescale_i32")),
+            (("f64", "rescale_f64"), ("i32", "rescale_i32")),
+            (("f32", "rescale_f32"), ("i64", "rescale_i64")),
+            (("f64", "rescale_f64"), ("i64", "rescale_i64")),
+        ];
+
+        for ((source_type, source_rescale), (target_type, _)) in cross_type_pairs {
+            for &exponent in &exponents {
+                let source_type_ident = syn::parse_str::<Ident>(source_type).unwrap();
+                let target_type_ident = syn::parse_str::<Ident>(target_type).unwrap();
+                let source_rescale_ident = syn::parse_str::<Ident>(source_rescale).unwrap();
+                
+                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+                
+                let expansion = quote! {
+                    define_from_for_radians_with_scale_cross_type!(#exponent_lit, #source_type_ident, #target_type_ident, #source_rescale_ident);
                 };
                 
                 expansions.push(expansion);
@@ -120,6 +151,8 @@ impl AllRadianErasuresInput {
             .collect();
 
         let mut scalar_expansions = Vec::new();
+        
+        // Generate same-type conversions
         for (type_name, rescale_fn) in types_with_rescale {
             for &exponent in &scalar_exponents {
                 let type_ident = syn::parse_str::<Ident>(type_name).unwrap();
@@ -129,6 +162,36 @@ impl AllRadianErasuresInput {
                 
                 let expansion = quote! {
                     define_from_for_radians_with_scale!(#exponent_lit, #type_ident, #rescale_ident);
+                };
+                
+                scalar_expansions.push(expansion);
+            }
+        }
+
+        // Generate cross-type conversions for common type pairs
+        let cross_type_pairs = [
+            (("f32", "rescale_f32"), ("f64", "rescale_f64")),
+            (("f64", "rescale_f64"), ("f32", "rescale_f32")),
+            (("i32", "rescale_i32"), ("f32", "rescale_f32")),
+            (("i32", "rescale_i32"), ("f64", "rescale_f64")),
+            (("i64", "rescale_i64"), ("f32", "rescale_f32")),
+            (("i64", "rescale_i64"), ("f64", "rescale_f64")),
+            (("f32", "rescale_f32"), ("i32", "rescale_i32")),
+            (("f64", "rescale_f64"), ("i32", "rescale_i32")),
+            (("f32", "rescale_f32"), ("i64", "rescale_i64")),
+            (("f64", "rescale_f64"), ("i64", "rescale_i64")),
+        ];
+
+        for ((source_type, source_rescale), (target_type, _)) in cross_type_pairs {
+            for &exponent in &scalar_exponents {
+                let source_type_ident = syn::parse_str::<Ident>(source_type).unwrap();
+                let target_type_ident = syn::parse_str::<Ident>(target_type).unwrap();
+                let source_rescale_ident = syn::parse_str::<Ident>(source_rescale).unwrap();
+                
+                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+                
+                let expansion = quote! {
+                    define_from_for_radians_with_scale_cross_type!(#exponent_lit, #source_type_ident, #target_type_ident, #source_rescale_ident);
                 };
                 
                 scalar_expansions.push(expansion);

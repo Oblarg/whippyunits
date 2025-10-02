@@ -851,7 +851,7 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Mile",
         dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0),
         scale_factors: (3, 0, 3, 0),
-        conversion_factor: Some(1609.344),
+        conversion_factor: Some(1.609344),
     }, // 1 mi = 1.609344 km
     // Imperial mass units
     UnitLiteralInfo {
@@ -860,8 +860,8 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         type_name: "Ounce",
         dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0),
         scale_factors: (-2, 0, -2, 0),
-        conversion_factor: Some(0.028349523125),
-    }, // 1 oz = 0.028349523125 kg
+        conversion_factor: Some(2.8349523125),
+    }, // 1 oz = 2.8349523125 dag
     UnitLiteralInfo {
         symbol: "lb",
         long_name: "pound",
@@ -870,6 +870,71 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         scale_factors: (0, 0, 0, 0),
         conversion_factor: Some(0.45359237),
     }, // 1 lb = 0.45359237 kg
+    // Angle units - all defined by scale factors, no conversion factors needed
+    UnitLiteralInfo {
+        symbol: "deg",
+        long_name: "degree",
+        type_name: "Degree",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (-2, -2, -1, 1),
+        conversion_factor: None,
+    }, // 1 deg = π/180 rad = 2^-2 * 3^-2 * 5^-1 * π^1
+    UnitLiteralInfo {
+        symbol: "rev",
+        long_name: "revolution",
+        type_name: "Revolution",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1),
+        conversion_factor: None,
+    }, // 1 rev = 2π rad = 2^1 * π^1
+    UnitLiteralInfo {
+        symbol: "rot",
+        long_name: "rotation",
+        type_name: "Rotation",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1),
+        conversion_factor: None,
+    }, // 1 rot = 2π rad = 2^1 * π^1
+    UnitLiteralInfo {
+        symbol: "turn",
+        long_name: "turn",
+        type_name: "Turn",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1),
+        conversion_factor: None,
+    }, // 1 turn = 2π rad = 2^1 * π^1
+    UnitLiteralInfo {
+        symbol: "arcsec",
+        long_name: "arcsecond",
+        type_name: "Arcsecond",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (-4, -2, -1, 1),
+        conversion_factor: None,
+    }, // 1 arcsec = π/(180*3600) rad = 2^-4 * 3^-2 * 5^-1 * π^1
+    UnitLiteralInfo {
+        symbol: "arcmin",
+        long_name: "arcminute",
+        type_name: "Arcminute",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (-2, -1, -1, 1),
+        conversion_factor: None,
+    }, // 1 arcmin = π/(180*60) rad = 2^-2 * 3^-1 * 5^-1 * π^1
+    UnitLiteralInfo {
+        symbol: "gon",
+        long_name: "gon",
+        type_name: "Gon",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (-1, -2, -1, 1),
+        conversion_factor: None,
+    }, // 1 gon = π/200 rad = 2^-1 * 3^-2 * 5^-1 * π^1
+    UnitLiteralInfo {
+        symbol: "grad",
+        long_name: "gradian",
+        type_name: "Gradian",
+        dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
+        scale_factors: (-1, -2, -1, 1),
+        conversion_factor: None,
+    }, // 1 grad = π/200 rad = 2^-1 * 3^-2 * 5^-1 * π^1
 ];
 
 /// Look up dimension information by name (case-insensitive)
@@ -1316,6 +1381,28 @@ pub fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&'static str, &'stati
     None
 }
 
+/// Check if a unit symbol represents a compound unit with SI prefixes (like kJ, mW, etc.)
+pub fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&'static str, &'static str)> {
+    // Try to find a compound unit that this unit name ends with
+    for compound_unit in COMPOUND_UNITS {
+        if unit_symbol.ends_with(compound_unit.symbol) {
+            let prefix_part = &unit_symbol[..unit_symbol.len() - compound_unit.symbol.len()];
+
+            // If no prefix, it should have been found in the direct lookup above
+            if prefix_part.is_empty() {
+                continue;
+            }
+
+            // Check if this is a valid prefix and get the prefix symbol
+            if let Some(prefix_info) = lookup_si_prefix(prefix_part) {
+                return Some((compound_unit.symbol, prefix_info.symbol));
+            }
+        }
+    }
+
+    None
+}
+
 /// Convert a long unit name to its short form (e.g., "kilometer" -> "km")
 pub fn convert_long_name_to_short(unit_name: &str) -> Option<String> {
     // Try to find a prefix and base unit combination using existing data
@@ -1346,6 +1433,13 @@ pub fn get_unit_dimensions(unit_symbol: &str) -> Option<DimensionExponents> {
     // Then check compound units
     if let Some(compound_unit) = COMPOUND_UNITS.iter().find(|u| u.symbol == unit_symbol) {
         return Some(compound_unit.dimension_exponents);
+    }
+
+    // Check if it's a prefixed compound unit (like kJ, mW, etc.)
+    if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_symbol) {
+        if let Some(compound_unit) = COMPOUND_UNITS.iter().find(|u| u.symbol == base_symbol) {
+            return Some(compound_unit.dimension_exponents);
+        }
     }
 
     None

@@ -1,4 +1,6 @@
 #![feature(impl_trait_in_bindings)]
+#![allow(non_snake_case)]
+#![allow(unused_variables)]
 
 use whippyunits::api::rescale;
 use whippyunits::default_declarators;
@@ -709,7 +711,7 @@ fn test_expanded_dimension_dsl_naming_variations() {
 
 #[test]
 fn test_bespoke_quantity() {
-    let joule = quantity!(1.0, W);
+    let joule = quantity!(1.0, J);
     println!("{:?}", joule);
 }
 
@@ -818,7 +820,6 @@ fn test_imperial_units() {
 
 #[test]
 fn test_custom_formatting() {
-    use whippyunits::print::custom_display::QuantityFormatExt;
 
     println!("\n=== Custom Formatting Tests ===");
 
@@ -832,47 +833,47 @@ fn test_custom_formatting() {
     println!("  Mass: {}", mass);
     println!("  Time: {}", time);
 
-    // Test distance conversions
+    // Test distance conversions using new fmt method
     println!("\nDistance conversions:");
-    assert_eq!(distance.format_as("km").unwrap(), "5 km");
-    assert_eq!(distance.format_as("cm").unwrap(), "500000 cm");
-    assert_eq!(distance.format_as("mm").unwrap(), "5000000 mm");
-    assert_eq!(distance.format_as("ft").unwrap(), "16404.199475065616 ft");
-    assert_eq!(distance.format_as("mi").unwrap(), "3.1068559611866697 mi");
+    assert_eq!(format!("{}", distance.fmt("km")), "5 km");
+    assert_eq!(format!("{}", distance.fmt("cm")), "500000 cm");
+    assert_eq!(format!("{}", distance.fmt("mm")), "5000000 mm");
+    assert_eq!(format!("{}", distance.fmt("ft")), "16404.199475065616 ft");
+    assert_eq!(format!("{}", distance.fmt("mi")), "3.1068559611866697 mi");
 
     // Test mass conversions
     println!("Mass conversions:");
-    assert_eq!(mass.format_as("g").unwrap(), "2500 g");
-    assert_eq!(mass.format_as("kg").unwrap(), "2.5 kg");
-    assert_eq!(mass.format_as("oz").unwrap(), "88.18490487395103 oz");
-    assert_eq!(mass.format_as("lb").unwrap(), "5.511556554621939 lb");
+    assert_eq!(format!("{}", mass.fmt("g")), "2500 g");
+    assert_eq!(format!("{}", mass.fmt("kg")), "2.5 kg");
+    assert_eq!(format!("{}", mass.fmt("oz")), "88.18490487395103 oz");
+    assert_eq!(format!("{}", mass.fmt("lb")), "5.511556554621939 lb");
 
     // Test time conversions
     println!("Time conversions:");
-    assert_eq!(time.format_as("s").unwrap(), "90 s");
-    assert_eq!(time.format_as("min").unwrap(), "1.5 min");
-    assert_eq!(time.format_as("h").unwrap(), "0.025 h");
+    assert_eq!(format!("{}", time.fmt("s")), "90 s");
+    assert_eq!(format!("{}", time.fmt("min")), "1.5 min");
+    assert_eq!(format!("{}", time.fmt("h")), "0.025 h");
 
-    // Test precision formatting
+    // Test precision formatting using format specifiers
     println!("Precision formatting:");
     assert_eq!(
-        distance.format_as_with_precision("km", 2).unwrap(),
+        format!("{:.2}", distance.fmt("km")),
         "5.00 km"
     );
     assert_eq!(
-        distance.format_as_with_precision("cm", 0).unwrap(),
+        format!("{:.0}", distance.fmt("cm")),
         "500000 cm"
     );
-    assert_eq!(mass.format_as_with_precision("g", 1).unwrap(), "2500.0 g");
+    assert_eq!(format!("{:.1}", mass.fmt("g")), "2500.0 g");
 
     // Test error cases
     println!("Error cases:");
-    assert!(distance.format_as("kg").is_err()); // Wrong dimension
-    assert!(distance.format_as("unknown_unit").is_err()); // Unknown unit
+    assert!(distance.fmt("kg").to_string().contains("Error")); // Wrong dimension
+    assert!(distance.fmt("unknown_unit").to_string().contains("Error")); // Unknown unit
 
     // Test with different unit names (symbols vs long names)
-    assert_eq!(distance.format_as("kilometer").unwrap(), "5 km");
-    assert_eq!(mass.format_as("gram").unwrap(), "2500 gram");
+    assert_eq!(format!("{}", distance.fmt("kilometer")), "5 km");
+    assert_eq!(format!("{}", mass.fmt("gram")), "2500 gram");
 
     println!("Custom formatting tests passed!");
 }
@@ -880,7 +881,6 @@ fn test_custom_formatting() {
 #[test]
 fn test_format_syntax_demonstration() {
     use whippyunits::default_declarators::*;
-    use whippyunits::format_quantity;
 
     println!("\n=== Custom Format Syntax Demonstration ===");
 
@@ -889,10 +889,10 @@ fn test_format_syntax_demonstration() {
 
     println!("Original mass: {}", mass);
 
-    // Demonstrate the {:kg} syntax using format_quantity! macro
-    println!("\nformat_quantity! macro (simulating {{:kg}} syntax):");
-    println!("  {}", format_quantity!("Mass: {:g}", &mass));
-    println!("  {}", format_quantity!("Mass: {:kg}", &mass));
+    // Demonstrate the new fmt method
+    println!("\nNew fmt method:");
+    println!("  Mass: {}", mass.fmt("g"));
+    println!("  Mass: {}", mass.fmt("kg"));
 
     println!("Format syntax demonstration completed!");
 }
@@ -1241,30 +1241,10 @@ fn test_base60_time_units() {
 }
 
 #[test]
-fn test_kilowatt_hour() {
-    let energy_kwh = quantity!(1.0, kW * h);
-    println!("1 kWh: {:?}", energy_kwh);
-}
-
-#[test]
 fn test_scale_factor_display() {
     println!("\n=== Scale Factor Display Test ===");
 
     // Test kilowatt-hour - should show (3600000) in both systematic literal and SI unit
     let energy_kwh = quantity!(1.0, kW * h);
     println!("Energy kWh: {:?}", energy_kwh);
-
-    // Test with a unit that has a large scale factor
-    let energy_j = quantity!(1.0, J);
-    println!("Energy J: {:?}", energy_j);
-
-    // Test with a unit that has no scale factor (should not show parentheses)
-    let length_m = quantity!(1.0, m);
-    println!("Length m: {:?}", length_m);
-
-    // Test with a unit that has a small scale factor
-    let length_mm = quantity!(1.0, mm);
-    println!("Length mm: {:?}", length_mm);
-
-    println!("Scale factor display test completed!");
 }
