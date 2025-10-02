@@ -583,7 +583,7 @@ pub const SI_PREFIXES: &[PrefixInfo] = &[
     PrefixInfo {
         symbol: "da",
         scale_factor: 1,
-        long_name: "deka",
+        long_name: "deca",
     }, // 10¹
     PrefixInfo {
         symbol: "h",

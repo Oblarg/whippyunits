@@ -155,6 +155,38 @@ impl DefaultDeclaratorsInput {
     }
     
     fn generate_common_time_declarators(&self, expansions: &mut Vec<TokenStream>) {
+        // Get the unit literals from default-dimensions crate
+        let unit_literals = whippyunits_default_dimensions::UNIT_LITERALS;
+        
+        // Find time units (dimension exponents: (0, 0, 1, 0, 0, 0, 0, 0))
+        let time_units: Vec<_> = unit_literals.iter()
+            .filter(|unit| unit.dimension_exponents == (0, 0, 1, 0, 0, 0, 0, 0))
+            .filter(|unit| !unit.symbol.is_empty() && unit.symbol != "s") // Exclude base second
+            .collect();
+        
+        if time_units.is_empty() {
+            return;
+        }
+        
+        // Deduplicate by type_name to avoid duplicate definitions
+        let mut seen_type_names = std::collections::HashSet::new();
+        let mut scale_definitions = Vec::new();
+        
+        for unit in time_units {
+            if seen_type_names.insert(unit.type_name) {
+                let (p2, p3, p5, pi) = unit.scale_factors;
+                let scale_name_ident = syn::parse_str::<Ident>(&unit.type_name).unwrap();
+                
+                // Add 's' to make function names plural
+                let fn_name = format!("{}s", unit.long_name);
+                let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                
+                scale_definitions.push(quote! {
+                    (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
+                });
+            }
+        }
+        
         let expansion = quote! {
             define_quantity!(
                 0,
@@ -166,9 +198,7 @@ impl DefaultDeclaratorsInput {
                 0,
                 0,
                 CommonTime,
-                (Minute, minutes, 2, 1, 1, 0),
-                (Hour, hours, 4, 2, 2, 0),
-                (Day, days, 7, 3, 2, 0),
+                #(#scale_definitions),*
             );
         };
         expansions.push(expansion);
@@ -194,6 +224,38 @@ impl DefaultDeclaratorsInput {
     }
     
     fn generate_common_angle_declarators(&self, expansions: &mut Vec<TokenStream>) {
+        // Get the unit literals from default-dimensions crate
+        let unit_literals = whippyunits_default_dimensions::UNIT_LITERALS;
+        
+        // Find angle units (dimension exponents: (0, 0, 0, 0, 0, 0, 0, 1))
+        let angle_units: Vec<_> = unit_literals.iter()
+            .filter(|unit| unit.dimension_exponents == (0, 0, 0, 0, 0, 0, 0, 1))
+            .filter(|unit| !unit.symbol.is_empty() && unit.symbol != "rad") // Exclude base radian
+            .collect();
+        
+        if angle_units.is_empty() {
+            return;
+        }
+        
+        // Deduplicate by type_name to avoid duplicate definitions
+        let mut seen_type_names = std::collections::HashSet::new();
+        let mut scale_definitions = Vec::new();
+        
+        for unit in angle_units {
+            if seen_type_names.insert(unit.type_name) {
+                let (p2, p3, p5, pi) = unit.scale_factors;
+                let scale_name_ident = syn::parse_str::<Ident>(&unit.type_name).unwrap();
+                
+                // Add 's' to make function names plural
+                let fn_name = format!("{}s", unit.long_name);
+                let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                
+                scale_definitions.push(quote! {
+                    (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
+                });
+            }
+        }
+        
         let expansion = quote! {
             define_quantity!(
                 0,
@@ -205,11 +267,7 @@ impl DefaultDeclaratorsInput {
                 0,
                 1,
                 CommonAngle,
-                (Turn, turns, 1, 0, 0, 1),
-                (Degrees, degrees, -2, -2, -1, 1),
-                (Gradians, gradians, -3, 0, -2, 1),
-                (Arcminutes, arcminutes, -4, -3, -2, 1),
-                (Arcseconds, arcseconds, -6, -4, -3, 1),
+                #(#scale_definitions),*
             );
         };
         expansions.push(expansion);

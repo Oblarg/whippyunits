@@ -42,5 +42,6 @@ pub use whippyunits_proc_macros::define_literals;
 pub use whippyunits_proc_macros::local_unit_type;
 pub use whippyunits_proc_macros::proc_unit as unit;
 pub use whippyunits_proc_macros::whippy_literals;
+pub use whippyunits_proc_macros::generate_scoped_preferences;
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs

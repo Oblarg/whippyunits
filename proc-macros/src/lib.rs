@@ -9,6 +9,7 @@ mod pow_lookup_macro;
 mod unit_macro;
 mod radian_erasure_macro;
 mod default_declarators_macro;
+mod scoped_preferences_macro;
 
 /// Helper macro to compute unit dimensions for a unit expression
 /// Usage: compute_unit_dimensions!(unit_expr)
@@ -50,6 +51,14 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 pub fn define_literals(_input: TokenStream) -> TokenStream {
     let custom_literal_module = culit_macro::generate_custom_literal_module();
     TokenStream::from(custom_literal_module)
+}
+
+/// Generate scoped preferences macro from source of truth
+/// Usage: generate_scoped_preferences!()
+#[proc_macro]
+pub fn generate_scoped_preferences(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as scoped_preferences_macro::ScopedPreferencesInput);
+    input.expand().into()
 }
 
 /// Generate exponentiation lookup tables with parametric range
