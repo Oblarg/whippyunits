@@ -1248,3 +1248,11 @@ fn test_scale_factor_display() {
     let energy_kwh = quantity!(1.0, kW * h);
     println!("Energy kWh: {:?}", energy_kwh);
 }
+
+#[test]
+fn test_minute_detection() {
+    let test = quantity!(1.0, min);
+    println!("Test: {:?}", test);
+    let test2 = quantity!(1.0, rot / min);
+    println!("Test2: {:?}", test2);
+}

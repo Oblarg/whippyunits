@@ -152,8 +152,8 @@ define_calculate_total_scale_p10!(
     (
         let mut total_scale_p10: i16 = 0;
         // In the new system, powers of 10 are represented as equal powers of 2 and 5
-        // So we need to find the minimum of p2 and p5 to get the power of 10
-        if scale_p2 == scale_p5 {
+        // AND all other scale factors must be zero for it to be a pure power of 10
+        if scale_p2 == scale_p5 && scale_p3 == 0 && scale_pi == 0 {
             total_scale_p10 = scale_p2;
         }
         // Note: scale_p3 and scale_pi don't contribute to powers of 10

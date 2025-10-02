@@ -10,10 +10,13 @@ use whippyunits_default_dimensions::{
     COMPOUND_UNITS, SI_PREFIXES,
 };
 
+// Import the UnitExpr type from unit_macro
+use crate::unit_macro::UnitExpr;
+
 /// Input for the local quantity macro
-/// This takes a unit identifier, local scale parameters, and optional storage type
+/// This takes a unit expression, local scale parameters, and optional storage type
 pub struct LocalQuantityMacroInput {
-    pub unit_ident: Ident,
+    pub unit_expr: UnitExpr,
     pub mass_scale: Ident,
     pub length_scale: Ident,
     pub time_scale: Ident,
@@ -27,8 +30,8 @@ pub struct LocalQuantityMacroInput {
 
 impl Parse for LocalQuantityMacroInput {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse the unit identifier first
-        let unit_ident: Ident = input.parse()?;
+        // Parse the unit expression first
+        let unit_expr: UnitExpr = input.parse()?;
 
         // Expect a comma
         let _comma: Comma = input.parse()?;
@@ -59,7 +62,7 @@ impl Parse for LocalQuantityMacroInput {
         };
 
         Ok(LocalQuantityMacroInput {
-            unit_ident,
+            unit_expr,
             mass_scale,
             length_scale,
             time_scale,
@@ -75,15 +78,13 @@ impl Parse for LocalQuantityMacroInput {
 
 impl LocalQuantityMacroInput {
     pub fn expand(self) -> TokenStream {
-        let unit_name = self.unit_ident.to_string();
-
         // Use the specified storage type or default to f64
         let storage_type = self
             .storage_type
             .clone()
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
 
-        // Get the actual unit symbols for each scale type before moving the values
+        // Get the actual unit symbols for each scale type
         let mass_base = scale_type_to_unit_symbol(&self.mass_scale.to_string())
             .unwrap_or_else(|| "g".to_string());
         let length_base = scale_type_to_unit_symbol(&self.length_scale.to_string())
@@ -101,65 +102,99 @@ impl LocalQuantityMacroInput {
         let angle_base = scale_type_to_unit_symbol(&self.angle_scale.to_string())
             .unwrap_or_else(|| "rad".to_string());
 
-        // Use data-driven approach to map unit identifiers to their dimensions
-        if let Some(dimensions) = get_unit_dimensions(&unit_name) {
-            // Check if it's a simple base unit (single dimension = 1, others = 0)
-            if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-                quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
-            } else {
-                // It's a compound unit - check if it's a prefixed compound unit
-                if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(&unit_name) {
-                    // For prefixed compound units (like kJ, mW), we need to convert to base unit first
-                    // then apply local scale conversion. This ensures kJ gets converted to μJ like J does.
-                    // Generate the unit expression using the local base units, just like non-prefixed compound units
-                    let base_units = [
-                        (mass_base.as_str(), mass_base.as_str()),
-                        (length_base.as_str(), length_base.as_str()),
-                        (time_base.as_str(), time_base.as_str()),
-                        (current_base.as_str(), current_base.as_str()),
-                        (temperature_base.as_str(), temperature_base.as_str()),
-                        (amount_base.as_str(), amount_base.as_str()),
-                        (luminosity_base.as_str(), luminosity_base.as_str()),
-                        (angle_base.as_str(), angle_base.as_str()),
-                    ];
+        // Check if this is a single unit (not an algebraic expression)
+        if let UnitExpr::Unit(unit) = &self.unit_expr {
+            let unit_name = unit.name.to_string();
+            
+            // Check if it's a prefixed compound unit (like kPa, mW, kJ)
+            if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(&unit_name) {
+                // For prefixed compound units, we need to handle them specially
+                // by converting to base unit first, then applying local scale conversion
+                let base_units = [
+                    (mass_base.as_str(), mass_base.as_str()),
+                    (length_base.as_str(), length_base.as_str()),
+                    (time_base.as_str(), time_base.as_str()),
+                    (current_base.as_str(), current_base.as_str()),
+                    (temperature_base.as_str(), temperature_base.as_str()),
+                    (amount_base.as_str(), amount_base.as_str()),
+                    (luminosity_base.as_str(), luminosity_base.as_str()),
+                    (angle_base.as_str(), angle_base.as_str()),
+                ];
 
+                // Get dimensions for the base unit (without prefix)
+                if let Some(dimensions) = get_unit_dimensions(base_symbol) {
                     let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
-                    let unit_expr_parsed =
-                        syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
-                            // If parsing fails, fall back to the base unit
-                            syn::parse_str::<syn::Expr>(base_symbol).unwrap()
-                        });
-
-                    quote! { 
-                        whippyunits::unit!(#unit_expr_parsed, #storage_type) 
-                    }
-                } else {
-                    // For non-prefixed compound units (like J, W, N), generate the unit expression
-                    let base_units = [
-                        (mass_base.as_str(), mass_base.as_str()),
-                        (length_base.as_str(), length_base.as_str()),
-                        (time_base.as_str(), time_base.as_str()),
-                        (current_base.as_str(), current_base.as_str()),
-                        (temperature_base.as_str(), temperature_base.as_str()),
-                        (amount_base.as_str(), amount_base.as_str()),
-                        (luminosity_base.as_str(), luminosity_base.as_str()),
-                        (angle_base.as_str(), angle_base.as_str()),
-                    ];
-
-                    let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
-                    let unit_expr_parsed =
-                        syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
-                            // If parsing fails, fall back to the original unit
-                            syn::parse_str::<syn::Expr>(&self.unit_ident.to_string()).unwrap()
-                        });
+                    let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                        syn::parse_str::<syn::Expr>(base_symbol).unwrap()
+                    });
 
                     quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
+                } else {
+                    // Fallback to original unit
+                    let unit_ident = &unit.name;
+                    quote! { whippyunits::unit!(#unit_ident, #storage_type) }
+                }
+            } else {
+                // For non-prefixed single units, use the original logic
+                if let Some(dimensions) = get_unit_dimensions(&unit_name) {
+                    // Check if it's a simple base unit
+                    if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
+                        quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
+                    } else {
+                        // It's a compound unit - generate the unit expression
+                        let base_units = [
+                            (mass_base.as_str(), mass_base.as_str()),
+                            (length_base.as_str(), length_base.as_str()),
+                            (time_base.as_str(), time_base.as_str()),
+                            (current_base.as_str(), current_base.as_str()),
+                            (temperature_base.as_str(), temperature_base.as_str()),
+                            (amount_base.as_str(), amount_base.as_str()),
+                            (luminosity_base.as_str(), luminosity_base.as_str()),
+                            (angle_base.as_str(), angle_base.as_str()),
+                        ];
+
+                        let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
+                        let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                            syn::parse_str::<syn::Expr>(&unit_name).unwrap()
+                        });
+
+                        quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
+                    }
+                } else {
+                    // Unknown unit, fall back to original
+                    let unit_ident = &unit.name;
+                    quote! { whippyunits::unit!(#unit_ident, #storage_type) }
                 }
             }
         } else {
-            // For unknown units, fall back to the original unit type
-            let unit_ident = self.unit_ident;
-            quote! { whippyunits::unit!(#unit_ident, #storage_type) }
+            // It's an algebraic expression (like J/s, m*s, etc.)
+            // Evaluate the unit expression to get dimension exponents
+            let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, _p2, _p3, _p5, _pi) = self.unit_expr.evaluate();
+
+            // Check if it's a simple base unit (single dimension = 1, others = 0)
+            if let Some(scale_ident) = self.get_scale_for_dimensions((mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp)) {
+                quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
+            } else {
+                // It's a compound unit - generate the unit expression using local base units
+                let base_units = [
+                    (mass_base.as_str(), mass_base.as_str()),
+                    (length_base.as_str(), length_base.as_str()),
+                    (time_base.as_str(), time_base.as_str()),
+                    (current_base.as_str(), current_base.as_str()),
+                    (temperature_base.as_str(), temperature_base.as_str()),
+                    (amount_base.as_str(), amount_base.as_str()),
+                    (luminosity_base.as_str(), luminosity_base.as_str()),
+                    (angle_base.as_str(), angle_base.as_str()),
+                ];
+
+                let unit_expr = dimension_exponents_to_unit_expression((mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp), &base_units);
+                let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
+                    // If parsing fails, fall back to a generic unit expression
+                    syn::parse_str::<syn::Expr>("m").unwrap()
+                });
+
+                quote! { whippyunits::unit!(#unit_expr_parsed, #storage_type) }
+            }
         }
     }
 
@@ -183,7 +218,7 @@ impl LocalQuantityMacroInput {
     }
 }
 
-/// Check if a unit symbol is a prefixed compound unit (kJ, mW, etc.)
+/// Check if a unit symbol is a prefixed compound unit (kPa, mW, etc.)
 fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
     // Try to find a compound unit that this unit name ends with
     for compound_unit in COMPOUND_UNITS {

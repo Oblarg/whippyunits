@@ -110,10 +110,10 @@ impl ScopedPreferencesInput {
                     // This uses the existing local_unit_type proc macro with complex lifting logic
                     #[macro_export]
                     macro_rules! quantity {
-                        ($value:expr, $unit:ident) => {
+                        ($value:expr, $unit:expr) => {
                             <$crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale)>::new($value)
                         };
-                        ($value:expr, $unit:ident, $storage_type:ty) => {
+                        ($value:expr, $unit:expr, $storage_type:ty) => {
                             <$crate::local_unit_type!($unit, $mass_scale, $length_scale, $time_scale, $current_scale, $temperature_scale, $amount_scale, $luminosity_scale, $angle_scale, $storage_type)>::new($value)
                         };
                     }

@@ -78,3 +78,9 @@ fn test_compound_unit_literals_with_local_scale() {
     
     println!("Compound unit literals with local scale preferences test passed!");
 }
+
+#[test]
+fn test_compound_unit_literal_detection() {
+    let test = quantity!(1.0, J / s);
+    println!("Test: {:?}", test);
+}
