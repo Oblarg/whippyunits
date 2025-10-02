@@ -1253,6 +1253,7 @@ fn test_scale_factor_display() {
 fn test_minute_detection() {
     let test = quantity!(1.0, min);
     println!("Test: {:?}", test);
-    let test2 = quantity!(1.0, rot / min);
+
+    let test2 = quantity!(1.0, rot / min / s);
     println!("Test2: {:?}", test2);
 }

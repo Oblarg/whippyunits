@@ -200,12 +200,8 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
     if value == 1.0 {
         String::new()
     } else {
-        // Format as integer if it's a whole number, otherwise show with reasonable precision
-        if value.fract() == 0.0 {
-            format!("({})", value as i64)
-        } else {
-            format!("({})", value)
-        }
+        // Format with 5 significant figures for reasonable precision
+        format!("({})", format_float_with_sig_figs(value, 5))
     }
 }
 
@@ -336,6 +332,39 @@ fn generate_prefixed_systematic_unit(
     }
 }
 
+/// Helper function to format floating point numbers with a reasonable number of significant figures
+fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
+    if value == 0.0 {
+        return "0".to_string();
+    }
+    
+    let abs_value = value.abs();
+    let magnitude = abs_value.log10().floor() as i32;
+    let scale_factor = 10_f64.powi(sig_figs as i32 - 1 - magnitude as i32);
+    
+    let rounded = (value * scale_factor).round() / scale_factor;
+    
+    // Check if truncation occurred by comparing the original value with the rounded value
+    let was_truncated = (value - rounded).abs() > 1e-15;
+    
+    // Format with appropriate precision
+    let formatted = if magnitude >= 0 {
+        // For values >= 1, show up to sig_figs digits total
+        let precision = (sig_figs as i32 - magnitude - 1).max(0) as usize;
+        format!("{:.precision$}", rounded, precision = precision)
+    } else {
+        // For values < 1, show sig_figs significant digits after decimal
+        format!("{:.precision$}", rounded, precision = (sig_figs as i32 + magnitude.abs()) as usize)
+    };
+    
+    // Add approximate symbol if truncation occurred
+    if was_truncated {
+        format!("~{}", formatted)
+    } else {
+        formatted
+    }
+}
+
 /// Helper function to format scale values, handling sentinel values
 fn format_scale_value(scale: i16) -> String {
     if scale == i16::MAX {
@@ -357,10 +386,11 @@ macro_rules! define_pretty_print_quantity {
             show_type_in_brackets: bool,
         ) -> String {
             let value_prefix = if let Some(val) = value {
+                let formatted_val = format_float_with_sig_figs(val, 5);
                 if verbose && !show_type_in_brackets {
-                    format!("({}_{}) ", val, type_name)
+                    format!("({}_{}) ", formatted_val, type_name)
                 } else {
-                    format!("({}) ", val)
+                    format!("({}) ", formatted_val)
                 }
             } else {
                 String::new()
