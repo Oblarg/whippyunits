@@ -793,148 +793,148 @@ pub const UNIT_LITERALS: &[UnitLiteralInfo] = &[
         long_name: "minute",
         type_name: "Minute",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
-        scale_factors: (2, 1, 1, 0),
+        scale_factors: (2, 1, 1, 0), // 2^2 * 3 * 5 = 60
         conversion_factor: None,
-    }, // 1 min = 60 s = 2^2 * 3 * 5
+    },
     UnitLiteralInfo {
         symbol: "h",
         long_name: "hour",
         type_name: "Hour",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
-        scale_factors: (4, 2, 2, 0),
+        scale_factors: (4, 2, 2, 0), // 2^4 * 3^2 * 5^2 = 3600
         conversion_factor: None,
-    }, // 1 h = 3600 s = 2^4 * 3^2 * 5^2
+    },
     UnitLiteralInfo {
         symbol: "hr",
         long_name: "hour",
         type_name: "Hour",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
-        scale_factors: (4, 2, 2, 0),
+        scale_factors: (4, 2, 2, 0), // 2^4 * 3^2 * 5^2 = 3600
         conversion_factor: None,
-    }, // 1 hr = 3600 s = 2^4 * 3^2 * 5^2
+    },
     UnitLiteralInfo {
         symbol: "d",
         long_name: "day",
         type_name: "Day",
         dimension_exponents: (0, 0, 1, 0, 0, 0, 0, 0),
-        scale_factors: (7, 3, 2, 0),
+        scale_factors: (7, 3, 2, 0), // 2^7 * 3^3 * 5^2 = 86400
         conversion_factor: None,
-    }, // 1 d = 86400 s = 2^7 * 3^3 * 5^2
+    },
     // Imperial length units
     UnitLiteralInfo {
         symbol: "in",
         long_name: "inch",
         type_name: "Inch",
         dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0),
-        scale_factors: (-2, 0, -2, 0),
+        scale_factors: (-2, 0, -2, 0), // 2^-2 * 3^0 * 5^-2 = 0.01 (stored in centimeters)
         conversion_factor: Some(0.0254),
-    }, // 1 in = 2.54 cm = 0.0254 m
+    },
     UnitLiteralInfo {
         symbol: "yd",
         long_name: "yard",
         type_name: "Yard",
         dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0),
-        scale_factors: (0, 0, 0, 0),
+        scale_factors: (0, 0, 0, 0), // 2^0 * 3^0 * 5^0 = 0 (stored in meters)
         conversion_factor: Some(0.9144),
-    }, // 1 yd = 0.9144 m
+    },
     UnitLiteralInfo {
         symbol: "ft",
         long_name: "foot",
         type_name: "Foot",
         dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0),
-        scale_factors: (0, 0, 0, 0),
+        scale_factors: (0, 0, 0, 0), // 2^0 * 3^0 * 5^0 = 0 (stored in meters)
         conversion_factor: Some(0.3048),
-    }, // 1 ft = 0.3048 m
+    },
     UnitLiteralInfo {
         symbol: "mi",
         long_name: "mile",
         type_name: "Mile",
         dimension_exponents: (0, 1, 0, 0, 0, 0, 0, 0),
-        scale_factors: (3, 0, 3, 0),
+        scale_factors: (3, 0, 3, 0), // 2^3 * 3^0 * 5^3 = 1000 (stored in kilometers)
         conversion_factor: Some(1.609344),
-    }, // 1 mi = 1.609344 km
+    },
     // Imperial mass units
     UnitLiteralInfo {
         symbol: "oz",
         long_name: "ounce",
         type_name: "Ounce",
         dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0),
-        scale_factors: (-2, 0, -2, 0),
+        scale_factors: (-2, 0, -2, 0), // 2^-2 * 3^0 * 5^-2 = 0.01 (stored in decigrams)
         conversion_factor: Some(2.8349523125),
-    }, // 1 oz = 2.8349523125 dag
+    },
     UnitLiteralInfo {
         symbol: "lb",
         long_name: "pound",
         type_name: "Pound",
         dimension_exponents: (1, 0, 0, 0, 0, 0, 0, 0),
-        scale_factors: (0, 0, 0, 0),
+        scale_factors: (0, 0, 0, 0), // 2^0 * 3^0 * 5^0 = 0 (stored in kilograms)
         conversion_factor: Some(0.45359237),
-    }, // 1 lb = 0.45359237 kg
+    },
     // Angle units - all defined by scale factors, no conversion factors needed
     UnitLiteralInfo {
         symbol: "deg",
         long_name: "degree",
         type_name: "Degree",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-2, -2, -1, 1),
+        scale_factors: (-2, -2, -1, 1), // 2^-2 * 3^-2 * 5^-1 * π^1 = π/180
         conversion_factor: None,
-    }, // 1 deg = π/180 rad = 2^-2 * 3^-2 * 5^-1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "rev",
         long_name: "revolution",
         type_name: "Revolution",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (1, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1), // 2^1 * 3^0 * 5^0 * π^1 = 2π
         conversion_factor: None,
-    }, // 1 rev = 2π rad = 2^1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "rot",
         long_name: "rotation",
         type_name: "Rotation",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (1, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1), // 2^1 * 3^0 * 5^0 * π^1 = 2π
         conversion_factor: None,
-    }, // 1 rot = 2π rad = 2^1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "turn",
         long_name: "turn",
         type_name: "Turn",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (1, 0, 0, 1),
+        scale_factors: (1, 0, 0, 1), // 2^1 * 3^0 * 5^0 * π^1 = 2π
         conversion_factor: None,
-    }, // 1 turn = 2π rad = 2^1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "arcsec",
         long_name: "arcsecond",
         type_name: "Arcsecond",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-6, -4, -3, 1),
+        scale_factors: (-6, -4, -3, 1), // 2^-6 * 3^-4 * 5^-3 * π^1 = π/(180*3600)
         conversion_factor: None,
-    }, // 1 arcsec = π/(180*3600) rad = 2^-4 * 3^-2 * 5^-1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "arcmin",
         long_name: "arcminute",
         type_name: "Arcminute",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-4, -3, -2, 1),
+        scale_factors: (-4, -3, -2, 1), // 2^-4 * 3^-3 * 5^-2 * π^1 = π/(180*60)
         conversion_factor: None,
-    }, // 1 arcmin = π/(180*60) rad = 2^-2 * 3^-1 * 5^-1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "gon",
         long_name: "gon",
         type_name: "Gon",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-1, -2, -1, 1),
+        scale_factors: (-3, 0, -2, 1), // 2^-3 * 3^0 * 5^-2 * π^1 = π/200
         conversion_factor: None,
-    }, // 1 gon = π/200 rad = 2^-1 * 3^-2 * 5^-1 * π^1
+    },
     UnitLiteralInfo {
         symbol: "grad",
         long_name: "gradian",
         type_name: "Gradian",
         dimension_exponents: (0, 0, 0, 0, 0, 0, 0, 1),
-        scale_factors: (-1, -2, -1, 1),
+        scale_factors: (-3, 0, -2, 1), // 2^-3 * 3^0 * 5^-2 * π^1 = π/200
         conversion_factor: None,
-    }, // 1 grad = π/200 rad = 2^-1 * 3^-2 * 5^-1 * π^1
+    },
 ];
 
 /// Look up dimension information by name (case-insensitive)

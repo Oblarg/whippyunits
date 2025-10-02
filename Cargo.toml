@@ -4,6 +4,7 @@ members = [
     "proc-macros",
     "default-dimensions",
     "whippyunits-pretty",
+    "lsp-proxy",
 ]
 
 [package]

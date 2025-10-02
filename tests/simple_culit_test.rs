@@ -121,12 +121,12 @@ fn test_angular_unit_custom_literals() {
     // Test all angular unit literals with float suffixes
     let radian = 1.0rad;        // radian (base SI unit)
     let degree = 90.0deg;       // degree (π/180 rad)
-    let rotation = 0.5rot_f64;      // rotation (2π rad)
-    let turn = 0.25turn_f64;        // turn (2π rad)
+    let rotation = 0.5rot;      // rotation (2π rad)
+    let turn = 0.25turn;        // turn (2π rad)
     let arcsecond = 3600.0arcsec; // arcsecond (π/(180*3600) rad)
-    let arcminute = 60.0arcmin_f64;   // arcminute (π/(180*60) rad)
-    let gon = 100.0gon_f64;         // gon (π/200 rad)
-    let gradian = 100.0grad_f64;    // gradian (π/200 rad)
+    let arcminute = 60.0arcmin;   // arcminute (π/(180*60) rad)
+    let gon = 100.0gon;         // gon (π/200 rad)
+    let gradian = 100.0grad;    // gradian (π/200 rad)
 
     // Test integer angular unit literals
     let radian_i32 = 1rad;
