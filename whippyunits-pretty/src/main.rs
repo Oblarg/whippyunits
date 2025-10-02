@@ -3,7 +3,8 @@ use clap::Parser;
 use anyhow::Result;
 use log::info;
 
-use whippyunits_lsp_proxy::{rustc_pretty::RustcPrettyPrinter, DisplayConfig};
+use whippyunits_lsp_proxy::DisplayConfig;
+use crate::rustc_pretty::RustcPrettyPrinter;
 
 /// Pretty-print rustc output with whippyunits type formatting
 #[derive(Parser, Debug)]

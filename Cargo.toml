@@ -2,7 +2,8 @@
 members = [
     ".",
     "proc-macros",
-    "default-dimensions", 
+    "default-dimensions",
+    "whippyunits-pretty",
 ]
 
 [package]

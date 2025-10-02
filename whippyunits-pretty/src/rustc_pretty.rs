@@ -2,7 +2,7 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 
-use crate::{unit_formatter::{UnitFormatter, DisplayConfig}};
+use whippyunits_lsp_proxy::{unit_formatter::{UnitFormatter, DisplayConfig}};
 
 /// Pretty printer for rustc output with whippyunits type formatting
 pub struct RustcPrettyPrinter {

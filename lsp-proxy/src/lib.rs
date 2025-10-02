@@ -2,7 +2,6 @@ use serde_json::Value;
 use anyhow::Result;
 
 pub mod inlay_hint_processor;
-pub mod rustc_pretty;
 pub mod quantity_detection;
 pub mod unit_formatter;
 pub mod lsp_structures;

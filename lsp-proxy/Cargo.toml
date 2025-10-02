@@ -22,9 +22,5 @@ whippyunits = { path = ".." }
 name = "lsp-proxy"
 path = "src/main.rs"
 
-[[bin]]
-name = "whippyunits-pretty"
-path = "src/pretty_main.rs"
-
 
 
