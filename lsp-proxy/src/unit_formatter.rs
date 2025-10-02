@@ -80,21 +80,25 @@ impl UnitFormatter {
                                          text.contains("impl Div for");
             
             let params = if is_const_generic_context {
-                // This is a type definition or const generic context, treat as unknown (all i16::MIN placeholders)
-                Some(QuantityParams {
-                    mass_exp: i16::MIN,
-                    length_exp: i16::MIN,
-                    time_exp: i16::MIN,
-                    electric_current_exp: 0,
-                    temperature_exp: 0,
-                    amount_of_substance_exp: 0,
-                    luminous_intensity_exp: 0,
-                    angle_exp: 0,
-                    scale_p2: i16::MIN,
-                    scale_p3: i16::MIN,
-                    scale_p5: i16::MIN,
-                    scale_pi: i16::MIN,
-                    generic_type: "f64".to_string(),
+                // This is a type definition or const generic context
+                // Try to parse the actual values first, fall back to unknown if parsing fails
+                self.parse_quantity_params(&full_match).or_else(|| {
+                    // If parsing fails, treat as unknown (all i16::MIN placeholders)
+                    Some(QuantityParams {
+                        mass_exp: i16::MIN,
+                        length_exp: i16::MIN,
+                        time_exp: i16::MIN,
+                        electric_current_exp: 0,
+                        temperature_exp: 0,
+                        amount_of_substance_exp: 0,
+                        luminous_intensity_exp: 0,
+                        angle_exp: 0,
+                        scale_p2: i16::MIN,
+                        scale_p3: i16::MIN,
+                        scale_p5: i16::MIN,
+                        scale_pi: i16::MIN,
+                        generic_type: "f64".to_string(),
+                    })
                 })
             } else {
                 self.parse_quantity_params(&full_match)
@@ -220,19 +224,19 @@ impl UnitFormatter {
                 generic_type,
             })
         } else if params.len() >= 8 {
-            // Handle legacy 3-dimension format (backward compatibility)
+            // Handle 8-parameter format (8 dimension exponents only, no scale parameters)
             Some(QuantityParams {
                 mass_exp: params[0].unwrap_or(0),
-                length_exp: params[2].unwrap_or(0),
-                time_exp: params[4].unwrap_or(0),
-                electric_current_exp: 0,
-                temperature_exp: 0,
-                amount_of_substance_exp: 0,
-                luminous_intensity_exp: 0,
-                angle_exp: 0,
-                scale_p2: params[5].unwrap_or(0),
-                scale_p3: params[6].unwrap_or(0),
-                scale_p5: params[7].unwrap_or(0),
+                length_exp: params[1].unwrap_or(0),
+                time_exp: params[2].unwrap_or(0),
+                electric_current_exp: params[3].unwrap_or(0),
+                temperature_exp: params[4].unwrap_or(0),
+                amount_of_substance_exp: params[5].unwrap_or(0),
+                luminous_intensity_exp: params[6].unwrap_or(0),
+                angle_exp: params[7].unwrap_or(0),
+                scale_p2: 0,
+                scale_p3: 0,
+                scale_p5: 0,
                 scale_pi: 0,
                 generic_type,
             })
@@ -281,25 +285,15 @@ impl UnitFormatter {
                     }
                 }
             } else if params.len() >= 8 {
-                // Legacy format - check old structure
-                let mass_exp = params[0].parse::<i16>().unwrap_or(0);
-                let mass_scale = if params[1] == "_" { i16::MIN } else { params[1].parse::<i16>().unwrap_or(i16::MAX) };
-                if mass_exp != 0 && mass_scale == i16::MIN {
-                    return true;
-                }
-                
-                let length_exp = params[2].parse::<i16>().unwrap_or(0);
-                let length_scale = if params[3] == "_" { i16::MIN } else { params[3].parse::<i16>().unwrap_or(i16::MAX) };
-                if length_exp != 0 && length_scale == i16::MIN {
-                    return true;
-                }
-                
-                let time_exp = params[4].parse::<i16>().unwrap_or(0);
-                let time_p2 = if params[5] == "_" { i16::MIN } else { params[5].parse::<i16>().unwrap_or(i16::MAX) };
-                let time_p3 = if params[6] == "_" { i16::MIN } else { params[6].parse::<i16>().unwrap_or(i16::MAX) };
-                let time_p5 = if params[7] == "_" { i16::MIN } else { params[7].parse::<i16>().unwrap_or(i16::MAX) };
-                if time_exp != 0 && (time_p2 == i16::MIN || time_p3 == i16::MIN || time_p5 == i16::MIN) {
-                    return true;
+                // 8-parameter format (8 dimension exponents only, no scale parameters)
+                // Check if any dimension has a non-zero exponent
+                for i in 0..8 {
+                    let exp = params[i].parse::<i16>().unwrap_or(0);
+                    if exp != 0 {
+                        // For 8-parameter format, we don't have scale parameters to check
+                        // This is a fully resolved type
+                        return false;
+                    }
                 }
             }
         }
