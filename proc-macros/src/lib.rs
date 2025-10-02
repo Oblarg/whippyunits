@@ -8,6 +8,7 @@ mod local_quantity_macro;
 mod pow_lookup_macro;
 mod unit_macro;
 mod radian_erasure_macro;
+mod default_declarators_macro;
 
 /// Helper macro to compute unit dimensions for a unit expression
 /// Usage: compute_unit_dimensions!(unit_expr)
@@ -72,6 +73,14 @@ pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as radian_erasure_macro::AllRadianErasuresInput);
+    input.expand().into()
+}
+
+/// Generate default declarators using the source of truth from default-dimensions
+/// Usage: generate_default_declarators!()
+#[proc_macro]
+pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as default_declarators_macro::DefaultDeclaratorsInput);
     input.expand().into()
 }
 
