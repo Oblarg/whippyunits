@@ -26,7 +26,7 @@ let distance = quantity!(5.0, m);
 let distance = 5.0m;
 
 // multiplication tracks dimensions
-let area = 5.0.meters() * 5.0.meters();
+let area = 5.0m * 5.0m;
 // or...
 let area = quantity!(5.0 * 5.0, m^2);
 
@@ -38,11 +38,11 @@ let illegal = area + distance;
 // The generic `rescale` function makes multiscale addition both ergonomic and safe:
 
 // result: 1.001 meters
-let sum_in_meters = 1.0.meters() + rescale(1.0.millimeters());
+let sum_in_meters = 1.0m + rescale(1.0mm);
 // result: 1001.0 millimeters
-let sum_in_millimeters = rescale(1.0.meters()) + 1.0.millimeters();
+let sum_in_millimeters = rescale(1.0m) + 1.0mm;
 // result: compilation error (scale incoherence)
-let illegal_sum = 1.0.meters() + 1.0.millimeters();
+let illegal_sum = 1.0m + 1.0mm;
 ```
 
 ## Scale-Generic Calculations
@@ -65,8 +65,10 @@ where
 }
 
 // regardless of input/output scales, the return type will always satisfy the Area trait
-let millimeters_squared: impl Area = area(1.0.millimeters(), 1.0.millimeters());
-let meters_squared: impl Area = area(1.0.meters(), 1.0.meters());
+let millimeters_squared: impl Area = area(1.0mm, 1.0mm);
+let meters_squared: impl Area = area(1.0m, 1.0m);
+// This works too; it will return a concrete type of milli(meters^2), since mm * m = (1/1000)(meters^2)
+let mixed_units: impl Area = area(1.0mm, 1.0m);
 
 // the generic dimension DSL expresses arbitrary dimensional algebra, so all derived units can be covered
 define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
@@ -132,16 +134,16 @@ fn example() {
 ## Human-readable display and debug format
 
 ```rust
-println!("{}", 5.0.millimeters()); 
-// (5) Quantity<mm; Length>
-println!("{:?}", 5.0.meters()); 
+println!("{}", 5.0m); 
+// (5) Quantity<m; Length>
+println!("{:?}", 5.0m); 
 // (5_f64) Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰]>
 
 // Even handles complex SI values with correct aggregate-power-of-10 prefixing:
-let joule = 1.0.milligrams() * 1.0.meters() * 1.0.meters() / 1.0.seconds() / 1.0.seconds();
-println!("{}", joule);
+let microjoule = quantity!(1.0, kg * mm^2 / s^2);
+println!("{}", microjoule);
 // (1) Quantity<μ(kg·m²·s⁻²); μJ; Energy>
-println!("{:?}", joule);
+println!("{:?}", microjoule);
 // (1_f64) Quantity<micro(kilogram·meter²·second⁻²); microJoule; Energy; [mass¹, length², time⁻², current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁻⁶, 3⁰, 5⁻⁶, π⁰]>
 ```
 
@@ -150,15 +152,12 @@ println!("{:?}", joule);
 Format quantities in any compatible unit with automatic conversion:
 
 ```rust
-let distance = 5.0.kilometers();
-println!("{}", distance.fmt("miles"));     // "3.1068559611866697 mi"
-println!("{}", distance.fmt("feet"));      // "16404.199475065616 ft"
+println!("{}", 5.0km.fmt("miles"));     // "3.1068559611866697 mi"
+println!("{}", 5.0ft.fmt("feet"));      // "16404.199475065616 ft"
 
 // With precision control using format specifiers
-println!("{:.2}", distance.fmt("miles")); // "3.11 mi"
+println!("{:.2}", 5.0km.fmt("miles")); // "3.11 mi"
 ```
-
-Use the new `fmt()` method for inline formatting: `println!("Distance: {}", distance.fmt("km"))`
 
 ## CLI Pretty Printer
 
@@ -219,14 +218,14 @@ The `lsp-proxy/` directory contains a Language Server Protocol proxy that interc
     * tersely in inlay hints with backing datatype suffix (also including best-effort interpretation...):
         ```rust
         //          v inlay hint
-        let distance: mm_f64 = 5.0.millimeters();
+        let distance: Quantity<mm, f64> = 5.0mm;
         ```
 * replaces literal Quantity text completions with equivalent `unit!` macro declarations
     ```rust
     //          v inlay hint (like above)
-    let distance: mm_f64 = 5.0.millimeters();
+    let distance: Quantity<mm, f64> = 5.0mm;
     //          double-clicks into correct macro declaration syntax for the unit!
-    let distance: unit!(mm) = 5.0.millimeters();
+    let distance: unit!(mm) = 5.0mm;
     ```
 
 See `lsp-proxy/README.md` for setup instructions.
