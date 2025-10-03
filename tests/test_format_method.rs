@@ -50,4 +50,9 @@ fn test_format_method() {
     println!("0 decimal places: {:.0}", distance.fmt("km"));
     println!("4 decimal places: {:.4}", distance.fmt("km"));
     
+    // Test the new unified format
+    println!("\nTesting unified format:");
+    println!("Display format: {}", distance);
+    println!("Debug format: {:?}", distance);
+    println!("{:?}", quantity!(1.0, rot / min));
 }

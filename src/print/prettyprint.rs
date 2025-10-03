@@ -1,8 +1,7 @@
 use crate::print::name_lookup::lookup_dimension_name;
-use crate::print::name_lookup::{
-    generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors,
-};
+use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::utils::{get_si_prefix, to_unicode_superscript};
+use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
 use whippyunits_default_dimensions::DIMENSION_LOOKUP;
 
 /// Format configuration for unit symbol generation
@@ -205,7 +204,7 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
     }
 }
 
-fn generate_prefixed_si_unit(
+pub fn generate_prefixed_si_unit(
     scale_p2: i16,
     scale_p3: i16,
     scale_p5: i16,
@@ -236,7 +235,7 @@ fn generate_prefixed_si_unit(
     }
 }
 
-fn generate_prefixed_systematic_unit(
+pub fn generate_prefixed_systematic_unit(
     exponents: Vec<i16>,
     scale_p2: i16,
     scale_p3: i16,
@@ -284,7 +283,7 @@ fn generate_prefixed_systematic_unit(
                             exponents
                                 .iter()
                                 .enumerate()
-                                .map(|(i, &exp)| if i == dimension_index { 1 } else { 0 })
+                                .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
                                 .collect(),
                             long_name,
                         );
@@ -360,82 +359,37 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
     formatted
 }
 
-/// Helper function to format scale values, handling sentinel values
-fn format_scale_value(scale: i16) -> String {
-    if scale == i16::MAX {
-        "unused".to_string()
-    } else {
-        scale.to_string()
-    }
-}
 
 #[macro_export]
 macro_rules! define_pretty_print_quantity {
     (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*), $unit_vector_format:expr) => {
-        /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales]>`
+        /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
         pub fn pretty_print_quantity(
             value: Option<f64>,
             $($dimension_signature_params)*,
             type_name: &str,
             verbose: bool,
-            show_type_in_brackets: bool,
+            _show_type_in_brackets: bool,
         ) -> String {
             let value_prefix = if let Some(val) = value {
                 let formatted_val = format_float_with_sig_figs(val, 5);
-                if verbose && !show_type_in_brackets {
-                    format!("({}_{}) ", formatted_val, type_name)
-                } else {
-                    format!("({}) ", formatted_val)
-                }
+                format!("({}) ", formatted_val)
             } else {
                 String::new()
             };
 
-            // Generate systematic unit literal (base unit without prefix)
-            let base_systematic_literal = generate_systematic_unit_name_with_scale_factors(
+            // Generate the best unit literal using centralized logic
+            let unit_literal = generate_unit_literal(
                 [$($dimension_args)*].to_vec(),
-                ($($scale_args)*),
-                verbose, // Use full names in verbose mode, symbols in non-verbose mode
+                $($scale_args)*,
+                UnitLiteralConfig {
+                    verbose,
+                    prefer_si_units: true,
+                },
             );
 
-            // Check if we found a unit literal match - if so, use it directly without conversion factor
-            let systematic_literal = if base_systematic_literal != generate_systematic_unit_name([$($dimension_args)*].to_vec(), verbose) {
-                // We found a unit literal match, use it directly
-                base_systematic_literal
-            } else {
-                // No unit literal match, apply SI prefix to the systematic unit literal
-                generate_prefixed_systematic_unit(
-                    [$($dimension_args)*].to_vec(),
-                    $($scale_args)*,
-                    &base_systematic_literal,
-                    verbose,
-                )
-            };
-
-            // Look up dimension name
+            // Look up dimension name for secondary display
             let dimension_info = lookup_dimension_name([$($dimension_args)*].to_vec());
-
-            // Generate SI shortname - use dimension-specific SI unit if available, otherwise don't show a shortname
-            let unit_shortname = if let Some(ref info) = dimension_info {
-                if let Some(base_si_unit) = if verbose {
-                    info.unit_si_shortname
-                } else {
-                    info.unit_si_shortname_symbol
-                } {
-                    // Use the specific SI unit name with correct prefix (e.g., "μJ" for microjoule)
-                    generate_prefixed_si_unit(
-                        $($scale_args)*,
-                        base_si_unit,
-                        verbose,
-                    )
-                } else {
-                    // No specific SI unit defined for this recognized dimension, don't show a shortname
-                    String::new()
-                }
-            } else {
-                // Unknown dimension, don't show a unit shortname to avoid stuttering
-                String::new()
-            };
 
             let dimension_name = if let Some(ref info) = dimension_info {
                 // For recognized composite dimensions, always use the dimension name (e.g., "Force", "Energy")
@@ -451,31 +405,36 @@ macro_rules! define_pretty_print_quantity {
                 }
             };
 
-            let primary = if systematic_literal.is_empty() { &dimension_name } else { &systematic_literal };
-            let secondary = if !unit_shortname.is_empty() && unit_shortname != systematic_literal {
-                format!("; {}; {}", unit_shortname, dimension_name)
-            } else if !systematic_literal.is_empty() {
-                // For unknown dimensions, don't show the redundant dimension name
+            let primary = if !unit_literal.is_empty() { 
+                &unit_literal 
+            } else { 
+                &dimension_name 
+            };
+            let secondary = if verbose {
+                // In verbose mode (debug), show the dimension name in parentheses
                 if dimension_info.is_some() {
-                    format!("; {}", dimension_name)
+                    format!(" ({})", dimension_name)
                 } else {
                     String::new()
                 }
             } else {
+                // In non-verbose mode (display), don't show dimension names or semicolons
                 String::new()
             };
             let verbose_info = if verbose {
-                if show_type_in_brackets {
-                    // Add the type name after the square brackets without semicolon separator
-                    format!("{} {}", $unit_vector_format, type_name)
-                } else {
-                    $unit_vector_format
-                }
+                $unit_vector_format
             } else {
                 String::new()
             };
 
-            format!("{}Quantity<{}{}{}>", value_prefix, primary, secondary, verbose_info)
+            // Always add the type parameter at the end
+            let type_suffix = if verbose {
+                format!(", {}", type_name)
+            } else {
+                format!(", {}", type_name)
+            };
+
+            format!("{}Quantity<{}{}{}{}>", value_prefix, primary, secondary, verbose_info, type_suffix)
         }
     };
 }
@@ -502,7 +461,7 @@ define_pretty_print_quantity!(
         scale_p2, scale_p3, scale_p5, scale_pi
     ),
     format!(
-        "; [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}] [2{}, 3{}, 5{}, π{}]",
+        " [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}] [2{}, 3{}, 5{}, π{}]",
         to_unicode_superscript(mass_exponent, true),
         to_unicode_superscript(length_exponent, true),
         to_unicode_superscript(time_exponent, true),
@@ -556,55 +515,6 @@ macro_rules! define_pretty_print_quantity_helpers {
             )
         }
 
-        /// Ultra-terse pretty print for inlay hints - shows only the unit literal with SI prefixes
-        pub fn pretty_print_quantity_inlay_hint(
-            $($dimension_signature_params)*
-        ) -> String {
-            let systematic_literal = generate_systematic_unit_name_with_scale_factors(
-                [$($dimension_args)*].to_vec(),
-                ($($scale_args)*),
-                false
-            );
-
-            // Check if we found a unit literal match - if so, use it directly without conversion factor
-            let prefixed_systematic_literal = if systematic_literal != generate_systematic_unit_name([$($dimension_args)*].to_vec(), false) {
-                // We found a unit literal match, use it directly
-                systematic_literal
-            } else {
-                // No unit literal match, apply SI prefix to the systematic unit literal
-                generate_prefixed_systematic_unit(
-                    [$($dimension_args)*].to_vec(),
-                    $($scale_args)*,
-                    &systematic_literal,
-                    false, // Use short names for inlay hints
-                )
-            };
-
-            // Check if we have a recognized dimension with a specific SI unit
-            if let Some(info) = lookup_dimension_name([$($dimension_args)*].to_vec()) {
-                if let Some(si_shortname) = info.unit_si_shortname_symbol {
-                    // Apply SI prefix to the specific SI unit name
-                    let prefixed_si_unit = generate_prefixed_si_unit(
-                        $($scale_args)*,
-                        si_shortname,
-                        false, // Use short names for inlay hints
-                    );
-
-                    // Return the prefixed SI unit if it's different from the systematic literal
-                    if prefixed_si_unit != prefixed_systematic_literal {
-                        prefixed_si_unit
-                    } else {
-                        prefixed_systematic_literal
-                    }
-                } else {
-                    // No specific SI unit defined, use the prefixed systematic literal
-                    prefixed_systematic_literal
-                }
-            } else {
-                // Unknown dimension, use the prefixed systematic literal
-                prefixed_systematic_literal
-            }
-        }
     };
 }
 

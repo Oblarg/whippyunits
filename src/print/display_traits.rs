@@ -23,7 +23,7 @@ macro_rules! define_display_traits {
                     $($dimension_args)*
                     std::any::type_name::<T>(),
                     false, // Non-verbose mode for Display
-                    false, // Don't show type in brackets for Display
+                    true, // Show type in brackets for Display (now unified)
                 );
                 write!(f, "{}", pretty)
             }
@@ -47,7 +47,7 @@ macro_rules! define_display_traits {
                     $($dimension_args)*
                     std::any::type_name::<T>(),
                     true, // Verbose mode for Debug
-                    false, // Don't show type in brackets for Debug (show as value suffix)
+                    true, // Show type in brackets for Debug (now unified)
                 );
                 write!(f, "{}", pretty)
             }

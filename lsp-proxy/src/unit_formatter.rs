@@ -58,7 +58,7 @@ impl UnitFormatter {
 
     /// Core method to format Quantity types with configurable parameters
     fn format_quantity_types(&self, text: &str, verbose: bool, unicode: bool, is_inlay_hint: bool) -> String {
-        use whippyunits::print::prettyprint::{pretty_print_quantity_type, pretty_print_quantity_inlay_hint, generate_dimension_symbols};
+        use whippyunits::print::prettyprint::{pretty_print_quantity_type, generate_dimension_symbols};
         use whippyunits::print::name_lookup::lookup_dimension_name;
         
         let quantity_regex = Regex::new(r"Quantity<([^>]+)>").unwrap();
@@ -125,16 +125,28 @@ impl UnitFormatter {
                     }
                 } else {
                     if is_inlay_hint {
-                        // Use the ultra-terse inlay hint API to get the unit literal
-                        let unit_literal = pretty_print_quantity_inlay_hint(
+                        // Use the main pretty print function with verbose=false to get the unit literal
+                        let full_output = pretty_print_quantity_type(
                             params.mass_exp, params.length_exp, params.time_exp,
                             params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
                             params.luminous_intensity_exp, params.angle_exp,
                             params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
+                            &params.generic_type,
+                            false, // Non-verbose mode for inlay hints
+                            false, // Don't show type in brackets
                         );
                         
-                        // Return typedef format (e.g., "Quantity<mN, f64>", "Quantity<kg, i32>")
-                        format!("Quantity<{}, {}>", unit_literal, params.generic_type)
+                        // Extract just the unit literal from the full output
+                        // Format is: "Quantity<unit_literal, type>" or just "unit_literal" for some cases
+                        if let Some(start) = full_output.find("Quantity<") {
+                            if let Some(end) = full_output[start..].find(',') {
+                                let unit_literal = &full_output[start + 9..start + end];
+                                return format!("Quantity<{}, {}>", unit_literal, params.generic_type);
+                            }
+                        }
+                        
+                        // Fallback: return the full output if parsing fails
+                        full_output
                     } else {
                         // Use the new prettyprint API with configurable parameters
                         pretty_print_quantity_type(
