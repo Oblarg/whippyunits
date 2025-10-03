@@ -261,8 +261,6 @@ fn test_mixed_dimension_names_and_symbols() {
 
 #[test]
 fn test_imperial_units() {
-    use whippyunits::imperial_declarators::*;
-
     let length_inches = 1.0.inches();
     let length_feet = 1.0.feet();
     let length_yards = 1.0.yards();
@@ -353,8 +351,6 @@ fn test_custom_formatting() {
 
 #[test]
 fn test_i32_quantity_declarators() {
-    use whippyunits::default_declarators::*;
-
     let mass_i32 = 5.grams();
     let length_i32 = 10.meters();
 
@@ -368,16 +364,12 @@ fn test_i32_quantity_declarators() {
     let mass_f64 = 5.0.grams();
     let length_f64 = 10.0.meters();
 
-    let foo = quantity!(1.0, g * m ^ 2 / s ^ 2);
-
     assert_eq!(mass_f64.value, 5.0f64);
     assert_eq!(length_f64.value, 10.0f64);
 }
 
 #[test]
 fn test_unit_macro_with_different_types() {
-    use whippyunits::default_declarators::*;
-
     let length_f64: unit!(m) = 5.0.meters();
     assert_eq!(length_f64.value, 5.0f64);
 
@@ -393,7 +385,6 @@ fn test_unit_macro_with_different_types() {
 
 #[test]
 fn test_imperial_declarators_generic_storage_types() {
-
     let length_f64: default_declarators::Centimeter<f64> = 12.0.inches();
     assert_eq!(length_f64.value, 12.0 * 2.54);
 
@@ -421,8 +412,6 @@ fn test_imperial_declarators_generic_storage_types() {
 
 #[test]
 fn test_all_types_arithmetic_available() {
-    use whippyunits::default_declarators::*;
-
     let length_f64: unit!(m, f64) = 5.0.meters();
     let area_f64: unit!(m ^ 2, f64) = length_f64 * length_f64;
     assert_eq!(area_f64.value, 25.0f64);

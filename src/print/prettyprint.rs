@@ -344,9 +344,6 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
     
     let rounded = (value * scale_factor).round() / scale_factor;
     
-    // Check if truncation occurred by comparing the original value with the rounded value
-    let was_truncated = (value - rounded).abs() > 1e-15;
-    
     // Format with appropriate precision
     let formatted = if magnitude >= 0 {
         // For values >= 1, show up to sig_figs digits total
@@ -357,12 +354,10 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
         format!("{:.precision$}", rounded, precision = (sig_figs as i32 + magnitude.abs()) as usize)
     };
     
-    // Add approximate symbol if truncation occurred
-    if was_truncated {
-        format!("~{}", formatted)
-    } else {
-        formatted
-    }
+    // Note: The ~ symbol should only be added when the storage scale is truncated,
+    // not when the stored value is truncated during formatting. This function
+    // is only responsible for formatting the stored value, so we don't add ~ here.
+    formatted
 }
 
 /// Helper function to format scale values, handling sentinel values
