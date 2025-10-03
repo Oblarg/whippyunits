@@ -6,7 +6,7 @@ use crate::quantity_type::*;
 use crate::scale_conversion::*;
 use crate::IsI16;
 use std::fmt;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 define_aggregate_scale_factor_rational!(
     // params
@@ -196,6 +196,110 @@ define_int_rescale!(rescale_u64, u64);
 define_int_rescale!(rescale_u128, u128);
 
 #[macro_export]
+macro_rules! define_arithmetic_signed {
+    ($T:ty, $rescale_fn:ident) => {
+        $crate::_define_arithmetic_signed!(
+        // single dimension, single scale
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_PI: i16,
+        ),
+        // single dimension, multiple scales
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+        ),
+
+        // multiple dimension, multiple scales
+        (
+            const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
+            const LENGTH_EXPONENT_1: i16, const LENGTH_EXPONENT_2: i16,
+            const TIME_EXPONENT_1: i16, const TIME_EXPONENT_2: i16,
+            const CURRENT_EXPONENT_1: i16, const CURRENT_EXPONENT_2: i16,
+            const TEMPERATURE_EXPONENT_1: i16, const TEMPERATURE_EXPONENT_2: i16,
+            const AMOUNT_EXPONENT_1: i16, const AMOUNT_EXPONENT_2: i16,
+            const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
+            const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+        ),
+        // inversion where clauses
+        (
+            (): IsI16<{ -MASS_EXPONENT }>,
+            (): IsI16<{ -LENGTH_EXPONENT }>,
+            (): IsI16<{ -TIME_EXPONENT }>,
+            (): IsI16<{ -CURRENT_EXPONENT }>,
+            (): IsI16<{ -TEMPERATURE_EXPONENT }>,
+            (): IsI16<{ -AMOUNT_EXPONENT }>,
+            (): IsI16<{ -LUMINOSITY_EXPONENT }>,
+            (): IsI16<{ -ANGLE_EXPONENT }>,
+            (): IsI16<{ -SCALE_P2 }>,
+            (): IsI16<{ -SCALE_P3 }>,
+            (): IsI16<{ -SCALE_P5 }>,
+            (): IsI16<{ -SCALE_PI }>
+        ),
+        // add min scale where clauses
+        (
+            (): IsI16<{ SCALE_P2_1.min(SCALE_P2_2) }>,
+            (): IsI16<{ SCALE_P3_1.min(SCALE_P3_2) }>,
+            (): IsI16<{ SCALE_P5_1.min(SCALE_P5_2) }>,
+            (): IsI16<{ SCALE_PI_1.min(SCALE_PI_2) }>
+        ),
+        // mul output dimension where clauses
+        (
+            (): IsI16<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
+            (): IsI16<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
+            (): IsI16<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>,
+            (): IsI16<{ CURRENT_EXPONENT_1 + CURRENT_EXPONENT_2 }>,
+            (): IsI16<{ TEMPERATURE_EXPONENT_1 + TEMPERATURE_EXPONENT_2 }>,
+            (): IsI16<{ AMOUNT_EXPONENT_1 + AMOUNT_EXPONENT_2 }>,
+            (): IsI16<{ LUMINOSITY_EXPONENT_1 + LUMINOSITY_EXPONENT_2 }>,
+            (): IsI16<{ ANGLE_EXPONENT_1 + ANGLE_EXPONENT_2 }>,
+            (): IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
+            (): IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
+            (): IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
+            (): IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
+        ),
+        // div output dimension where clauses
+        (
+            (): IsI16<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
+            (): IsI16<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
+            (): IsI16<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>,
+            (): IsI16<{ CURRENT_EXPONENT_1 - CURRENT_EXPONENT_2 }>,
+            (): IsI16<{ TEMPERATURE_EXPONENT_1 - TEMPERATURE_EXPONENT_2 }>,
+            (): IsI16<{ AMOUNT_EXPONENT_1 - AMOUNT_EXPONENT_2 }>,
+            (): IsI16<{ LUMINOSITY_EXPONENT_1 - LUMINOSITY_EXPONENT_2 }>,
+            (): IsI16<{ ANGLE_EXPONENT_1 - ANGLE_EXPONENT_2 }>,
+            (): IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
+            (): IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
+            (): IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
+            (): IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
+        ),
+            // other parameters
+            $T, rescale_fn
+        );
+    }
+}
+
+#[macro_export]
 macro_rules! define_arithmetic {
     ($T:ty, $rescale_fn:ident) => {
         $crate::_define_arithmetic!(
@@ -315,15 +419,15 @@ macro_rules! define_arithmetic {
     }
 }
 // Float arithmetic implementations
-define_arithmetic!(f32, rescale_f32);
-define_arithmetic!(f64, rescale_f64);
+define_arithmetic_signed!(f32, rescale_f32);
+define_arithmetic_signed!(f64, rescale_f64);
 
 // Integer arithmetic implementations
-define_arithmetic!(i8, rescale_i8);
-define_arithmetic!(i16, rescale_i16);
-define_arithmetic!(i32, rescale_i32);
-define_arithmetic!(i64, rescale_i64);
-define_arithmetic!(i128, rescale_i128);
+define_arithmetic_signed!(i8, rescale_i8);
+define_arithmetic_signed!(i16, rescale_i16);
+define_arithmetic_signed!(i32, rescale_i32);
+define_arithmetic_signed!(i64, rescale_i64);
+define_arithmetic_signed!(i128, rescale_i128);
 
 // Unsigned integer arithmetic implementations
 define_arithmetic!(u8, rescale_u8);

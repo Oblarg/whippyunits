@@ -11,74 +11,26 @@ use whippyunits::quantity;
 use whippyunits::unit;
 
 #[test]
-fn test_addition_same_scale() {
-    let m1 = 5.0.meters();
-
-    let area = m1 * m1;
-
-    // Same scale addition should work
-    let result = m1 + 3.0.meters();
+fn test_legal_addition() {
+    let result = 5.0.meters() + 3.0.meters();
     assert_eq!(result.value, 8.0);
 }
 
 #[test]
-fn test_add_assign() {
+fn test_legal_addition_assign() {
     let mut m1 = 5.0.meters();
 
-    // Same scale addition should work
     m1 += 3.0.meters();
     assert_eq!(m1.value, 8.0);
 }
 
 #[test]
-fn test_subtraction_same_scale() {
-    let m1 = 5.0.meters();
-    let s1 = 30.0.seconds();
-
-    // Same scale subtraction should work
-    let result: unit!(m) = m1 - 2.0.meters();
+fn test_legal_subtraction() {
+    let result: unit!(m) = 5.0.meters() - 2.0.meters();
     assert_eq!(result.value, 3.0);
 
-    let result: unit!(s) = s1 - 5.0.seconds();
+    let result: unit!(s) = 30.0.seconds() - 5.0.seconds();
     assert_eq!(result.value, 25.0);
-}
-
-#[test]
-fn test_multiplication_same_scale() {
-    let m1 = 5.0.meters();
-    let s1 = 30.0.seconds();
-
-    // Same scale multiplication should work
-    let result: unit!(m) = m1 * 2.0;
-    assert_eq!(result.value, 10.0);
-
-    let result: unit!(s) = s1 * 3.0;
-    assert_eq!(result.value, 90.0);
-}
-
-#[test]
-fn test_division_same_scale() {
-    let m1 = 5.0.meters();
-    let s1 = 30.0.seconds();
-
-    // Same scale division should work
-    let result: unit!(m) = m1 / 2.0;
-    assert_eq!(result.value, 2.5);
-
-    let result: unit!(s) = s1 / 3.0;
-    assert_eq!(result.value, 10.0);
-}
-
-#[test]
-fn test_quantity_multiplication() {
-    let m1 = 5.0.amperes();
-    let s1 = 30.0.seconds();
-
-    // Multiplying quantities should combine dimensions
-    let result = m1 * s1;
-    println!("result: {:?}", result);
-    // Result should be length * time = distance * time
-    assert_eq!(result.value, 150.0); // 5m * 30s = 150 m·s
 }
 
 #[test]
@@ -117,18 +69,14 @@ fn test_radian_erasure() {
 
 #[test]
 fn test_dimensionless_to_scalar_conversion() {
-    // Test basic dimensionless to scalar conversion (zero scale)
     let dimensionless: unit!(1) = quantity!(42.0, 1);
     let scalar_f64: f64 = dimensionless.into();
     assert_eq!(scalar_f64, 42.0);
     
-    // Test dimensionless with non-zero scale (should rescale)
-    // 100mm / 1m = 0.1 (dimensionless with scale)
     let dimensionless_scaled = 100.0.millimeters() / 1.0.meters();
     let scalar_rescaled: f64 = dimensionless_scaled.into();
     assert_eq!(scalar_rescaled, 0.1);
     
-    // Test with different numeric types
     let dimensionless_i32 = 5.millimeters() / 1.meters();
     let scalar_i32: i32 = dimensionless_i32.into();
     assert_eq!(scalar_i32, 0); // 0.005 rounds to 0 for i32
@@ -136,16 +84,12 @@ fn test_dimensionless_to_scalar_conversion() {
 
 #[test]
 fn test_radian_erasure_with_scale() {
-    // Test basic radian to scalar conversion (zero scale)
     let radians_zero_scale: unit!(rad) = quantity!(3.14159, rad);
     let scalar_f64: f64 = radians_zero_scale.into();
     assert_eq!(scalar_f64, 3.14159);
     
-    // Test radian with non-zero scale (should rescale)
-    // Create a radian quantity with scale by using a scaled unit
-    let radians_scaled = 180.0.degrees(); // This should be radians with scale
+    let radians_scaled = 180.0.degrees();
     let scalar_rescaled: f64 = radians_scaled.into();
-    // 180 degrees = π radians, but with scale conversion
     assert!((scalar_rescaled - std::f64::consts::PI).abs() < 1e-10);
     
     // Test with different numeric types - use a simpler case
@@ -155,58 +99,33 @@ fn test_radian_erasure_with_scale() {
 }
 
 #[test]
-fn test_quantity_division() {
-    let m1 = 5.0.meters();
-    let s1 = 30.0.seconds();
-
-    // Dividing quantities should combine dimensions
-    let result = m1 / s1;
-    println!("result: {:?}", result);
-    // Result should be length / time = velocity
-    assert_eq!(result.value, 5.0 / 30.0); // 5m / 30s = 0.166... m/s
-}
-
-#[test]
 fn test_scalar_quantity_multiplication() {
-    let m1 = 5.0.meters();
-
-    // Scalar * Quantity should work
-    let result: unit!(m) = 3.0 * m1;
+    let result: unit!(m) = 3.0 * 5.0.meters();
     assert_eq!(result.value, 15.0);
 
-    // Quantity * Scalar should work
-    let result: unit!(m) = m1 * 4.0;
+    let result: unit!(m) = 5.0.meters() * 4.0;
     assert_eq!(result.value, 20.0);
 }
 
 #[test]
 fn test_scalar_quantity_division() {
-    let m1 = 5.0.meters();
-
-    // Quantity / Scalar should work
-    let result: unit!(m) = m1 / 2.0;
+    let result: unit!(m) = 5.0.meters() / 2.0;
     assert_eq!(result.value, 2.5);
 
-    // Scalar / Quantity should work (inverts dimensions)
-    let result: unit!(1 / m) = 10.0 / m1;
+    let result: unit!(1 / m) = 10.0 / 5.0.meters();
     assert_eq!(result.value, 2.0); // 10 / 5m = 2 m^-1
 }
 
 #[test]
 fn test_quantity_scalar_multiplication() {
-    let m1 = 5.0.meters();
-
-    // Quantity * Scalar should work
-    let result: unit!(m) = m1 * 4.0;
+    let result: unit!(m) = 5.0.meters() * 4.0;
     assert_eq!(result.value, 20.0);
 }
 
 #[test]
 fn test_quantity_scalar_division() {
-    let m1 = 5.0.meters();
-
-    // Quantity / Scalar should work
-    let result: unit!(m) = m1 / 2.0;
+    let result: unit!(m) = 5.0.meters() / 2.0;
+    let result: unit!(m) = 5.0.meters() / 2.0;
     assert_eq!(result.value, 2.5);
 }
 
@@ -214,87 +133,61 @@ fn test_quantity_scalar_division() {
 fn test_quantity_scalar_multiplication_assign() {
     let mut m1 = 5.0.meters();
 
-    // Quantity * Scalar should work
     m1 *= 4.0;
     assert_eq!(m1.value, 20.0);
 }
 
 #[test]
 fn test_rescale_length() {
-    let m1: unit!(m) = 5.0.meters();
-
-    // Rescale from meters to kilometers
-    let result: Kilometer = rescale(m1);
+    let result: Kilometer = rescale(5.0.meters());
     assert_eq!(result.value, 0.005); // 5m = 0.005km
 
-    // Rescale from meters to millimeters
-    let result: Millimeter = rescale(m1);
+    let result: Millimeter = rescale(5.0.meters());
     assert_eq!(result.value, 5000.0); // 5m = 5000mm
 }
 
 #[test]
 fn test_rescale_mass() {
-    // Rescale from grams to kilograms
     let result: Kilogram = rescale(100.0.grams());
     assert_eq!(result.value, 0.1); // 100g = 0.1kg
 
-    // Rescale from grams to milligrams
     let result: Milligram = rescale(100.0.grams());
     assert_eq!(result.value, 100000.0); // 100g = 100000mg
 }
 
 #[test]
 fn test_rescale_time() {
-    let s1 = 30.0.seconds();
-
-    // Rescale from seconds to minutes
-    let result: Minute = rescale(s1);
+    let result: Minute = rescale(30.0.seconds());
     assert_eq!(result.value, 0.5); // 30s = 0.5min
 
-    // Rescale from seconds to milliseconds
-    let result: Millisecond = rescale(s1);
+    let result: Millisecond = rescale(30.0.seconds());
     assert_eq!(result.value, 30000.0); // 30s = 30000ms
 }
 
 #[test]
 fn test_negative_quantities() {
-    let neg_m = (-3.0).meters();
-    let pos_m = 5.0.meters();
-
-    // Addition with negative
-    let result = neg_m + pos_m;
+    let result = -5.0.meters() + 7.0.meters();
     assert_eq!(result.value, 2.0);
 
-    // Subtraction with negative
-    let result = pos_m - neg_m;
-    assert_eq!(result.value, 8.0);
+    let result = 7.0.meters() - -5.0.meters();
+    assert_eq!(result.value, 12.0);
 
-    // Multiplication with negative
-    let result = neg_m * 2.0;
-    assert_eq!(result.value, -6.0);
+    let result = -5.0.meters() * 2.0;
+    assert_eq!(result.value, -10.0);
 }
 
 #[test]
 fn test_large_numbers() {
-    let large_m = 1000000.0.meters();
-    let small_m = 0.000001.meters();
-
-    // Addition with large numbers
-    let result = large_m + small_m;
+    let result = 1000000.0.meters() + 0.000001.meters();
     assert_eq!(result.value, 1000000.000001);
 
-    // Multiplication with large numbers
-    let result = large_m * 2.0;
+    let result = 1000000.0.meters() * 2.0;
     assert_eq!(result.value, 2000000.0);
 }
 
 #[test]
 fn test_chain_operations() {
-    let m1 = 5.0.meters();
-
-    // Chain multiple operations
-    let result = m1 + m1 - 2.0.meters() * 3.0 / 2.0;
-    // 5m + 5m - (2m * 3) / 2 = 10m - 3m = 7m
+    let result = 5.0.meters() + 5.0.meters() - 2.0.meters() * 3.0 / 2.0;
     assert_eq!(result.value, 7.0);
 }
 
@@ -310,7 +203,6 @@ fn test_generic_dimension() {
 
 #[test]
 fn test_generic_dimension_expressions() {
-    // Test complex dimension expressions using arithmetic operations
     define_generic_dimension!(ForceExpression, Mass * Length / Time ^ 2);
     define_generic_dimension!(EnergyExpression, Mass * Length ^ 2 / Time ^ 2);
     define_generic_dimension!(PressureExpression, Mass / Length / Time ^ 2);
@@ -331,7 +223,6 @@ fn test_generic_dimension_expressions() {
 
 #[test]
 fn test_expanded_dimension_dsl_naming_variations() {
-    // Test various naming conventions for different dimensions
     define_generic_dimension!(DensityVariations, VolumeMassDensity, LinearMassDensity);
     define_generic_dimension!(ViscosityVariations, Viscosity, KinematicViscosity);
     define_generic_dimension!(ElectricalVariations, ElectricCharge, ElectricPotential);
@@ -348,7 +239,6 @@ fn test_expanded_dimension_dsl_naming_variations() {
 
 #[test]
 fn test_dimension_symbols_in_dsl() {
-    // Test that we can use dimension symbols in the DSL
     define_generic_dimension!(SymbolTest, L, M, T, L ^ 2, M * L ^ 2 / T ^ 2);
 
     let length: impl SymbolTest = quantity!(1.0, m);
@@ -360,7 +250,6 @@ fn test_dimension_symbols_in_dsl() {
 
 #[test]
 fn test_mixed_dimension_names_and_symbols() {
-    // Test that we can mix dimension names and symbols in the same DSL
     define_generic_dimension!(MixedTest, Length, M, Time, L ^ 2, Mass * L ^ 2 / T ^ 2);
 
     let length: impl MixedTest = quantity!(1.0, m);
@@ -374,7 +263,6 @@ fn test_mixed_dimension_names_and_symbols() {
 fn test_imperial_units() {
     use whippyunits::imperial_declarators::*;
 
-    // Length conversions
     let length_inches = 1.0.inches();
     let length_feet = 1.0.feet();
     let length_yards = 1.0.yards();
@@ -385,13 +273,11 @@ fn test_imperial_units() {
     println!("1 yard = {:?}", length_yards);
     println!("1 mile = {:?}", length_miles);
 
-    // Assert length conversions (1 inch = 2.54 cm, 1 foot = 0.3048 m, 1 yard = 0.9144 m, 1 mile = 1.609344 km)
     assert_eq!(length_inches.value, 2.54);
     assert_eq!(length_feet.value, 0.3048);
     assert_eq!(length_yards.value, 0.9144);
     assert_eq!(length_miles.value, 1.609344);
 
-    // Mass conversions
     let mass_ounces = 1.0.ounces();
     let mass_pounds = 1.0.pounds();
     let mass_stones = 1.0.stones();
@@ -402,61 +288,48 @@ fn test_imperial_units() {
     println!("1 stone = {:?}", mass_stones);
     println!("1 ton = {:?}", mass_tons);
 
-    // Assert mass conversions (1 oz = 28.349523125 g, 1 lb = 0.45359237 kg, 1 stone = 6.35029318 kg, 1 ton = 1.0160469088 Mg)
     assert_eq!(mass_ounces.value, 28.349523125);
     assert_eq!(mass_pounds.value, 0.45359237);
     assert_eq!(mass_stones.value, 6.35029318);
     assert_eq!(mass_tons.value, 1.0160469088);
 
-    // Temperature conversions
     let temp_fahrenheit = 1.0.fahrenheit();
     let temp_rankine = 1.0.rankine();
 
     println!("1°F = {:?}", temp_fahrenheit);
     println!("1°R = {:?}", temp_rankine);
 
-    // Assert temperature conversions (1°F = 255.92777777777775 K, 1°R = 5/9 K ≈ 0.5555555555555556 K)
     assert_eq!(temp_fahrenheit.value, 255.92777777777775);
     assert_eq!(temp_rankine.value, 5.0 / 9.0);
 }
 
 #[test]
 fn test_custom_formatting() {
-
-    println!("\n=== Custom Formatting Tests ===");
-
-    // Test basic unit conversion formatting
     let distance = 5000.0.meters();
     let mass = 2.5.kilograms();
     let time = 90.0.seconds();
 
-    println!("Original values:");
     println!("  Distance: {}", distance);
     println!("  Mass: {}", mass);
     println!("  Time: {}", time);
 
-    // Test distance conversions using new fmt method
-    println!("\nDistance conversions:");
     assert_eq!(format!("{}", distance.fmt("km")), "5 km");
     assert_eq!(format!("{}", distance.fmt("cm")), "500000 cm");
     assert_eq!(format!("{}", distance.fmt("mm")), "5000000 mm");
     assert_eq!(format!("{}", distance.fmt("ft")), "16404.199475065616 ft");
     assert_eq!(format!("{}", distance.fmt("mi")), "3.1068559611866697 mi");
 
-    // Test mass conversions
     println!("Mass conversions:");
     assert_eq!(format!("{}", mass.fmt("g")), "2500 g");
     assert_eq!(format!("{}", mass.fmt("kg")), "2.5 kg");
     assert_eq!(format!("{}", mass.fmt("oz")), "88.18490487395103 oz");
     assert_eq!(format!("{}", mass.fmt("lb")), "5.511556554621939 lb");
 
-    // Test time conversions
     println!("Time conversions:");
     assert_eq!(format!("{}", time.fmt("s")), "90 s");
     assert_eq!(format!("{}", time.fmt("min")), "1.5 min");
     assert_eq!(format!("{}", time.fmt("h")), "0.025 h");
 
-    // Test precision formatting using format specifiers
     println!("Precision formatting:");
     assert_eq!(
         format!("{:.2}", distance.fmt("km")),
@@ -468,12 +341,10 @@ fn test_custom_formatting() {
     );
     assert_eq!(format!("{:.1}", mass.fmt("g")), "2500.0 g");
 
-    // Test error cases
     println!("Error cases:");
     assert!(distance.fmt("kg").to_string().contains("Error")); // Wrong dimension
     assert!(distance.fmt("unknown_unit").to_string().contains("Error")); // Unknown unit
 
-    // Test with different unit names (symbols vs long names)
     assert_eq!(format!("{}", distance.fmt("kilometer")), "5 km");
     assert_eq!(format!("{}", mass.fmt("gram")), "2500 gram");
 
@@ -484,20 +355,16 @@ fn test_custom_formatting() {
 fn test_i32_quantity_declarators() {
     use whippyunits::default_declarators::*;
 
-    // Test that the existing i32 implementation works (creates f64-backed quantities)
     let mass_i32 = 5.grams();
     let length_i32 = 10.meters();
 
-    // Test arithmetic operations
     let area_i32 = length_i32 * length_i32;
     println!("i32 Area: {:?}", area_i32);
 
-    // Test that the values are actually i32 (native i32-backed quantities!)
     assert_eq!(mass_i32.value, 5i32);
     assert_eq!(length_i32.value, 10i32);
     assert_eq!(area_i32.value, 100i32);
 
-    // Test that f64 declarators still work (backward compatibility)
     let mass_f64 = 5.0.grams();
     let length_f64 = 10.0.meters();
 
@@ -511,48 +378,37 @@ fn test_i32_quantity_declarators() {
 fn test_unit_macro_with_different_types() {
     use whippyunits::default_declarators::*;
 
-    // Test unit macro with default f64 backing
     let length_f64: unit!(m) = 5.0.meters();
     assert_eq!(length_f64.value, 5.0f64);
 
-    // Test unit macro with i32 backing
     let length_i32: unit!(m, i32) = 5.meters();
     assert_eq!(length_i32.value, 5i32);
 
-    // Test complex unit expressions with different types
     let area_i32: unit!(m ^ 2, i32) = 5.meters() * 10.meters();
     assert_eq!(area_i32.value, 50i32);
 
-    // Test that the unit macro correctly generates the right type
-    // This verifies the macro expansion works correctly
     let _length_type_check: unit!(m, i32) = 5.meters();
     let _area_type_check: unit!(m ^ 2, i32) = 5.meters() * 10.meters();
 }
 
 #[test]
 fn test_imperial_declarators_generic_storage_types() {
-    // Test imperial length declarators with different storage types
 
-    // Test f64 (default)
     let length_f64: default_declarators::Centimeter<f64> = 12.0.inches();
     assert_eq!(length_f64.value, 12.0 * 2.54);
 
-    // Test i32
     let length_i32: default_declarators::Centimeter<i32> = 12i32.inches();
     assert_eq!(length_i32.value, (12.0 * 2.54) as i32);
 
-    // Test i64
     let length_i64: default_declarators::Centimeter<i64> = 12i64.inches();
     assert_eq!(length_i64.value, (12.0 * 2.54) as i64);
 
-    // Test imperial mass declarators
     let mass_f64: default_declarators::Kilogram<f64> = 2.0.pounds();
     assert_eq!(mass_f64.value, 2.0 * 0.45359237);
 
     let mass_i32: default_declarators::Kilogram<i32> = 2i32.pounds();
     assert_eq!(mass_i32.value, (2.0 * 0.45359237) as i32);
 
-    // Test imperial temperature declarators (affine)
     let temp_f64: Fahrenheit<f64> = 32.0.fahrenheit();
     assert_eq!(temp_f64.value, 32.0 * 5.0 / 9.0 + 255.3722222222222);
 
@@ -567,65 +423,50 @@ fn test_imperial_declarators_generic_storage_types() {
 fn test_all_types_arithmetic_available() {
     use whippyunits::default_declarators::*;
 
-    // Test that arithmetic operations work for all types using explicit type annotations
-    // This tests that the arithmetic implementations are available for all types
-
-    // Test f64 (default)
     let length_f64: unit!(m, f64) = 5.0.meters();
     let area_f64: unit!(m ^ 2, f64) = length_f64 * length_f64;
     assert_eq!(area_f64.value, 25.0f64);
 
-    // Test i32 (default)
     let length_i32: unit!(m, i32) = 5i32.meters();
     let area_i32: unit!(m ^ 2, i32) = length_i32 * length_i32;
     assert_eq!(area_i32.value, 25i32);
 
-    // Test f32 using explicit type annotation (no unit methods available)
     let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
     let area_f32: unit!(m ^ 2, f32) = length_f32 * length_f32;
     assert_eq!(area_f32.value, 25.0f32);
 
-    // Test i8 using explicit type annotation
     let length_i8: unit!(m, i8) = quantity!(5, m, i8);
     let area_i8: unit!(m ^ 2, i8) = length_i8 * length_i8;
     assert_eq!(area_i8.value, 25i8);
 
-    // Test i16 using explicit type annotation
     let length_i16: unit!(m, i16) = quantity!(5, m, i16);
     let area_i16: unit!(m ^ 2, i16) = length_i16 * length_i16;
     assert_eq!(area_i16.value, 25i16);
 
-    // Test i64 using explicit type annotation
     let length_i64: unit!(m, i64) = quantity!(5, m, i64);
     let area_i64: unit!(m ^ 2, i64) = length_i64 * length_i64;
     assert_eq!(area_i64.value, 25i64);
 
-    // Test i128 using explicit type annotation
     let length_i128: unit!(m, i128) = quantity!(5, m, i128);
     let area_i128: unit!(m ^ 2, i128) = length_i128 * length_i128;
     assert_eq!(area_i128.value, 25i128);
 
-    // Test u8 using explicit type annotation
     let length_u8: unit!(m, u8) = quantity!(5, m, u8);
     let area_u8: unit!(m ^ 2, u8) = length_u8 * length_u8;
     assert_eq!(area_u8.value, 25u8);
 
-    // Test u16 using explicit type annotation
     let length_u16: unit!(m, u16) = quantity!(5, m, u16);
     let area_u16: unit!(m ^ 2, u16) = length_u16 * length_u16;
     assert_eq!(area_u16.value, 25u16);
 
-    // Test u32 using explicit type annotation
     let length_u32: unit!(m, u32) = quantity!(5, m, u32);
     let area_u32: unit!(m ^ 2, u32) = length_u32 * length_u32;
     assert_eq!(area_u32.value, 25u32);
 
-    // Test u64 using explicit type annotation
     let length_u64: unit!(m, u64) = quantity!(5, m, u64);
     let area_u64: unit!(m ^ 2, u64) = length_u64 * length_u64;
     assert_eq!(area_u64.value, 25u64);
 
-    // Test u128 using explicit type annotation
     let length_u128: unit!(m, u128) = quantity!(5, m, u128);
     let area_u128: unit!(m ^ 2, u128) = length_u128 * length_u128;
     assert_eq!(area_u128.value, 25u128);
@@ -633,25 +474,21 @@ fn test_all_types_arithmetic_available() {
 
 #[test]
 fn test_all_types_with_quantity_macro() {
-    // Float types
     let length_f32: unit!(m, f32) = quantity!(5.0, m, f32);
     let length_f64: unit!(m, f64) = quantity!(5.0, m, f64);
 
-    // Signed integer types
     let length_i8: unit!(m, i8) = quantity!(5, m, i8);
     let length_i16: unit!(m, i16) = quantity!(5, m, i16);
     let length_i32: unit!(m, i32) = quantity!(5, m, i32);
     let length_i64: unit!(m, i64) = quantity!(5, m, i64);
     let length_i128: unit!(m, i128) = quantity!(5, m, i128);
 
-    // Unsigned integer types
     let length_u8: unit!(m, u8) = quantity!(5, m, u8);
     let length_u16: unit!(m, u16) = quantity!(5, m, u16);
     let length_u32: unit!(m, u32) = quantity!(5, m, u32);
     let length_u64: unit!(m, u64) = quantity!(5, m, u64);
     let length_u128: unit!(m, u128) = quantity!(5, m, u128);
 
-    // Test arithmetic operations
     let area_f32: unit!(m ^ 2, f32) = length_f32 * length_f32;
     let area_f64: unit!(m ^ 2, f64) = length_f64 * length_f64;
     let area_i8: unit!(m ^ 2, i8) = length_i8 * length_i8;
@@ -665,7 +502,6 @@ fn test_all_types_with_quantity_macro() {
     let area_u64: unit!(m ^ 2, u64) = length_u64 * length_u64;
     let area_u128: unit!(m ^ 2, u128) = length_u128 * length_u128;
 
-    // Verify results
     assert_eq!(area_f32.value, 25.0f32);
     assert_eq!(area_f64.value, 25.0f64);
     assert_eq!(area_i8.value, 25i8);
@@ -679,7 +515,6 @@ fn test_all_types_with_quantity_macro() {
     assert_eq!(area_u64.value, 25u64);
     assert_eq!(area_u128.value, 25u128);
 
-    // Test compound operations
     let mass_f32: unit!(kg, f32) = quantity!(2.0, kg, f32);
     let mass_f64: unit!(kg, f64) = quantity!(2.0, kg, f64);
     let mass_i32: unit!(kg, i32) = quantity!(2, kg, i32);
@@ -698,55 +533,39 @@ fn test_all_types_with_quantity_macro() {
 
 #[test]
 fn test_prefixed_aggregate_quantities() {
-    // Test prefixed energy units (kJ, MJ, etc.)
     let energy_kj: unit!(kJ) = quantity!(1.0, kJ);
     let energy_mj: unit!(MJ) = quantity!(1.0, MJ);
     let energy_gj: unit!(GJ) = quantity!(1.0, GJ);
 
-    // Test prefixed power units (kW, MW, etc.)
     let power_kw: unit!(kW) = quantity!(1.0, kW);
     let power_mw: unit!(MW) = quantity!(1.0, MW);
     let power_gw: unit!(GW) = quantity!(1.0, GW);
 
-    // Test prefixed force units (kN, MN, etc.)
     let force_kn: unit!(kN) = quantity!(1.0, kN);
     let force_mn: unit!(MN) = quantity!(1.0, MN);
 
-    // Test prefixed pressure units (kPa, MPa, etc.)
     let pressure_kpa: unit!(kPa) = quantity!(1.0, kPa);
     let pressure_mpa: unit!(MPa) = quantity!(1.0, MPa);
 
-    // Verify that these are dimensionally correct by doing arithmetic
-    // Energy = Power * Time
     let time_seconds = quantity!(1.0, s);
     let energy_from_power: unit!(kJ) = power_kw * time_seconds; // kW * s = kJ
 
-    // Force = Mass * Acceleration
     let mass_kg = quantity!(1.0, kg);
     let acceleration = quantity!(9.81, m / s ^ 2);
     let force_from_mass: unit!(N) = mass_kg * acceleration;
 
-    // Pressure = Force / Area
     let area_m2 = quantity!(1.0, m ^ 2);
     let pressure_from_force: unit!(kPa) = force_kn / area_m2; // kN / m² = kPa
 
-    // Verify that arithmetic between prefixed and non-prefixed units works correctly
     let energy_j: unit!(J) = quantity!(1000.0, J);
     let energy_kj_2: unit!(kJ) = quantity!(1.0, kJ);
 
-    // These represent the same physical quantity but have different stored values
-    // because kJ has a scale factor of 3 (kilo = 10^3)
-    // 1000 J = 1 kJ, but they're stored differently due to the prefix
     assert_eq!(energy_j.value, 1000.0);
     assert_eq!(energy_kj_2.value, 1.0);
 
-    // Test that we can do arithmetic between different prefixed units
     let power_w: unit!(W) = quantity!(1000.0, W);
     let power_kw_2: unit!(kW) = quantity!(1.0, kW);
 
-    let foo = quantity!(1.0, kW);
-
-    // Same principle: 1000 W = 1 kW, but stored differently
     assert_eq!(power_w.value, 1000.0);
     assert_eq!(power_kw_2.value, 1.0);
 }
