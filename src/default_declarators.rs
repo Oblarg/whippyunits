@@ -1,4 +1,5 @@
 use crate::quantity_type::Quantity;
+use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 use whippyunits_proc_macros::generate_default_declarators;
 
 macro_rules! define_quantity {
@@ -17,8 +18,8 @@ macro_rules! define_quantity {
         // Generate the type definitions (generic with f64 default)
         $(
             pub type $scale_name<T = f64> = Quantity<
-                $mass_exp, $length_exp, $time_exp, $current_exp, $temperature_exp, $amount_exp, $luminosity_exp, $angle_exp,
-                $scale_p2, $scale_p3, $scale_p5, $scale_pi,
+                Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
                 T,
             >;
         )*
@@ -27,7 +28,7 @@ macro_rules! define_quantity {
         impl $trait_name for f64 {
             $(
                 fn $fn_name(self) -> $scale_name {
-                    Quantity::new(self)
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, f64>::new(self)
                 }
             )*
         }
@@ -36,7 +37,7 @@ macro_rules! define_quantity {
         impl $trait_name<i32> for i32 {
             $(
                 fn $fn_name(self) -> $scale_name<i32> {
-                    Quantity::new(self)
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, i32>::new(self)
                 }
             )*
         }

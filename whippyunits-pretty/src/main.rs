@@ -4,7 +4,7 @@ use anyhow::Result;
 use log::info;
 
 use whippyunits_lsp_proxy::DisplayConfig;
-use crate::rustc_pretty::RustcPrettyPrinter;
+use whippyunits_pretty::rustc_pretty::RustcPrettyPrinter;
 
 /// Pretty-print rustc output with whippyunits type formatting
 #[derive(Parser, Debug)]

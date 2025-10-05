@@ -3,8 +3,8 @@ use serde_json::json;
 
 #[test]
 fn test_fast_quantity_detection() {
-    // Test with message containing Quantity types (8+ commas for valid detection)
-    let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> = 5.0.meters();\n```"}}}"#;
+    // Test with message containing new Quantity types with Scale<...> and Dimension<...> structs
+    let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\n```"}}}"#;
     assert!(quantity_detection::contains_quantity_types_fast(message_with_quantity));
     
     // Test with message not containing Quantity types
@@ -18,16 +18,16 @@ fn test_fast_quantity_detection() {
 
 #[test]
 fn test_validate_quantity_format() {
-    // Test valid Quantity format with 8+ commas
-    let valid_quantity = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>";
+    // Test valid new Quantity format with Scale<...> and Dimension<...> structs
+    let valid_quantity = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
     assert!(quantity_detection::validate_quantity_format(valid_quantity));
     
-    // Test invalid format with insufficient commas
+    // Test invalid format without Scale<...> and Dimension<...> structs
     let invalid_quantity = "Quantity<1, 2, 3>";
     assert!(!quantity_detection::validate_quantity_format(invalid_quantity));
     
     // Test with nested angle brackets
-    let nested_quantity = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Some<f64>>";
+    let nested_quantity = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, Some<f64>>";
     assert!(quantity_detection::validate_quantity_format(nested_quantity));
 }
 
@@ -50,14 +50,14 @@ fn test_find_matching_angle_bracket() {
 fn test_hover_tooltip_processing() {
     let proxy = LspProxy::new();
     
-    // Test hover response with Quantity types
+    // Test hover response with new Quantity types (energy example)
     let hover_response = json!({
         "jsonrpc": "2.0",
         "id": 1,
         "result": {
             "contents": {
                 "kind": "markdown",
-                "value": "```rust\nlet x: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> = 5.0.meters();\n```"
+                "value": "```rust\nlet energy_j: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<1>, _L<2>, _T<-2>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.joules();\n```"
             }
         }
     });
@@ -65,20 +65,22 @@ fn test_hover_tooltip_processing() {
     let response_str = serde_json::to_string(&hover_response).unwrap();
     let processed = proxy.process_incoming(&response_str).unwrap();
     
-    // Should contain pretty-printed type (hover format)
+    // Should contain pretty-printed type (hover format) - should be Joules (J)
     println!("Hover processed: {}", processed);
-    assert!(processed.contains("Quantity<m; Length>"));
+    assert!(processed.contains("Quantity<J, f64>"));
     // Should not contain the raw const generic parameters
     assert!(!processed.contains("const MASS_EXPONENT: i16"));
     assert!(!processed.contains("const LENGTH_EXPONENT: i16"));
     assert!(!processed.contains("const TIME_EXPONENT: i16"));
+    // Should not contain the incorrect _A<0> generic type
+    assert!(!processed.contains("_A<0>"));
 }
 
 #[test]
 fn test_inlay_hint_integration() {
     let proxy = LspProxy::new();
     
-    // Test inlay hint response with Quantity types
+    // Test inlay hint response with new Quantity types
     let inlay_hint_response = json!({
         "jsonrpc": "2.0",
         "id": 2,
@@ -88,7 +90,7 @@ fn test_inlay_hint_integration() {
                 "label": [
                     {"value": ": "},
                     {"value": "Quantity"},
-                    {"value": "<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"}
+                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
                 ],
                 "kind": 1,
                 "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
@@ -111,10 +113,10 @@ fn test_inlay_hint_integration() {
 fn test_type_conversion() {
     let converter = UnitFormatter::new();
     
-    // Test basic type conversion
-    let input = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>";
+    // Test basic type conversion with new format
+    let input = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
     let result = converter.format_types(input, &crate::DisplayConfig::default());
-    assert!(result.contains("Quantity<m; Length>"));
+    assert!(result.contains("Quantity<m, f64>"));
     assert!(!result.contains("const"));
     assert!(!result.contains("MASS_EXPONENT"));
 }
@@ -123,8 +125,8 @@ fn test_type_conversion() {
 fn test_text_conversion() {
     let converter = UnitFormatter::new();
     
-    // Test text with multiple Quantity types
-    let input = "let x: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> = 5.0.meters();\nlet y: Quantity<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> = 10.0.kilograms();";
+    // Test text with multiple new Quantity types
+    let input = "let x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\nlet y: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<1>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 10.0.kilograms();";
     let result = converter.format_types(input, &crate::DisplayConfig { verbose: false, unicode: false, include_raw: false });
     
     assert!(result.contains("m"));
@@ -133,12 +135,13 @@ fn test_text_conversion() {
     assert!(!result.contains("MASS_EXPONENT"));
 }
 
+
 #[test]
 fn test_composite_unresolved_type_conversion() {
     let converter = UnitFormatter::new();
     
-    // Test composite unresolved type conversion
-    let input = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> + Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>";
+    // Test composite unresolved type conversion with new format
+    let input = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> + Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
     let result = converter.format_types(input, &crate::DisplayConfig::default());
     assert!(result.contains("m"));
     assert!(!result.contains("const"));
@@ -148,11 +151,11 @@ fn test_composite_unresolved_type_conversion() {
 fn test_verbose_partially_resolved_type() {
     let converter = UnitFormatter::new();
     
-    // Test verbose partially resolved type conversion
-    let input = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>";
+    // Test verbose partially resolved type conversion with new format
+    let input = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
     let result = converter.format_types(input, &crate::DisplayConfig { verbose: true, unicode: true, include_raw: false });
-    println!("Verbose test result: {}", result);
-    assert!(result.contains("Quantity<meter; Length"));
+    assert!(result.contains("Quantity<meter"));
+    assert!(result.contains("f64"));
     assert!(!result.contains("const"));
 }
 
@@ -160,7 +163,7 @@ fn test_verbose_partially_resolved_type() {
 fn test_inlay_hint_unresolved_types() {
     let proxy = LspProxy::new();
     
-    // Test inlay hint with unresolved types
+    // Test inlay hint with new unresolved types
     let inlay_hint_response = json!({
         "jsonrpc": "2.0",
         "id": 2,
@@ -170,7 +173,7 @@ fn test_inlay_hint_unresolved_types() {
                 "label": [
                     {"value": ": "},
                     {"value": "Quantity"},
-                    {"value": "<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"}
+                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
                 ],
                 "kind": 1,
                 "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
@@ -221,7 +224,7 @@ fn test_add_sub_trait_signature_transformation() {
         "result": {
             "contents": {
                 "kind": "markdown",
-                "value": "```rust\nimpl<const MASS_EXPONENT: i16, const LENGTH_EXPONENT: i16, const TIME_EXPONENT: i16, const CURRENT_EXPONENT: i16, const TEMPERATURE_EXPONENT: i16, const AMOUNT_EXPONENT: i16, const LUMINOSITY_EXPONENT: i16, const ANGLE_EXPONENT: i16, const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16, T> Add for Quantity<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T>\n```"
+                "value": "```rust\nimpl<const MASS_EXPONENT: i16, const LENGTH_EXPONENT: i16, const TIME_EXPONENT: i16, const CURRENT_EXPONENT: i16, const TEMPERATURE_EXPONENT: i16, const AMOUNT_EXPONENT: i16, const LUMINOSITY_EXPONENT: i16, const ANGLE_EXPONENT: i16, const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16, T> Add for Quantity<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>, T>\n```"
             }
         }
     });
@@ -265,7 +268,7 @@ fn test_inlay_hint_contains_whippyunits_type() {
     let label_with_quantity = vec![
         json!({"value": ": "}),
         json!({"value": "Quantity", "location": {"uri": "file://test.rs", "range": {"start": {"line": 1, "character": 0}, "end": {"line": 1, "character": 8}}}}),
-        json!({"value": "<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"})
+        json!({"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<1>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"})
     ];
     assert!(processor.contains_whippyunits_type(&label_with_quantity));
     
@@ -294,7 +297,7 @@ fn test_inlay_hint_convert_whippyunits_hint() {
                 }
             }
         }),
-        json!({"value": "<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"})
+        json!({"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"})
     ];
     
     processor.convert_whippyunits_hint(&mut label_array).unwrap();
@@ -333,7 +336,7 @@ fn test_inlay_hint_process_inlay_hint_response() {
                             }
                         }
                     },
-                    {"value": "<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"}
+                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
                 ],
                 "kind": 1,
                 "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
@@ -375,7 +378,7 @@ fn test_inlay_hint_real_inlay_hint_transformation() {
                             }
                         }
                     },
-                    {"value": "<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>"}
+                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
                 ],
                 "kind": 1,
                 "paddingLeft": false,

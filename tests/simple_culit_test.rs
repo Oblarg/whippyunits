@@ -13,6 +13,8 @@ fn test_simple_custom_literals() {
     let mass = 5.5kg;
     let time = 30.0s;
 
+    println!("Time: {}", time);
+
     // Test integer literals with integer suffixes (these go to int module)
     let distance_i32 = 10m;
 

@@ -26,27 +26,31 @@ impl InlayHintProcessor {
 
     /// Process an inlay hint response, converting whippyunits types to pretty format
     pub fn process_inlay_hint_response(&self, message: &str) -> Result<String> {
+        
         // Fast string search to detect if this message contains Quantity types
         if !self.contains_quantity_types_fast(message) {
             // No Quantity types detected, return original message unchanged
             return Ok(message.to_string());
         }
         
+        
         // Parse the JSON message only if we detected Quantity types
         let mut json_value: Value = serde_json::from_str(message)?;
         
         // Check if this is an inlay hint response with results
         if let Some(result) = json_value.get_mut("result") {
+            
             // Handle both array (inlay hint requests) and object (resolve responses)
             if let Some(results_array) = result.as_array_mut() {
                 // Process each inlay hint in the results array
-                for hint in results_array {
+                for (i, hint) in results_array.iter_mut().enumerate() {
                     self.process_single_hint(hint)?;
                 }
             } else if let Some(single_hint) = result.as_object_mut() {
                 // Process a single inlay hint object (resolve response)
                 self.process_single_hint_object(single_hint)?;
             }
+        } else {
         }
         
         // Convert back to string
@@ -55,14 +59,29 @@ impl InlayHintProcessor {
 
     /// Process a single inlay hint, converting whippyunits types if present
     fn process_single_hint(&self, hint: &mut Value) -> Result<()> {
+        
         // Get the label array
         if let Some(label) = hint.get_mut("label") {
             if let Some(label_array) = label.as_array_mut() {
+                
+                // Log the original label content
+                let original_label: Vec<String> = label_array.iter()
+                    .filter_map(|part| part.get("value").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                    .collect();
+                
                 // Check if this hint contains a whippyunits type
                 if self.contains_whippyunits_type(label_array) {
                     self.convert_whippyunits_hint(label_array)?;
+                    
+                    // Log the converted label content
+                    let converted_label: Vec<String> = label_array.iter()
+                        .filter_map(|part| part.get("value").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                        .collect();
+                } else {
                 }
+            } else {
             }
+        } else {
         }
         Ok(())
     }
@@ -107,57 +126,116 @@ impl InlayHintProcessor {
 
     /// Convert a whippyunits inlay hint to pretty format
     pub fn convert_whippyunits_hint(&self, label_array: &mut Vec<Value>) -> Result<()> {
-        // Find the parts we need to work with
-        let mut quantity_part_index = None;
-        let mut generic_params_part_index = None;
         
+        // Find the Quantity part
+        let mut quantity_part_index = None;
         for (i, part) in label_array.iter().enumerate() {
             if let Some(value) = part.get("value") {
                 if let Some(text) = value.as_str() {
                     if text == "Quantity" {
                         quantity_part_index = Some(i);
-                    } else if text.starts_with('<') && text.ends_with('>') {
-                        generic_params_part_index = Some(i);
+                        break;
                     }
                 }
             }
         }
-
-        // If we found both parts, process them
-        if let (Some(quantity_idx), Some(generic_idx)) = (quantity_part_index, generic_params_part_index) {
-            // Extract the generic parameters
-            let generic_params = if let Some(value) = label_array[generic_idx].get("value") {
-                value.as_str().unwrap_or("")
-            } else {
-                return Ok(());
-            };
-
-            // Construct the full type string
-            let full_type = format!("Quantity{}", generic_params);
+        
+        // If we found the Quantity part, collect all the generic parameters
+        if let Some(quantity_idx) = quantity_part_index {
             
-            // For inlay hints, use the full Quantity<unit, type> format
-            let pretty_type = self.formatter.format_types_inlay_hint(&full_type);
+            // Collect all parts after Quantity that form the generic parameters
+            let mut generic_parts = Vec::new();
+            let mut bracket_depth = 0;
+            let mut found_opening_bracket = false;
             
-            // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
-            let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
-            
-            // Replace the "Quantity" part with the pretty version
-            // Preserve the location information if it exists
-            let quantity_part = &label_array[quantity_idx];
-            let mut new_quantity_part = json!({
-                "value": pretty_type
-            });
-            
-            // Copy over the location if it exists
-            if let Some(location) = quantity_part.get("location") {
-                new_quantity_part["location"] = location.clone();
+            for i in (quantity_idx + 1)..label_array.len() {
+                if let Some(value) = label_array[i].get("value") {
+                    if let Some(text) = value.as_str() {
+                        // Track bracket depth to know when we've reached the end
+                        for ch in text.chars() {
+                            if ch == '<' {
+                                bracket_depth += 1;
+                                found_opening_bracket = true;
+                            } else if ch == '>' {
+                                bracket_depth -= 1;
+                            }
+                        }
+                        
+                        generic_parts.push(text);
+                        
+                        // Stop when we've closed all brackets
+                        if found_opening_bracket && bracket_depth == 0 {
+                            break;
+                        }
+                    }
+                }
             }
             
-            label_array[quantity_idx] = new_quantity_part;
-            
-            // Remove the generic parameters part
-            label_array.remove(generic_idx);
+            if !generic_parts.is_empty() {
+                // Create the complete generic parameters string
+                let generic_params = generic_parts.join("");
+                
+                // Construct the full type string
+                let full_type = format!("Quantity{}", generic_params);
+                
+                // For inlay hints, use the full Quantity<unit, type> format
+                let pretty_type = self.formatter.format_types_inlay_hint(&full_type);
+                
+                // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
+                let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
+                
+                // Replace the "Quantity" part with the pretty version
+                // Preserve the location information if it exists
+                let quantity_part = &label_array[quantity_idx];
+                let mut new_quantity_part = json!({
+                    "value": pretty_type
+                });
+                
+                // Copy over the location if it exists
+                if let Some(location) = quantity_part.get("location") {
+                    new_quantity_part["location"] = location.clone();
+                }
+                
+                label_array[quantity_idx] = new_quantity_part;
+                
+                // Remove all the generic parameters parts
+                let mut parts_to_remove = Vec::new();
+                let mut bracket_depth = 0;
+                let mut found_opening_bracket = false;
+                
+                for i in (quantity_idx + 1)..label_array.len() {
+                    if let Some(value) = label_array[i].get("value") {
+                        if let Some(text) = value.as_str() {
+                            // Track bracket depth to know when we've reached the end
+                            for ch in text.chars() {
+                                if ch == '<' {
+                                    bracket_depth += 1;
+                                    found_opening_bracket = true;
+                                } else if ch == '>' {
+                                    bracket_depth -= 1;
+                                }
+                            }
+                            
+                            parts_to_remove.push(i);
+                            
+                            // Stop when we've closed all brackets
+                            if found_opening_bracket && bracket_depth == 0 {
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Remove parts in reverse order to maintain indices
+                for &i in parts_to_remove.iter().rev() {
+                    label_array.remove(i);
+                }
+                
+            } else {
+            }
+        } else {
         }
+
         
         Ok(())
     }
@@ -247,12 +325,14 @@ impl InlayHintProcessor {
 
     /// Generate a seeded unit macro based on the unresolved type
     fn generate_seeded_unit_macro(&self, hint_obj: &serde_json::Map<String, Value>) -> Result<String> {
+        
         // We need to reconstruct the original unresolved type from the pretty-printed version
         // Look for the pretty-printed type in the label
         let mut pretty_type = String::new();
         
         if let Some(label) = hint_obj.get("label") {
             if let Some(label_array) = label.as_array() {
+                
                 for part in label_array {
                     if let Some(value) = part.get("value") {
                         if let Some(text) = value.as_str() {
@@ -266,6 +346,7 @@ impl InlayHintProcessor {
             }
         }
 
+
         // Extract the datatype suffix if present
         let (unit_part, datatype) = self.extract_unit_and_datatype(&pretty_type);
         
@@ -278,12 +359,14 @@ impl InlayHintProcessor {
             format!("unit!({}, {})", unit_part, datatype)
         };
         
+        
         // Return just the type annotation with the unit! macro
         Ok(format!(": {}", unit_macro))
     }
 
     /// Extract unit part and datatype from a pretty-printed type with suffix
     fn extract_unit_and_datatype(&self, pretty_type: &str) -> (String, String) {
+        
         // Remove the "Unresolved type - " prefix if present
         let clean_type = if pretty_type.starts_with("Unresolved type - ") {
             &pretty_type[18..] // Skip "Unresolved type - "
@@ -291,13 +374,20 @@ impl InlayHintProcessor {
             pretty_type
         };
         
+        
         // Check for new Quantity<unit, datatype> format
         if clean_type.starts_with("Quantity<") && clean_type.ends_with('>') {
             let inner = &clean_type[9..clean_type.len()-1]; // Remove "Quantity<" and ">"
+            
             if let Some(comma_pos) = inner.rfind(',') {
                 let unit_part = self.convert_pretty_type_to_unit_macro(inner[..comma_pos].trim());
                 let datatype = inner[comma_pos + 1..].trim().to_string();
                 return (unit_part, datatype);
+            } else {
+                // No comma found, this might be a malformed Quantity type
+                // Try to extract just the unit part without datatype
+                let unit_part = self.convert_pretty_type_to_unit_macro(inner.trim());
+                return (unit_part, "f64".to_string());
             }
         }
         

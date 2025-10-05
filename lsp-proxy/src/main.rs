@@ -49,8 +49,6 @@ async fn main() -> Result<()> {
             buffer.clear();
             match read_lsp_message(&mut reader, &mut buffer).await {
                 Ok(Some(message)) => {
-                    debug!("Editor -> RA: {}", message.lines().next().unwrap_or(""));
-                    
                     // Process outgoing message (editor to rust-analyzer)
                     match proxy_clone.process_outgoing(&message) {
                         Ok(processed) => {
@@ -91,8 +89,6 @@ async fn main() -> Result<()> {
             buffer.clear();
             match read_lsp_message(&mut reader, &mut buffer).await {
                 Ok(Some(message)) => {
-                    debug!("RA -> Editor: {}", message.lines().next().unwrap_or(""));
-                    
                     // Process incoming message (rust-analyzer to editor)
                     match proxy_clone.process_incoming(&message) {
                         Ok(processed) => {

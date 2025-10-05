@@ -15,11 +15,11 @@ pub fn contains_quantity_types_fast(json_payload: &str) -> bool {
     }
     
     // Additional validation: ensure we have proper Quantity<...> format
-    // Count the number of commas between angle brackets to validate the format
+    // The new format uses Scale<...> and Dimension<...> structs
     validate_quantity_format(json_payload)
 }
 
-/// Validate that Quantity<...> has the expected format with proper comma count
+/// Validate that Quantity<...> has the expected format with proper structuref
 pub fn validate_quantity_format(json_payload: &str) -> bool {
     // Use a simple state machine to find and validate Quantity<...> patterns
     let mut chars = json_payload.char_indices().peekable();
@@ -32,10 +32,8 @@ pub fn validate_quantity_format(json_payload: &str) -> bool {
                 // Found a potential Quantity type, validate the format
                 if let Some(close_pos) = find_matching_angle_bracket(&json_payload[pos + 9..]) {
                     let inner_content = &json_payload[pos + 9..pos + 9 + close_pos];
-                    // Count commas to validate this is likely a Quantity type
-                    // We expect at least 8 commas for the basic format (8 dimension exponents)
-                    let comma_count = inner_content.matches(',').count();
-                    if comma_count >= 8 {
+                    // Check for the new format with Scale<...> and Dimension<...> structs
+                    if inner_content.contains("Scale<") && inner_content.contains("Dimension<") {
                         return true; // Found a valid Quantity type
                     }
                 }
@@ -48,15 +46,15 @@ pub fn validate_quantity_format(json_payload: &str) -> bool {
 
 /// Find the matching closing angle bracket for a Quantity type
 pub fn find_matching_angle_bracket(text: &str) -> Option<usize> {
-    let mut depth = 0;
+    let mut depth = 1; // Start at depth 1 since we're already inside the first <
     for (i, ch) in text.char_indices() {
         match ch {
             '<' => depth += 1,
             '>' => {
+                depth -= 1;
                 if depth == 0 {
                     return Some(i);
                 }
-                depth -= 1;
             }
             _ => {}
         }
@@ -67,20 +65,21 @@ pub fn find_matching_angle_bracket(text: &str) -> Option<usize> {
 /// Validate split Quantity format where "Quantity" and "<...>" are separate JSON values
 pub fn validate_split_quantity_format(json_payload: &str) -> bool {
     // Simple approach: look for the pattern "Quantity" followed by a value with angle brackets
-    // and count commas in the angle bracket content
+    // and check for Scale<...> and Dimension<...> structs
     if json_payload.contains("\"Quantity\"") && json_payload.contains("<") && json_payload.contains(">") {
-        // Look for angle bracket content with enough commas
+        // Look for angle bracket content with Scale<...> and Dimension<...> structs
         let mut pos = 0;
         while let Some(bracket_start) = json_payload[pos..].find('<') {
             let absolute_pos = pos + bracket_start;
             let after_bracket = &json_payload[absolute_pos + 1..];
             
-            if let Some(bracket_end) = after_bracket.find('>') {
+            // Use bracket counting to find the matching closing bracket
+            if let Some(bracket_end) = find_matching_angle_bracket(after_bracket) {
                 let inner_content = &after_bracket[..bracket_end];
                 
-                // Count commas to validate this is likely a Quantity type
-                let comma_count = inner_content.matches(',').count();
-                if comma_count >= 8 {
+                // Check for new format with Scale and Dimension structs
+                // In the split format, these appear as separate JSON values like "Scale"},{"value":"<"
+                if inner_content.contains("\"Scale\"") && inner_content.contains("\"Dimension\"") {
                     return true; // Found a valid Quantity type in split format
                 }
             }
@@ -114,8 +113,8 @@ mod tests {
 
     #[test]
     fn test_contains_quantity_types_fast() {
-        // Test with message containing Quantity types (8+ commas for valid detection)
-        let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0> = 5.0.meters();\n```"}}}"#;
+        // Test with message containing new Quantity types with Scale<...> and Dimension<...> structs
+        let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\n```"}}}"#;
         assert!(contains_quantity_types_fast(message_with_quantity));
         
         // Test with message not containing Quantity types
@@ -126,23 +125,23 @@ mod tests {
         let message_with_quantity_text = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity = some_value;\n```"}}}"#;
         assert!(!contains_quantity_types_fast(message_with_quantity_text));
         
-        // Test with message containing "Quantity<" but with insufficient commas
+        // Test with message containing "Quantity<" but without Scale<...> and Dimension<...> structs
         let message_with_insufficient_commas = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<1, 2, 3> = some_value;\n```"}}}"#;
         assert!(!contains_quantity_types_fast(message_with_insufficient_commas));
     }
 
     #[test]
     fn test_validate_quantity_format() {
-        // Test valid Quantity format with 8+ commas
-        let valid_quantity = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>";
+        // Test valid new Quantity format with Scale<...> and Dimension<...> structs
+        let valid_quantity = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
         assert!(validate_quantity_format(valid_quantity));
         
-        // Test invalid format with insufficient commas
+        // Test invalid format without Scale<...> and Dimension<...> structs
         let invalid_quantity = "Quantity<1, 2, 3>";
         assert!(!validate_quantity_format(invalid_quantity));
         
         // Test with nested angle brackets
-        let nested_quantity = "Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Some<f64>>";
+        let nested_quantity = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, Some<f64>>";
         assert!(validate_quantity_format(nested_quantity));
     }
 

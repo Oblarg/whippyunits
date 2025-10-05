@@ -17,20 +17,56 @@ use crate::api::aggregate_scale_factor_float;
 use crate::print::format_specifiers::{format_with_unit, UnitFormatSpecifier};
 use whippyunits_default_dimensions::lookup_unit_literal;
 
-#[derive(Clone, Copy, PartialEq)]
+// Scale exponent structs - these are zero-sized types used for const generic parameters
+pub struct _2<const EXP: i16>;
+pub struct _3<const EXP: i16>;
+pub struct _5<const EXP: i16>;
+pub struct _Pi<const EXP: i16>;
+
+
+// Dimension exponent structs - these are zero-sized types used for const generic parameters
+pub struct _M<const EXP: i16>;
+pub struct _L<const EXP: i16>;
+pub struct _T<const EXP: i16>;
+pub struct _I<const EXP: i16>;  // Current
+pub struct _Θ<const EXP: i16>;  // Temperature (Unicode theta)
+pub struct _N<const EXP: i16>;  // Amount
+pub struct _J<const EXP: i16>;  // Luminosity
+pub struct _A<const EXP: i16>;  // Angle
+
+
+// Scale representation - groups scale exponents using wrapper structs
+#[allow(dead_code)]
+pub struct Scale<
+    P2,
+    P3,
+    P5,
+    PI,
+> {
+    _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
+}
+
+// Dimension representation - groups dimension exponents using wrapper structs
+#[allow(dead_code)]
+pub struct Dimension<
+    MASS,
+    LENGTH,
+    TIME,
+    CURRENT,
+    TEMPERATURE,
+    AMOUNT,
+    LUMINOSITY,
+    ANGLE,
+> {
+    _phantom: std::marker::PhantomData<(MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE)>,
+}
+
+
+
+#[derive(Clone, PartialEq)]
 pub struct Quantity<
-    const MASS_EXPONENT: i16,
-    const LENGTH_EXPONENT: i16,
-    const TIME_EXPONENT: i16,
-    const CURRENT_EXPONENT: i16,
-    const TEMPERATURE_EXPONENT: i16,
-    const AMOUNT_EXPONENT: i16,
-    const LUMINOSITY_EXPONENT: i16,
-    const ANGLE_EXPONENT: i16,
-    const SCALE_P2: i16,
-    const SCALE_P3: i16,
-    const SCALE_P5: i16,
-    const SCALE_PI: i16,
+    Scale,
+    Dimension,
     T = f64,
 > {
     /// The raw numeric value of this quantity.
@@ -56,6 +92,98 @@ pub struct Quantity<
     /// let result = f64::sin(angle.value); // BUG: sin(90.0) ≈ 0.89 (wrong!)
     /// ```
     pub value: T,
+    _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension)>,
+}
+
+impl<Scale, Dimension, T> Copy for Quantity<Scale, Dimension, T> 
+where 
+    Scale: Clone,
+    Dimension: Clone,
+    T: Copy 
+{}
+
+impl<P2, P3, P5, PI> Clone for Scale<P2, P3, P5, PI> {
+    fn clone(&self) -> Self {
+        Self { _phantom: std::marker::PhantomData }
+    }
+}
+
+impl<MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE> Clone for Dimension<MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE> {
+    fn clone(&self) -> Self {
+        Self { _phantom: std::marker::PhantomData }
+    }
+}
+
+impl<const EXP: i16> Clone for _2<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _3<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _5<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _Pi<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _M<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _L<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _T<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _I<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _Θ<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _N<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _J<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
+}
+
+impl<const EXP: i16> Clone for _A<EXP> {
+    fn clone(&self) -> Self {
+        Self
+    }
 }
 
 impl<
@@ -74,23 +202,16 @@ impl<
         T,
     >
     Quantity<
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >
 {
     pub const fn new(value: T) -> Self {
-        Self { value }
+        Self { 
+            value,
+            _phantom: std::marker::PhantomData,
+        }
     }
 
     /// Format this quantity in the specified unit
@@ -123,18 +244,8 @@ impl<
             T,
         > {
             quantity: &'a Quantity<
-                MASS_EXPONENT,
-                LENGTH_EXPONENT,
-                TIME_EXPONENT,
-                CURRENT_EXPONENT,
-                TEMPERATURE_EXPONENT,
-                AMOUNT_EXPONENT,
-                LUMINOSITY_EXPONENT,
-                ANGLE_EXPONENT,
-                SCALE_P2,
-                SCALE_P3,
-                SCALE_P5,
-                SCALE_PI,
+                Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
                 T,
             >,
             unit: String,
@@ -320,23 +431,13 @@ macro_rules! define_from_dimensionless_cross_type {
                 const SCALE_P3: i16,
                 const SCALE_P5: i16,
                 const SCALE_PI: i16,
-            > From<Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $source_type>>
+            > From<Quantity<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, $source_type>>
             for $target_type
         {
             fn from(
                 other: Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>,
                     $source_type,
                 >,
             ) -> $target_type {
@@ -345,7 +446,7 @@ macro_rules! define_from_dimensionless_cross_type {
                     (other.value as f64) as $target_type
                 } else {
                     // Convert to f64 quantity first, then apply rescale logic
-                    let f64_quantity = Quantity::new(other.value as f64);
+                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>::new(other.value as f64);
                     (crate::api::rescale_f64::<
                         0,
                         0,
@@ -385,23 +486,13 @@ macro_rules! define_from_dimensionless {
                 const SCALE_P3: i16,
                 const SCALE_P5: i16,
                 const SCALE_PI: i16,
-            > From<Quantity<0, 0, 0, 0, 0, 0, 0, 0, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, $type>>
+            > From<Quantity<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, $type>>
             for $type
         {
             fn from(
                 other: Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>,
                     $type,
                 >,
             ) -> $type {
@@ -476,36 +567,16 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
             >
             From<
                 Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    $exponent,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>,
                     $source_type,
                 >,
             > for $target_type
         {
             fn from(
                 other: Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    $exponent,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>,
                     $source_type,
                 >,
             ) -> $target_type {
@@ -514,7 +585,7 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
                     (other.value as f64) as $target_type
                 } else {
                     // Convert to f64 quantity first, then apply rescale logic
-                    let f64_quantity = Quantity::new(other.value as f64);
+                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>, f64>::new(other.value as f64);
                     (crate::api::rescale_f64::<
                         0,
                         0,
@@ -557,36 +628,16 @@ macro_rules! define_from_for_radians_with_scale {
             >
             From<
                 Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    $exponent,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>,
                     $type,
                 >,
             > for $type
         {
             fn from(
                 other: Quantity<
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    $exponent,
-                    SCALE_P2,
-                    SCALE_P3,
-                    SCALE_P5,
-                    SCALE_PI,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+                    Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>,
                     $type,
                 >,
             ) -> $type {
@@ -641,55 +692,28 @@ macro_rules! define_from_for_radians {
                 >
                 From<
                     Quantity<
-                        MASS_EXPONENT,
-                        LENGTH_EXPONENT,
-                        TIME_EXPONENT,
-                        CURRENT_EXPONENT,
-                        TEMPERATURE_EXPONENT,
-                        AMOUNT_EXPONENT,
-                        LUMINOSITY_EXPONENT,
-                        $exponent,
-                        0,
-                        0,
-                        0,
-                        0,
+                        Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<$exponent>>,
                         $type,
                     >,
                 >
                 for Quantity<
-                    MASS_EXPONENT,
-                    LENGTH_EXPONENT,
-                    TIME_EXPONENT,
-                    CURRENT_EXPONENT,
-                    TEMPERATURE_EXPONENT,
-                    AMOUNT_EXPONENT,
-                    LUMINOSITY_EXPONENT,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
+                    Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                    Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<0>>,
                     $type,
                 >
             {
                 fn from(
                     other: Quantity<
-                        MASS_EXPONENT,
-                        LENGTH_EXPONENT,
-                        TIME_EXPONENT,
-                        CURRENT_EXPONENT,
-                        TEMPERATURE_EXPONENT,
-                        AMOUNT_EXPONENT,
-                        LUMINOSITY_EXPONENT,
-                        $exponent,
-                        0,
-                        0,
-                        0,
-                        0,
+                        Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<$exponent>>,
                         $type,
                     >,
                 ) -> Self {
-                    Self { value: other.value }
+                    Self { 
+                        value: other.value,
+                        _phantom: std::marker::PhantomData,
+                    }
                 }
             }
         )+
@@ -703,35 +727,15 @@ whippyunits_proc_macros::generate_all_radian_erasures!(9);
 macro_rules! quantity_type {
     () => {
         Quantity<
-            MASS_EXPONENT,
-            LENGTH_EXPONENT,
-            TIME_EXPONENT,
-            CURRENT_EXPONENT,
-            TEMPERATURE_EXPONENT,
-            AMOUNT_EXPONENT,
-            LUMINOSITY_EXPONENT,
-            ANGLE_EXPONENT,
-            SCALE_P2,
-            SCALE_P3,
-            SCALE_P5,
-            SCALE_PI,
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
             T
         >
     };
     ($T:ty) => {
         Quantity<
-            MASS_EXPONENT,
-            LENGTH_EXPONENT,
-            TIME_EXPONENT,
-            CURRENT_EXPONENT,
-            TEMPERATURE_EXPONENT,
-            AMOUNT_EXPONENT,
-            LUMINOSITY_EXPONENT,
-            ANGLE_EXPONENT,
-            SCALE_P2,
-            SCALE_P3,
-            SCALE_P5,
-            SCALE_PI,
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
             $T
         >
     };

@@ -1084,10 +1084,7 @@ pub fn lookup_unit_literal(unit_name: &str) -> Option<&'static UnitLiteralInfo> 
     if let Some(info) = UNIT_LITERALS.iter().find(|info| {
         info.symbol == unit_name ||
         info.long_name == unit_name ||
-        info.type_name == unit_name ||
-        // Handle plural forms
-        info.long_name.to_string() + "s" == unit_name ||
-        info.symbol.to_string() + "s" == unit_name
+        info.type_name == unit_name
     }) {
         return Some(info);
     }

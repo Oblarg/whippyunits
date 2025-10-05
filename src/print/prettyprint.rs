@@ -461,7 +461,11 @@ define_pretty_print_quantity!(
         scale_p2, scale_p3, scale_p5, scale_pi
     ),
     format!(
-        " [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}] [2{}, 3{}, 5{}, π{}]",
+        " [2{}, 3{}, 5{}, π{}] [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}]",
+        format_scale_exponent(scale_p2),
+        format_scale_exponent(scale_p3),
+        format_scale_exponent(scale_p5),
+        format_scale_exponent(scale_pi),
         to_unicode_superscript(mass_exponent, true),
         to_unicode_superscript(length_exponent, true),
         to_unicode_superscript(time_exponent, true),
@@ -469,11 +473,7 @@ define_pretty_print_quantity!(
         to_unicode_superscript(temperature_exponent, true),
         to_unicode_superscript(amount_of_substance_exponent, true),
         to_unicode_superscript(luminous_intensity_exponent, true),
-        to_unicode_superscript(angle_exponent, true),
-        format_scale_exponent(scale_p2),
-        format_scale_exponent(scale_p3),
-        format_scale_exponent(scale_p5),
-        format_scale_exponent(scale_pi)
+        to_unicode_superscript(angle_exponent, true)
     )
 );
 

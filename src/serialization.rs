@@ -8,6 +8,7 @@ use crate::api::aggregate_scale_factor_float;
 use crate::print::name_lookup::generate_systematic_unit_name_with_format;
 use crate::print::prettyprint::UnitFormat;
 use crate::quantity_type::Quantity;
+use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 use whippyunits_default_dimensions::{
     get_unit_dimensions, is_prefixed_base_unit, DimensionExponents, BASE_UNITS, COMPOUND_UNITS,
     SI_PREFIXES, UNIT_LITERALS,
@@ -39,18 +40,8 @@ pub fn to_ucum_unit<
     T,
 >(
     _quantity: &Quantity<
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >,
 ) -> String
@@ -168,18 +159,8 @@ pub fn serialize_to_json<
     T,
 >(
     quantity: &Quantity<
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >,
 ) -> Result<String, serde_json::Error>
@@ -791,18 +772,8 @@ pub fn deserialize_core_quantity<
     unit_str: &str,
 ) -> Result<
     Quantity<
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >,
     SerializationError,
@@ -843,7 +814,7 @@ where
     let converted_value = value * conversion_factor;
 
     // Construct Quantity directly using const parameters - no need for quantity! macro
-    Ok(Quantity::new(converted_value.into()))
+    Ok(Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>, T>::new(converted_value.into()))
 }
 
 /// Get dimensions from a quantity by creating a temporary quantity and extracting its dimensions
@@ -863,18 +834,8 @@ pub fn get_quantity_dimensions<
     T,
 >(
     _quantity: &Quantity<
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >,
 ) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
@@ -969,7 +930,7 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn test_json_serialization() {
-        let q: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64> = Quantity::new(5.0);
+        let q: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = Quantity::new(5.0);
         let json = serialize_to_json(&q).unwrap();
         assert!(json.contains("\"value\":5.0"));
         assert!(json.contains("\"unit\":\"m\""));

@@ -1,4 +1,5 @@
 use crate::quantity_type::Quantity;
+use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 
 /// Macro to define dimension traits for atomic dimensions
 ///
@@ -26,9 +27,8 @@ macro_rules! define_atomic_dimension_trait {
             T>
         $trait_name
         for Quantity<
-            $mass_exp, $length_exp, $time_exp, $current_exp,
-            $temperature_exp, $amount_exp, $luminosity_exp, $angle_exp,
-            SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI,
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
             T> {
             type Unit = Self;
         }

@@ -251,7 +251,6 @@ fn test_dimension_symbols_in_dsl() {
 #[test]
 fn test_mixed_dimension_names_and_symbols() {
     define_generic_dimension!(MixedTest, Length, M, Time, L ^ 2, Mass * L ^ 2 / T ^ 2);
-
     let length: impl MixedTest = quantity!(1.0, m);
     let mass: impl MixedTest = quantity!(1.0, kg);
     let time: impl MixedTest = quantity!(1.0, s);

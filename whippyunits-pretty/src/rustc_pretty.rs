@@ -45,8 +45,8 @@ impl RustcPrettyPrinter {
 
     /// Process a single line of rustc output
     pub fn process_line(&mut self, line: &str) -> Result<String> {
-        // Check if this line contains whippyunits types
-        if self.quantity_regex.is_match(line) {
+        // Check if this line contains whippyunits types (both old and new format)
+        if self.quantity_regex.is_match(line) || line.contains("Scale<") && line.contains("Dimension<") {
             debug!("Processing line with whippyunits types: {}", line);
             
             // Apply type conversion

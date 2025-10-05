@@ -174,7 +174,13 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
         {
             let base_method = make_plural(base_unit_info.long_name);
             let prefix_name = get_prefix_name(prefix);
-            return format!("{}{}", prefix_name, base_method);
+            let result = format!("{}{}", prefix_name, base_method);
+            // Add a compile-time error to see what's being generated
+            if unit_symbol == "ms" {
+                panic!("DEBUG: ms -> base_symbol={}, prefix={}, base_method={}, prefix_name={}, result={}", 
+                       base_symbol, prefix, base_method, prefix_name, result);
+            }
+            return result;
         }
     }
 
@@ -237,6 +243,7 @@ fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&str, &str)> {
             if whippyunits_default_dimensions::lookup_si_prefix(prefix_part).is_some() {
                 return Some((base_unit.symbol, prefix_part));
             }
+
         }
     }
 
@@ -332,3 +339,4 @@ fn get_all_unit_symbols() -> Vec<String> {
 
     symbols
 }
+

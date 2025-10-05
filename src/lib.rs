@@ -36,6 +36,9 @@ pub mod serialization;
 // Re-export macros that need to be available at crate root
 pub use scoped_preferences::*;
 
+// Re-export the new quantity type structure
+pub use quantity_type::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
+
 // Re-export the proc macros for consumers to use
 pub use whippyunits_proc_macros::define_generic_dimension;
 pub use whippyunits_proc_macros::define_literals;
