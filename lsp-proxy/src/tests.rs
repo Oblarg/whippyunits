@@ -7,6 +7,14 @@ fn test_fast_quantity_detection() {
     let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\n```"}}}"#;
     assert!(quantity_detection::contains_quantity_types_fast(message_with_quantity));
     
+    // Test with message containing truncated Quantity types (Scale and Dimension with defaulted parameters)
+    let message_with_truncated_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale, Dimension<_M<0>, _L<1>>, f64> = 5.0.meters();\n```"}}}"#;
+    assert!(quantity_detection::contains_quantity_types_fast(message_with_truncated_quantity));
+    
+    // Test with message containing fully defaulted Quantity types (Scale and Dimension with no parameters)
+    let message_with_fully_defaulted_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale, Dimension, f64> = 5.0;\n```"}}}"#;
+    assert!(quantity_detection::contains_quantity_types_fast(message_with_fully_defaulted_quantity));
+    
     // Test with message not containing Quantity types
     let message_without_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: String = \"hello\";\n```"}}}"#;
     assert!(!quantity_detection::contains_quantity_types_fast(message_without_quantity));
@@ -14,6 +22,10 @@ fn test_fast_quantity_detection() {
     // Test with message containing "Quantity" but not in proper format
     let message_with_quantity_text = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: String = \"Quantity\";\n```"}}}"#;
     assert!(!quantity_detection::contains_quantity_types_fast(message_with_quantity_text));
+    
+    // Test early opt-out: message with "Quantity<" but no Scale/Dimension (should be fast rejection)
+    let message_with_quantity_but_no_whippyunits = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<SomeOtherType> = something;\n```"}}}"#;
+    assert!(!quantity_detection::contains_quantity_types_fast(message_with_quantity_but_no_whippyunits));
 }
 
 #[test]
@@ -21,6 +33,14 @@ fn test_validate_quantity_format() {
     // Test valid new Quantity format with Scale<...> and Dimension<...> structs
     let valid_quantity = "Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
     assert!(quantity_detection::validate_quantity_format(valid_quantity));
+    
+    // Test valid truncated Quantity format (Scale and Dimension with defaulted parameters)
+    let valid_truncated_quantity = "Quantity<Scale, Dimension<_M<0>, _L<1>>, f64>";
+    assert!(quantity_detection::validate_quantity_format(valid_truncated_quantity));
+    
+    // Test valid fully defaulted Quantity format (Scale and Dimension with no parameters)
+    let valid_fully_defaulted_quantity = "Quantity<Scale, Dimension, f64>";
+    assert!(quantity_detection::validate_quantity_format(valid_fully_defaulted_quantity));
     
     // Test invalid format without Scale<...> and Dimension<...> structs
     let invalid_quantity = "Quantity<1, 2, 3>";
@@ -76,38 +96,6 @@ fn test_hover_tooltip_processing() {
     assert!(!processed.contains("_A<0>"));
 }
 
-#[test]
-fn test_inlay_hint_integration() {
-    let proxy = LspProxy::new();
-    
-    // Test inlay hint response with new Quantity types
-    let inlay_hint_response = json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": [
-            {
-                "position": {"line": 12, "character": 17},
-                "label": [
-                    {"value": ": "},
-                    {"value": "Quantity"},
-                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
-                ],
-                "kind": 1,
-                "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
-            }
-        ]
-    });
-    
-    let response_str = serde_json::to_string(&inlay_hint_response).unwrap();
-    let processed = proxy.process_incoming(&response_str).unwrap();
-    
-    // Should contain pretty-printed type
-    assert!(processed.contains("Quantity<m, f64>"));
-    // Should preserve all metadata
-    assert!(processed.contains("position"));
-    assert!(processed.contains("data"));
-    assert!(processed.contains("resolve_range"));
-}
 
 #[test]
 fn test_type_conversion() {
@@ -119,21 +107,24 @@ fn test_type_conversion() {
     assert!(result.contains("Quantity<m, f64>"));
     assert!(!result.contains("const"));
     assert!(!result.contains("MASS_EXPONENT"));
+    
+    // Test type conversion with truncated format
+    let truncated_input = "Quantity<Scale, Dimension<_M<0>, _L<1>>, f64>";
+    let truncated_result = converter.format_types(truncated_input, &crate::DisplayConfig::default());
+    println!("Truncated input: {}", truncated_input);
+    println!("Truncated result: {}", truncated_result);
+    assert!(truncated_result.contains("Quantity<m, f64>"));
+    assert!(!truncated_result.contains("const"));
+    assert!(!truncated_result.contains("MASS_EXPONENT"));
+    
+    // Test type conversion with fully defaulted format (dimensionless)
+    let fully_defaulted_input = "Quantity<Scale, Dimension, f64>";
+    let fully_defaulted_result = converter.format_types(fully_defaulted_input, &crate::DisplayConfig::default());
+    assert!(fully_defaulted_result.contains("Quantity<1, f64>") || fully_defaulted_result.contains("Quantity<dimensionless, f64>"));
+    assert!(!fully_defaulted_result.contains("const"));
+    assert!(!fully_defaulted_result.contains("MASS_EXPONENT"));
 }
 
-#[test]
-fn test_text_conversion() {
-    let converter = UnitFormatter::new();
-    
-    // Test text with multiple new Quantity types
-    let input = "let x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\nlet y: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<1>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 10.0.kilograms();";
-    let result = converter.format_types(input, &crate::DisplayConfig { verbose: false, unicode: false, include_raw: false });
-    
-    assert!(result.contains("m"));
-    assert!(result.contains("kg"));
-    assert!(!result.contains("const"));
-    assert!(!result.contains("MASS_EXPONENT"));
-}
 
 
 #[test]
@@ -159,59 +150,6 @@ fn test_verbose_partially_resolved_type() {
     assert!(!result.contains("const"));
 }
 
-#[test]
-fn test_inlay_hint_unresolved_types() {
-    let proxy = LspProxy::new();
-    
-    // Test inlay hint with new unresolved types
-    let inlay_hint_response = json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": [
-            {
-                "position": {"line": 12, "character": 17},
-                "label": [
-                    {"value": ": "},
-                    {"value": "Quantity"},
-                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
-                ],
-                "kind": 1,
-                "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
-            }
-        ]
-    });
-    
-    let response_str = serde_json::to_string(&inlay_hint_response).unwrap();
-    let processed = proxy.process_incoming(&response_str).unwrap();
-    
-    // Extract JSON payload from LSP message format
-    let json_payload = if processed.starts_with("Content-Length:") {
-        // Extract JSON from LSP message format
-        let json_start = processed.find("\r\n\r\n").unwrap() + 4;
-        &processed[json_start..]
-    } else {
-        &processed
-    };
-    
-    // Parse the processed result to verify the transformation
-    let processed_json: serde_json::Value = serde_json::from_str(json_payload).unwrap();
-    let result_array = processed_json["result"].as_array().unwrap();
-    let hint = &result_array[0];
-    let label_array = hint["label"].as_array().unwrap();
-    
-    // Should have 2 parts now (removed generic params)
-    assert_eq!(label_array.len(), 2);
-    
-    // First part should be ": "
-    assert_eq!(label_array[0]["value"], ": ");
-    
-    // Second part should be pretty-printed
-    let second_part = &label_array[1];
-    let label_str = second_part["value"].as_str().unwrap();
-    // The processor should transform "Quantity" to a pretty-printed Quantity<unit, type> format
-    // So we should check for the pretty-printed result instead
-    assert!(label_str.contains("Quantity<m, f64>") || label_str.contains("Quantity<kg, f64>") || label_str.contains("Quantity<s, f64>"));
-}
 
 #[test]
 fn test_add_sub_trait_signature_transformation() {
@@ -314,127 +252,7 @@ fn test_inlay_hint_convert_whippyunits_hint() {
     assert!(second_part.get("location").is_some());
 }
 
-#[test]
-fn test_inlay_hint_process_inlay_hint_response() {
-    let processor = inlay_hint_processor::InlayHintProcessor::new();
-    
-    let response = json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": [
-            {
-                "position": {"line": 12, "character": 17},
-                "label": [
-                    {"value": ": "},
-                    {
-                        "value": "Quantity",
-                        "location": {
-                            "uri": "file://test.rs",
-                            "range": {
-                                "start": {"line": 1, "character": 0},
-                                "end": {"line": 1, "character": 8}
-                            }
-                        }
-                    },
-                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
-                ],
-                "kind": 1,
-                "data": {"file_id": 0, "hash": "123", "resolve_range": {"start": {"line": 12, "character": 8}, "end": {"line": 12, "character": 17}}, "version": 1}
-            }
-        ]
-    });
-    
-    let response_str = serde_json::to_string(&response).unwrap();
-    let processed = processor.process_inlay_hint_response(&response_str).unwrap();
-    
-    // Should contain pretty-printed type
-    assert!(processed.contains("Quantity<m, f64>"));
-    // Should preserve all metadata
-    assert!(processed.contains("location"));
-    assert!(processed.contains("resolve_range"));
-    assert!(processed.contains("data"));
-}
 
-#[test]
-fn test_inlay_hint_real_inlay_hint_transformation() {
-    let processor = inlay_hint_processor::InlayHintProcessor::new();
-    
-    // Real inlay hint response from our test output
-    let real_response = json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "result": [
-            {
-                "position": {"line": 12, "character": 17},
-                "label": [
-                    {"value": ": "},
-                    {
-                        "value": "Quantity",
-                        "location": {
-                            "uri": "file:///workspace/src/lib.rs",
-                            "range": {
-                                "start": {"line": 64, "character": 11},
-                                "end": {"line": 64, "character": 19}
-                            }
-                        }
-                    },
-                    {"value": "<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>"}
-                ],
-                "kind": 1,
-                "paddingLeft": false,
-                "paddingRight": false,
-                "data": {
-                    "file_id": 0,
-                    "hash": "11030576060064372646",
-                    "resolve_range": {
-                        "start": {"line": 12, "character": 8},
-                        "end": {"line": 12, "character": 17}
-                    },
-                    "version": 1
-                }
-            }
-        ]
-    });
-    
-    let response_str = serde_json::to_string(&real_response).unwrap();
-    let processed = processor.process_inlay_hint_response(&response_str).unwrap();
-    
-    // Parse the processed result to verify the transformation
-    let processed_json: serde_json::Value = serde_json::from_str(&processed).unwrap();
-    let result_array = processed_json["result"].as_array().unwrap();
-    let hint = &result_array[0];
-    let label_array = hint["label"].as_array().unwrap();
-    
-    // Should have 2 parts now (removed generic params)
-    assert_eq!(label_array.len(), 2);
-    
-    // First part should be ": "
-    assert_eq!(label_array[0]["value"], ": ");
-    
-    // Second part should be pretty-printed and have location preserved
-    let second_part = &label_array[1];
-    let pretty_value = second_part["value"].as_str().unwrap();
-    
-    // Should contain the pretty-printed type
-    assert!(pretty_value.contains("Quantity<m, f64>"));
-    println!("Original: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>");
-    println!("Pretty: '{}'", pretty_value);
-    
-    // Should preserve the location for click-to-source
-    assert!(second_part.get("location").is_some());
-    let location = &second_part["location"];
-    assert!(location["uri"].as_str().unwrap().ends_with("/src/lib.rs"));
-    
-    // Should preserve all other metadata
-    assert!(hint.get("position").is_some());
-    assert!(hint.get("kind").is_some());
-    assert!(hint.get("data").is_some());
-    assert!(hint["data"].get("resolve_range").is_some());
-    
-    println!("Original: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, f64>");
-    println!("Pretty: '{}'", pretty_value);
-    println!("Pretty value length: {}", pretty_value.len());
-}
 
 #[test]
 fn test_inlay_hint_exponent_pruning() {

@@ -14,9 +14,16 @@ pub fn contains_quantity_types_fast(json_payload: &str) -> bool {
         return false;
     }
     
-    // Additional validation: ensure we have proper Quantity<...> format
-    // The new format uses Scale<...> and Dimension<...> structs
-    validate_quantity_format(json_payload)
+    // Fast pre-check: look for key patterns that indicate whippyunits types
+    // This is much faster than full validation for the common case
+    if json_payload.contains("Scale") && json_payload.contains("Dimension") {
+        // Additional validation: ensure we have proper Quantity<...> format
+        // The new format uses Scale<...> and Dimension<...> structs
+        return validate_quantity_format(json_payload);
+    }
+    
+    // If we don't see Scale and Dimension, it's probably not a whippyunits type
+    false
 }
 
 /// Validate that Quantity<...> has the expected format with proper structuref
@@ -32,8 +39,14 @@ pub fn validate_quantity_format(json_payload: &str) -> bool {
                 // Found a potential Quantity type, validate the format
                 if let Some(close_pos) = find_matching_angle_bracket(&json_payload[pos + 9..]) {
                     let inner_content = &json_payload[pos + 9..pos + 9 + close_pos];
-                    // Check for the new format with Scale<...> and Dimension<...> structs
-                    if inner_content.contains("Scale<") && inner_content.contains("Dimension<") {
+                    // Check for the new format with Scale and Dimension structs
+                    // Handle both full format (Scale<...>, Dimension<...>) and truncated format (Scale, Dimension<...>)
+                    // Also handle fully defaulted Dimension (Scale, Dimension, T)
+                    if (inner_content.contains("Scale<") && inner_content.contains("Dimension<")) ||
+                       (inner_content.contains("Scale,") && inner_content.contains("Dimension<")) ||
+                       (inner_content.contains("Scale") && inner_content.contains("Dimension<")) ||
+                       (inner_content.contains("Scale,") && inner_content.contains("Dimension,")) ||
+                       (inner_content.contains("Scale") && inner_content.contains("Dimension,")) {
                         return true; // Found a valid Quantity type
                     }
                 }

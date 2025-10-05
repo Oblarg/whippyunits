@@ -38,10 +38,10 @@ pub struct _A<const EXP: i16>;  // Angle
 // Scale representation - groups scale exponents using wrapper structs
 #[allow(dead_code)]
 pub struct Scale<
-    P2,
-    P3,
-    P5,
-    PI,
+    P2 = _2<0>,
+    P3 = _3<0>,
+    P5 = _5<0>,
+    PI = _Pi<0>,
 > {
     _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
 }
@@ -49,14 +49,14 @@ pub struct Scale<
 // Dimension representation - groups dimension exponents using wrapper structs
 #[allow(dead_code)]
 pub struct Dimension<
-    MASS,
-    LENGTH,
-    TIME,
-    CURRENT,
-    TEMPERATURE,
-    AMOUNT,
-    LUMINOSITY,
-    ANGLE,
+    MASS = _M<0>,
+    LENGTH = _L<0>,
+    TIME = _T<0>,
+    CURRENT = _I<0>,
+    TEMPERATURE = _Θ<0>,
+    AMOUNT = _N<0>,
+    LUMINOSITY = _J<0>,
+    ANGLE = _A<0>,
 > {
     _phantom: std::marker::PhantomData<(MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE)>,
 }
