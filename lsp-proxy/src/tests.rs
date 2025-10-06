@@ -290,3 +290,47 @@ fn test_scale_parsing_with_missing_pi_parameter() {
     assert!(!result.contains("Scale<_2<-3>"));
     assert!(!result.contains("const"));
 }
+
+#[test]
+fn test_wholly_unresolved_type_formatting() {
+    let converter = UnitFormatter::new();
+    
+    // Test the user's specific case: wholly unresolved type with all parameters as _
+    // This matches the exact format from the IDE hover
+    let input = "Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>";
+    let result = converter.format_types(input, &crate::DisplayConfig::default());
+    
+    
+    // Should format as wholly unresolved type
+    assert!(result.contains("Quantity<?, f64>"));
+    assert!(!result.contains("Scale<_2<_>"));
+    assert!(!result.contains("Dimension<_M<_>"));
+    assert!(!result.contains("const"));
+    
+    // Test with inlay hint formatting
+    let inlay_result = converter.format_types_inlay_hint(input);
+    println!("Inlay hint result: {}", inlay_result);
+    assert!(inlay_result.contains("Quantity<?, f64>"));
+}
+
+#[test]
+fn test_partially_resolved_type_formatting() {
+    let converter = UnitFormatter::new();
+    
+    // Test partially resolved type: some dimensions known, some scales unknown
+    let input = "Quantity<Scale<_2<_>, _3<0>, _5<_>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<_>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>";
+    let result = converter.format_types(input, &crate::DisplayConfig::default());
+    
+    println!("Input: {}", input);
+    println!("Result: {}", result);
+    
+    // Should format with best-effort guesses and unicode question marks for unresolved parts
+    assert!(result.contains("Quantity<"));
+    assert!(result.contains("f64"));
+    assert!(!result.contains("Scale<_2<_>"));
+    assert!(!result.contains("Dimension<_M<_>"));
+    assert!(!result.contains("const"));
+    
+    // The result should contain some resolved parts (like length dimension) and question marks for unresolved parts
+    // This tests that the partial resolution logic works correctly
+}

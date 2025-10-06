@@ -117,6 +117,17 @@ fn test_scalar_quantity_division() {
 }
 
 #[test]
+fn test_scalar_quantity_division_with_scale_exponents() {
+    // Test that scale exponents are properly inverted in scalar division
+    let inverse_km: unit!(1 / km) = 10.0 / 5.0.kilometers();
+    assert_eq!(inverse_km.value, 2.0); // 10 / 5km = 2 km^-1
+    
+    // Test rescaling of inverse quantities to ensure scale exponents covary correctly
+    let inverse_m: unit!(1 / m) = rescale(inverse_km);
+    assert_eq!(inverse_m.value, 0.002); // 2 km^-1 = 0.002 m^-1 (since 1/km = 0.001/m)
+}
+
+#[test]
 fn test_quantity_scalar_multiplication() {
     let result: unit!(m) = 5.0.meters() * 4.0;
     assert_eq!(result.value, 20.0);

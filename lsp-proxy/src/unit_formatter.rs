@@ -139,9 +139,10 @@ impl UnitFormatter {
                         j += 1;
                     }
                     
-                    if found_end {
+                    if found_end || (bracket_count == 1 && j >= text.len()) {
                         // The bracket counting found the end of the Quantity type
-                        let actual_end = j;
+                        // or we've reached the end of the string with bracket_count = 1 (no generic type parameter)
+                        let actual_end = if found_end { j } else { text.len() };
                         
                         // Ensure we don't go beyond string bounds
                         let end_pos = std::cmp::min(actual_end + 2, text.len());
@@ -182,6 +183,20 @@ impl UnitFormatter {
         
         // Parse the new format: Quantity<Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>, Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>, T>
         if let Some(params) = self.parse_new_quantity_params(full_match) {
+            // Check if this is a wholly unresolved type (all parameters are sentinel values)
+            let all_dimensions_unresolved = params.mass_exp == i16::MIN && params.length_exp == i16::MIN && 
+                                           params.time_exp == i16::MIN && params.electric_current_exp == i16::MIN &&
+                                           params.temperature_exp == i16::MIN && params.amount_of_substance_exp == i16::MIN &&
+                                           params.luminous_intensity_exp == i16::MIN && params.angle_exp == i16::MIN;
+            
+            let all_scales_unresolved = params.scale_p2 == i16::MIN && params.scale_p3 == i16::MIN && 
+                                       params.scale_p5 == i16::MIN && params.scale_pi == i16::MIN;
+            
+            if all_dimensions_unresolved && all_scales_unresolved {
+                // Format as wholly unresolved type
+                return format!("Quantity<?, {}>", params.generic_type);
+            }
+            
             // Check if this is a dimensionless quantity (all dimensions are zero)
             if params.mass_exp == 0 && params.length_exp == 0 && params.time_exp == 0 && 
                params.electric_current_exp == 0 && params.temperature_exp == 0 && 
@@ -203,6 +218,10 @@ impl UnitFormatter {
                     false, // Don't show type in brackets
                 );
                 
+                // Check if the pretty print function returned just "?" for wholly unresolved types
+                if full_output == "?" {
+                    return format!("Quantity<?, {}>", params.generic_type);
+                }
                 
                 // The pretty_print_quantity_type already returns the correct format
                 // Just return it directly without double-formatting
@@ -218,6 +237,12 @@ impl UnitFormatter {
                     verbose,
                     false, // show_type_in_brackets = false for pretty printer
                 );
+                
+                // Check if the pretty print function returned just "?" for wholly unresolved types
+                if result == "?" {
+                    return format!("Quantity<?, {}>", params.generic_type);
+                }
+                
                 result
             }
         } else {
@@ -242,7 +267,7 @@ impl UnitFormatter {
         
         // Parse Dimension parameters - handle both full format and truncated format
         let (mass_exp, length_exp, time_exp, electric_current_exp, temperature_exp, amount_of_substance_exp, luminous_intensity_exp, angle_exp) = 
-            if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<") && !quantity_type.contains("_M<0>") {
+            if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<") {
                 // Full format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
                 self.parse_dimension_full_format(quantity_type)?
             } else if quantity_type.contains("Dimension,") || quantity_type.contains("Dimension>") {
@@ -301,27 +326,17 @@ impl UnitFormatter {
         let dimension_start = quantity_type.find("Dimension<_M<")?;
         let dimension_content = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
         
-        // Find the end of the Dimension struct by looking for the pattern ">, f64" or ">, T"
-        // This is more reliable than bracket counting for this specific case
-        let dimension_end = if let Some(pos) = dimension_content.find(">, f64") {
-            pos + 1 // Include the '>'
-        } else if let Some(pos) = dimension_content.find(">, ") {
-            pos + 1 // Include the '>'
-        } else {
-            // Fallback to bracket counting
-            self.find_matching_bracket(&dimension_content[1..], 0)? + 1
-        };
-        let dimension_params = &dimension_content[..dimension_end];
         
-        // Parse individual parameters
-        let mass = self.parse_dimension_param(dimension_params, "_M<")?;
-        let length = self.parse_dimension_param(dimension_params, "_L<")?;
-        let time = self.parse_dimension_param(dimension_params, "_T<")?;
-        let current = self.parse_dimension_param(dimension_params, "_I<")?;
-        let temp = self.parse_dimension_param(dimension_params, "_Θ<")?;
-        let amount = self.parse_dimension_param(dimension_params, "_N<")?;
-        let lum = self.parse_dimension_param(dimension_params, "_J<")?;
-        let angle = self.parse_dimension_param(dimension_params, "_A<")?;
+        // Parse individual parameters directly from the dimension content
+        // We don't need to find the end of the Dimension struct - we can parse each parameter individually
+        let mass = self.parse_dimension_param(dimension_content, "_M<")?;
+        let length = self.parse_dimension_param(dimension_content, "_L<")?;
+        let time = self.parse_dimension_param(dimension_content, "_T<")?;
+        let current = self.parse_dimension_param(dimension_content, "_I<")?;
+        let temp = self.parse_dimension_param(dimension_content, "_Θ<")?;
+        let amount = self.parse_dimension_param(dimension_content, "_N<")?;
+        let lum = self.parse_dimension_param(dimension_content, "_J<")?;
+        let angle = self.parse_dimension_param(dimension_content, "_A<")?;
         
         Some((mass, length, time, current, temp, amount, lum, angle))
     }
@@ -565,6 +580,19 @@ impl UnitFormatter {
         if text.contains("Scale") && text.contains("Dimension") {
             // Parse the new format to check for partially resolved types
             if let Some(params) = self.parse_new_quantity_params(text) {
+                // Check if this is a wholly unresolved type (all parameters are sentinel values)
+                let all_dimensions_unresolved = params.mass_exp == i16::MIN && params.length_exp == i16::MIN && 
+                                               params.time_exp == i16::MIN && params.electric_current_exp == i16::MIN &&
+                                               params.temperature_exp == i16::MIN && params.amount_of_substance_exp == i16::MIN &&
+                                               params.luminous_intensity_exp == i16::MIN && params.angle_exp == i16::MIN;
+                
+                let all_scales_unresolved = params.scale_p2 == i16::MIN && params.scale_p3 == i16::MIN && 
+                                           params.scale_p5 == i16::MIN && params.scale_pi == i16::MIN;
+                
+                if all_dimensions_unresolved && all_scales_unresolved {
+                    return true; // Wholly unresolved type
+                }
+                
                 // Check if any dimension has a non-zero exponent but sentinel scale values
                 // This indicates a partially resolved type
                 
