@@ -94,25 +94,25 @@ fn test_compound_unit_custom_literals() {
     assert_eq!(milliwatt.value, 100.0);
     assert_eq!(kilonewton.value, 5.0);
 
-    println!("Energy: {} (should be energy)", energy);
-    println!("Power: {} (should be power)", power);
-    println!("Force: {} (should be force)", force);
-    println!("Pressure: {} (should be pressure)", pressure);
-    println!("Frequency: {} (should be frequency)", frequency);
-    println!("Charge: {} (should be charge)", charge);
-    println!("Voltage: {} (should be voltage)", voltage);
-    println!("Capacitance: {} (should be capacitance)", capacitance);
-    println!("Resistance: {} (should be resistance)", resistance);
-    println!("Conductance: {} (should be conductance)", conductance);
-    println!("Inductance: {} (should be inductance)", inductance);
-    println!("Magnetic field: {} (should be magnetic field)", magnetic_field);
-    println!("Magnetic flux: {} (should be magnetic flux)", magnetic_flux);
-    println!("Luminous flux: {} (should be luminous flux)", luminous_flux);
-    println!("Illuminance: {} (should be illuminance)", illuminance);
+    println!("Energy: {:?} (should be energy)", energy);
+    println!("Power: {:?} (should be power)", power);
+    println!("Force: {:?} (should be force)", force);
+    println!("Pressure: {:?} (should be pressure)", pressure);
+    println!("Frequency: {:?} (should be frequency)", frequency);
+    println!("Charge: {:?} (should be charge)", charge);
+    println!("Voltage: {:?} (should be voltage)", voltage);
+    println!("Capacitance: {:?} (should be capacitance)", capacitance);
+    println!("Resistance: {:?} (should be resistance)", resistance);
+    println!("Conductance: {:?} (should be conductance)", conductance);
+    println!("Inductance: {:?} (should be inductance)", inductance);
+    println!("Magnetic field: {:?} (should be magnetic field)", magnetic_field);
+    println!("Magnetic flux: {:?} (should be magnetic flux)", magnetic_flux);
+    println!("Luminous flux: {:?} (should be luminous flux)", luminous_flux);
+    println!("Illuminance: {:?} (should be illuminance)", illuminance);
 
-    println!("Kilojoule: {} (should be energy)", kilojoule);
-    println!("Milliwatt: {} (should be power)", milliwatt);
-    println!("Kilonewton: {} (should be force)", kilonewton);
+    println!("Kilojoule: {:?} (should be energy)", kilojoule);
+    println!("Milliwatt: {:?} (should be power)", milliwatt);
+    println!("Kilonewton: {:?} (should be force)", kilonewton);
 
     println!("Compound unit custom literals test passed!");
 }

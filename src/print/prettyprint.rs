@@ -4,6 +4,20 @@ use crate::print::utils::{get_si_prefix, to_unicode_superscript};
 use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
 use whippyunits_default_dimensions::DIMENSION_LOOKUP;
 
+/// Check if a dimension is primitive (has exactly one non-zero exponent equal to 1)
+/// Primitive dimensions are the 8 SI base quantities: Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle
+fn is_primitive_dimension(exponents: Vec<i16>) -> bool {
+    if exponents.len() != 8 {
+        return false;
+    }
+    
+    // Count non-zero exponents
+    let non_zero_count = exponents.iter().filter(|&&exp| exp != 0).count();
+    
+    // A primitive dimension has exactly one non-zero exponent, and it must be 1
+    non_zero_count == 1 && exponents.iter().any(|&exp| exp == 1)
+}
+
 /// Format configuration for unit symbol generation
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnitFormat {
@@ -481,7 +495,8 @@ macro_rules! define_pretty_print_quantity {
             };
             let secondary = if verbose {
                 // In verbose mode (debug), show the dimension name in parentheses
-                if dimension_info.is_some() {
+                // but only for composite dimensions, not primitive ones
+                if dimension_info.is_some() && !is_primitive_dimension([$($dimension_args)*].to_vec()) {
                     format!(" ({})", dimension_name)
                 } else {
                     String::new()

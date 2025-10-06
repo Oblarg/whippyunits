@@ -1162,7 +1162,6 @@ dependencies = [
  "clap",
  "env_logger",
  "log",
- "regex",
  "serde",
  "serde_json",
  "shellexpand",
@@ -1179,7 +1178,6 @@ dependencies = [
  "clap",
  "env_logger",
  "log",
- "regex",
  "tokio",
  "whippyunits-lsp-proxy",
 ]

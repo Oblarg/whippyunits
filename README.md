@@ -135,16 +135,16 @@ fn example() {
 
 ```rust
 println!("{}", 5.0m); 
-// (5) Quantity<m; Length>
+// (5) Quantity<m, f64>
 println!("{:?}", 5.0m); 
-// (5_f64) Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰]>
+// (5_f64) Quantity<meter [length¹]>
 
 // Even handles complex SI values with correct aggregate-power-of-10 prefixing:
 let microjoule = quantity!(1.0, kg * mm^2 / s^2);
 println!("{}", microjoule);
-// (1) Quantity<μ(kg·m²·s⁻²); μJ; Energy>
+// (1) Quantity<μJ, f64>
 println!("{:?}", microjoule);
-// (1_f64) Quantity<micro(kilogram·meter²·second⁻²); microJoule; Energy; [mass¹, length², time⁻², current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁻⁶, 3⁰, 5⁻⁶, π⁰]>
+// (1_f64) Quantity<microJoule (Energy) [2⁻⁶, 5⁻⁶] [mass¹, length², time⁻²], f64>
 ```
 
 ## Print Format with Rescaling
@@ -164,30 +164,28 @@ println!("{:.2}", 5.0km.fmt("miles")); // "3.11 mi"
 The `whippyunits-pretty` tool provides type prettyprinting in compiler errors:
 
 ```bash
+# Example output after prettifying:
 error[E0308]: mismatched types
-  --> tests/test_incoherent_addition.rs:11:28
+  --> tests/compile_fail/add_length_to_time.rs:10:28
    |
-11 |     let _result = length + time;
+10 |     let _result = length + time;
    |                            ^^^^ expected `1`, found `0`
    |
-   = note: expected struct `L·(Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ)`
-              found struct `T·(Mˀ·Iˀ·θˀ·Nˀ·Cdˀ·Aˀ)`
+   = note: expected struct `Quantity<m, f64>`
+              found struct `Quantity<s, f64>`
 
-For more information about this error, try `rustc --explain E0308`.
-
-// without prettifying...
-
+# Without prettifying (raw compiler output):
 error[E0308]: mismatched types
-  --> tests/test_incoherent_addition.rs:11:28
+  --> tests/compile_fail/add_length_to_time.rs:10:28
    |
-11 |     let _result = length + time;
+10 |     let _result = length + time;
    |                            ^^^^ expected `1`, found `0`
    |
-   = note: expected struct `Quantity<_, 1, 0, _, _, _, _, _, _, _, _, _>`
-              found struct `Quantity<_, 0, 1, _, _, _, _, _, _, _, _, _>`
-
-For information about this error, try `rustc --explain E0308`.
+   = note: expected struct `Quantity<Scale, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>>`
+              found struct `Quantity<Scale, Dimension<_M<0>, _L<0>, _T<1>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>>`
 ```
+
+The tool converts complex generic type parameters into human-readable unit symbols, making error messages much clearer.
 
 ## LSP Proxy
 
@@ -196,36 +194,27 @@ The `lsp-proxy/` directory contains a Language Server Protocol proxy that interc
 * pretty-prints Quantity types in human-readable form matching the `debug` trait behavior...
     * verbosely in hover info, including best-effort interpretation of partially-resolved types:
         ```rust
-        // fully-resolved
-        let result: Quantity<meter; Length; [mass⁰, length¹, time⁰, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
-        size = 8, align = 0x8, no Drop
+        let result: Quantity<meter [length¹], f64>
 
+        ---
         Raw:
 
-        let result: Quantity<0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>
-        size = 8, align = 0x8, no Drop
+        result: Quantity<Scale, Dimension<_M<0>, _L<1>>>
+        ---
 
-        // partially-resolved - may happen intentionally in scale-generic code,
-        // or may happen due to rust-analyzer being lazy about const generic evaluation
-        let frequency: Quantity<secondˀ; [mass⁰, length⁰, timeˀ, current⁰, temperature⁰, amount⁰, luminosity⁰, angle⁰] [2⁰, 3⁰, 5⁰, π⁰] f64>
-        size = 8, align = 0x8, no Drop
-
-        Raw:
-
-        let frequency: Quantity<0, 0, _, 0, 0, 0, 0, 0, 0, 0, 0, 0>
         size = 8, align = 0x8, no Drop
         ```
     * tersely in inlay hints with backing datatype suffix (also including best-effort interpretation...):
         ```rust
         //          v inlay hint
-        let distance: Quantity<mm, f64> = 5.0mm;
+        let distance: Quantity<m, f64> = 5.0mm;
         ```
 * replaces literal Quantity text completions with equivalent `unit!` macro declarations
     ```rust
     //          v inlay hint (like above)
-    let distance: Quantity<mm, f64> = 5.0mm;
+    let distance: Quantity<m, f64> = 5.0mm;
     //          double-clicks into correct macro declaration syntax for the unit!
-    let distance: unit!(mm) = 5.0mm;
+    let distance: unit!(m) = 5.0mm;
     ```
 
 See `lsp-proxy/README.md` for setup instructions.
