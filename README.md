@@ -163,8 +163,8 @@ println!("{:.2}", 5.0km.fmt("miles")); // "3.11 mi"
 
 The `whippyunits-pretty` tool provides type prettyprinting in compiler errors:
 
-```bash
-# Example output after prettifying:
+```rust
+// Example output after prettifying:
 error[E0308]: mismatched types
   --> tests/compile_fail/add_length_to_time.rs:10:28
    |
@@ -174,15 +174,15 @@ error[E0308]: mismatched types
    = note: expected struct `Quantity<m, f64>`
               found struct `Quantity<s, f64>`
 
-# Without prettifying (raw compiler output):
+// Without prettifying (raw compiler output):
 error[E0308]: mismatched types
   --> tests/compile_fail/add_length_to_time.rs:10:28
    |
 10 |     let _result = length + time;
    |                            ^^^^ expected `1`, found `0`
    |
-   = note: expected struct `Quantity<Scale, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>>`
-              found struct `Quantity<Scale, Dimension<_M<0>, _L<0>, _T<1>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>>`
+   = note: expected struct `Quantity<Scale, Dimension<_M, _L<1>, _T<0>, _I, _Θ, _N, _J, _A>>`
+              found struct `Quantity<Scale, Dimension<_M, _L<0>, _T<1>, _I, _Θ, _N, _J, _A>>`
 ```
 
 The tool converts complex generic type parameters into human-readable unit symbols, making error messages much clearer.

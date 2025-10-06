@@ -18,21 +18,21 @@ use crate::print::format_specifiers::{format_with_unit, UnitFormatSpecifier};
 use whippyunits_default_dimensions::lookup_unit_literal;
 
 // Scale exponent structs - these are zero-sized types used for const generic parameters
-pub struct _2<const EXP: i16>;
-pub struct _3<const EXP: i16>;
-pub struct _5<const EXP: i16>;
-pub struct _Pi<const EXP: i16>;
+pub struct _2<const EXP: i16 = 0>;
+pub struct _3<const EXP: i16 = 0>;
+pub struct _5<const EXP: i16 = 0>;
+pub struct _Pi<const EXP: i16 = 0>;
 
 
 // Dimension exponent structs - these are zero-sized types used for const generic parameters
-pub struct _M<const EXP: i16>;
-pub struct _L<const EXP: i16>;
-pub struct _T<const EXP: i16>;
-pub struct _I<const EXP: i16>;  // Current
-pub struct _Θ<const EXP: i16>;  // Temperature (Unicode theta)
-pub struct _N<const EXP: i16>;  // Amount
-pub struct _J<const EXP: i16>;  // Luminosity
-pub struct _A<const EXP: i16>;  // Angle
+pub struct _M<const EXP: i16 = 0>;
+pub struct _L<const EXP: i16 = 0>;
+pub struct _T<const EXP: i16 = 0>;
+pub struct _I<const EXP: i16 = 0>;  // Current
+pub struct _Θ<const EXP: i16 = 0>;  // Temperature (Unicode theta)
+pub struct _N<const EXP: i16 = 0>;  // Amount
+pub struct _J<const EXP: i16 = 0>;  // Luminosity
+pub struct _A<const EXP: i16 = 0>;  // Angle
 
 
 // Scale representation - groups scale exponents using wrapper structs
