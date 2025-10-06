@@ -80,7 +80,7 @@ pub struct Quantity<
     /// For unit-safe conversion to underlying numeric types, prefer using `.into()`,
     /// which performs appropriate de-scaling before erasure to the underlying numeric type.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use whippyunits::*;
     /// 

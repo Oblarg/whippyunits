@@ -2,6 +2,41 @@ use crate::{LspProxy, unit_formatter::UnitFormatter, quantity_detection, inlay_h
 use serde_json::json;
 
 #[test]
+fn test_extract_raw_type_with_full_declaration() {
+    let formatter = UnitFormatter::new();
+    
+    // Test with let declaration
+    let let_declaration = "let result: Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(let_declaration);
+    assert_eq!(raw_type, "let result: Quantity<Scale, Dimension<_M, _L<1>>, f64>");
+    
+    // Test with let mut declaration
+    let let_mut_declaration = "let mut result: Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(let_mut_declaration);
+    assert_eq!(raw_type, "let mut result: Quantity<Scale, Dimension<_M, _L<1>>, f64>");
+    
+    // Test with const declaration
+    let const_declaration = "const result: Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(const_declaration);
+    assert_eq!(raw_type, "const result: Quantity<Scale, Dimension<_M, _L<1>>, f64>");
+    
+    // Test with static declaration
+    let static_declaration = "static result: Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(static_declaration);
+    assert_eq!(raw_type, "static result: Quantity<Scale, Dimension<_M, _L<1>>, f64>");
+    
+    // Test with complex variable name
+    let complex_var = "let my_complex_variable_name: Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(complex_var);
+    assert_eq!(raw_type, "let my_complex_variable_name: Quantity<Scale, Dimension<_M, _L<1>>, f64>");
+    
+    // Test with no declaration (should return empty)
+    let no_declaration = "Quantity<Scale, Dimension<_M, _L<1>>, f64>";
+    let raw_type = formatter.extract_raw_type_from_hover(no_declaration);
+    assert_eq!(raw_type, "");
+}
+
+#[test]
 fn test_fast_quantity_detection() {
     // Test with message containing new Quantity types with Scale<...> and Dimension<...> structs
     let message_with_quantity = r#"{"jsonrpc":"2.0","id":1,"result":{"contents":{"kind":"markdown","value":"```rust\nlet x: Quantity<Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>, Dimension<_M<0>, _L<1>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64> = 5.0.meters();\n```"}}}"#;

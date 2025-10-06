@@ -8,9 +8,9 @@ pub fn contains_quantity_types_fast(json_payload: &str) -> bool {
         return false;
     }
     
-    // For initial inlay hints (full type in one chunk), look for Quantity< pattern
+    // For initial inlay hints (full type in one chunk), validate the Quantity< pattern
     if json_payload.contains("Quantity<") {
-        return true;
+        return validate_quantity_format(json_payload);
     }
     
     // For mouseover/resolved hints (deconstructed type), look for separate Scale and Dimension

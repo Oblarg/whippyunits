@@ -33,7 +33,7 @@ impl UnitFormatter {
         
         // Add raw type if requested and we actually made changes
         if config.include_raw && result != text {
-            result.push_str(&format!("\n\nRaw:\n\n```rust\n{}\n```", text));
+            result.push_str(&format!("\n\nRaw:\n\n{}", text));
         }
         
         result
@@ -61,7 +61,7 @@ impl UnitFormatter {
                 let formatted_content = self.format_quantity_types(code_content, config.verbose, config.unicode, false);
                 
                 // Extract raw type from the original code content
-                let raw_type = self.extract_raw_type_from_hover(&format!("let result: {}", code_content));
+                let raw_type = self.extract_raw_type_from_hover(code_content);
                 
                 // Replace the content in the existing code block
                 let before_code = &original_text[..code_start + 7]; // Include "```rust"
@@ -71,14 +71,14 @@ impl UnitFormatter {
                     // Insert raw section after the first --- separator
                     if let Some(separator_pos) = after_code_block.find("---") {
                         let after_separator = &after_code_block[separator_pos..];
-                        format!("{}\n{}\n\n---\nRaw:\n\n{}\n{}", 
+                        format!("{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n{}", 
                                before_code, formatted_content.trim(), raw_type, after_separator)
                     } else {
-                        format!("{}\n{}\n\n---\nRaw:\n\n{}\n", 
+                        format!("{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n", 
                                before_code, formatted_content.trim(), raw_type)
                     }
                 } else {
-                    format!("{}\n{}\n{}", before_code, formatted_content.trim(), after_code_block)
+                    format!("{}\n{}\n```{}", before_code, formatted_content.trim(), after_code_block)
                 };
                 
                 return result;
@@ -522,16 +522,43 @@ impl UnitFormatter {
     
 
     /// Extract just the raw type information from hover content
-    fn extract_raw_type_from_hover(&self, hover_text: &str) -> String {
+    pub fn extract_raw_type_from_hover(&self, hover_text: &str) -> String {
         // Look for the pattern: let [mut] [var]: Quantity<...>
         if let Some(start) = hover_text.find(": Quantity<") {
-            // Find the start of the variable declaration
+            // Find the start of the variable declaration by looking backwards for 'let'
             let mut var_start = start;
-            while var_start > 0 && !hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
+            let mut found_let = false;
+            
+            // Look backwards to find the start of the declaration
+            while var_start > 0 {
+                let char_before = hover_text[var_start-1..var_start].chars().next().unwrap();
+                if char_before.is_whitespace() {
+                    // Check if we've found "let" or "let mut"
+                    let potential_start = var_start;
+                    let before_whitespace = &hover_text[..potential_start];
+                    
+                    // Look for "let" at the end of the string
+                    if before_whitespace.ends_with("let") {
+                        // Check if there's whitespace before "let" or if it's at the start
+                        let let_start = before_whitespace.len() - 3;
+                        if let_start == 0 || hover_text[let_start-1..let_start].chars().next().unwrap().is_whitespace() {
+                            var_start = let_start;
+                            found_let = true;
+                            break;
+                        }
+                    }
+                }
                 var_start -= 1;
             }
-            if var_start > 0 && hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
-                var_start += 1; // Skip the whitespace
+            
+            if !found_let {
+                // Fallback: find the start of the variable name
+                while var_start > 0 && !hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
+                    var_start -= 1;
+                }
+                if var_start > 0 && hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
+                    var_start += 1; // Skip the whitespace
+                }
             }
             
             // Find the end of the type declaration (before any size/align info)
@@ -557,9 +584,8 @@ impl UnitFormatter {
             }
             
             if end_pos > 0 {
-                let raw_type = &after_type[..end_pos];
-                let var_name = &hover_text[var_start..start];
-                return format!("{}: {}", var_name, raw_type);
+                let full_declaration = &hover_text[var_start..start + ": ".len() + end_pos];
+                return full_declaration.to_string();
             }
         }
         
