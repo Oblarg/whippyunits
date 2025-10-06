@@ -27,6 +27,75 @@ fn format_scale_exponent(scale: i16) -> String {
     }
 }
 
+/// Generate scale brackets with only non-zero exponents
+fn generate_scale_brackets(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
+    let mut terms = Vec::new();
+    
+    if scale_p2 != 0 {
+        terms.push(format!("2{}", format_scale_exponent(scale_p2)));
+    }
+    if scale_p3 != 0 {
+        terms.push(format!("3{}", format_scale_exponent(scale_p3)));
+    }
+    if scale_p5 != 0 {
+        terms.push(format!("5{}", format_scale_exponent(scale_p5)));
+    }
+    if scale_pi != 0 {
+        terms.push(format!("π{}", format_scale_exponent(scale_pi)));
+    }
+    
+    if terms.is_empty() {
+        String::new()
+    } else {
+        format!(" [{}]", terms.join(", "))
+    }
+}
+
+/// Generate dimension brackets with only non-zero exponents
+fn generate_dimension_brackets(
+    mass_exponent: i16,
+    length_exponent: i16,
+    time_exponent: i16,
+    electric_current_exponent: i16,
+    temperature_exponent: i16,
+    amount_of_substance_exponent: i16,
+    luminous_intensity_exponent: i16,
+    angle_exponent: i16,
+) -> String {
+    let mut terms = Vec::new();
+    
+    if mass_exponent != 0 {
+        terms.push(format!("mass{}", to_unicode_superscript(mass_exponent, true)));
+    }
+    if length_exponent != 0 {
+        terms.push(format!("length{}", to_unicode_superscript(length_exponent, true)));
+    }
+    if time_exponent != 0 {
+        terms.push(format!("time{}", to_unicode_superscript(time_exponent, true)));
+    }
+    if electric_current_exponent != 0 {
+        terms.push(format!("current{}", to_unicode_superscript(electric_current_exponent, true)));
+    }
+    if temperature_exponent != 0 {
+        terms.push(format!("temperature{}", to_unicode_superscript(temperature_exponent, true)));
+    }
+    if amount_of_substance_exponent != 0 {
+        terms.push(format!("amount{}", to_unicode_superscript(amount_of_substance_exponent, true)));
+    }
+    if luminous_intensity_exponent != 0 {
+        terms.push(format!("luminosity{}", to_unicode_superscript(luminous_intensity_exponent, true)));
+    }
+    if angle_exponent != 0 {
+        terms.push(format!("angle{}", to_unicode_superscript(angle_exponent, true)));
+    }
+    
+    if terms.is_empty() {
+        String::new()
+    } else {
+        format!(" [{}]", terms.join(", "))
+    }
+}
+
 /// Generate dimension symbols from atomic dimension symbols and exponents
 ///
 /// This function uses the atomic dimension symbols from the default-dimensions
@@ -461,19 +530,18 @@ define_pretty_print_quantity!(
         scale_p2, scale_p3, scale_p5, scale_pi
     ),
     format!(
-        " [2{}, 3{}, 5{}, π{}] [mass{}, length{}, time{}, current{}, temperature{}, amount{}, luminosity{}, angle{}]",
-        format_scale_exponent(scale_p2),
-        format_scale_exponent(scale_p3),
-        format_scale_exponent(scale_p5),
-        format_scale_exponent(scale_pi),
-        to_unicode_superscript(mass_exponent, true),
-        to_unicode_superscript(length_exponent, true),
-        to_unicode_superscript(time_exponent, true),
-        to_unicode_superscript(electric_current_exponent, true),
-        to_unicode_superscript(temperature_exponent, true),
-        to_unicode_superscript(amount_of_substance_exponent, true),
-        to_unicode_superscript(luminous_intensity_exponent, true),
-        to_unicode_superscript(angle_exponent, true)
+        "{}{}",
+        generate_scale_brackets(scale_p2, scale_p3, scale_p5, scale_pi),
+        generate_dimension_brackets(
+            mass_exponent,
+            length_exponent,
+            time_exponent,
+            electric_current_exponent,
+            temperature_exponent,
+            amount_of_substance_exponent,
+            luminous_intensity_exponent,
+            angle_exponent
+        )
     )
 );
 

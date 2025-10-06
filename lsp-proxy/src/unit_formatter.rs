@@ -44,8 +44,11 @@ impl UnitFormatter {
     pub fn format_types_with_original(&self, text: &str, config: &DisplayConfig, original_text: &str) -> String {
         let mut result = self.format_quantity_types(text, config.verbose, config.unicode, false);
         
-        // Add raw type if requested and we actually made changes
-        if config.include_raw && result != original_text {
+        // Check if this contains a generic type definition that we passed through unchanged
+        let contains_generic_definition = text.contains("T = f64") || original_text.contains("T = f64");
+        
+        // Add raw type if requested and we actually made changes, but not for generic definitions
+        if config.include_raw && result != original_text && !contains_generic_definition {
             // Strip markdown formatting from the original text for cleaner display
             let cleaned_original = self.strip_markdown_formatting(original_text);
             
@@ -147,6 +150,13 @@ impl UnitFormatter {
         quantity_regex.replace_all(text, |caps: &regex::Captures| {
             let full_match = caps[0].to_string();
             
+            // Check if this is a generic type definition (contains parameter names like Scale, Dimension, T)
+            // rather than a concrete instantiation with actual values
+            if self.is_generic_type_definition(&full_match) {
+                // Pass through generic definitions unchanged
+                return full_match;
+            }
+            
             // Check if this is a type definition (contains parameter names like "const MASS_EXPONENT: i16")
             // Also check if we're in a context that suggests const generic parameters (like rescale functions)
             let is_const_generic_context = full_match.contains("const") || 
@@ -244,6 +254,12 @@ impl UnitFormatter {
     fn format_new_quantity_type(&self, full_match: &str, verbose: bool, _unicode: bool, is_inlay_hint: bool) -> String {
         use whippyunits::print::prettyprint::pretty_print_quantity_type;
         
+        // Check if this is a generic type definition (contains parameter names like Scale, Dimension, T)
+        // rather than a concrete instantiation with actual values
+        if self.is_generic_type_definition(full_match) {
+            // Pass through generic definitions unchanged
+            return full_match.to_string();
+        }
         
         // Parse the new format: Quantity<Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>, Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>, T>
         if let Some(params) = self.parse_new_quantity_params(full_match) {
@@ -341,6 +357,7 @@ impl UnitFormatter {
     }
 
     /// Parse full Scale format: Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>
+    /// Handles cases where some parameters may be missing (e.g., only _2, _3, _5 without _Pi)
     fn parse_scale_full_format(&self, quantity_type: &str) -> Option<(i16, i16, i16, i16)> {
         let scale_start = quantity_type.find("Scale<_2<")?;
         let scale_content = &quantity_type[scale_start + 6..]; // Skip "Scale<"
@@ -350,10 +367,11 @@ impl UnitFormatter {
         let scale_params = &scale_content[..scale_end];
         
         // Parse individual parameters: _2<P2>, _3<P3>, _5<P5>, _Pi<PI>
-        let p2 = self.parse_scale_param(scale_params, "_2<")?;
-        let p3 = self.parse_scale_param(scale_params, "_3<")?;
-        let p5 = self.parse_scale_param(scale_params, "_5<")?;
-        let pi = self.parse_scale_param(scale_params, "_Pi<")?;
+        // Handle missing parameters by defaulting to 0
+        let p2 = self.parse_scale_param(scale_params, "_2<").unwrap_or(0);
+        let p3 = self.parse_scale_param(scale_params, "_3<").unwrap_or(0);
+        let p5 = self.parse_scale_param(scale_params, "_5<").unwrap_or(0);
+        let pi = self.parse_scale_param(scale_params, "_Pi<").unwrap_or(0);
         
         Some((p2, p3, p5, pi))
     }
@@ -696,6 +714,14 @@ impl UnitFormatter {
         } else {
             None
         }
+    }
+
+    /// Check if this is a generic type definition rather than a concrete instantiation
+    /// Specifically looks for the pattern "T = f64" which indicates a generic type definition
+    fn is_generic_type_definition(&self, text: &str) -> bool {
+        // Only detect the specific case where we have "T = f64" which reliably indicates
+        // a generic type definition like "Quantity<Scale, Dimension, T = f64>"
+        text.contains("T = f64")
     }
 
     /// Check if a type is partially resolved (has sentinel values for dimensions that should be resolved)

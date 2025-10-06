@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, AsyncReadExt};
 use tokio::process::{Child, Command as TokioCommand};
 use anyhow::Result;
-use log::{info, warn, error, debug};
+use log::{info, warn, error};
 
 use whippyunits_lsp_proxy::{LspProxy, DisplayConfig};
 
@@ -12,7 +12,6 @@ async fn main() -> Result<()> {
     env_logger::init();
     
     info!("🚀 WHIPPYUNITS LSP PROXY STARTING - This means VS Code is using our proxy!");
-    eprintln!("🚀 WHIPPYUNITS LSP PROXY STARTING - This means VS Code is using our proxy!");
     
     // Read display configuration from environment variables
     let display_config = read_display_config();

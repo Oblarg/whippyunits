@@ -3,26 +3,21 @@
 /// Fast string search to detect Quantity types without deserialization
 /// This performs a performant string search for "Quantity<" patterns
 pub fn contains_quantity_types_fast(json_payload: &str) -> bool {
-    // Look for the specific pattern "Quantity<" followed by angle brackets
-    // This is much faster than deserializing the entire JSON
-    if !json_payload.contains("Quantity<") {
-        // Also check for split format where "Quantity" and "<...>" are separate
-        if json_payload.contains("\"Quantity\"") && json_payload.contains("<") && json_payload.contains(">") {
-            // This might be the split format, validate it
-            return validate_split_quantity_format(json_payload);
-        }
+    // Check for the basic Quantity pattern first
+    if !json_payload.contains("Quantity") {
         return false;
     }
     
-    // Fast pre-check: look for key patterns that indicate whippyunits types
-    // This is much faster than full validation for the common case
-    if json_payload.contains("Scale") && json_payload.contains("Dimension") {
-        // Additional validation: ensure we have proper Quantity<...> format
-        // The new format uses Scale<...> and Dimension<...> structs
-        return validate_quantity_format(json_payload);
+    // For initial inlay hints (full type in one chunk), look for Quantity< pattern
+    if json_payload.contains("Quantity<") {
+        return true;
     }
     
-    // If we don't see Scale and Dimension, it's probably not a whippyunits type
+    // For mouseover/resolved hints (deconstructed type), look for separate Scale and Dimension
+    if json_payload.contains("Scale") && json_payload.contains("Dimension") {
+        return true;
+    }
+    
     false
 }
 
@@ -192,3 +187,4 @@ mod tests {
         assert!(!contains_whippyunits_type(&label_without_quantity));
     }
 }
+

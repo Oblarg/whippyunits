@@ -273,3 +273,20 @@ fn test_inlay_hint_exponent_pruning() {
         assert_eq!(result, expected, "Failed for input: {}", input);
     }
 }
+
+#[test]
+fn test_scale_parsing_with_missing_pi_parameter() {
+    let converter = UnitFormatter::new();
+    
+    // Test the user's specific case: Scale<_2<-3>, _3<0>, _5<-3>> (missing _Pi parameter)
+    let input = "Quantity<Scale<_2<-3>, _3<0>, _5<-3>>, Dimension<_M<1>>, f64>";
+    let result = converter.format_types(input, &crate::DisplayConfig::default());
+    
+    println!("Input: {}", input);
+    println!("Result: {}", result);
+    
+    // Should successfully parse and format the type
+    assert!(result.contains("Quantity<"));
+    assert!(!result.contains("Scale<_2<-3>"));
+    assert!(!result.contains("const"));
+}

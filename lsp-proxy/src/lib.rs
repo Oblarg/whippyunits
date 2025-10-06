@@ -1,5 +1,6 @@
 use serde_json::Value;
 use anyhow::Result;
+use log::warn;
 
 pub mod inlay_hint_processor;
 pub mod quantity_detection;
@@ -62,123 +63,92 @@ impl LspProxy {
     /// Process an incoming LSP message (from rust-analyzer to editor)
     /// This expects a complete LSP message with Content-Length header
     pub fn process_incoming(&self, message: &str) -> Result<String> {
-        // eprintln!("*** INCOMING MESSAGE: Processing message of length {} ***", message.len());
-        
-        // Parse the LSP message format
-        let json_payload = self.extract_json_payload(message)?;
-        
         // Fast string search to detect if this message contains Quantity types
+        let json_payload = match self.extract_json_payload(message) {
+            Ok(payload) => payload,
+            Err(e) => {
+                warn!("Failed to extract JSON payload: {}", e);
+                return Ok(message.to_string());
+            }
+        };
+        
         if !self.contains_quantity_types_fast(&json_payload) {
             // No Quantity types detected, return original message unchanged
             return Ok(message.to_string());
         }
         
         // Parse the JSON payload only if we detected Quantity types
-        let mut lsp_msg: LspMessage = serde_json::from_str(&json_payload)?;
+        let mut lsp_msg: LspMessage = match serde_json::from_str(&json_payload) {
+            Ok(msg) => msg,
+            Err(e) => {
+                warn!("Failed to parse LSP message: {}", e);
+                return Ok(message.to_string());
+            }
+        };
         
-        // Log the message type for debugging (commented out to reduce noise)
-        // if let Some(method) = &lsp_msg.method {
-        //     eprintln!("*** INCOMING MESSAGE: Method: {} ***", method);
-        // } else if lsp_msg.result.is_some() {
-        //     eprintln!("*** INCOMING MESSAGE: Response message ***");
-        // } else if lsp_msg.params.is_some() {
-        //     eprintln!("*** INCOMING MESSAGE: Notification message ***");
-        // } else {
-        //     eprintln!("*** INCOMING MESSAGE: Unknown message type ***");
-        // }
+        // Only process specific message types we care about
+        let mut needs_processing = false;
         
         // Check if this is a hover response
         if let Some(result) = &lsp_msg.result {
             if let Some(hover_content) = self.hover_processor.extract_hover_content(result) {
-                let improved_content = self.hover_processor.improve_hover_content(hover_content);
-                lsp_msg.result = Some(serde_json::to_value(improved_content)?);
+                match self.hover_processor.improve_hover_content(hover_content) {
+                    improved_content => {
+                        match serde_json::to_value(improved_content) {
+                            Ok(value) => {
+                                lsp_msg.result = Some(value);
+                                needs_processing = true;
+                            }
+                            Err(e) => {
+                                warn!("Failed to serialize hover content: {}", e);
+                            }
+                        }
+                    }
+                }
             }
-        }
-        
-        // Check if this is a refresh notification
-        if self.is_refresh_notification(&lsp_msg) {
-            // Pass through refresh notifications unchanged - they're notifications, not requests
-            // The client should respond to this by re-requesting inlay hints
-        }
-        
-        // Check if this is a resolve request
-        if self.is_resolve_request(&lsp_msg) {
-            // Pass through resolve requests unchanged - we'll intercept the response
         }
         
         // Check if this is an inlay hint response (including resolve responses)
         if let Some(result) = &lsp_msg.result {
             if self.is_inlay_hint_response(&lsp_msg) {
-                eprintln!("*** INTERCEPTING INLAY HINT RESPONSE ***");
-                eprintln!("*** LSP PROXY: Result type: {:?} ***", result);
-                
-                let improved_result = self.process_inlay_hint_result(result)?;
-                eprintln!("*** LSP PROXY: Improved result: {:?} ***", improved_result);
-                
-                // Log the processed inlay hint content after processing (commented out to reduce noise)
-                // eprintln!("*** PROCESSED INLAY HINT CAPTURE ***");
-                // if let Some(result_array) = improved_result.as_array() {
-                //     eprintln!("*** PROCESSED: Found {} inlay hints ***", result_array.len());
-                //     for (i, hint) in result_array.iter().enumerate() {
-                //         eprintln!("*** PROCESSED: Hint {}: {:?} ***", i, hint);
-                //         if let Some(label) = hint.get("label") {
-                //             eprintln!("*** PROCESSED: Hint {} label: {:?} ***", i, label);
-                //         }
-                //     }
-                // } else if let Some(result_obj) = improved_result.as_object() {
-                //     eprintln!("*** PROCESSED: Found single inlay hint object ***");
-                //     eprintln!("*** PROCESSED: Object: {:?} ***", result_obj);
-                //     if let Some(label) = result_obj.get("label") {
-                //         eprintln!("*** PROCESSED: Object label: {:?} ***", label);
-                //     }
-                // }
-                
-                lsp_msg.result = Some(improved_result);
-            } else {
-                eprintln!("*** LSP PROXY: Not an inlay hint response ***");
+                // Only process inlay hints if they contain whippyunits types
+                if self.contains_whippyunits_in_result(result) {
+                    match self.process_inlay_hint_result(result) {
+                        Ok(improved_result) => {
+                            lsp_msg.result = Some(improved_result);
+                            needs_processing = true;
+                        }
+                        Err(e) => {
+                            // If processing fails, log the error but don't crash
+                            warn!("Failed to process inlay hint: {}", e);
+                            // Continue without processing - return original message
+                        }
+                    }
+                }
             }
-        } else {
-            eprintln!("*** LSP PROXY: No result field in message ***");
         }
         
-        // Reconstruct the LSP message format
-        let new_json = serde_json::to_string(&lsp_msg)?;
-        let content_length = new_json.len();
-        Ok(format!("Content-Length: {}\r\n\r\n{}", content_length, new_json))
+        // Only reconstruct if we actually modified something
+        if needs_processing {
+            match serde_json::to_string(&lsp_msg) {
+                Ok(new_json) => {
+                    let content_length = new_json.len();
+                    Ok(format!("Content-Length: {}\r\n\r\n{}", content_length, new_json))
+                }
+                Err(e) => {
+                    warn!("Failed to serialize LSP message: {}", e);
+                    Ok(message.to_string())
+                }
+            }
+        } else {
+            // No processing needed, return original message
+            Ok(message.to_string())
+        }
     }
 
     /// Process an outgoing LSP message (from editor to rust-analyzer)
     /// This expects a complete LSP message with Content-Length header
     pub fn process_outgoing(&self, message: &str) -> Result<String> {
-        // Parse the LSP message format for logging purposes
-        let json_payload = self.extract_json_payload(message)?;
-        let lsp_msg: LspMessage = serde_json::from_str(&json_payload)?;
-        
-        // Log outgoing requests for debugging (removed to reduce noise)
-        
-        // Log initial inlay hint requests
-        if let Some(method) = &lsp_msg.method {
-            if method == "textDocument/inlayHint" {
-                eprintln!("*** INITIAL INLAY HINT REQUEST ***");
-                eprintln!("*** INITIAL REQUEST: Method: {} ***", method);
-                if let Some(params) = &lsp_msg.params {
-                    eprintln!("*** INITIAL REQUEST: Params: {:?} ***", params);
-                }
-            }
-        }
-        
-        // Check if this is a refresh notification (from client to server)
-        if self.is_refresh_notification(&lsp_msg) {
-            eprintln!("*** INTERCEPTING OUTGOING REFRESH NOTIFICATION ***");
-            // Pass through refresh notifications unchanged
-        }
-        
-        // Check if this is a resolve request (from client to server)
-        if self.is_resolve_request(&lsp_msg) {
-            eprintln!("*** INTERCEPTING OUTGOING RESOLVE REQUEST ***");
-            // Pass through resolve requests unchanged
-        }
-        
         // For outgoing messages, we just pass through unchanged
         // No content transformation needed - these are requests, not responses
         Ok(message.to_string())
@@ -219,22 +189,17 @@ impl LspProxy {
 
     /// Check if this is an inlay hint response (has result with inlay hint data)
     fn is_inlay_hint_response(&self, lsp_msg: &LspMessage) -> bool {
-        eprintln!("*** LSP PROXY: Checking if inlay hint response ***");
         // Check if the result contains inlay hint data structure
         if let Some(result) = &lsp_msg.result {
-            eprintln!("*** LSP PROXY: Result is array: {}, is object: {} ***", result.is_array(), result.is_object());
             // Check if result is an array (typical for inlay hint requests)
             if result.is_array() {
                 // Check if any item in the array has inlay hint structure
                 if let Some(array) = result.as_array() {
-                    eprintln!("*** LSP PROXY: Array has {} items ***", array.len());
-                    for (i, item) in array.iter().enumerate() {
+                    for item in array.iter() {
                         if let Some(item_obj) = item.as_object() {
                             let has_position = item_obj.contains_key("position");
                             let has_label = item_obj.contains_key("label");
-                            eprintln!("*** LSP PROXY: Item {} has position: {}, label: {} ***", i, has_position, has_label);
                             if has_position && has_label {
-                                eprintln!("*** LSP PROXY: Found inlay hint structure in array ***");
                                 return true;
                             }
                         }
@@ -247,16 +212,13 @@ impl LspProxy {
                 if let Some(obj) = result.as_object() {
                     let has_position = obj.contains_key("position");
                     let has_label = obj.contains_key("label");
-                    eprintln!("*** LSP PROXY: Object has position: {}, label: {} ***", has_position, has_label);
                     if has_position && has_label {
-                        eprintln!("*** LSP PROXY: Found inlay hint structure in object ***");
                         return true;
                     }
                 }
             }
         }
         
-        eprintln!("*** LSP PROXY: Not an inlay hint response ***");
         false
     }
 
@@ -273,6 +235,16 @@ impl LspProxy {
     fn is_resolve_request(&self, lsp_msg: &LspMessage) -> bool {
         if let Some(method) = &lsp_msg.method {
             method == "inlayHint/resolve"
+        } else {
+            false
+        }
+    }
+
+    /// Check if a result contains whippyunits types
+    fn contains_whippyunits_in_result(&self, result: &Value) -> bool {
+        // Convert result to string for fast search
+        if let Ok(result_str) = serde_json::to_string(result) {
+            self.contains_quantity_types_fast(&result_str)
         } else {
             false
         }
