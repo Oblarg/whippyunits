@@ -48,3 +48,51 @@ pub use whippyunits_proc_macros::whippy_literals;
 pub use whippyunits_proc_macros::generate_scoped_preferences;
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs
+
+/// Unit-safe value extraction macro
+/// 
+/// Usage: `value!(quantity, unit_literal)`
+/// 
+/// This macro extracts the raw value from a quantity, rescaling it to the specified unit.
+/// It's unit-safe because it uses the rescale function to ensure dimensional consistency.
+/// The conversion is done statically at compile time using the type system.
+/// 
+/// Examples:
+/// ```rust
+/// let distance = quantity!(1, m);
+/// let val: f64 = value!(distance, m);  // 1.0
+/// let val: f64 = value!(distance, mm); // 1000.0
+/// ```
+#[macro_export]
+macro_rules! value {
+    ($quantity:expr, $unit:expr) => {{
+        // Get the dimensions of the target unit at compile time
+        const TARGET_DIMENSIONS: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) =
+            whippyunits_proc_macros::compute_unit_dimensions!($unit);
+        
+        // Create a target quantity type
+        type TargetQuantity = $crate::quantity_type::Quantity<
+            $crate::quantity_type::Scale<
+                $crate::quantity_type::_2<{ TARGET_DIMENSIONS.8 }>,
+                $crate::quantity_type::_3<{ TARGET_DIMENSIONS.9 }>,
+                $crate::quantity_type::_5<{ TARGET_DIMENSIONS.10 }>,
+                $crate::quantity_type::_Pi<{ TARGET_DIMENSIONS.11 }>
+            >,
+            $crate::quantity_type::Dimension<
+                $crate::quantity_type::_M<{ TARGET_DIMENSIONS.0 }>,
+                $crate::quantity_type::_L<{ TARGET_DIMENSIONS.1 }>,
+                $crate::quantity_type::_T<{ TARGET_DIMENSIONS.2 }>,
+                $crate::quantity_type::_I<{ TARGET_DIMENSIONS.3 }>,
+                $crate::quantity_type::_Θ<{ TARGET_DIMENSIONS.4 }>,
+                $crate::quantity_type::_N<{ TARGET_DIMENSIONS.5 }>,
+                $crate::quantity_type::_J<{ TARGET_DIMENSIONS.6 }>,
+                $crate::quantity_type::_A<{ TARGET_DIMENSIONS.7 }>
+            >,
+            f64
+        >;
+        
+        // Use rescale with type annotation - the compiler infers FROM parameters from input quantity type
+        let rescaled: TargetQuantity = $crate::api::rescale($quantity);
+        rescaled.value
+    }};
+}

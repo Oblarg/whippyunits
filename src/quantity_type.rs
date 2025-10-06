@@ -74,22 +74,31 @@ pub struct Quantity<
     /// **⚠️ WARNING: This property is NOT unit-safe!**
     ///
     /// Direct access to `.value` bypasses the type system's unit safety guarantees.
-    /// This should only be used when interacting with non-unit-safe APIs that you don't control, and
-    /// only if `.into()` is not available.
-    /// 
-    /// For unit-safe conversion to underlying numeric types, prefer using `.into()`,
-    /// which performs appropriate de-scaling before erasure to the underlying numeric type.
+    /// This should only be used when interacting with non-unit-safe APIs that you don't control,
+    /// and only if the unit-safe methods outlined below are not viable.
     ///
     /// ## Example
     /// ```rust
     /// use whippyunits::*;
     /// 
-    /// // ✅ CORRECT: .into() performs proper unit conversion
-    /// let angle = 90.0.degrees();
-    /// let result = f64::sin(angle.into()); // Works as expected: sin(π/2) ≈ 1.0
+    /// let angle = 90.0.degrees(); // erasable unit
+    /// let distance = quantity!(1.0, m); // non-erasable unit
     /// 
-    /// // ❌ BUG: .value bypasses unit conversion
-    /// let result = f64::sin(angle.value); // BUG: sin(90.0) ≈ 0.89 (wrong!)
+    /// // ✅ CORRECT: .into() for erasable units (dimensionless/angular)
+    /// let val: f64 = f64::sin(angle.into()); // sin(π/2) ≈ 1.0
+    /// 
+    /// // ✅ CORRECT: value! macro or division by reference quantity + .into() for
+    /// // non-erasable units (anything else)
+    /// let millimeters: f64 = value!(distance, mm); // 1000.0 (1m = 1000mm);
+    /// let millimeters: f64 = (distance / quantity!(1.0, mm)).into();
+    /// 
+    /// // ❌ BUG: .value bypasses unit conversion for erasable units, 
+    /// //         returns in degrees (not radians)
+    /// let val: f64 = f64::sin(90.0.degrees().value); // BUG: sin(90.0) ≈ 0.89 (wrong!)
+    /// 
+    /// // ❌ BUG: .value bypasses dimensional/scale safety for non-erasable units, 
+    /// //         returns in meters (not millimeters)
+    /// let millimeters: f64 = distance.value; 
     /// ```
     pub value: T,
     _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension)>,
