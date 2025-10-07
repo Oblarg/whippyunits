@@ -67,10 +67,12 @@ where
 // regardless of input/output scales, the return type will always satisfy the Area trait
 let millimeters_squared: impl Area = area(1.0mm, 1.0mm);
 let meters_squared: impl Area = area(1.0m, 1.0m);
-// This works too; it will return a concrete type of milli(meters^2), since mm * m = (1/1000)(meters^2)
+// This works too; it will return a concrete type of milli(meters^2), 
+// since mm * m = (1/1000)(meters^2)
 let mixed_units: impl Area = area(1.0mm, 1.0m);
 
-// the generic dimension DSL expresses arbitrary dimensional algebra, so all derived units can be covered
+// the generic dimension DSL expresses arbitrary dimensional algebra, 
+// so all derived units can be covered
 define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 ```
 
@@ -124,8 +126,11 @@ Direct access to the `.unsafe_value` field is not unit-safe, and should be used 
 
 ```rust
 let dimensionless_ratio = 1.0.meters() / 1.0.millimeters();
-// Because scale info is stored as part of the type, unsafe value access may have unexpected behavior:
-assert_eq!(dimensionless_ratio.unsafe_value, 1.0); // ⚠️ runtime value does not track the scale!
+// Because scale info is stored as part of the type, 
+// unsafe value access may have unexpected behavior:
+assert_eq!(dimensionless_ratio.unsafe_value, 1.0); // ⚠️
+// safe access via erasure (see section below) gives the expected result:
+assert_eq!(dimensionless_ratio.into(), 1000.0); // ✅
 ```
 
 Accordingly, it is best practice when possible to use the `value!` macro or a legal unit-safe erasure (see below) to access the underlying numeric value of a quantity.  Whippyunits conversions are generally well-optimized, and in the majority of cases safe access should be zero- (or nearly-zero-) cost.  Direct access via `.unsafe_value` is a method-of-last-resort, and should only be used (carefully!) if unit-safe access is not possible for performance or safety reasons.
@@ -146,16 +151,17 @@ assert_eq!(from_radians, 1.0);
 An angular or dimensionless quantity with a non-unity storage scale - that is, a ratio of differently-scaled quantities of the same dimension, or an angular unit other than radians - will rescale to unity before erasure:
 
 ```rust
-// division leaves a "residual scale" of (2^3 * 5^3) = 1000.0 in the type, but is a runtime noop;
-// direct access can give surprising results!
-assert_eq!((1.0.meters()/1.0.millimeters()).unsafe_value, 1.0); // ⚠️ we probably don't expect this!
+// division leaves a "residual scale" of (2^3 * 5^3) = 1000.0 in the type;
+// but is a runtime noop, so direct access can give surprising results:
+assert_eq!((1.0.meters()/1.0.millimeters()).unsafe_value, 1.0); // ⚠️
 // with rescaling-on-erasure, unit-safe access gives the semantically-correct result:
-assert_eq!((1.0.meters()/1.0.millimeters()).into(), 1000.0); // ✅ we probably do expect this!
+assert_eq!((1.0.meters()/1.0.millimeters()).into(), 1000.0); // ✅
 
 // similarly, we might get surprising results for non-radian angular quantities:
-assert_eq!(f64::sin(90.0.degrees().unsafe_value), 0.89); // ⚠️ we probably don't expect this!
-// the same mechanism ensures angular erasure is semantically-correct (i.e. always in radian-scale):
-assert_eq!(f64::sin(90.0.degrees().into()), 1.0); // ✅ we probably do expect this!
+assert_eq!(f64::sin(90.0.degrees().unsafe_value), 0.89); // ⚠️
+// the same mechanism ensures angular erasure is semantically-correct
+// (i.e. always in radian-scale):
+assert_eq!(f64::sin(90.0.degrees().into()), 1.0); // ✅
 ```
 
 Erasure is permitted to convert to any numeric type; when combined with custom literals (see below), this naturally extends standard library trigonometric functions to have unit-safe, scale-appropriate interfaces:
@@ -170,11 +176,12 @@ assert_eq!(sin_value, 1.0);
 Compound units can also automatically erase their radian component (if present) via `.into()`, making it easy to deal with situations where the angular component is useful in some parts of the calculation but not others:
 
 ```rust
-// if curvature occurs in the context of angular-change-per-distance, it is natural to define it in
-// units of radians per meter:
+// if curvature occurs in the context of angular-change-per-distance, 
+// it is natural to define it in units of radians per meter:
 let curvature = quantity!(1.0, rad / m);
 let velocity = quantity!(1.0, m / s);
-// but when we want to calculate centripetal acceleration by the typical formula, we need to erase the radian component:
+// but when we want to calculate centripetal acceleration by the typical formula, 
+// we need to erase the radian component:
 let centripetal_acceleration: unit!(m / s^2) = (curvature * velocity * velocity).into();
 assert_eq!(value!(centripetal_acceleration, m / s^2), 1.0);
 ```
@@ -182,10 +189,12 @@ assert_eq!(value!(centripetal_acceleration, m / s^2), 1.0);
 Note that compound unit erasure only erases powers of pure radians; "residual scales" of non-radian units will be retained.  However, a simple rescale operation will recover the expected scale:
 
 ```rust
-// we may have concrete measurements of angle in degrees; we can still use the radian-scale quantity for the calculation:
+// we may have concrete measurements of angle in degrees; 
+// we can still use the radian-scale quantity for the calculation:
 let curvature = quantity!(1.0, deg / m);
 let velocity = quantity!(1.0, m / s);
-// because degrees have a non-unity storage scale, we need to rescale to get the expected result:
+// because degrees have a non-unity storage scale, 
+// we need to rescale to get the expected result:
 let centripetal_acceleration: unit!(m / s^2) = rescale((curvature * velocity * velocity).into());
 // 1 deg/m * (1 m/s)^2 = π/180 m/s^2
 assert_eq!(value!(centripetal_acceleration, m / s^2), std::f64::consts::PI / 180.0);
