@@ -30,10 +30,10 @@ let area = 5.0m * 5.0m;
 // or...
 let area = quantity!(5.0 * 5.0, m^2);
 
-// dimensionally coherent operations permitted
+// ✅ dimensionally coherent operations permitted
 let legal = area + area;
-// dimensionally incoherent operations generate compile-time error
-let illegal = area + distance;
+// ❌ dimensionally incoherent operations generate compile-time error
+let _illegal = area + distance;
 
 // The generic `rescale` function makes multiscale addition both ergonomic and safe:
 
@@ -41,7 +41,7 @@ let illegal = area + distance;
 let sum_in_meters = 1.0m + rescale(1.0mm);
 // result: 1001.0 millimeters
 let sum_in_millimeters = rescale(1.0m) + 1.0mm;
-// result: compilation error (scale incoherence)
+// result: ❌ compilation error (scale incoherence)
 let illegal_sum = 1.0m + 1.0mm;
 ```
 
@@ -102,6 +102,94 @@ let temp = 32.0.fahrenheit();   // converts to kelvin (affine)
 ```
 
 Affine quantities (like temperature) handle zero-point offsets automatically. Celsius and Fahrenheit are stored as Kelvin internally with proper conversion factors.
+
+## Unit-safe value access
+
+The `value!` macro provides unit-safe access to the underlying numeric value of a quantity:
+
+```rust
+let distance = quantity!(1.0, m);
+// because we explicitly tell the compiler the intended unit, this access is *unit-safe*;
+// it cannot surprise us with a wrong scale, and it cannot be dimensionally incoherent
+let value: f64 = value!(distance, m);
+assert_eq!(value, 1.0);
+// when the storage scale differs from the specified unit, the value will be rescaled:
+let value: f64 = value!(distance, mm);
+assert_eq!(value, 1000.0);
+// ❌ if the specified unit is a different dimension, the macro will compile error:
+let _value: f64 = value!(distance, s);
+```
+
+Direct access to the `.value` field is not unit-safe, and should be used with caution - because whippyunits represents storage scales as part of its type system, the actual numeric value may not match the user's intent:
+
+```rust
+let dimensionless_ratio = 1.0.meters() / 1.0.millimeters();
+// Because scale info is stored as part of the type, unsafe value access may have unexpected behavior:
+assert_eq!(dimensionless_ratio.value, 1.0); // ⚠️ runtime value does not track the scale!
+```
+
+Accordingly, it is best practice when possible to use the `value!` macro or a legal unit-safe erasure (see below) to access the underlying numeric value of a quantity.  Whippyunits conversions are generally well-optimized, and in the majority of cases safe access should be zero- (or nearly-zero-) cost.  Direct access via `.value` is a method-of-last-resort, and should only be used (carefully!) if unit-safe access is not possible for performance or safety reasons.
+
+## Erasure to numeric types
+
+Dimensionless and angular quantities are erasable, meaning they may be safely converted to and from numeric types without loss of information via `.into()`:
+
+```rust
+// dividing two same-unit quantities yields a dimensionless quantity
+let from_dimensionless: f64 = (1.0.meters()/1.0.meters()).into();
+assert_eq!(from_dimensionless, 1.0);
+
+let from_radians: f64 = 1.0.radians().into();
+assert_eq!(from_radians, 1.0);
+```
+
+An angular or dimensionless quantity with a non-unity storage scale - that is, a ratio of differently-scaled quantities of the same dimension, or an angular unit other than radians - will rescale to unity before erasure:
+
+```rust
+// division leaves a "residual scale" of 1000.0 in the type but is a runtime noop;
+// direct access can give surprising results!
+assert_eq!((1.0.meters()/1.0.millimeters()).value, 1.0); // ⚠️ we probably don't expect this!
+// with rescaling-on-erasure, unit-safe access gives the semantically-correct result:
+assert_eq!((1.0.meters()/1.0.millimeters()).into(), 1000.0); // ✅ we probably do expect this!
+
+// similarly, we might get surprising results for non-radian angular quantities:
+assert_eq!(f64::sin(90.0.degrees().value), 0.89); // ⚠️ we probably don't expect this!
+// the same mechanism ensures angular erasure is semantically-correct (i.e. always in radian-scale):
+assert_eq!(f64::sin(90.0.degrees().into()), 1.0); // ✅ we probably do expect this!
+```
+
+Erasure is permitted to convert to any numeric type; when combined with custom literals (see below), this naturally extends standard library trigonometric functions to have unit-safe, scale-appropriate interfaces:
+
+```rust
+let sin_value: f64 = f64::sin(90deg.into());
+assert_eq!(sin_value, 1.0);
+```
+
+## Compound angular unit erasure
+
+Compound units can also automatically erase their radian component (if present) via `.into()`, making it easy to deal with situations where the angular component is useful in some parts of the calculation but not others:
+
+```rust
+// if curvature occurs in the context of angular-change-per-distance, it is natural to define it in
+// units of radians per meter:
+let curvature = quantity!(1.0, rad / m);
+let velocity = quantity!(1.0, m / s);
+// but when we want to calculate centripetal acceleration by the typical formula, we need to erase the radian component:
+let centripetal_acceleration: unit!(m / s^2) = (curvature * velocity * velocity).into();
+assert_eq!(value!(centripetal_acceleration, m / s^2), 1.0);
+```
+
+Note that compound unit erasure only erases powers of pure radians; "residual scales" of non-radian units will be retained.  However, a simple rescale operation will recover the expected scale:
+
+```rust
+// we may have concrete measurements of angle in degrees; we can still use the radian-scale quantity for the calculation:
+let curvature = quantity!(1.0, deg / m);
+let velocity = quantity!(1.0, m / s);
+// because degrees have a non-unity storage scale, we need to rescale to get the expected result:
+let centripetal_acceleration: unit!(m / s^2) = rescale((curvature * velocity * velocity).into());
+// 1 deg/m * (1 m/s)^2 = π/180 m/s^2
+assert_eq!(value!(centripetal_acceleration, m / s^2), std::f64::consts::PI / 180.0);
+```
 
 ## Scope-local base unit preferences
 
