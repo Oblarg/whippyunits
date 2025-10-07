@@ -19,18 +19,18 @@ fn test_simple_custom_literals() {
     let distance_i32 = 10m;
 
     // These should now create proper unit types using the quantity! macro
-    // We can test that they have the correct values by accessing the .value field
-    assert_eq!(distance.value, 100.0);
-    assert_eq!(mass.value, 5.5);
-    assert_eq!(time.value, 30.0);
-    assert_eq!(distance_i32.value, 10);
+    // We can test that they have the correct values by accessing the .unsafe_value field
+    assert_eq!(distance.unsafe_value, 100.0);
+    assert_eq!(mass.unsafe_value, 5.5);
+    assert_eq!(time.unsafe_value, 30.0);
+    assert_eq!(distance_i32.unsafe_value, 10);
 
     // Test that they are actually proper unit types with correct dimensions
     // distance should be length (m), mass should be mass (kg), time should be time (s)
-    println!("Distance: {} (should be length)", distance.value);
-    println!("Mass: {} (should be mass)", mass.value);
-    println!("Time: {} (should be time)", time.value);
-    println!("Distance: {} (should be length)", distance_i32.value);
+    println!("Distance: {} (should be length)", distance.unsafe_value);
+    println!("Mass: {} (should be mass)", mass.unsafe_value);
+    println!("Time: {} (should be time)", time.unsafe_value);
+    println!("Distance: {} (should be length)", distance_i32.unsafe_value);
 
     println!("Mass prettyprint: {}", mass);
     println!("Distance prettyprint: {}", distance);
@@ -65,34 +65,34 @@ fn test_compound_unit_custom_literals() {
     let force_i32 = 20N;
 
     // Test that they have the correct values
-    assert_eq!(energy.value, 1.5);
-    assert_eq!(power.value, 2.0);
-    assert_eq!(force.value, 10.0);
-    assert_eq!(pressure.value, 100.0);
-    assert_eq!(frequency.value, 50.0);
-    assert_eq!(charge.value, 1.0);
-    assert_eq!(voltage.value, 12.0);
-    assert_eq!(capacitance.value, 0.1);
-    assert_eq!(resistance.value, 100.0);
-    assert_eq!(conductance.value, 0.01);
-    assert_eq!(inductance.value, 0.5);
-    assert_eq!(magnetic_field.value, 1.0);
-    assert_eq!(magnetic_flux.value, 0.1);
-    assert_eq!(luminous_flux.value, 100.0);
-    assert_eq!(illuminance.value, 50.0);
+    assert_eq!(energy.unsafe_value, 1.5);
+    assert_eq!(power.unsafe_value, 2.0);
+    assert_eq!(force.unsafe_value, 10.0);
+    assert_eq!(pressure.unsafe_value, 100.0);
+    assert_eq!(frequency.unsafe_value, 50.0);
+    assert_eq!(charge.unsafe_value, 1.0);
+    assert_eq!(voltage.unsafe_value, 12.0);
+    assert_eq!(capacitance.unsafe_value, 0.1);
+    assert_eq!(resistance.unsafe_value, 100.0);
+    assert_eq!(conductance.unsafe_value, 0.01);
+    assert_eq!(inductance.unsafe_value, 0.5);
+    assert_eq!(magnetic_field.unsafe_value, 1.0);
+    assert_eq!(magnetic_flux.unsafe_value, 0.1);
+    assert_eq!(luminous_flux.unsafe_value, 100.0);
+    assert_eq!(illuminance.unsafe_value, 50.0);
 
-    assert_eq!(energy_i32.value, 5);
-    assert_eq!(power_i32.value, 10);
-    assert_eq!(force_i32.value, 20);
+    assert_eq!(energy_i32.unsafe_value, 5);
+    assert_eq!(power_i32.unsafe_value, 10);
+    assert_eq!(force_i32.unsafe_value, 20);
 
     // Test prefixed compound units
     let kilojoule = 1.5kJ;    // kilojoules
     let milliwatt = 100.0mW;  // milliwatts
     let kilonewton = 5.0kN;   // kilonewtons
 
-    assert_eq!(kilojoule.value, 1.5);
-    assert_eq!(milliwatt.value, 100.0);
-    assert_eq!(kilonewton.value, 5.0);
+    assert_eq!(kilojoule.unsafe_value, 1.5);
+    assert_eq!(milliwatt.unsafe_value, 100.0);
+    assert_eq!(kilonewton.unsafe_value, 5.0);
 
     println!("Energy: {:?} (should be energy)", energy);
     println!("Power: {:?} (should be power)", power);
@@ -137,19 +137,19 @@ fn test_angular_unit_custom_literals() {
     let turn_i32 = 1turn;
 
     // Test that they have the correct values
-    assert_eq!(radian.value, 1.0);
-    assert_eq!(degree.value, 90.0);
-    assert_eq!(rotation.value, 0.5);
-    assert_eq!(turn.value, 0.25);
-    assert_eq!(arcsecond.value, 3600.0);
-    assert_eq!(arcminute.value, 60.0);
-    assert_eq!(gon.value, 100.0);
-    assert_eq!(gradian.value, 100.0);
+    assert_eq!(radian.unsafe_value, 1.0);
+    assert_eq!(degree.unsafe_value, 90.0);
+    assert_eq!(rotation.unsafe_value, 0.5);
+    assert_eq!(turn.unsafe_value, 0.25);
+    assert_eq!(arcsecond.unsafe_value, 3600.0);
+    assert_eq!(arcminute.unsafe_value, 60.0);
+    assert_eq!(gon.unsafe_value, 100.0);
+    assert_eq!(gradian.unsafe_value, 100.0);
 
-    assert_eq!(radian_i32.value, 1);
-    assert_eq!(degree_i32.value, 90);
-    assert_eq!(rotation_i32.value, 1);
-    assert_eq!(turn_i32.value, 1);
+    assert_eq!(radian_i32.unsafe_value, 1);
+    assert_eq!(degree_i32.unsafe_value, 90);
+    assert_eq!(rotation_i32.unsafe_value, 1);
+    assert_eq!(turn_i32.unsafe_value, 1);
 
     // Test pretty printing
     println!("Radian: {} (should be angle)", radian);

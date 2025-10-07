@@ -13,7 +13,7 @@ macro_rules! scalar_quantity_mul_div_interface {
             type Output = $crate::quantity_type!($T);
 
             fn mul(self: $T, other: Self::Output) -> Self::Output {
-                let result_value = self * other.value;
+                let result_value = self * other.unsafe_value;
                 Self::Output::new(result_value)
             }
         }
@@ -28,7 +28,7 @@ macro_rules! scalar_quantity_mul_div_interface {
             type Output = $crate::inverse_quantity_type!($T);
 
             fn div(self: $T, other: $crate::quantity_type!($T)) -> Self::Output {
-                let result_value = self / other.value;
+                let result_value = self / other.unsafe_value;
                 Self::Output::new(result_value)
             }
         }
@@ -46,7 +46,7 @@ macro_rules! quantity_scalar_mul_div_interface {
             type Output = Self;
 
             fn $fn(self, other: $T) -> Self::Output {
-                Self::new(self.value $op other)
+                Self::new(self.unsafe_value $op other)
             }
         }
     }
@@ -61,7 +61,7 @@ macro_rules! quantity_scalar_mul_div_assign_interface {
             $trait<$T> for $crate::quantity_type!($T)
         {
             fn $fn(&mut self, other: $T) {
-                self.value $op other;
+                self.unsafe_value $op other;
             }
         }
     }
@@ -87,7 +87,7 @@ macro_rules! quantity_quantity_add_sub_interface {
                 self,
                 other: Self,
             ) -> Self::Output {
-                Self::new(self.value $op other.value)
+                Self::new(self.unsafe_value $op other.unsafe_value)
             }
         }
     };
@@ -109,7 +109,7 @@ macro_rules! quantity_quantity_add_sub_assign_interface {
             > for $crate::quantity_type!($T)
         {
             fn $fn(&mut self, other: $crate::quantity_type!($T)) {
-                self.value $op other.value;
+                self.unsafe_value $op other.unsafe_value;
             }
         }
     };
@@ -139,7 +139,7 @@ macro_rules! quantity_quantity_mul_div_interface {
                 self,
                 other: $crate::multiplication_input!(RightHand, $T),
             ) -> Self::Output {
-                Self::Output::new(self.value $op other.value)
+                Self::Output::new(self.unsafe_value $op other.unsafe_value)
             }
         }
     };
@@ -158,7 +158,7 @@ macro_rules! quantity_neg_interface {
             type Output = Self;
 
             fn neg(self) -> Self::Output {
-                Self::new(-self.value)
+                Self::new(-self.unsafe_value)
             }
         }
     };

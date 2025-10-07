@@ -73,7 +73,7 @@ pub struct Quantity<
     ///
     /// **⚠️ WARNING: This property is NOT unit-safe!**
     ///
-    /// Direct access to `.value` bypasses the type system's unit safety guarantees.
+    /// Direct access to `.unsafe_value` bypasses the type system's unit safety guarantees.
     /// This should only be used when interacting with non-unit-safe APIs that you don't control,
     /// and only if the unit-safe methods outlined below are not viable.
     ///
@@ -92,15 +92,15 @@ pub struct Quantity<
     /// let millimeters: f64 = value!(distance, mm); // 1000.0 (1m = 1000mm);
     /// let millimeters: f64 = (distance / quantity!(1.0, mm)).into();
     /// 
-    /// // ❌ BUG: .value bypasses unit conversion for erasable units, 
+    /// // ❌ BUG: .unsafe_value bypasses unit conversion for erasable units, 
     /// //         returns in degrees (not radians)
-    /// let val: f64 = f64::sin(90.0.degrees().value); // BUG: sin(90.0) ≈ 0.89 (wrong!)
+    /// let val: f64 = f64::sin(90.0.degrees().unsafe_value); // BUG: sin(90.0) ≈ 0.89 (wrong!)
     /// 
-    /// // ❌ BUG: .value bypasses dimensional/scale safety for non-erasable units, 
+    /// // ❌ BUG: .unsafe_value bypasses dimensional/scale safety for non-erasable units, 
     /// //         returns in meters (not millimeters)
-    /// let millimeters: f64 = distance.value; 
+    /// let millimeters: f64 = distance.unsafe_value; 
     /// ```
-    pub value: T,
+    pub unsafe_value: T,
     _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension)>,
 }
 
@@ -216,9 +216,9 @@ impl<
         T,
     >
 {
-    pub const fn new(value: T) -> Self {
+    pub const fn new(unsafe_value: T) -> Self {
         Self { 
-            value,
+            unsafe_value,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -334,7 +334,7 @@ impl<
                     .calculate_conversion_factor(&self.unit, &target_unit_info);
 
                 // Convert and format
-                let original_value: f64 = self.quantity.value.into();
+                let original_value: f64 = self.quantity.unsafe_value.into();
                 let converted_value = original_value * conversion_factor;
 
                 // Use precision from format specifier if available, otherwise use the stored precision
@@ -452,10 +452,10 @@ macro_rules! define_from_dimensionless_cross_type {
             ) -> $target_type {
                 // Convert to float first, then apply rescale logic, then convert to target type
                 if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
-                    (other.value as f64) as $target_type
+                    (other.unsafe_value as f64) as $target_type
                 } else {
                     // Convert to f64 quantity first, then apply rescale logic
-                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>::new(other.value as f64);
+                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<0>>, f64>::new(other.unsafe_value as f64);
                     (crate::api::rescale_f64::<
                         0,
                         0,
@@ -474,7 +474,7 @@ macro_rules! define_from_dimensionless_cross_type {
                         SCALE_PI,
                         0,
                     >(f64_quantity)
-                    .value) as $target_type
+                    .unsafe_value) as $target_type
                 }
             }
         }
@@ -507,7 +507,7 @@ macro_rules! define_from_dimensionless {
             ) -> $type {
                 // If all scales are zero, just return the raw value
                 if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
-                    other.value
+                    other.unsafe_value
                 } else {
                     // Use the provided rescale function
                     crate::api::$rescale_fn::<
@@ -528,7 +528,7 @@ macro_rules! define_from_dimensionless {
                         SCALE_PI,
                         0,
                     >(other)
-                    .value
+                    .unsafe_value
                 }
             }
         }
@@ -591,10 +591,10 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
             ) -> $target_type {
                 // Convert to float first, then apply rescale logic, then convert to target type
                 if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
-                    (other.value as f64) as $target_type
+                    (other.unsafe_value as f64) as $target_type
                 } else {
                     // Convert to f64 quantity first, then apply rescale logic
-                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>, f64>::new(other.value as f64);
+                    let f64_quantity = Quantity::<Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>, Dimension<_M<0>, _L<0>, _T<0>, _I<0>, _Θ<0>, _N<0>, _J<0>, _A<$exponent>>, f64>::new(other.unsafe_value as f64);
                     (crate::api::rescale_f64::<
                         0,
                         0,
@@ -613,7 +613,7 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
                         SCALE_PI,
                         0,
                     >(f64_quantity)
-                    .value) as $target_type
+                    .unsafe_value) as $target_type
                 }
             }
         }
@@ -652,7 +652,7 @@ macro_rules! define_from_for_radians_with_scale {
             ) -> $type {
                 // If all scales are zero, just return the raw value
                 if SCALE_P2 == 0 && SCALE_P3 == 0 && SCALE_P5 == 0 && SCALE_PI == 0 {
-                    other.value
+                    other.unsafe_value
                 } else {
                     // Use the provided rescale function
                     crate::api::$rescale_fn::<
@@ -673,7 +673,7 @@ macro_rules! define_from_for_radians_with_scale {
                         SCALE_PI,
                         0,
                     >(other)
-                    .value
+                    .unsafe_value
                 }
             }
         }
@@ -720,7 +720,7 @@ macro_rules! define_from_for_radians {
                     >,
                 ) -> Self {
                     Self { 
-                        value: other.value,
+                        unsafe_value: other.unsafe_value,
                         _phantom: std::marker::PhantomData,
                     }
                 }

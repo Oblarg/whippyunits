@@ -167,7 +167,7 @@ pub fn serialize_to_json<
 where
     T: Into<f64> + Copy,
 {
-    let value = quantity.value.into();
+    let value = quantity.unsafe_value.into();
     let unit = to_ucum_unit(quantity);
     serde_json::to_string(&serde_json::json!({
         "value": value,

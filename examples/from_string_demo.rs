@@ -79,8 +79,8 @@ fn main() {
     let m_as_cm = from_string!("1.0 m", cm).unwrap();
     let kg_as_g = from_string!("1.0 kg", g).unwrap();
 
-    println!("1 meter as cm: {} cm", m_as_cm.value);
-    println!("1 kg as g: {} g", kg_as_g.value);
+    println!("1 meter as cm: {} cm", m_as_cm.unsafe_value);
+    println!("1 kg as g: {} g", kg_as_g.unsafe_value);
 
     println!("\n🎉 All tests completed! The from_string! macro is working correctly.");
     println!("✅ Proper type checking");

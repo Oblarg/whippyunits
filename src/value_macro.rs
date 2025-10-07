@@ -6,7 +6,7 @@ macro_rules! define_value_macro {
                 type TargetQuantity = $crate::unit!($unit, $T);
                 
                 let rescaled: TargetQuantity = $crate::api::$rescale_fn($quantity);
-                rescaled.value
+                rescaled.unsafe_value
             }};
         }
     };

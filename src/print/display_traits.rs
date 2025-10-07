@@ -21,7 +21,7 @@ macro_rules! define_display_traits {
         {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let pretty = pretty_print_quantity_value(
-                    self.value.into(),
+                    self.unsafe_value.into(),
                     $($dimension_args)*
                     std::any::type_name::<T>(),
                     false, // Non-verbose mode for Display
@@ -46,7 +46,7 @@ macro_rules! define_display_traits {
         {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let pretty = pretty_print_quantity_value(
-                    self.value.into(),
+                    self.unsafe_value.into(),
                     $($dimension_args)*
                     std::any::type_name::<T>(),
                     true, // Verbose mode for Debug

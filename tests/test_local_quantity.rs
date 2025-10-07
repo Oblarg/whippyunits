@@ -20,7 +20,7 @@ fn test_local_quantity_macro() {
 
     // Test with i64
     let energy_i64 = quantity!(100, J, i64);
-    println!("Energy (i64): value = {}", energy_i64.value);
+    println!("Energy (i64): value = {}", energy_i64.unsafe_value);
 
     // Test with other compound units using different storage types
     let force_f64 = quantity!(50.0, N);
@@ -33,18 +33,18 @@ fn test_local_quantity_macro() {
     println!("Power (f64): {:?}", power_f64);
 
     let power_i64 = quantity!(25, W, i64);
-    println!("Power (i64): value = {}", power_i64.value);
+    println!("Power (i64): value = {}", power_i64.unsafe_value);
 
     // Test LocalMass trait with different storage types
     // Note: grams() converts to the local mass scale (Kilogram), so 1000 grams = 1 kilogram
     let mass_f64 = 1000.0.grams();
-    assert_eq!(mass_f64.value, 1.0); // 1000 grams = 1 kilogram
+    assert_eq!(mass_f64.unsafe_value, 1.0); // 1000 grams = 1 kilogram
 
     let mass_i32 = 1000i32.grams();
-    assert_eq!(mass_i32.value, 1); // 1000 grams = 1 kilogram
+    assert_eq!(mass_i32.unsafe_value, 1); // 1000 grams = 1 kilogram
 
     let mass_i64 = 1000i64.grams();
-    assert_eq!(mass_i64.value, 1); // 1000 grams = 1 kilogram
+    assert_eq!(mass_i64.unsafe_value, 1); // 1000 grams = 1 kilogram
 
     println!("Local quantity macro with generic storage types test passed!");
 }

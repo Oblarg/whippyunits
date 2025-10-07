@@ -120,15 +120,15 @@ assert_eq!(value, 1000.0);
 let _value: f64 = value!(distance, s);
 ```
 
-Direct access to the `.value` field is not unit-safe, and should be used with caution - because whippyunits represents storage scales as part of its type system, the actual numeric value may not match the user's intent:
+Direct access to the `.unsafe_value` field is not unit-safe, and should be used with caution - because whippyunits represents storage scales as part of its type system, the actual numeric value may not match the user's intent:
 
 ```rust
 let dimensionless_ratio = 1.0.meters() / 1.0.millimeters();
 // Because scale info is stored as part of the type, unsafe value access may have unexpected behavior:
-assert_eq!(dimensionless_ratio.value, 1.0); // ⚠️ runtime value does not track the scale!
+assert_eq!(dimensionless_ratio.unsafe_value, 1.0); // ⚠️ runtime value does not track the scale!
 ```
 
-Accordingly, it is best practice when possible to use the `value!` macro or a legal unit-safe erasure (see below) to access the underlying numeric value of a quantity.  Whippyunits conversions are generally well-optimized, and in the majority of cases safe access should be zero- (or nearly-zero-) cost.  Direct access via `.value` is a method-of-last-resort, and should only be used (carefully!) if unit-safe access is not possible for performance or safety reasons.
+Accordingly, it is best practice when possible to use the `value!` macro or a legal unit-safe erasure (see below) to access the underlying numeric value of a quantity.  Whippyunits conversions are generally well-optimized, and in the majority of cases safe access should be zero- (or nearly-zero-) cost.  Direct access via `.unsafe_value` is a method-of-last-resort, and should only be used (carefully!) if unit-safe access is not possible for performance or safety reasons.
 
 ## Erasure to numeric types
 
@@ -146,14 +146,14 @@ assert_eq!(from_radians, 1.0);
 An angular or dimensionless quantity with a non-unity storage scale - that is, a ratio of differently-scaled quantities of the same dimension, or an angular unit other than radians - will rescale to unity before erasure:
 
 ```rust
-// division leaves a "residual scale" of 1000.0 in the type but is a runtime noop;
+// division leaves a "residual scale" of (2^3 * 5^3) = 1000.0 in the type, but is a runtime noop;
 // direct access can give surprising results!
-assert_eq!((1.0.meters()/1.0.millimeters()).value, 1.0); // ⚠️ we probably don't expect this!
+assert_eq!((1.0.meters()/1.0.millimeters()).unsafe_value, 1.0); // ⚠️ we probably don't expect this!
 // with rescaling-on-erasure, unit-safe access gives the semantically-correct result:
 assert_eq!((1.0.meters()/1.0.millimeters()).into(), 1000.0); // ✅ we probably do expect this!
 
 // similarly, we might get surprising results for non-radian angular quantities:
-assert_eq!(f64::sin(90.0.degrees().value), 0.89); // ⚠️ we probably don't expect this!
+assert_eq!(f64::sin(90.0.degrees().unsafe_value), 0.89); // ⚠️ we probably don't expect this!
 // the same mechanism ensures angular erasure is semantically-correct (i.e. always in radian-scale):
 assert_eq!(f64::sin(90.0.degrees().into()), 1.0); // ✅ we probably do expect this!
 ```

@@ -122,7 +122,7 @@ macro_rules! _define_float_rescale {
                 $($float_rescale_aggregate_args)*
             ) as $T;
             Quantity::<Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>, Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>, $T>::new(
-                quantity.value * rescale_factor
+                quantity.unsafe_value * rescale_factor
             )
         }
     };
@@ -151,12 +151,12 @@ macro_rules! _define_int_rescale {
 
             // Numerical stability: check for potential overflow on multiplication
             // If value * num would overflow, divide first; otherwise multiply first
-            let result = if quantity.value > <$T>::max_value() / num {
+            let result = if quantity.unsafe_value > <$T>::max_value() / num {
                 // Potential overflow: divide first to reduce intermediate value
-                (quantity.value / den) * num
+                (quantity.unsafe_value / den) * num
             } else {
                 // Safe to multiply first
-                (quantity.value * num) / den
+                (quantity.unsafe_value * num) / den
             };
 
             Quantity::<Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>, Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>, $T>::new(result)
