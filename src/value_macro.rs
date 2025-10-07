@@ -26,26 +26,19 @@ define_value_macro!(value_u32, rescale_u32, u32);
 define_value_macro!(value_u64, rescale_u64, u64);
 define_value_macro!(value_u128, rescale_u128, u128);
 
-/// Unit-safe value extraction macro
-/// 
-/// Usage: `value!(quantity, unit_literal)` or `value!(quantity, unit_literal, type)`
-/// 
-/// This macro extracts the raw value from a quantity, rescaling it to the specified unit.
-/// It's unit-safe because it uses the rescale function to ensure dimensional consistency.
-/// The conversion is done statically at compile time using the type system.
-/// 
-/// The macro automatically infers the backing type from the input quantity and returns
-/// the same type, maintaining zero-cost guarantees for integer types.
+/// Provides unit-safe access to the underlying numeric value of a quantity.
 /// 
 /// Examples:
 /// ```rust
 /// let distance_f64 = quantity!(1.0, m);
 /// let val_f64: f64 = value!(distance_f64, m);   // 1.0
 /// let val_f64: f64 = value!(distance_f64, mm);  // 1000.0
+/// let _value: f64 = value!(distance_f64, s);  // ❌ compile error (incompatible dimension)
 /// 
 /// let distance_i32 = quantity!(1, m, i32);
 /// let val_i32: i32 = value!(distance_i32, m, i32);   // 1
 /// let val_i32: i32 = value!(distance_i32, mm, i32);  // 1000
+/// let _value: i32 = value!(distance_i32, s, i32);  // ❌ compile error (incompatible dimension)
 /// ```
 #[macro_export]
 macro_rules! value {

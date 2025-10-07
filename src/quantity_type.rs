@@ -227,8 +227,16 @@ impl<
     ///
     /// Returns a formatter that implements Display, allowing use with println! macros:
     /// ```rust
-    /// println!("{}", value.fmt("ft"));
+    /// println!("{}", value.fmt("ft")); // "1000.0 ft"
     /// ```
+    /// 
+    /// Dimensionally-incompatible units will print an error message, but will *not* panic:
+    /// 
+    /// ```rust
+    /// println!("{}", value.fmt("kg")); // "Error: Dimension mismatch: cannot convert from m to kg"
+    /// ```
+    /// 
+    /// if a panic is desired, use a type assertion instead.
     pub fn fmt(&self, unit: &str) -> impl std::fmt::Display + '_
     where
         T: Copy + Into<f64>,
@@ -434,7 +442,24 @@ impl<
 // proper dimensionless quantities (all exponents are 0, scales irrelevant)
 macro_rules! define_from_dimensionless_cross_type {
     ($source_type:ty, $target_type:ty, $rescale_fn:ident) => {
-        // Cross-type conversion for dimensionless quantities
+        /// Converts dimensionless quantities between different numeric types with proper scaling.
+        ///
+        /// Performs de-scaling before type conversion to ensure unit-safe numeric extraction.
+        ///
+        /// ## Examples
+        /// ```rust
+        /// use whippyunits::*;
+        /// 
+        /// // Cross-type conversion from f32 to f64
+        /// let dimensionless_f32 = (1.0f32.meters() / 1.0f32.meters());
+        /// let result_f64: f64 = dimensionless_f32.into();
+        /// assert_eq!(result_f64, 1.0);
+        /// 
+        /// // Cross-type conversion with scale handling
+        /// let ratio_f32 = (1.0f32.meters() / 1.0f32.millimeters());
+        /// let result_f64: f64 = ratio_f32.into();
+        /// assert_eq!(result_f64, 1000.0);
+        /// ```
         impl<
                 const SCALE_P2: i16,
                 const SCALE_P3: i16,
@@ -483,13 +508,23 @@ macro_rules! define_from_dimensionless_cross_type {
 
 macro_rules! define_from_dimensionless {
     ($type:ty, $rescale_fn:ident) => {
-        // General case for all scales - rescale from current scale to 0
-        /// Unit-safe conversion from dimensionless quantities to underlying numeric types.
+        /// Converts dimensionless quantities to underlying numeric types with proper scaling.
         ///
-        /// This implementation provides the `.into()` method for dimensionless quantities,
-        /// which performs appropriate de-scaling before erasure to the underlying numeric type.
-        /// This is the preferred way to extract numeric values from dimensionless quantities
-        /// as it maintains unit safety by handling scale conversions correctly.
+        /// Performs de-scaling before erasure to ensure unit-safe numeric extraction.
+        /// Dimensionless quantities with non-unity storage scales are rescaled to unity.
+        ///
+        /// ## Examples
+        /// ```rust
+        /// use whippyunits::*;
+        /// 
+        /// // Division yields dimensionless quantity
+        /// let dimensionless: f64 = (1.0.meters() / 1.0.meters()).into();
+        /// assert_eq!(dimensionless, 1.0);
+        /// 
+        /// // Non-unity scales are rescaled before erasure
+        /// let ratio: f64 = (1.0.meters() / 1.0.millimeters()).into();
+        /// assert_eq!(ratio, 1000.0);
+        /// ```
         impl<
                 const SCALE_P2: i16,
                 const SCALE_P3: i16,
@@ -561,13 +596,23 @@ define_from_dimensionless_cross_type!(f64, i64, rescale_f64);
 // Cross-type conversion for radian quantities
 macro_rules! define_from_for_radians_with_scale_cross_type {
     ($exponent:expr, $source_type:ty, $target_type:ty, $rescale_fn:ident) => {
-        /// Unit-safe cross-type conversion from angular quantities to underlying numeric types.
+        /// Converts angular quantities between different numeric types in radian scale.
         ///
-        /// This implementation provides the `.into()` method for cross-type conversions
-        /// from angular quantities, which performs appropriate de-scaling before erasure
-        /// to the underlying numeric type. This is the preferred way to extract numeric
-        /// values from angular quantities as it maintains unit safety by handling scale
-        /// conversions correctly.
+        /// Performs de-scaling before type conversion, ensuring all angular values are converted to radians.
+        ///
+        /// ## Examples
+        /// ```rust
+        /// use whippyunits::*;
+        /// 
+        /// // Cross-type conversion from f32 to f64
+        /// let angle_f32 = 90.0f32.degrees();
+        /// let result_f64: f64 = angle_f32.into();
+        /// assert_eq!(result_f64, std::f64::consts::PI / 2.0);
+        /// 
+        /// // Enables unit-safe trigonometric functions with cross-type conversion
+        /// let sin_value: f64 = f64::sin(90.0f32.degrees().into());
+        /// assert_eq!(sin_value, 1.0);
+        /// ```
         impl<
                 const SCALE_P2: i16,
                 const SCALE_P3: i16,
@@ -623,12 +668,27 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
 // Pure radian power to scalar with scale handling - handles both zero and non-zero scales
 macro_rules! define_from_for_radians_with_scale {
     ($exponent:expr, $type:ty, $rescale_fn:ident) => {
-        /// Unit-safe conversion from angular quantities to underlying numeric types.
+        /// Converts angular quantities to underlying numeric types in radian scale.
         ///
-        /// This implementation provides the `.into()` method for angular quantities,
-        /// which performs appropriate de-scaling before erasure to the underlying numeric type.
-        /// This is the preferred way to extract numeric values from angular quantities
-        /// as it maintains unit safety by handling scale conversions correctly.
+        /// Performs de-scaling before erasure, ensuring all angular values are converted to radians.
+        /// Non-radian angular quantities are rescaled to radian scale before erasure.
+        ///
+        /// ## Examples
+        /// ```rust
+        /// use whippyunits::*;
+        /// 
+        /// // Pure radian quantities erase directly
+        /// let radians: f64 = 1.0.radians().into();
+        /// assert_eq!(radians, 1.0);
+        /// 
+        /// // Non-radian quantities rescale to radian scale
+        /// let degrees: f64 = 90.0.degrees().into();
+        /// assert_eq!(degrees, std::f64::consts::PI / 2.0);
+        /// 
+        /// // Enables unit-safe trigonometric functions
+        /// let sin_value: f64 = f64::sin(90.0.degrees().into());
+        /// assert_eq!(sin_value, 1.0);
+        /// ```
         impl<
                 const SCALE_P2: i16,
                 const SCALE_P3: i16,
@@ -686,10 +746,21 @@ macro_rules! define_from_for_radians_with_scale {
 macro_rules! define_from_for_radians {
     ($exponent:expr, $($type:ty),+ $(,)?) => {
         $(
-            // Removed direct-to-scalar implementation - now handled by define_from_for_radians_with_scale!
-
-            // TODO: This second impl has unconstrained const parameters
-            // Need to figure out the correct approach for angle conversions
+            /// Erases radian components from compound units, retaining other dimensional components.
+            /// Only pure radian powers are erased; residual scales of non-radian units are retained.
+            ///
+            /// ## Examples
+            /// ```rust
+            /// use whippyunits::*;
+            /// 
+            /// // Curvature in radians per meter
+            /// let curvature = quantity!(1.0, rad / m);
+            /// let velocity = quantity!(1.0, m / s);
+            /// 
+            /// // Erase radian component for centripetal acceleration calculation
+            /// let centripetal_acceleration: unit!(m / s^2) = (curvature * velocity * velocity).into();
+            /// assert_eq!(value!(centripetal_acceleration, m / s^2), 1.0);
+            /// ```
             impl<
                     const MASS_EXPONENT: i16,
                     const LENGTH_EXPONENT: i16,
