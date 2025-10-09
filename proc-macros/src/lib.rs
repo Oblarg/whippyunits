@@ -4,17 +4,19 @@ use syn::parse_macro_input;
 
 mod culit_macro;
 mod define_generic_dimension;
-mod local_quantity_macro;
+mod local_unit_macro;
 mod pow_lookup_macro;
 mod unit_macro;
 mod radian_erasure_macro;
 mod default_declarators_macro;
 mod scoped_preferences_macro;
 
-/// Helper macro to compute unit dimensions for a unit expression
-/// Usage: compute_unit_dimensions!(unit_expr)
+/// Computes unit dimensions for a unit expression.
+///
+/// Usage: `compute_unit_dimensions!(unit_expr)`
 /// Returns a tuple of 12 i16 values representing the dimensions
 #[proc_macro]
+#[doc(hidden)]
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     let unit_expr: unit_macro::UnitExpr = syn::parse(input).expect("Expected unit expression");
 
@@ -27,35 +29,185 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     .into()
 }
 
+/// Defines a trait representing a scale-generic dimension (like Length, Area, Energy).
+/// 
+/// Generic dimensions can be used to write arithmetic operations that are generic over a dimensional structure
+/// or disjunction of dimensional structures.
+///
+/// ## Syntax
+///
+/// ```rust
+/// define_generic_dimension!(TraitName, DimensionExpression);
+/// ```
+///
+/// Where:
+/// - `TraitName`: The name of the trait to create
+/// - `DimensionExpression`: A comma-separated list of "dimension literal expressions".
+///     - A "dimension literal expression" is either:
+///         - An atomic dimension: 
+///             - `Length`, `Time`, `Mass`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`
+///             - Also accepts single-character symbols: `L`, `T`, `M`, `I`, `Θ`, `N`, `J`, `A`
+///         - A multiplication of two or more atomic dimensions:
+///             - `M * L`
+///         - A division of two or more atomic dimensions:
+///             - `L / T`
+///         - An exponentiation of an atomic dimension:
+///             - `L^2`, `T^-1`
+///         - A combination of the above: `M * L^2 / T^2`
+///
+/// ## Examples
+///
+/// ```rust
+/// use whippyunits::{define_generic_dimension, quantity};
+/// use core::ops::Mul;
+///
+/// // Define a generic Area trait
+/// define_generic_dimension!(Area, Length^2);
+///
+/// // Define a generic Energy trait
+/// define_generic_dimension!(Energy, M * L^2 / T^2);
+/// 
+/// // Define a velocity that may be *either* linear or angular
+/// define_generic_dimension!(Velocity, L / T, A / T);
+///
+/// // Now you can write generic functions
+/// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> impl Area
+/// where
+///     D1: Mul<D2>,
+/// {
+///     d1 * d2
+/// }
+///
+/// // This works with any length units
+/// let area1: impl Area = calculate_area(1.0.meters(), 2.0.meters());
+/// let area2: impl Area = calculate_area(100.0.centimeters(), 200.0.centimeters());
+/// let area3: impl Area = calculate_area(1.0.meters(), 200.0.centimeters());
+/// ```
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as define_generic_dimension::DefineGenericDimensionInput);
     input.expand().into()
 }
 
+/// Creates a concrete Quantity type from a unit expression.
+/// 
+/// This is particularly useful for constraining the result of potentially-type-ambiguous operations,
+/// such as multiplication of two quantities with different dimensions.  If you want to construct a 
+/// quantity with a known value, use the `quantity!` macro instead.
+///
+/// ## Syntax
+///
+/// ```rust
+/// proc_unit!(unit_expr);
+/// proc_unit!(unit_expr, storage_type);
+/// ```
+///
+/// Where:
+/// - `unit_expr`: A "unit literal expression"
+///     - A "unit literal expression" is either:
+///         - An atomic unit: 
+///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+///         - A multiplication of two or more atomic units:
+///             - `m * kg`
+///         - A division of two or more atomic units: 
+///             - `m / s`
+///         - An exponentiation of an atomic unit: 
+///             - `m^2`, `s^-1`
+///         - A combination of the above:
+///             - `m * kg / s^2`
+/// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
+///
+/// ## Examples
+///
+/// ```rust
+/// use whippyunits::unit;
+///
+/// // Constrain a multiplication to compile error if the units are wrong:
+/// let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
+/// let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
+/// let area: unit!(m^2) = 5.0m * 5.0m; // ✅ Correct, will compile only if the units are correct
+/// let area: unit!(m^2) = 5.0m * 5.0s; // Compile error, as expected
+/// 
+/// // Specify the target dimension of a rescale operation:
+/// let area: unit!(mm) = rescale(5.0m); // 5000.0 mm
+/// ```
 #[proc_macro]
 pub fn proc_unit(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as unit_macro::UnitMacroInput);
     input.expand().into()
 }
 
+
 #[proc_macro]
+#[doc(hidden)]
 pub fn local_unit_type(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as local_quantity_macro::LocalQuantityMacroInput);
+    let input = parse_macro_input!(input as local_unit_macro::LocalQuantityMacroInput);
     input.expand().into()
 }
 
-/// Macro to define default custom literals for whippyunits
-/// This generates the custom_literal module with all unit macros
+/// Defines custom literal declarators using [culit](https://crates.io/crates/culit).
+/// 
+/// Culit is designed to look for literal implementations in the scope of the crate in which
+/// the literal is used; accordingly, this macro must be called in the user's crate to generate
+/// the necessary `custom_literal` module and corresponding macro implementations:
+/// 
+/// ```rust
+/// // this must be called at least once in the user's crate, typically 
+/// // at the crate root
+/// whippyunits::define_literals!();
+/// 
+/// // following this, literal declarators are available in any scope tagged with
+/// // #[culit::culit]
+/// #[culit::culit]
+/// fn example() {
+///     let distance = 1.0m;
+///     let energy = 1.0J_f32;
+///     let time = 5ms;
+///     let mass = 10mg_i16;
+/// }
+/// ```
+/// 
+/// Literal declarators are effectively macro sugar for trait declarators.  The following
+/// are equivalent:
+/// 
+/// ```rust
+/// let distance = 1.0m;
+/// let distance = custom_literal::float::m(1.0);
+/// let distance = 1.0.meters();
+/// ```
+/// 
+/// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
+/// 
+/// ```rust
+/// let distance = 1.0m; // f64 (default for float literals)
+/// let energy = 1.0J_f32; // f32
+/// let time = 5ms; // i32 (default for integer literals)
+/// let mass = 10mg_i16; // i16
+/// ```
+/// 
+/// Literal declarators will use *whatever local trait declarator is in scope*, so if you have changed
+/// the local base units via [define_base_units!](crate::define_base_units!), the literal syntax will
+/// automatically use the appropriately-scaled declarators.
+/// 
+/// Because literal syntax is somewhat restrictive, we do not support the full set of algebraically-possible
+/// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are 
+/// not supported.  For arbitrary algebraic expressions, use the [quantity!](crate::quantity!) macro instead.
+/// 
+/// Because const traits are not yet generally available, it is not possible to use trait declarators in
+/// const contexts.  In these cases, as well, use the [quantity!](crate::quantity!) macro instead.
+///
+/// ## Note
+///
+/// Must be called once in your crate, typically at the module level.
+/// The generated literals are only available in scopes tagged with `#[culit::culit]`.
 #[proc_macro]
 pub fn define_literals(_input: TokenStream) -> TokenStream {
     let custom_literal_module = culit_macro::generate_custom_literal_module();
     TokenStream::from(custom_literal_module)
 }
 
-/// Generate scoped preferences macro from source of truth
-/// Usage: generate_scoped_preferences!()
 #[proc_macro]
+#[doc(hidden)]
 pub fn generate_scoped_preferences(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as scoped_preferences_macro::ScopedPreferencesInput);
     input.expand().into()
@@ -64,6 +216,7 @@ pub fn generate_scoped_preferences(input: TokenStream) -> TokenStream {
 /// Generate exponentiation lookup tables with parametric range
 /// Usage: pow_lookup!(base: 2, range: -20..=20, type: rational)
 #[proc_macro]
+#[doc(hidden)]
 pub fn pow_lookup(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as pow_lookup_macro::PowLookupInput);
     input.expand().into()
@@ -72,6 +225,7 @@ pub fn pow_lookup(input: TokenStream) -> TokenStream {
 /// Generate π exponentiation lookup tables with rational approximation
 /// Usage: pow_pi_lookup!(range: -10..=10, type: rational)
 #[proc_macro]
+#[doc(hidden)]
 pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as pow_lookup_macro::PiPowLookupInput);
     input.expand().into()
@@ -80,6 +234,7 @@ pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
 /// Generate all radian erasure implementations (both to scalar and to dimensionless quantities)
 /// Usage: generate_all_radian_erasures!()
 #[proc_macro]
+#[doc(hidden)]
 pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as radian_erasure_macro::AllRadianErasuresInput);
     input.expand().into()
@@ -88,48 +243,10 @@ pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
 /// Generate default declarators using the source of truth from default-dimensions
 /// Usage: generate_default_declarators!()
 #[proc_macro]
+#[doc(hidden)]
 pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as default_declarators_macro::DefaultDeclaratorsInput);
     input.expand().into()
-}
-
-/// Our custom annotation macro that delegates to culit for scope tagging
-#[proc_macro_attribute]
-pub fn whippy_literals(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    use quote::quote;
-    use syn::parse_macro_input;
-
-    let input = parse_macro_input!(item);
-
-    match input {
-        syn::Item::Fn(func) => {
-            let func_tokens = quote! { #func };
-
-            let expanded = quote! {
-                #[culit::culit]
-                #func_tokens
-            };
-
-            TokenStream::from(expanded)
-        }
-        syn::Item::Mod(module) => {
-            let module_tokens = quote! { #module };
-
-            let expanded = quote! {
-                #[culit::culit]
-                #module_tokens
-            };
-
-            TokenStream::from(expanded)
-        }
-        _ => {
-            let error = syn::Error::new_spanned(
-                &input,
-                "whippy_literals can only be applied to functions or modules",
-            );
-            TokenStream::from(error.to_compile_error())
-        }
-    }
 }
 
 #[cfg(test)]

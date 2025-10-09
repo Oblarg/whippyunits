@@ -56,7 +56,7 @@ fn test_compound_unit_custom_literals() {
     let inductance = 0.5H;    // Henrys
     let magnetic_field = 1.0T; // Tesla
     let magnetic_flux = 0.1Wb; // Weber
-    let luminous_flux = 100.0lm; // Lumen
+    // let luminous_flux = 100.0lm; // Lumen - removed, use cd instead
     let illuminance = 50.0lx; // Lux
 
     // Test integer compound unit literals
@@ -78,7 +78,6 @@ fn test_compound_unit_custom_literals() {
     assert_eq!(inductance.unsafe_value, 0.5);
     assert_eq!(magnetic_field.unsafe_value, 1.0);
     assert_eq!(magnetic_flux.unsafe_value, 0.1);
-    assert_eq!(luminous_flux.unsafe_value, 100.0);
     assert_eq!(illuminance.unsafe_value, 50.0);
 
     assert_eq!(energy_i32.unsafe_value, 5);
@@ -107,7 +106,6 @@ fn test_compound_unit_custom_literals() {
     println!("Inductance: {:?} (should be inductance)", inductance);
     println!("Magnetic field: {:?} (should be magnetic field)", magnetic_field);
     println!("Magnetic flux: {:?} (should be magnetic flux)", magnetic_flux);
-    println!("Luminous flux: {:?} (should be luminous flux)", luminous_flux);
     println!("Illuminance: {:?} (should be illuminance)", illuminance);
 
     println!("Kilojoule: {:?} (should be energy)", kilojoule);

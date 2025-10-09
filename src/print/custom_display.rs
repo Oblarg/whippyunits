@@ -15,7 +15,7 @@ fn calculate_conversion_factor<
 ) -> f64 {
     // First try to parse as a prefixed unit (short names like "km", "cm", etc.)
     if let Some(prefix_info) = whippyunits_default_dimensions::lookup_si_prefix(
-        &unit[..unit.len() - target_unit_info.symbol.len()],
+        &unit[..unit.len() - target_unit_info.symbols[0].len()],
     ) {
         // This is a prefixed unit - create the target scale factors from the base unit + prefix
         let prefix_scale = prefix_info.scale_factor;
@@ -23,10 +23,10 @@ fn calculate_conversion_factor<
         // The old system had scale_factors.3 as SCALE_P10, now we need to put that in p2 and p5
         // The prefix_scale is the power of 10, so we add it to both p2 and p5
         let (target_p2, target_p3, target_p5, target_pi) = (
-            target_unit_info.scale_factors.0 + prefix_scale, // p2 gets prefix
-            target_unit_info.scale_factors.1,                // p3 unchanged
-            target_unit_info.scale_factors.2 + prefix_scale, // p5 gets prefix
-            target_unit_info.scale_factors.3,                // pi unchanged
+            target_unit_info.scale_factors.unwrap().0 + prefix_scale, // p2 gets prefix
+            target_unit_info.scale_factors.unwrap().1,                // p3 unchanged
+            target_unit_info.scale_factors.unwrap().2 + prefix_scale, // p5 gets prefix
+            target_unit_info.scale_factors.unwrap().3,                // pi unchanged
         );
 
         // Calculate conversion factor from source to target
@@ -54,10 +54,10 @@ fn calculate_conversion_factor<
                         // Found a long name prefixed unit - get the prefix scale factor
                         let prefix_scale = prefix.scale_factor;
                         let (target_p2, target_p3, target_p5, target_pi) = (
-                            target_unit_info.scale_factors.0 + prefix_scale, // p2 gets prefix
-                            target_unit_info.scale_factors.1,                // p3 unchanged
-                            target_unit_info.scale_factors.2 + prefix_scale, // p5 gets prefix
-                            target_unit_info.scale_factors.3,                // pi unchanged
+                            target_unit_info.scale_factors.unwrap().0 + prefix_scale, // p2 gets prefix
+                            target_unit_info.scale_factors.unwrap().1,                // p3 unchanged
+                            target_unit_info.scale_factors.unwrap().2 + prefix_scale, // p5 gets prefix
+                            target_unit_info.scale_factors.unwrap().3,                // pi unchanged
                         );
 
                         // Calculate conversion factor from source to target
@@ -78,10 +78,10 @@ fn calculate_conversion_factor<
         } else {
             // Use the scale factors from the target unit info
             let (p2, p3, p5, pi) = (
-                target_unit_info.scale_factors.0, // p2
-                target_unit_info.scale_factors.1, // p3
-                target_unit_info.scale_factors.2, // p5
-                target_unit_info.scale_factors.3, // pi
+                target_unit_info.scale_factors.unwrap().0, // p2
+                target_unit_info.scale_factors.unwrap().1, // p3
+                target_unit_info.scale_factors.unwrap().2, // p5
+                target_unit_info.scale_factors.unwrap().3, // pi
             );
             aggregate_scale_factor_float(SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, p2, p3, p5, pi)
         }

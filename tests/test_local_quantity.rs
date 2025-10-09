@@ -1,5 +1,6 @@
 use whippyunits::api::*;
 use whippyunits::define_base_units;
+use whippyunits::{rescale_f64, rescale_i32, rescale_i64};
 
 // Set up scoped preferences with different units
 define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);

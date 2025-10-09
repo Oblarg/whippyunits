@@ -4,22 +4,9 @@ use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::{Caret, Comma, Slash, Star};
 use syn::{Ident, LitInt, Token};
-use whippyunits_default_dimensions::{lookup_dimension_by_name, DIMENSION_LOOKUP};
+use whippyunits_default_dimensions::{lookup_dimension_by_name, lookup_dimension_by_symbol, get_all_dimension_names, get_all_dimension_symbols};
 
-/// Look up dimension information by symbol
-///
-/// Returns the dimension info if found, or None if the symbol is not recognized.
-fn lookup_dimension_by_symbol(
-    symbol: &str,
-) -> Option<&'static whippyunits_default_dimensions::DimensionInfo> {
-    DIMENSION_LOOKUP.iter().find(|info| {
-        if let Some(dim_symbol) = info.symbol {
-            dim_symbol == symbol
-        } else {
-            false
-        }
-    })
-}
+// Note: lookup_dimension_by_symbol is now imported from whippyunits_default_dimensions
 
 // Parse dimension expressions like "Length / Time", "L / T", or "Mass * Length^2 / Time^2", "M * L^2 / T^2"
 pub enum DimensionExpr {
@@ -96,12 +83,8 @@ impl DimensionExpr {
                 }
 
                 // If neither works, generate a helpful error message
-                let supported_names: Vec<&str> =
-                    DIMENSION_LOOKUP.iter().map(|info| info.name).collect();
-                let supported_symbols: Vec<&str> = DIMENSION_LOOKUP
-                    .iter()
-                    .filter_map(|info| info.symbol)
-                    .collect();
+                let supported_names: Vec<&str> = get_all_dimension_names();
+                let supported_symbols: Vec<&str> = get_all_dimension_symbols();
 
                 panic!("Unsupported dimension: '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
                        name_or_symbol,

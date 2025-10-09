@@ -57,20 +57,20 @@ pub fn format_with_unit(value: f64, spec: &UnitFormatSpecifier) -> Result<String
 
     // For prefixed units (like "km"), use the original unit symbol for display
     // For base units (like "gram"), use the symbol from the unit info
-    let display_unit = if spec.target_unit.len() > target_unit_info.symbol.len() {
+    let display_unit = if spec.target_unit.len() > target_unit_info.1.symbols[0].len() {
         // This might be a long name prefixed unit - try to convert to short form
         if let Some(short_form) = convert_long_name_to_short(&spec.target_unit) {
             short_form
         } else {
             // This is a short prefixed unit (like "km") - use the original unit symbol
-            spec.target_unit.clone()
+            &spec.target_unit
         }
-    } else if spec.target_unit == target_unit_info.symbol {
+    } else if spec.target_unit == target_unit_info.1.symbols[0] {
         // This is a base unit symbol (like "g") - use the symbol from the unit info
-        target_unit_info.symbol.to_string()
+        &target_unit_info.1.symbols[0]
     } else {
         // This is a base unit long name (like "gram") - use the symbol from the unit info
-        target_unit_info.symbol.to_string()
+        &target_unit_info.1.symbols[0]
     };
 
     Ok(format!("{} {}", final_value, display_unit))

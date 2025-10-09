@@ -2,7 +2,7 @@ use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::utils::{get_si_prefix, to_unicode_superscript};
 use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
-use whippyunits_default_dimensions::DIMENSION_LOOKUP;
+use whippyunits_default_dimensions::get_atomic_dimension_symbols;
 
 /// Check if a dimension is primitive (has exactly one non-zero exponent equal to 1)
 /// Primitive dimensions are the 8 SI base quantities: Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle
@@ -137,11 +137,7 @@ pub fn generate_dimension_symbols_with_format(exponents: Vec<i16>, format: UnitF
 /// Generate dimension symbols in Unicode format (original behavior)
 fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
     // Get atomic dimension symbols from the source of truth
-    let atomic_symbols: Vec<&str> = DIMENSION_LOOKUP
-        .iter()
-        .take(8) // First 8 are the atomic dimensions
-        .map(|info| info.symbol.unwrap_or("?"))
-        .collect();
+    let atomic_symbols: Vec<&str> = get_atomic_dimension_symbols();
 
     let mut parts: Vec<String> = Vec::new();
 
@@ -177,6 +173,7 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_generate_verbose_dimension_names {
     (($($dimension_names:tt)*)) => {
         /// Generate verbose dimension names for unresolved types (Length, Time, Mass)
@@ -212,6 +209,7 @@ define_generate_verbose_dimension_names!((
 ));
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_calculate_total_scale_p10 {
     (($($dimension_params:tt)*), ($($total_scale_calculation:tt)*)) => {
         /// Calculate total power of 10 across all dimensions
@@ -444,6 +442,7 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
 
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_pretty_print_quantity {
     (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*), $unit_vector_format:expr) => {
         /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
@@ -561,6 +560,7 @@ define_pretty_print_quantity!(
 );
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_pretty_print_quantity_helpers {
     (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*)) => {
         /// Pretty print a quantity type (without value)

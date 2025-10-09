@@ -232,16 +232,16 @@ fn example() {
 
 ```rust
 println!("{}", 5.0m); 
-// (5) Quantity<m, f64>
+// (5.0) Quantity<m, f64>
 println!("{:?}", 5.0m); 
-// (5_f64) Quantity<meter [length¹]>
+// (5.0) Quantity<meter [length¹], f64>
 
 // Even handles complex SI values with correct aggregate-power-of-10 prefixing:
 let microjoule = quantity!(1.0, kg * mm^2 / s^2);
 println!("{}", microjoule);
-// (1) Quantity<μJ, f64>
+// (1.0) Quantity<μJ, f64>
 println!("{:?}", microjoule);
-// (1_f64) Quantity<microJoule (Energy) [2⁻⁶, 5⁻⁶] [mass¹, length², time⁻²], f64>
+// (1.0) Quantity<microJoule (Energy) [2⁻⁶, 5⁻⁶] [mass¹, length², time⁻²], f64>
 ```
 
 ## Print Format with Rescaling

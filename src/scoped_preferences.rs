@@ -2,6 +2,7 @@
 // use crate::quantity_type::Quantity;
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_local_quantity {
     (
         $local_quantity_scale:ident,

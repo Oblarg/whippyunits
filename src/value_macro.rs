@@ -1,6 +1,7 @@
 macro_rules! define_value_macro {
     ($macro_name:ident, $rescale_fn:ident, $T:ty) => {
         #[macro_export]
+        #[doc(hidden)]
         macro_rules! $macro_name {
             ($quantity:expr, $unit:expr) => {{
                 type TargetQuantity = $crate::unit!($unit, $T);
@@ -26,7 +27,11 @@ define_value_macro!(value_u32, rescale_u32, u32);
 define_value_macro!(value_u64, rescale_u64, u64);
 define_value_macro!(value_u128, rescale_u128, u128);
 
-/// Provides unit-safe access to the underlying numeric value of a quantity.
+/// Access the underlying numeric value of a quantity.
+/// 
+/// Because value! explicitly specifies the target unit, this is considered a
+/// "unit-safe" operation - the type system will guarantee that the access is
+/// dimensionally coherent and the value is correctly scaled.
 /// 
 /// Examples:
 /// ```rust

@@ -1,8 +1,8 @@
-//! UCUM (Unified Code for Units of Measure) serialization support for whippyunits
-//!
-//! This module provides serialization and deserialization of whippyunits quantities
-//! to and from UCUM format strings, using the dimension data from default-dimensions
-//! as the source of truth.
+//! Serialize and deserialize whippyunits quantities.
+//! 
+//! Whippyunits follows the [UCUM (Unified Code for Units of Measure) standard](https://ucum.org) for 
+//! serialization and deserialization to ASCII strings.  Serialization is supported to and from both
+//! simple strings (e.g., "10.0 m") and JSON objects (e.g., `{"value": 10.0, "unit": "m"}`).
 
 use crate::api::aggregate_scale_factor_float;
 use crate::print::name_lookup::generate_systematic_unit_name_with_format;
@@ -10,8 +10,8 @@ use crate::print::prettyprint::UnitFormat;
 use crate::quantity_type::Quantity;
 use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 use whippyunits_default_dimensions::{
-    get_unit_dimensions, is_prefixed_base_unit, DimensionExponents, BASE_UNITS, COMPOUND_UNITS,
-    SI_PREFIXES, UNIT_LITERALS,
+    get_unit_dimensions, is_prefixed_base_unit, lookup_unit_literal, DimensionExponents, BASE_UNITS,
+    SI_PREFIXES,
 };
 
 /// Represents the dimension and scale exponents for a unit
@@ -377,10 +377,9 @@ fn get_unit_dimensions_from_ucum(
     unit: &str,
 ) -> Result<(i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16), UcumError> {
     // Check if it's a unit literal first
-    if let Some(unit_literal_info) = UNIT_LITERALS.iter().find(|info| info.symbol == unit) {
-        let (mass, length, time, current, temp, amount, lum, angle) =
-            unit_literal_info.dimension_exponents;
-        let (p2, p3, p5, pi) = unit_literal_info.scale_factors;
+    if let Some((dimension, unit)) = lookup_unit_literal(unit) {
+        let (mass, length, time, current, temp, amount, lum, angle) = dimension.exponents;
+        let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
         return Ok((
             mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
         ));
@@ -444,7 +443,7 @@ fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, &str) {
 /// Check if a string is a valid base unit for UCUM parsing
 fn is_valid_base_unit_ucum(unit: &str) -> bool {
     BASE_UNITS.iter().any(|info| info.symbol == unit)
-        || COMPOUND_UNITS.iter().any(|info| info.symbol == unit)
+        || lookup_unit_literal(unit).is_some()
 }
 
 /// Get prefix power of 10 for UCUM
@@ -475,8 +474,8 @@ fn get_base_unit_dimensions_ucum(
         ));
     }
 
-    if let Some(compound_unit_info) = COMPOUND_UNITS.iter().find(|info| info.symbol == base_unit) {
-        let (m, l, t, c, temp, a, lum, ang) = compound_unit_info.dimension_exponents;
+    if let Some((dimension, _)) = lookup_unit_literal(base_unit) {
+        let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
         return Ok((m, l, t, c, temp, a, lum, ang, 0));
     }
 
@@ -532,11 +531,10 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
     )
 }
 
-/// Macro to deserialize JSON to a whippyunits quantity
+/// Deserializes a quantity from JSON representation.
 ///
 /// Usage: `from_json!(json_string, <unit_literal>)`
 ///
-/// This macro:
 /// 1. Parses the JSON to extract value and unit
 /// 2. Uses deserialize_core_quantity to validate dimensions and rescale if needed
 /// 3. Returns a Quantity directly (optimized - no quantity! macro needed)
@@ -596,14 +594,63 @@ macro_rules! from_json {
     }};
 }
 
-/// Macro to deserialize a string with format "value unit" to a whippyunits quantity
+/// Deserializes a quantity from a string representation.
 ///
-/// Usage: `from_string!(string, <unit_literal>)`
+/// Parses a string in the format "value unit" (e.g., "5.0 m", "2.5 kg")
+/// and returns a `Quantity` with the specified unit type. It performs dimension
+/// validation and automatic unit conversion.
 ///
-/// This macro:
-/// 1. Parses the string to extract value and unit (space-separated)
-/// 2. Uses deserialize_core_quantity to validate dimensions and rescale if needed
-/// 3. Returns a Quantity directly (optimized - no quantity! macro needed)
+/// # Syntax
+///
+/// ```rust
+/// from_string!(string_literal, target_unit)
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use whippyunits::from_string;
+///
+/// // Basic units
+/// let length = from_string!("5.0 m", m).unwrap();
+/// let mass = from_string!("2.5 kg", kg).unwrap();
+/// let time = from_string!("10.0 s", s).unwrap();
+///
+/// // Unit conversions
+/// let km_from_m = from_string!("1000.0 m", km).unwrap();
+/// let cm_from_m = from_string!("1.0 m", cm).unwrap();
+/// let kg_from_g = from_string!("1000.0 g", kg).unwrap();
+///
+/// // Compound units
+/// let velocity = from_string!("10.0 m/s", m / s).unwrap();
+/// let acceleration = from_string!("9.81 m/s2", m / s^2).unwrap();
+/// let force = from_string!("100.0 kg.m/s2", kg * m / s^2).unwrap();
+/// ```
+///
+/// # String Format
+///
+/// The input string must be in the format "value unit" where:
+/// - `value`: A numeric value (integer or floating point)
+/// - `unit`: A unit symbol or expression (e.g., `m`, `kg`, `m/s`, `kg.m/s2`)
+///
+/// # Error Handling
+///
+/// The macro returns a `Result<Quantity, SerializationError>`:
+/// - `Ok(quantity)`: Successfully parsed and converted quantity
+/// - `Err(SerializationError::DimensionMismatch)`: Unit dimension doesn't match target
+/// - `Err(SerializationError::InvalidFormat)`: String format is invalid
+/// - `Err(SerializationError::ParseError)`: Numeric value couldn't be parsed
+///
+/// # Dimension Validation
+///
+/// The macro ensures that the parsed unit has the same dimensions as the target unit.
+/// For example, `from_string!("5.0 m", kg)` will return a dimension mismatch error.
+///
+/// # Unit Conversion
+///
+/// If the parsed unit has the same dimensions but different scale than the target unit,
+/// automatic conversion is performed. For example, `from_string!("1000.0 m", km)` will
+/// return a quantity representing 1.0 km.
 #[macro_export]
 macro_rules! from_string {
     ($string:expr, $unit:expr) => {{
@@ -860,13 +907,9 @@ pub fn get_target_unit_dimensions(
     unit_literal: &str,
 ) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
     // First try to find in unit literals
-    if let Some(unit_literal_info) = UNIT_LITERALS
-        .iter()
-        .find(|info| info.symbol == unit_literal)
-    {
-        let (mass, length, time, current, temp, amount, lum, angle) =
-            unit_literal_info.dimension_exponents;
-        let (p2, p3, p5, pi) = unit_literal_info.scale_factors;
+    if let Some((dimension, unit)) = lookup_unit_literal(unit_literal) {
+        let (mass, length, time, current, temp, amount, lum, angle) = dimension.exponents;
+        let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
         (
             mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
         )

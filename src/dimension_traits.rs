@@ -1,12 +1,11 @@
 use crate::quantity_type::Quantity;
 use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 
-/// Macro to define dimension traits for atomic dimensions
-///
-/// This macro generates a trait and its implementation for a specific atomic dimension.
+/// Expands to a trait and its implementation for a specific atomic dimension.
 /// It follows the same pattern as the default declarators but focuses only on the
 /// trait definition and implementation for scale-generic quantities.
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_atomic_dimension_trait {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr,

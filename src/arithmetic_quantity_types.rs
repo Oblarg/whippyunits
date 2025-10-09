@@ -14,6 +14,7 @@
 //! - angle (primes: [2, 3, 5])
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! inverse_quantity_type {
     ($T:ty) => {
         Quantity<
@@ -25,6 +26,7 @@ macro_rules! inverse_quantity_type {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! addition_input {
     (Strict, $T:ty) => {
         Quantity<
@@ -50,6 +52,7 @@ macro_rules! addition_input {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! multiplication_input {
     (LeftHand, $T:ty) => {
         Quantity<
@@ -68,11 +71,26 @@ macro_rules! multiplication_input {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! multiplication_output {
     ($T:ty, $log_op:tt) => {
         Quantity<
-            Scale<_2<{ SCALE_P2_1 $log_op SCALE_P2_2 }>, _3<{ SCALE_P3_1 $log_op SCALE_P3_2 }>, _5<{ SCALE_P5_1 $log_op SCALE_P5_2 }>, _Pi<{ SCALE_PI_1 $log_op SCALE_PI_2 }>>,
-            Dimension<_M<{ MASS_EXPONENT_1 $log_op MASS_EXPONENT_2 }>, _L<{ LENGTH_EXPONENT_1 $log_op LENGTH_EXPONENT_2 }>, _T<{ TIME_EXPONENT_1 $log_op TIME_EXPONENT_2 }>, _I<{ CURRENT_EXPONENT_1 $log_op CURRENT_EXPONENT_2 }>, _Θ<{ TEMPERATURE_EXPONENT_1 $log_op TEMPERATURE_EXPONENT_2 }>, _N<{ AMOUNT_EXPONENT_1 $log_op AMOUNT_EXPONENT_2 }>, _J<{ LUMINOSITY_EXPONENT_1 $log_op LUMINOSITY_EXPONENT_2 }>, _A<{ ANGLE_EXPONENT_1 $log_op ANGLE_EXPONENT_2 }>>,
+            Scale<
+                _2<{ SCALE_P2_1 $log_op SCALE_P2_2 }>,
+                _3<{ SCALE_P3_1 $log_op SCALE_P3_2 }>,
+                _5<{ SCALE_P5_1 $log_op SCALE_P5_2 }>,
+                _Pi<{ SCALE_PI_1 $log_op SCALE_PI_2 }>
+            >,
+            Dimension<
+                _M<{ MASS_EXPONENT_1 $log_op MASS_EXPONENT_2 }>,
+                _L<{ LENGTH_EXPONENT_1 $log_op LENGTH_EXPONENT_2 }>,
+                _T<{ TIME_EXPONENT_1 $log_op TIME_EXPONENT_2 }>,
+                _I<{ CURRENT_EXPONENT_1 $log_op CURRENT_EXPONENT_2 }>,
+                _Θ<{ TEMPERATURE_EXPONENT_1 $log_op TEMPERATURE_EXPONENT_2 }>,
+                _N<{ AMOUNT_EXPONENT_1 $log_op AMOUNT_EXPONENT_2 }>,
+                _J<{ LUMINOSITY_EXPONENT_1 $log_op LUMINOSITY_EXPONENT_2 }>,
+                _A<{ ANGLE_EXPONENT_1 $log_op ANGLE_EXPONENT_2 }>
+            >,
             $T
         >
     };

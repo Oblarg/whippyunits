@@ -1,3 +1,4 @@
+#[doc(hidden)]
 macro_rules! define_imperial_quantity {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
@@ -72,6 +73,7 @@ define_imperial_quantity!(
     (tons, 1.0160469088, Megagram),
 );
 
+#[doc(hidden)]
 macro_rules! define_imperial_affine_quantity {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,

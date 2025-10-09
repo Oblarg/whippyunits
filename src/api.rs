@@ -1,3 +1,8 @@
+//! API for whippyunits quantities.
+//! 
+//! This module provides the API implementations for most operations on the 
+//! whippyunits [Quantity] type.
+
 use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
 use crate::define_display_traits;
@@ -57,6 +62,7 @@ define_aggregate_scale_factor_float!(
     (pow_2 * pow_3 * pow_5 * pow_pi),
 );
 
+#[doc(hidden)]
 macro_rules! define_float_rescale {
     ($rescale_fn:ident, $T:ty) => {
         $crate::_define_float_rescale!(
@@ -97,6 +103,7 @@ macro_rules! define_float_rescale {
     };
 }
 
+#[doc(hidden)]
 macro_rules! define_int_rescale {
     ($rescale_fn:ident, $T:ty) => {
         $crate::_define_int_rescale!(
@@ -156,6 +163,7 @@ define_int_rescale!(rescale_u64, u64);
 define_int_rescale!(rescale_u128, u128);
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_arithmetic_signed {
     ($T:ty, $rescale_fn:ident) => {
         $crate::_define_arithmetic_signed!(
@@ -260,6 +268,7 @@ macro_rules! define_arithmetic_signed {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_arithmetic {
     ($T:ty, $rescale_fn:ident) => {
         $crate::_define_arithmetic!(
@@ -427,3 +436,4 @@ define_display_traits!(
         SCALE_PI,
     )
 );
+

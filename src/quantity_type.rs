@@ -1,41 +1,51 @@
-//! Generated Quantity Type with Full Base Unit Dimensions
-//!
-//! This file is auto-generated from dimension_data.rs and includes support
-//! for all base unit dimensions defined in the system.
-//!
-//! Base dimensions supported:
-//! //! - mass (primes: [10])
-//! - length (primes: [10])
-//! - time (primes: [2, 3, 5])
-//! - current (primes: [10])
-//! - temperature (primes: [10])
-//! - amount (primes: [10])
-//! - luminosity (primes: [10])
-//! - angle (primes: [2, 3, 5])
-
 use crate::api::aggregate_scale_factor_float;
 use crate::print::format_specifiers::{format_with_unit, UnitFormatSpecifier};
 use whippyunits_default_dimensions::lookup_unit_literal;
 
-// Scale exponent structs - these are zero-sized types used for const generic parameters
+/// The base-2 scale exponent of a quantity.
 pub struct _2<const EXP: i16 = 0>;
+/// The base-3 scale exponent of a quantity.
 pub struct _3<const EXP: i16 = 0>;
+/// The base-5 scale exponent of a quantity.
 pub struct _5<const EXP: i16 = 0>;
+/// The base-π scale exponent of a quantity - used for angular units.
 pub struct _Pi<const EXP: i16 = 0>;
 
-
-// Dimension exponent structs - these are zero-sized types used for const generic parameters
+/// The mass dimension exponent of a quantity.
 pub struct _M<const EXP: i16 = 0>;
+/// The length dimension exponent of a quantity.
 pub struct _L<const EXP: i16 = 0>;
+/// The time dimension exponent of a quantity.
 pub struct _T<const EXP: i16 = 0>;
-pub struct _I<const EXP: i16 = 0>;  // Current
-pub struct _Θ<const EXP: i16 = 0>;  // Temperature (Unicode theta)
-pub struct _N<const EXP: i16 = 0>;  // Amount
-pub struct _J<const EXP: i16 = 0>;  // Luminosity
-pub struct _A<const EXP: i16 = 0>;  // Angle
+/// The current dimension exponent of a quantity.
+pub struct _I<const EXP: i16 = 0>;
+/// The temperature dimension exponent of a quantity.
+pub struct _Θ<const EXP: i16 = 0>;
+/// The amount dimension exponent of a quantity.
+pub struct _N<const EXP: i16 = 0>;
+/// The luminosity dimension exponent of a quantity.
+pub struct _J<const EXP: i16 = 0>;
+/// The angle dimension exponent of a quantity.
+pub struct _A<const EXP: i16 = 0>;
 
-
-// Scale representation - groups scale exponents using wrapper structs
+/// The scale of a quantity
+/// 
+/// If all scale exponents are zero, the quantity is in SI base units
+/// (kilogram, meter, second, ampere, kelvin, mole, candela, radian, or 
+/// some combination thereof).
+/// 
+/// SI prefixes indicate scales of 10^n = _2<n>, _3<0>, _5<n>, _Pi<0>, e.g.
+///  - milli: 10^-3 = _2<-3>, _3<0>, _5<-3>, _Pi<0>
+///  - kilo: 10^3 = _2<3>, _3<0>, _5<3>, _Pi<0>
+/// 
+/// Certain time units involve factors of 60^n = _2<2>, _3<1>, _5<1>, _Pi<0>, e.g.
+///  - minute: 60 = _2<2>, _3<1>, _5<1>, _Pi<0>
+///  - hour: 3600 = _2<4>, _3<2>, _5<2>, _Pi<0>
+/// 
+/// Angular units can involve "all of the above", plus a possible factor of π:
+///  - revolution: 2π = _2<1>, _3<0>, _5<0>, _Pi<1>
+///  - degree: π/180 = _2<-2>, _3<-2>, _5<-1>, _Pi<1>
+///  - arcminute: π/10800 = _2<-4>, _3<-2>, _5<-2>, _Pi<1>
 #[allow(dead_code)]
 pub struct Scale<
     P2 = _2<0>,
@@ -46,7 +56,28 @@ pub struct Scale<
     _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
 }
 
-// Dimension representation - groups dimension exponents using wrapper structs
+/// The dimension of a quantity 
+/// 
+/// If all dimension exponents are zero, the quantity is dimensionless.
+/// 
+/// Atomic dimensions have a single dimension exponent of 1:
+///  - length: _L<1>
+///  - mass: _M<1>
+///  - time: _T<1>
+///  - current: _I<1>
+///  - temperature: _Θ<1>
+///  - amount: _N<1>
+///  - luminosity: _J<1>
+///  - angle: _A<1>
+/// 
+/// Derived dimensions have a mixture of dimension exponents:
+///  - velocity: _L<1>, _T<-1>
+///  - acceleration: _L<1>, _T<-2>
+///  - force: _M<1>, _L<1>, _T<-2>
+///  - energy: _M<1>, _L<2>, _T<-2>
+///  - power: _M<1>, _L<2>, _T<-3>
+///  - pressure: _M<1>, _L<-1>, _T<-2>
+///  - frequency: _T<-1>
 #[allow(dead_code)]
 pub struct Dimension<
     MASS = _M<0>,
@@ -61,8 +92,42 @@ pub struct Dimension<
     _phantom: std::marker::PhantomData<(MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE)>,
 }
 
-
-
+/// A quantity with a specified scale, dimension, and numeric type.
+/// 
+/// Since the type is highly-parameterized, direct usage is discouraged.  Interaction with the 
+/// Quantity type should generally be done through an API method, the [quantity!](crate::quantity!) macro,
+/// or a [literal macro](crate::define_literals!), which will handle the const generic parameters for you:
+/// 
+/// ```rust
+/// // declarator method
+/// let distance = 1.0.meters();
+/// 
+/// // quantity! macro
+/// let distance = quantity!(1.0, m);
+/// 
+/// // literal (only in scopes tagged with #[culit::culit]):
+/// let distance = 1.0m;
+/// ```
+/// 
+/// If you want a concrete Quantity type *as a type*, use the [unit!](crate::unit!) macro:
+/// 
+/// ```rust
+/// // explicit type assertion provides additional unit safety
+/// let area: unit!(m^2) = distance * distance;
+/// ```
+/// 
+/// Because quantity scale is represented at compile-time, the runtime value of a quantity
+/// may differ from its "semantic" value in code by a factor of the scale, and it is generally advised 
+/// to avoid accessing the underlying value directly.  Access to the underlying
+/// value via the [value!](crate::value!) macro is unit-safe, as is "erasure" of dimensionless or angular
+/// quantities via `from/into`.
+/// 
+/// Quantity is a zero-cost wrapper type - at runtime, your binary will only contain
+/// the underlying numeric type.  Accordingly, the dimensionality of any quantity represented by
+/// a Quantity type must be known at compile time.  Whippyunits does *not* support unit-safe operations
+/// on values whose dimensionality is only known at runtime, e.g. as deserialized from a JSON string,
+/// unless all possible runtime dimensionalities of the quantity are each given their own statically-declared
+/// code branch.
 #[derive(Clone, PartialEq)]
 pub struct Quantity<
     Scale,
@@ -323,7 +388,7 @@ impl<
                     ANGLE_EXPONENT,
                 );
 
-                if source_dims != target_unit_info.dimension_exponents {
+                if source_dims != target_unit_info.0.exponents {
                     let source_unit_name = crate::print::name_lookup::generate_systematic_unit_name(vec![
                         source_dims.0, source_dims.1, source_dims.2, source_dims.3,
                         source_dims.4, source_dims.5, source_dims.6, source_dims.7,
@@ -339,7 +404,7 @@ impl<
                 // Calculate conversion factor
                 let conversion_factor = self
                     .quantity
-                    .calculate_conversion_factor(&self.unit, &target_unit_info);
+                    .calculate_conversion_factor(&self.unit, &target_unit_info.1);
 
                 // Convert and format
                 let original_value: f64 = self.quantity.unsafe_value.into();
@@ -378,7 +443,7 @@ impl<
     ) -> f64 {
         // For all cases, we need to calculate scale factors first
         let prefix_scale = if let Some(prefix_info) = whippyunits_default_dimensions::lookup_si_prefix(
-            &unit[..unit.len() - target_unit_info.symbol.len()],
+            &unit[..unit.len() - target_unit_info.symbols[0].len()],
         ) {
             // Short name prefixed unit (like "km", "cm")
             prefix_info.scale_factor
@@ -413,10 +478,10 @@ impl<
 
         // Calculate target scale factors (all cases use the same logic)
         let (target_p2, target_p3, target_p5, target_pi) = (
-            target_unit_info.scale_factors.0 + prefix_scale, // p2 gets prefix
-            target_unit_info.scale_factors.1,                // p3 unchanged
-            target_unit_info.scale_factors.2 + prefix_scale, // p5 gets prefix
-            target_unit_info.scale_factors.3,                // pi unchanged
+            target_unit_info.scale_factors.unwrap().0 + prefix_scale, // p2 gets prefix
+            target_unit_info.scale_factors.unwrap().1,                // p3 unchanged
+            target_unit_info.scale_factors.unwrap().2 + prefix_scale, // p5 gets prefix
+            target_unit_info.scale_factors.unwrap().3,                // pi unchanged
         );
 
         // Calculate conversion factor from source to base unit (e.g., meters)
@@ -440,6 +505,7 @@ impl<
 // from/into for dimensionless quantities
 
 // proper dimensionless quantities (all exponents are 0, scales irrelevant)
+#[doc(hidden)]
 macro_rules! define_from_dimensionless_cross_type {
     ($source_type:ty, $target_type:ty, $rescale_fn:ident) => {
         /// Converts dimensionless quantities between different numeric types with proper scaling.
@@ -506,6 +572,7 @@ macro_rules! define_from_dimensionless_cross_type {
     };
 }
 
+#[doc(hidden)]
 macro_rules! define_from_dimensionless {
     ($type:ty, $rescale_fn:ident) => {
         /// Converts dimensionless quantities to underlying numeric types with proper scaling.
@@ -594,6 +661,7 @@ define_from_dimensionless_cross_type!(f32, i64, rescale_f32);
 define_from_dimensionless_cross_type!(f64, i64, rescale_f64);
 
 // Cross-type conversion for radian quantities
+#[doc(hidden)]
 macro_rules! define_from_for_radians_with_scale_cross_type {
     ($exponent:expr, $source_type:ty, $target_type:ty, $rescale_fn:ident) => {
         /// Converts angular quantities between different numeric types in radian scale.
@@ -666,6 +734,7 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
 }
 
 // Pure radian power to scalar with scale handling - handles both zero and non-zero scales
+#[doc(hidden)]
 macro_rules! define_from_for_radians_with_scale {
     ($exponent:expr, $type:ty, $rescale_fn:ident) => {
         /// Converts angular quantities to underlying numeric types in radian scale.
@@ -743,6 +812,7 @@ macro_rules! define_from_for_radians_with_scale {
 // radians can be identified as dimensionless (all exponents are 0 except angle, angle scale radians)
 // trait resolution rules mean we have to manually template this out over different angle exponents...
 
+#[doc(hidden)]
 macro_rules! define_from_for_radians {
     ($exponent:expr, $($type:ty),+ $(,)?) => {
         $(
@@ -804,6 +874,7 @@ macro_rules! define_from_for_radians {
 whippyunits_proc_macros::generate_all_radian_erasures!(9);
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_type {
     () => {
         Quantity<

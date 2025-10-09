@@ -48,4 +48,5 @@ path = "src/lib.rs"
 incremental = false
 
 [profile.release]
-incremental = false 
+incremental = false
+

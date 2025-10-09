@@ -4,6 +4,7 @@ use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 use std::fmt;
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! define_display_traits {
     (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*)) => {
         impl<

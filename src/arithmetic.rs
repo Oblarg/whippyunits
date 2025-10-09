@@ -3,6 +3,7 @@ use crate::IsI16;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! scalar_quantity_mul_div_interface {
     (($($single_dimension_single_scale_params:tt)*), ($($inversion_where_clauses:tt)*), $T:ty) => {
         impl<
@@ -36,6 +37,7 @@ macro_rules! scalar_quantity_mul_div_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_scalar_mul_div_interface {
     (($($single_dimension_single_scale_params:tt)*), $op:tt, $fn:ident, $trait:ident, $T:ty) => {
         impl<
@@ -53,6 +55,7 @@ macro_rules! quantity_scalar_mul_div_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_scalar_mul_div_assign_interface {
     (($($single_dimension_single_scale_params:tt)*), $op:tt, $fn:ident, $trait:ident, $T:ty) => {
         impl<
@@ -68,6 +71,7 @@ macro_rules! quantity_scalar_mul_div_assign_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_quantity_add_sub_interface {
     // Strict interface (measurement scales must match) (only one set of scale parameters)
     (
@@ -95,6 +99,7 @@ macro_rules! quantity_quantity_add_sub_interface {
 
 // AddAssign/SubAssign must return the same type as the left-hand side, so it only supports strict or left-hand-wins rescale semantics
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_quantity_add_sub_assign_interface {
     // Strict interface (measurement scales must match) (only one set of scale parameters)
     (
@@ -116,6 +121,7 @@ macro_rules! quantity_quantity_add_sub_assign_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_quantity_mul_div_interface {
     // Strict interface (measurement scales must match) (only one set of scale parameters)
     (
@@ -146,6 +152,7 @@ macro_rules! quantity_quantity_mul_div_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! quantity_neg_interface {
     (($($single_dimension_single_scale_params:tt)*), $T:ty) => {
         impl<
@@ -165,6 +172,7 @@ macro_rules! quantity_neg_interface {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! _define_arithmetic_signed {
     (($($single_dimension_single_scale_params:tt)*),
      ($($single_dimension_multiple_scale_params:tt)*),
@@ -219,6 +227,7 @@ macro_rules! _define_arithmetic_signed {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! _define_arithmetic {
     (($($single_dimension_single_scale_params:tt)*),
      ($($single_dimension_multiple_scale_params:tt)*),

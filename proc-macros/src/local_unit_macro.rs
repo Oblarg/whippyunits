@@ -6,8 +6,8 @@ use syn::{
     Ident, Type,
 };
 use whippyunits_default_dimensions::{
-    dimension_exponents_to_unit_expression, get_unit_dimensions, scale_type_to_unit_symbol,
-    COMPOUND_UNITS, SI_PREFIXES,
+    dimension_exponents_to_unit_expression, scale_type_to_actual_unit_symbol,
+    lookup_unit_literal, is_prefixed_base_unit,
 };
 
 // Import the UnitExpr type from unit_macro
@@ -85,21 +85,21 @@ impl LocalQuantityMacroInput {
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
 
         // Get the actual unit symbols for each scale type
-        let mass_base = scale_type_to_unit_symbol(&self.mass_scale.to_string())
+        let mass_base = scale_type_to_actual_unit_symbol(&self.mass_scale.to_string())
             .unwrap_or_else(|| "g".to_string());
-        let length_base = scale_type_to_unit_symbol(&self.length_scale.to_string())
+        let length_base = scale_type_to_actual_unit_symbol(&self.length_scale.to_string())
             .unwrap_or_else(|| "m".to_string());
-        let time_base = scale_type_to_unit_symbol(&self.time_scale.to_string())
+        let time_base = scale_type_to_actual_unit_symbol(&self.time_scale.to_string())
             .unwrap_or_else(|| "s".to_string());
-        let current_base = scale_type_to_unit_symbol(&self.current_scale.to_string())
+        let current_base = scale_type_to_actual_unit_symbol(&self.current_scale.to_string())
             .unwrap_or_else(|| "A".to_string());
-        let temperature_base = scale_type_to_unit_symbol(&self.temperature_scale.to_string())
+        let temperature_base = scale_type_to_actual_unit_symbol(&self.temperature_scale.to_string())
             .unwrap_or_else(|| "K".to_string());
-        let amount_base = scale_type_to_unit_symbol(&self.amount_scale.to_string())
+        let amount_base = scale_type_to_actual_unit_symbol(&self.amount_scale.to_string())
             .unwrap_or_else(|| "mol".to_string());
-        let luminosity_base = scale_type_to_unit_symbol(&self.luminosity_scale.to_string())
+        let luminosity_base = scale_type_to_actual_unit_symbol(&self.luminosity_scale.to_string())
             .unwrap_or_else(|| "cd".to_string());
-        let angle_base = scale_type_to_unit_symbol(&self.angle_scale.to_string())
+        let angle_base = scale_type_to_actual_unit_symbol(&self.angle_scale.to_string())
             .unwrap_or_else(|| "rad".to_string());
 
         // Check if this is a single unit (not an algebraic expression)
@@ -122,7 +122,8 @@ impl LocalQuantityMacroInput {
                 ];
 
                 // Get dimensions for the base unit (without prefix)
-                if let Some(dimensions) = get_unit_dimensions(base_symbol) {
+                if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
+                    let dimensions = dimension.exponents;
                     let unit_expr = dimension_exponents_to_unit_expression(dimensions, &base_units);
                     let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
                         syn::parse_str::<syn::Expr>(base_symbol).unwrap()
@@ -136,7 +137,8 @@ impl LocalQuantityMacroInput {
                 }
             } else {
                 // For non-prefixed single units, use the original logic
-                if let Some(dimensions) = get_unit_dimensions(&unit_name) {
+                if let Some((dimension, _)) = lookup_unit_literal(&unit_name) {
+                    let dimensions = dimension.exponents;
                     // Check if it's a simple base unit
                     if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
                         quote! { whippyunits::default_declarators::#scale_ident<#storage_type> }
@@ -220,22 +222,16 @@ impl LocalQuantityMacroInput {
 
 /// Check if a unit symbol is a prefixed compound unit (kPa, mW, etc.)
 fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
-    // Try to find a compound unit that this unit name ends with
-    for compound_unit in COMPOUND_UNITS {
-        if unit_symbol.ends_with(compound_unit.symbol) {
-            let prefix_part = &unit_symbol[..unit_symbol.len() - compound_unit.symbol.len()];
-
-            // If no prefix, it should have been found in the direct lookup above
-            if prefix_part.is_empty() {
-                continue;
-            }
-
-            // Check if this is a valid prefix
-            if SI_PREFIXES.iter().any(|prefix| prefix.symbol == prefix_part) {
-                return Some((compound_unit.symbol, prefix_part));
+    // Use the new is_prefixed_base_unit function from the util module
+    if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
+        // Check if the base unit is a compound unit (has multiple non-zero dimension exponents)
+        if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
+            let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
+            let non_zero_count = [m, l, t, c, temp, a, lum, ang].iter().filter(|&&x| x != 0).count();
+            if non_zero_count > 1 {
+                return Some((base_symbol, prefix));
             }
         }
     }
-
     None
 }

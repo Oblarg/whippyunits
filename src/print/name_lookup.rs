@@ -1,4 +1,4 @@
-use whippyunits_default_dimensions::{lookup_dimension_by_exponents, UNIT_LITERALS};
+use whippyunits_default_dimensions::{lookup_dimension_by_exponents, get_units_by_exponents};
 
 /// Configuration for a unit dimension
 #[derive(Debug, Clone)]
@@ -135,18 +135,17 @@ fn lookup_unit_literal_by_scale_factors(
         exponents[7],
     );
 
-    UNIT_LITERALS
-        .iter()
-        .find(|unit_info| {
-            unit_info.dimension_exponents == exponents_tuple
-                && unit_info.scale_factors == scale_factors
-                && unit_info.conversion_factor.is_none() // Only consider pure SI units, not imperial units
+    get_units_by_exponents(exponents_tuple)
+        .into_iter()
+        .find(|(_dimension, unit)| {
+            unit.scale_factors == Some(scale_factors)
+                && unit.conversion_factor.is_none() // Only consider pure SI units, not imperial units
         })
-        .map(|unit_info| {
+        .map(|(_dimension, unit)| {
             if long_name {
-                unit_info.long_name
+                unit.long_name
             } else {
-                unit_info.symbol
+                unit.symbols[0]
             }
         })
 }
@@ -351,9 +350,15 @@ pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
     );
 
     // Use the shared dimension data as the source of truth
-    lookup_dimension_by_exponents(exponents_tuple).map(|dim_info| DimensionNames {
-        dimension_name: dim_info.name,
-        unit_si_shortname_symbol: dim_info.si_symbol,
-        unit_si_shortname: dim_info.si_long_name,
+    lookup_dimension_by_exponents(exponents_tuple).map(|dim_info| {
+        // Get the first unit symbol and long name from the dimension (e.g., "J" and "joule" for energy, "N" and "newton" for force)
+        let unit_symbol = dim_info.units.first().and_then(|unit| unit.symbols.first().copied());
+        let unit_long_name = dim_info.units.first().map(|unit| unit.long_name);
+        
+        DimensionNames {
+            dimension_name: dim_info.name,
+            unit_si_shortname_symbol: unit_symbol, // Use actual unit symbol (e.g., "J") instead of dimension symbol (e.g., "ML²T⁻²")
+            unit_si_shortname: unit_long_name, // Use unit long name (e.g., "joule") instead of dimension name (e.g., "Energy")
+        }
     })
 }

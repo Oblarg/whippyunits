@@ -16,13 +16,12 @@ impl Parse for DefaultDeclaratorsInput {
 impl DefaultDeclaratorsInput {
     pub fn expand(self) -> TokenStream {
         // Get the dimension data from default-dimensions crate
-        let dimension_lookup = whippyunits_default_dimensions::DIMENSION_LOOKUP;
         let si_prefixes = whippyunits_default_dimensions::SI_PREFIXES;
         
         let mut expansions = Vec::new();
         
         // Generate SI base unit declarators
-        self.generate_si_base_declarators(&mut expansions, dimension_lookup, si_prefixes);
+        self.generate_si_base_declarators(&mut expansions, si_prefixes);
         
         // Generate common time declarators
         self.generate_common_time_declarators(&mut expansions);
@@ -33,6 +32,9 @@ impl DefaultDeclaratorsInput {
         // Generate common angle declarators
         self.generate_common_angle_declarators(&mut expansions);
         
+        // Generate compound unit declarators (J, W, N, Pa, etc.)
+        self.generate_compound_unit_declarators(&mut expansions);
+        
         quote! {
             #(#expansions)*
         }
@@ -41,23 +43,15 @@ impl DefaultDeclaratorsInput {
     fn generate_si_base_declarators(
         &self,
         expansions: &mut Vec<TokenStream>,
-        dimension_lookup: &[whippyunits_default_dimensions::DimensionInfo],
         si_prefixes: &[whippyunits_default_dimensions::PrefixInfo],
     ) {
-        // Find the base dimensions (exponents with exactly one 1 and rest 0)
-        let base_dimensions = dimension_lookup.iter().filter(|info| {
-            let (mass, length, time, current, temp, amount, lum, angle) = info.exponents;
-            let non_zero_count = [mass, length, time, current, temp, amount, lum, angle]
-                .iter()
-                .filter(|&&x| x != 0)
-                .count();
-            non_zero_count == 1 && [mass, length, time, current, temp, amount, lum, angle]
-                .iter()
-                .any(|&x| x == 1)
-        });
+        use whippyunits_default_dimensions::get_atomic_dimensions;
+        
+        // Get the atomic dimensions (first 8 dimensions are the base dimensions)
+        let base_dimensions = get_atomic_dimensions();
         
         for dimension in base_dimensions {
-            let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = dimension.exponents;
+            let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = dimension.exponents;
             
             // Determine the trait name and unit names based on dimension
             let (trait_name, unit_suffix) = match dimension.name {
@@ -128,9 +122,9 @@ impl DefaultDeclaratorsInput {
                     #length_exp,
                     #time_exp,
                     #current_exp,
-                    #temp_exp,
+                    #temperature_exp,
                     #amount_exp,
-                    #lum_exp,
+                    #luminosity_exp,
                     #angle_exp,
                     #trait_ident,
                     #(#scale_definitions),*
@@ -151,31 +145,34 @@ impl DefaultDeclaratorsInput {
         };
         
         // Capitalize only the first letter of the entire name
-        capitalize_first(&combined_name)
+        whippyunits_default_dimensions::util::capitalize_first(&combined_name)
     }
     
     fn generate_common_time_declarators(&self, expansions: &mut Vec<TokenStream>) {
-        // Get the unit literals from default-dimensions crate
-        let unit_literals = whippyunits_default_dimensions::UNIT_LITERALS;
+        use whippyunits_default_dimensions::get_units_by_exponents;
         
         // Find time units (dimension exponents: (0, 0, 1, 0, 0, 0, 0, 0))
-        let time_units: Vec<_> = unit_literals.iter()
-            .filter(|unit| unit.dimension_exponents == (0, 0, 1, 0, 0, 0, 0, 0))
-            .filter(|unit| !unit.symbol.is_empty() && unit.symbol != "s") // Exclude base second
+        let time_units: Vec<_> = get_units_by_exponents((0, 0, 1, 0, 0, 0, 0, 0))
+            .into_iter()
+            .filter(|(_dimension, unit)| !unit.symbols.is_empty() && !unit.symbols.contains(&"s")) // Exclude base second
             .collect();
         
         if time_units.is_empty() {
             return;
         }
         
-        // Deduplicate by type_name to avoid duplicate definitions
-        let mut seen_type_names = std::collections::HashSet::new();
+        // Deduplicate by symbol to avoid duplicate definitions
+        let mut seen_symbols = std::collections::HashSet::new();
         let mut scale_definitions = Vec::new();
         
-        for unit in time_units {
-            if seen_type_names.insert(unit.type_name) {
-                let (p2, p3, p5, pi) = unit.scale_factors;
-                let scale_name_ident = syn::parse_str::<Ident>(&unit.type_name).unwrap();
+        for (_dimension, unit) in time_units {
+            // Use the first symbol for type name generation
+            let primary_symbol = unit.symbols[0];
+            if seen_symbols.insert(primary_symbol) {
+                let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
+                // Generate type name from long name
+                let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
+                let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
                 
                 // Add 's' to make function names plural
                 let fn_name = format!("{}s", unit.long_name);
@@ -224,27 +221,30 @@ impl DefaultDeclaratorsInput {
     }
     
     fn generate_common_angle_declarators(&self, expansions: &mut Vec<TokenStream>) {
-        // Get the unit literals from default-dimensions crate
-        let unit_literals = whippyunits_default_dimensions::UNIT_LITERALS;
+        use whippyunits_default_dimensions::get_units_by_exponents;
         
         // Find angle units (dimension exponents: (0, 0, 0, 0, 0, 0, 0, 1))
-        let angle_units: Vec<_> = unit_literals.iter()
-            .filter(|unit| unit.dimension_exponents == (0, 0, 0, 0, 0, 0, 0, 1))
-            .filter(|unit| !unit.symbol.is_empty() && unit.symbol != "rad") // Exclude base radian
+        let angle_units: Vec<_> = get_units_by_exponents((0, 0, 0, 0, 0, 0, 0, 1))
+            .into_iter()
+            .filter(|(_dimension, unit)| !unit.symbols.is_empty() && !unit.symbols.contains(&"rad")) // Exclude base radian
             .collect();
         
         if angle_units.is_empty() {
             return;
         }
         
-        // Deduplicate by type_name to avoid duplicate definitions
-        let mut seen_type_names = std::collections::HashSet::new();
+        // Deduplicate by symbol to avoid duplicate definitions
+        let mut seen_symbols = std::collections::HashSet::new();
         let mut scale_definitions = Vec::new();
         
-        for unit in angle_units {
-            if seen_type_names.insert(unit.type_name) {
-                let (p2, p3, p5, pi) = unit.scale_factors;
-                let scale_name_ident = syn::parse_str::<Ident>(&unit.type_name).unwrap();
+        for (_dimension, unit) in angle_units {
+            // Use the first symbol for type name generation
+            let primary_symbol = unit.symbols[0];
+            if seen_symbols.insert(primary_symbol) {
+                let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
+                // Generate type name from long name
+                let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
+                let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
                 
                 // Add 's' to make function names plural
                 let fn_name = format!("{}s", unit.long_name);
@@ -272,13 +272,78 @@ impl DefaultDeclaratorsInput {
         };
         expansions.push(expansion);
     }
-}
-
-/// Capitalize the first character of a string
-fn capitalize_first(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+    
+    fn generate_compound_unit_declarators(&self, expansions: &mut Vec<TokenStream>) {
+        use whippyunits_default_dimensions::get_all_dimensions;
+        
+        // Generate declarators for all composite units (compound or derived) defined in the dimensions data
+        let mut compound_units = Vec::new();
+        
+        for dimension in get_all_dimensions() {
+            use whippyunits_default_dimensions::is_composite_dimension;
+            
+            // Anything that's not atomic is composite (compound or derived)
+            if is_composite_dimension(dimension.exponents) {
+                for unit in dimension.units {
+                    // Include all units that have symbols (no whitelist needed - the data structure is clean)
+                    if !unit.symbols.is_empty() {
+                        compound_units.push((dimension, unit));
+                    }
+                }
+            }
+        }
+        
+        // Group compound units by their dimension exponents
+        let mut grouped_units: std::collections::HashMap<_, Vec<_>> = std::collections::HashMap::new();
+        for (dimension, unit) in compound_units {
+            grouped_units.entry(dimension.exponents).or_default().push((dimension, unit));
+        }
+        
+        // Generate declarators for each group
+        for (exponents, units) in grouped_units {
+            let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = exponents;
+            
+            let mut scale_definitions = Vec::new();
+            
+            for (_dimension, unit) in &units {
+                let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
+                
+                // Generate type name from long name
+                let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
+                let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
+                
+                // Add 's' to make function names plural
+                let fn_name = format!("{}s", unit.long_name);
+                let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                
+                scale_definitions.push(quote! {
+                    (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
+                });
+            }
+            
+            if !scale_definitions.is_empty() {
+                // Generate a unique trait name for this dimension combination
+                // Use a more descriptive name based on the first unit in the group
+                let first_unit = &units[0].1;
+                let trait_name = format!("{}Unit", whippyunits_default_dimensions::util::capitalize_first(first_unit.long_name));
+                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
+                
+                let expansion = quote! {
+                    define_quantity!(
+                        #mass_exp,
+                        #length_exp,
+                        #time_exp,
+                        #current_exp,
+                        #temperature_exp,
+                        #amount_exp,
+                        #luminosity_exp,
+                        #angle_exp,
+                        #trait_ident,
+                        #(#scale_definitions),*
+                    );
+                };
+                expansions.push(expansion);
+            }
+        }
     }
 }
