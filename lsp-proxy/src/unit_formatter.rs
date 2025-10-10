@@ -279,6 +279,18 @@ impl UnitFormatter {
                 self.parse_dimension_truncated_format(quantity_type)
             };
         
+        // Apply base scale offset for mass quantities when using truncated format
+        let (adjusted_scale_p2, adjusted_scale_p3, adjusted_scale_p5, adjusted_scale_pi) = 
+            if quantity_type.contains("Scale,") && mass_exp == 1 && length_exp == 0 && time_exp == 0 && 
+               electric_current_exp == 0 && temperature_exp == 0 && amount_of_substance_exp == 0 && 
+               luminous_intensity_exp == 0 && angle_exp == 0 {
+                // This is a pure mass quantity with truncated scale format
+                // Apply the base scale offset for mass (gram has -3 offset, so we need +3 to get to kg)
+                // Since 10^3 = 2^3 * 5^3, we add 3 to both p2 and p5
+                (scale_p2 + 3, scale_p3, scale_p5 + 3, scale_pi)
+            } else {
+                (scale_p2, scale_p3, scale_p5, scale_pi)
+            };
         
         // Extract the actual generic type parameter from the type string
         let generic_type = self.extract_generic_type(quantity_type);
@@ -292,10 +304,10 @@ impl UnitFormatter {
             amount_of_substance_exp,
             luminous_intensity_exp,
             angle_exp,
-            scale_p2,
-            scale_p3,
-            scale_p5,
-            scale_pi,
+            scale_p2: adjusted_scale_p2,
+            scale_p3: adjusted_scale_p3,
+            scale_p5: adjusted_scale_p5,
+            scale_pi: adjusted_scale_pi,
             generic_type,
         })
     }
