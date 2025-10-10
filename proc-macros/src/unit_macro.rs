@@ -211,7 +211,7 @@ fn get_base_unit_dimensions(base_unit: &str) -> (i16, i16, i16, i16, i16, i16, i
             a,
             lum,
             ang,
-            base_unit_info.inherent_scale_factor,
+            base_unit_info.prefix_scale_offset,
         );
     }
 
@@ -424,7 +424,7 @@ impl UnitMacroInput {
                 use whippyunits_default_dimensions::SI_PREFIXES;
                 if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == prefix_symbol) {
                     // Calculate the effective scale factor, accounting for base unit offset
-                    let effective_scale = prefix_info.scale_factor + base_unit.inherent_scale_factor;
+                    let effective_scale = prefix_info.scale_factor + base_unit.prefix_scale_offset;
                     let scale_text = if effective_scale == 0 {
                         "10^0".to_string()
                     } else {

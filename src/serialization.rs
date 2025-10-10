@@ -451,7 +451,7 @@ fn get_base_unit_dimensions_ucum(
             a,
             lum,
             ang,
-            base_unit_info.inherent_scale_factor,
+            base_unit_info.prefix_scale_offset,
         ));
     }
 
@@ -901,7 +901,7 @@ pub fn get_target_unit_dimensions(
             if let Some(base_unit) = BASE_UNITS.iter().find(|unit| unit.symbol == base_symbol) {
                 let (mass, length, time, current, temp, amount, lum, angle) =
                     base_unit.dimension_exponents;
-                let inherent_scale = base_unit.inherent_scale_factor;
+                let inherent_scale = base_unit.prefix_scale_offset;
 
                 // Get the prefix scale factor
                 let prefix_scale =
