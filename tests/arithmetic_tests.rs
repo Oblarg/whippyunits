@@ -567,4 +567,7 @@ fn test_prefixed_aggregate_quantities() {
 
     assert_eq!(power_w.unsafe_value, 1000.0);
     assert_eq!(power_kw_2.unsafe_value, 1.0);
+
+    let kilowatt_hour: unit!(kW * h) = quantity!(1.0, kW * h);
+    assert_eq!(kilowatt_hour.unsafe_value, 1.0);
 }

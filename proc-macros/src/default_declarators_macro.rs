@@ -312,13 +312,37 @@ impl DefaultDeclaratorsInput {
                 let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
                 let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
                 
-                // Add 's' to make function names plural
+                // Add 's' to make function names plural for composite units
                 let fn_name = format!("{}s", unit.long_name);
                 let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
                 
                 scale_definitions.push(quote! {
                     (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
                 });
+                
+                // Generate prefixed versions of this compound unit
+                use whippyunits_default_dimensions::SI_PREFIXES;
+                for prefix_info in SI_PREFIXES {
+                    // Calculate the new scale factors by adding the prefix scale to p2 and p5
+                    let prefixed_p2 = p2 + prefix_info.scale_factor;
+                    let prefixed_p3 = p3;
+                    let prefixed_p5 = p5 + prefix_info.scale_factor;
+                    let prefixed_pi = pi;
+                    
+                    // Generate prefixed type name
+                    let unit_singular = unit.long_name.trim_end_matches('s');
+                    let prefixed_type_name = format!("{}{}", prefix_info.long_name, unit_singular);
+                    let prefixed_type_name_capitalized = whippyunits_default_dimensions::util::capitalize_first(&prefixed_type_name);
+                    let prefixed_scale_name_ident = syn::parse_str::<Ident>(&prefixed_type_name_capitalized).unwrap();
+                    
+                    // Generate prefixed function name (pluralized)
+                    let prefixed_fn_name = format!("{}{}s", prefix_info.long_name, unit.long_name);
+                    let prefixed_fn_name_ident = syn::parse_str::<Ident>(&prefixed_fn_name).unwrap();
+                    
+                    scale_definitions.push(quote! {
+                        (#prefixed_scale_name_ident, #prefixed_fn_name_ident, #prefixed_p2, #prefixed_p3, #prefixed_p5, #prefixed_pi)
+                    });
+                }
             }
             
             if !scale_definitions.is_empty() {
