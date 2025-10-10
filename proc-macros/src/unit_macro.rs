@@ -114,6 +114,28 @@ impl UnitExpr {
         }
     }
 
+    /// Convert the unit expression to a string representation
+    pub fn to_string(&self) -> String {
+        match self {
+            UnitExpr::Unit(unit) => {
+                if unit.exponent == 1 {
+                    unit.name.to_string()
+                } else {
+                    format!("{}^{}", unit.name, unit.exponent)
+                }
+            }
+            UnitExpr::Mul(a, b) => {
+                format!("{} * {}", a.to_string(), b.to_string())
+            }
+            UnitExpr::Div(a, b) => {
+                format!("{} / {}", a.to_string(), b.to_string())
+            }
+            UnitExpr::Pow(base, exp) => {
+                format!("{}^{}", base.to_string(), exp)
+            }
+        }
+    }
+
     /// Evaluate the unit expression to get dimension exponents and scale factors
     pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
