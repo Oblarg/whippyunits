@@ -5,6 +5,4 @@ pub mod prettyprint;
 pub mod unit_literal_generator;
 pub mod utils;
 #[macro_use]
-pub mod format_macro;
-#[macro_use]
 pub mod display_traits;

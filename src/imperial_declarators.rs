@@ -67,7 +67,7 @@ define_imperial_quantity!(
     0,
     0, // mass dimension
     ImperialMass,
-    (ounces, 28.349523125, Gram),
+    (ounces, 2.8349523125, Decigram),
     (pounds, 0.45359237, Kilogram),
     (stones, 6.35029318, Kilogram),
     (tons, 1.0160469088, Megagram),
