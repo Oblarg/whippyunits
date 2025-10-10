@@ -130,7 +130,7 @@ macro_rules! _define_float_rescale {
         /// let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
         /// ```
         /// 
-        /// Addition and substraction in whippyunits are *scale-safe* - they require that both operands
+        /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
         /// have the same scale.  Accordingly, to add or subtract quantities with different scales, you
         /// must use the `rescale` function to convert one of the quantities to the scale of the other:
         /// 
@@ -186,7 +186,7 @@ macro_rules! _define_int_rescale {
         /// let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
         /// ```
         /// 
-        /// Addition and substraction in whippyunits are *scale-safe* - they require that both operands
+        /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
         /// have the same scale.  Accordingly, to add or subtract quantities with different scales, you
         /// must use the `rescale` function to convert one of the quantities to the scale of the other:
         /// 
