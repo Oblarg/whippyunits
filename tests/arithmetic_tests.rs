@@ -176,6 +176,19 @@ fn test_rescale_time() {
 }
 
 #[test]
+fn test_rescale_macro() {
+    use whippyunits::rescale;
+    
+    // Test f64 default behavior
+    let result = rescale!(quantity!(1.0, m), mm);
+    assert_eq!(result.unsafe_value, 1000.0);
+    
+    // Test i32 behavior (requires third type parameter)
+    let result = rescale!(quantity!(1, m, i32), mm, i32);
+    assert_eq!(result.unsafe_value, 1000);
+}
+
+#[test]
 fn test_negative_quantities() {
     let result = -5.0.meters() + 7.0.meters();
     assert_eq!(result.unsafe_value, 2.0);

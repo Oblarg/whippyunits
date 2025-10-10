@@ -130,6 +130,9 @@ macro_rules! _define_float_rescale {
         /// let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
         /// ```
         /// 
+        /// If you are in an inline context where it is not easy to specify the target type, you can use the
+        /// [rescale!](crate::rescale!) macro.
+        /// 
         /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
         /// have the same scale.  Accordingly, to add or subtract quantities with different scales, you
         /// must use the `rescale` function to convert one of the quantities to the scale of the other:

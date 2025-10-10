@@ -280,9 +280,8 @@ impl UnitFormatter {
             };
         
         
-        // For resolved Scale/Dimension format, the generic type defaults to f64
-        // (extract_generic_type is only for raw generic parameter names)
-        let generic_type = "f64".to_string();
+        // Extract the actual generic type parameter from the type string
+        let generic_type = self.extract_generic_type(quantity_type);
         
         Some(QuantityParams {
             mass_exp,
@@ -421,6 +420,51 @@ impl UnitFormatter {
         None
     }
 
+    /// Find the end of a Dimension struct, handling truncated formats
+    fn find_dimension_end(&self, dimension_content: &str) -> Option<usize> {
+        // For Dimension structs, we need to find the > that closes the Dimension< opening
+        // The issue is that we need to find the correct > that closes Dimension<, not the final > of the entire type
+        // We start with depth 1 because we're already inside Dimension<
+        let mut depth = 1;
+        let mut i = 0;
+        
+        while i < dimension_content.len() {
+            match dimension_content.chars().nth(i) {
+                Some('<') => depth += 1,
+                Some('>') => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(i);
+                    }
+                },
+                _ => {}
+            }
+            i += 1;
+        }
+        None
+    }
+
+    /// Alternative approach: find the type parameter by looking for the pattern after Dimension
+    fn extract_generic_type_alternative(&self, quantity_type: &str) -> String {
+        // Look for the pattern: Dimension<...>, T> where T is the type parameter
+        if let Some(dimension_start) = quantity_type.find("Dimension<") {
+            // Find the end of the Dimension struct by looking for the closing > of Dimension<...>
+            let dimension_content = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
+            if let Some(dimension_end) = self.find_dimension_end(dimension_content) {
+                // dimension_end is the position within dimension_content where the Dimension struct ends
+                // We need to find the content after the Dimension struct
+                let after_dimension = &quantity_type[dimension_start + 9 + dimension_end + 1..];
+                return self.find_type_parameter(after_dimension);
+            }
+        } else if let Some(dimension_start) = quantity_type.find("Dimension,") {
+            // Handle Dimension, T format (fully defaulted Dimension)
+            let after_dimension = &quantity_type[dimension_start + 9..]; // Skip "Dimension,"
+            return self.find_type_parameter(after_dimension);
+        }
+        
+        "f64".to_string()
+    }
+
     /// Find the end of a Quantity type by looking for the closing > after the generic type parameter
     fn find_quantity_end(&self, content: &str, start_pos: usize) -> Option<usize> {
         let mut depth = 1;
@@ -447,35 +491,22 @@ impl UnitFormatter {
         None
     }
 
-    /// Find the end of the Dimension struct by looking for the closing > after all parameters
-    fn find_dimension_end(&self, content: &str) -> Option<usize> {
-        let mut depth = 1;
-        let mut i = 0;
-        
-        while i < content.len() {
-            match content.chars().nth(i) {
-                Some('<') => depth += 1,
-                Some('>') => {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(i);
-                    }
-                },
-                _ => {}
-            }
-            i += 1;
-        }
-        None
-    }
 
     /// Extract the generic type parameter from a Quantity type string
     fn extract_generic_type(&self, quantity_type: &str) -> String {
         if let Some(dimension_start) = quantity_type.find("Dimension<") {
-            // Find the end of the Dimension struct
-            let dimension_content = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
-            if let Some(dimension_end) = self.find_matching_bracket(dimension_content, 0) {
-                let after_dimension = &quantity_type[dimension_start + 9 + dimension_end + 1..];
-                return self.find_type_parameter(after_dimension);
+            // Pre-screen: check if there's an explicit type parameter by looking for the pattern
+            // Dimension<...>, T> where T is a type parameter
+            let after_dimension_start = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
+            
+            // Look for the pattern that indicates an explicit type parameter
+            if self.has_explicit_type_parameter(after_dimension_start) {
+                // Case 1: Explicit type parameter present (e.g., Dimension<_M, _L<1>>, i32>)
+                return self.extract_explicit_type_parameter(after_dimension_start);
+            } else {
+                // Case 2: No explicit type parameter (e.g., Dimension<_M, _L<1>>>)
+                // Type parameter defaults to f64
+                return "f64".to_string();
             }
         } else if let Some(dimension_start) = quantity_type.find("Dimension,") {
             // Handle Dimension, T format (fully defaulted Dimension)
@@ -483,6 +514,41 @@ impl UnitFormatter {
             return self.find_type_parameter(after_dimension);
         }
         
+        "f64".to_string()
+    }
+
+    /// Check if there's an explicit type parameter by looking for the pattern ", T>" where T is a numeric type
+    fn has_explicit_type_parameter(&self, after_dimension_start: &str) -> bool {
+        // Look for the pattern: Dimension<...>, T> where T is the type parameter
+        // We need to find a comma that separates the Dimension struct from the type parameter
+        if let Some(comma_pos) = after_dimension_start.rfind(", ") {
+            // Found a comma, check if what follows looks like a numeric type parameter
+            let potential_type = &after_dimension_start[comma_pos + 2..]; // Skip ", "
+            let type_param = potential_type.trim_end_matches('>');
+            
+            // Check if this is a valid numeric type parameter
+            return self.is_numeric_type(type_param);
+        }
+        false
+    }
+
+    /// Check if a string represents a valid numeric type
+    fn is_numeric_type(&self, type_name: &str) -> bool {
+        match type_name {
+            "i8" | "i16" | "i32" | "i64" | "i128" | "isize" |
+            "u8" | "u16" | "u32" | "u64" | "u128" | "usize" |
+            "f32" | "f64" => true,
+            _ => false,
+        }
+    }
+
+    /// Extract the explicit type parameter from a string that contains ", T>"
+    fn extract_explicit_type_parameter(&self, after_dimension_start: &str) -> String {
+        if let Some(comma_pos) = after_dimension_start.rfind(", ") {
+            let potential_type = &after_dimension_start[comma_pos + 2..]; // Skip ", "
+            let type_param = potential_type.trim_end_matches('>');
+            return type_param.to_string();
+        }
         "f64".to_string()
     }
 
