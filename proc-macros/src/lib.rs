@@ -169,13 +169,13 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 /// 
-/// Literal declarators are effectively macro sugar for trait declarators.  The following
+/// Literal declarators are effectively macro sugar for the [quantity!](crate::quantity!) macro.  The following
 /// are equivalent:
 /// 
 /// ```rust
 /// let distance = 1.0m;
 /// let distance = custom_literal::float::m(1.0);
-/// let distance = 1.0.meters();
+/// let distance = quantity!(1.0, m);
 /// ```
 /// 
 /// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
@@ -187,7 +187,7 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// let mass = 10mg_i16; // i16
 /// ```
 /// 
-/// Literal declarators will use *whatever local trait declarator is in scope*, so if you have changed
+/// Literal declarators will use *whatever version of the quantity! macro is in scope*, so if you have changed
 /// the local base units via [define_base_units!](crate::define_base_units!), the literal syntax will
 /// automatically use the appropriately-scaled declarators.
 /// 
@@ -195,9 +195,6 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are 
 /// not supported.  For arbitrary algebraic expressions, use the [quantity!](crate::quantity!) macro instead.
 /// 
-/// Because const traits are not yet generally available, it is not possible to use trait declarators in
-/// const contexts.  In these cases, as well, use the [quantity!](crate::quantity!) macro instead.
-///
 /// ## Note
 ///
 /// Must be called once in your crate, typically at the module level.
