@@ -106,8 +106,61 @@ impl ScopedPreferencesInput {
                         #(#angle_units),*
                     );
 
-                    // Helper macro to construct the target type using local scale parameters
-                    // This creates a quantity of the original unit type, then rescales it to the local scale
+                    /// Define a quantity with the specified value and storage type, scaled to the local base units.
+                    /// 
+                    /// This is a *local shadow* of the [quantity!](crate::quantity!) macro - if you are surprised by this,
+                    /// look for an invocation of [define_base_units!](crate::define_base_units!) in the scope.  This macro will always
+                    /// store values in the local base units.  Therefore, the  *declaration type* of a `quantity!` invocation is 
+                    /// not necessarily the same as the *storage type* of the quantity.  When in doubt, use a concrete type assertion 
+                    /// with `unit!`, whose behavior does not depend on the base units.
+                    ///
+                    /// ## Syntax
+                    ///
+                    /// ```rust
+                    /// quantity!(value, unit_expression)
+                    /// quantity!(value, unit_expression, storage_type)
+                    /// ```
+                    /// 
+                    /// where:
+                    /// - `value`: The value of the quantity
+                    /// - `unit_expression`: A "unit literal expression"
+                    ///     - A "unit literal expression" is either:
+                    ///         - An atomic unit: 
+                    ///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+                    ///         - A multiplication of two or more atomic units: 
+                    ///             - `m * kg`
+                    ///         - A division of two or more atomic units: 
+                    ///             - `m / s`
+                    ///         - An exponentiation of an atomic unit: 
+                    ///             - `m^2`, `s^-1`
+                    ///         - A combination of the above:
+                    ///             - `m * kg / s^2`
+                    /// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
+                    ///
+                    /// ## Examples
+                    ///
+                    /// ```rust
+                    /// use whippyunits::quantity;
+                    ///
+                    /// // Basic quantities
+                    /// let distance = quantity!(5.0, m);
+                    /// let mass = quantity!(2.5, kg);
+                    /// let time = quantity!(10.0, s);
+                    ///
+                    /// // Compound units
+                    /// let velocity = quantity!(10.0, m / s);
+                    /// let acceleration = quantity!(9.81, m / s^2);
+                    /// let force = quantity!(100.0, kg * m / s^2);
+                    /// let energy = quantity!(50.0, kg * m^2 / s^2);
+                    ///
+                    /// // With explicit storage type
+                    /// let distance_f32 = quantity!(5.0, m, f32);
+                    /// let mass_i32 = quantity!(2, kg, i32);
+                    ///
+                    /// // Complex expressions
+                    /// let power = quantity!(1000.0, kg * m^2 / s^3);
+                    /// let pressure = quantity!(101325.0, kg / m / s^2);
+                    /// ```
                     #[macro_export]
                     macro_rules! quantity {
                         ($value:expr, $unit:expr) => {
