@@ -214,22 +214,22 @@ fn test_generic_dimension() {
 
 #[test]
 fn test_generic_dimension_expressions() {
-    define_generic_dimension!(ForceExpression, Mass * Length / Time ^ 2);
-    define_generic_dimension!(EnergyExpression, Mass * Length ^ 2 / Time ^ 2);
-    define_generic_dimension!(PressureExpression, Mass / Length / Time ^ 2);
-    define_generic_dimension!(PowerExpression, Mass * Length ^ 2 / Time ^ 3);
-    define_generic_dimension!(ElectricFieldExpression, Mass * Length / Time ^ 3 / Current);
+    define_generic_dimension!(Force, Mass * Length / Time ^ 2);
+    define_generic_dimension!(Energy, Mass * Length ^ 2 / Time ^ 2);
+    define_generic_dimension!(Pressure, Mass / Length / Time ^ 2);
+    define_generic_dimension!(Power, Mass * Length ^ 2 / Time ^ 3);
+    define_generic_dimension!(ElectricField, Mass * Length / Time ^ 3 / Current);
     define_generic_dimension!(
-        CapacitanceExpression,
+        Capacitance,
         Time ^ 4 * Current ^ 2 / Mass / Length ^ 2
     );
 
-    let force: impl ForceExpression = quantity!(1.0, N);
-    let energy: impl EnergyExpression = quantity!(1.0, J);
-    let pressure: impl PressureExpression = quantity!(1.0, Pa);
-    let power: impl PowerExpression = quantity!(1.0, W);
-    let electric_field: impl ElectricFieldExpression = quantity!(1.0, V / m);
-    let capacitance: impl CapacitanceExpression = quantity!(1.0, F);
+    let force: impl Force = quantity!(1.0, N);
+    let energy: impl Energy = quantity!(1.0, J);
+    let pressure: impl Pressure = quantity!(1.0, Pa);
+    let power: impl Power = quantity!(1.0, W);
+    let electric_field: impl ElectricField = quantity!(1.0, V / m);
+    let capacitance: impl Capacitance = quantity!(1.0, F);
 }
 
 #[test]

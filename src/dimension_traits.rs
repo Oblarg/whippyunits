@@ -17,7 +17,6 @@ macro_rules! define_atomic_dimension_trait {
             type Unit;
         }
 
-#[rustfmt::skip]
         impl<
             const SCALE_P2: i16,
             const SCALE_P3: i16,

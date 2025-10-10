@@ -224,10 +224,15 @@ pub fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&'static str, &'stati
                 return Some((base_unit_info.symbol, prefix_info.symbol));
             } else {
                 // Also check if it's a derived unit in the dimensions data
-                if let Some((_dimension, unit)) = lookup_unit_literal(base_symbol) {
-                    // Use the first symbol from the unit's symbols array
-                    if let Some(&unit_symbol) = unit.symbols.first() {
-                        return Some((unit_symbol, prefix_info.symbol));
+                // But avoid recursive calls by checking dimensions data directly
+                for dimension in DIMENSIONS {
+                    for unit in dimension.units {
+                        if unit.symbols.contains(&base_symbol) {
+                            // Use the first symbol from the unit's symbols array
+                            if let Some(&unit_symbol) = unit.symbols.first() {
+                                return Some((unit_symbol, prefix_info.symbol));
+                            }
+                        }
                     }
                 }
             }

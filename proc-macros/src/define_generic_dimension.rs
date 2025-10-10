@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::{Caret, Comma, Slash, Star};
@@ -157,6 +157,9 @@ impl DefineGenericDimensionInput {
     pub fn expand(self) -> TokenStream {
         let trait_name = &self.trait_name;
 
+        // Generate documentation structs for dimension identifiers used in expressions
+        let doc_structs = Self::generate_dimension_documentation(&self.dimension_exprs);
+
         // Generate the trait definition
         let trait_def = quote! {
             pub trait #trait_name {
@@ -193,6 +196,10 @@ impl DefineGenericDimensionInput {
             .collect();
 
         quote! {
+            {
+                #doc_structs
+            }
+            
             #trait_def
 
             #(#impl_blocks)*
@@ -228,6 +235,132 @@ impl DefineGenericDimensionInput {
             > {
                 type Unit = Self;
             }
+        }
+    }
+
+    /// Generate documentation structs for dimension identifiers used in expressions
+    fn generate_dimension_documentation(dimension_exprs: &Punctuated<DimensionExpr, Comma>) -> TokenStream {
+        let mut doc_structs = Vec::new();
+
+        // Generate documentation for each identifier occurrence (no filtering)
+        for expr in dimension_exprs {
+            Self::collect_and_generate_dimension_docs(expr, &mut doc_structs);
+        }
+
+        quote! {
+            #(#doc_structs)*
+        }
+    }
+
+    /// Recursively collect dimension identifiers and generate documentation for each occurrence
+    fn collect_and_generate_dimension_docs(expr: &DimensionExpr, doc_structs: &mut Vec<TokenStream>) {
+        match expr {
+            DimensionExpr::Dimension(ident) => {
+                // Generate documentation for this specific occurrence
+                if let Some(doc_struct) = Self::generate_single_dimension_doc(ident) {
+                    doc_structs.push(doc_struct);
+                }
+            }
+            DimensionExpr::Mul(a, b) => {
+                Self::collect_and_generate_dimension_docs(a, doc_structs);
+                Self::collect_and_generate_dimension_docs(b, doc_structs);
+            }
+            DimensionExpr::Div(a, b) => {
+                Self::collect_and_generate_dimension_docs(a, doc_structs);
+                Self::collect_and_generate_dimension_docs(b, doc_structs);
+            }
+            DimensionExpr::Pow(base, _) => {
+                Self::collect_and_generate_dimension_docs(base, doc_structs);
+            }
+        }
+    }
+
+    /// Generate documentation for a single dimension identifier
+    fn generate_single_dimension_doc(identifier: &Ident) -> Option<TokenStream> {
+        let dimension_name = identifier.to_string();
+        let doc_comment = Self::generate_dimension_doc_comment(&dimension_name);
+        
+        // Create a new identifier with the same span as the original
+        let doc_ident = syn::Ident::new(&dimension_name, identifier.span());
+        
+        // Get the corresponding dimension trait type
+        let trait_type = Self::get_dimension_trait_type(&dimension_name)?;
+
+        // Use quote_spanned to preserve the span information for hover
+        // Create a hand-rolled trait alias in a throwaway const block for hover documentation
+        Some(quote! {
+            const _: () = {
+                #doc_comment
+                #[allow(dead_code)]
+                trait #doc_ident: #trait_type {}
+                
+                impl<U: #trait_type> #doc_ident for U {}
+            };
+        })
+    }
+
+    /// Generate documentation comment for a dimension
+    fn generate_dimension_doc_comment(dimension_name: &str) -> TokenStream {
+        let doc_text = Self::get_dimension_documentation_text(dimension_name);
+        quote! {
+            #[doc = #doc_text]
+        }
+    }
+
+    /// Get documentation text for a dimension
+    #[allow(mixed_script_confusables)]
+    fn get_dimension_documentation_text(dimension_name: &str) -> String {
+        // Map dimension names/symbols to their documentation
+        match dimension_name {
+            // Atomic dimensions - full names
+            "Mass" => "Atomic dimension: Mass (M) - The fundamental dimension of mass in the SI system".to_string(),
+            "Length" => "Atomic dimension: Length (L) - The fundamental dimension of length in the SI system".to_string(),
+            "Time" => "Atomic dimension: Time (T) - The fundamental dimension of time in the SI system".to_string(),
+            "Current" => "Atomic dimension: Current (I) - The fundamental dimension of electric current in the SI system".to_string(),
+            "Temperature" => "Atomic dimension: Temperature (Θ) - The fundamental dimension of thermodynamic temperature in the SI system".to_string(),
+            "Amount" => "Atomic dimension: Amount (N) - The fundamental dimension of amount of substance in the SI system".to_string(),
+            "Luminosity" => "Atomic dimension: Luminosity (J) - The fundamental dimension of luminous intensity in the SI system".to_string(),
+            "Angle" => "Atomic dimension: Angle (A) - The fundamental dimension of plane angle in the SI system".to_string(),
+            
+            // Atomic dimensions - symbols
+            "M" => "Atomic dimension: Mass (M) - The fundamental dimension of mass in the SI system".to_string(),
+            "L" => "Atomic dimension: Length (L) - The fundamental dimension of length in the SI system".to_string(),
+            "T" => "Atomic dimension: Time (T) - The fundamental dimension of time in the SI system".to_string(),
+            "I" => "Atomic dimension: Current (I) - The fundamental dimension of electric current in the SI system".to_string(),
+            "Θ" => "Atomic dimension: Temperature (Θ) - The fundamental dimension of thermodynamic temperature in the SI system".to_string(),
+            "N" => "Atomic dimension: Amount (N) - The fundamental dimension of amount of substance in the SI system".to_string(),
+            "J" => "Atomic dimension: Luminosity (J) - The fundamental dimension of luminous intensity in the SI system".to_string(),
+            "A" => "Atomic dimension: Angle (A) - The fundamental dimension of plane angle in the SI system".to_string(),
+            
+            _ => format!("Dimension: {} - Custom dimension expression", dimension_name),
+        }
+    }
+
+    /// Get the corresponding dimension trait type for a dimension name/symbol
+    fn get_dimension_trait_type(dimension_name: &str) -> Option<TokenStream> {
+        // Map dimension names/symbols to their corresponding trait types
+        match dimension_name {
+            // Atomic dimensions - full names
+            "Mass" => Some(quote! { whippyunits::dimension_traits::Mass }),
+            "Length" => Some(quote! { whippyunits::dimension_traits::Length }), 
+            "Time" => Some(quote! { whippyunits::dimension_traits::Time }),
+            "Current" => Some(quote! { whippyunits::dimension_traits::Current }),
+            "Temperature" => Some(quote! { whippyunits::dimension_traits::Temperature }),
+            "Amount" => Some(quote! { whippyunits::dimension_traits::Amount }),
+            "Luminosity" => Some(quote! { whippyunits::dimension_traits::Luminosity }),
+            "Angle" => Some(quote! { whippyunits::dimension_traits::Angle }),
+            
+            // Atomic dimensions - symbols
+            "M" => Some(quote! { whippyunits::dimension_traits::Mass }),
+            "L" => Some(quote! { whippyunits::dimension_traits::Length }),
+            "T" => Some(quote! { whippyunits::dimension_traits::Time }), 
+            "I" => Some(quote! { whippyunits::dimension_traits::Current }),
+            "Θ" => Some(quote! { whippyunits::dimension_traits::Temperature }),
+            "N" => Some(quote! { whippyunits::dimension_traits::Amount }),
+            "J" => Some(quote! { whippyunits::dimension_traits::Luminosity }),
+            "A" => Some(quote! { whippyunits::dimension_traits::Angle }),
+            
+            _ => None, // Unknown dimension
         }
     }
 }
