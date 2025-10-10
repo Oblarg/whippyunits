@@ -12,6 +12,8 @@ use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
 use whippyunits_default_dimensions::{
     get_unit_dimensions, is_prefixed_base_unit, lookup_unit_literal, DimensionExponents, BASE_UNITS,
     SI_PREFIXES,
+    // Use centralized parsing functions
+    parse_unit_with_prefix, get_prefix_scale_factor,
 };
 
 /// Represents the dimension and scale exponents for a unit
@@ -421,38 +423,17 @@ fn get_unit_dimensions_from_ucum(
 
 /// Parse unit name to extract prefix and base unit for UCUM
 fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, &str) {
-    // Check if it's a base unit first
-    if is_valid_base_unit_ucum(unit_name) {
-        return (None, unit_name);
-    }
-
-    // Try to find the longest matching prefix
-    for prefix_info in SI_PREFIXES.iter().rev() {
-        if unit_name.starts_with(prefix_info.symbol) {
-            let base = &unit_name[prefix_info.symbol.len()..];
-            if !base.is_empty() && is_valid_base_unit_ucum(base) {
-                return (Some(prefix_info.symbol), base);
-            }
-        }
-    }
-
-    // No prefix found
-    (None, unit_name)
+    // Use the centralized parsing logic from default-dimensions
+    parse_unit_with_prefix(unit_name)
 }
 
-/// Check if a string is a valid base unit for UCUM parsing
-fn is_valid_base_unit_ucum(unit: &str) -> bool {
-    BASE_UNITS.iter().any(|info| info.symbol == unit)
-        || lookup_unit_literal(unit).is_some()
-}
+// Removed is_valid_base_unit_ucum - now using centralized parsing from default-dimensions
 
 /// Get prefix power of 10 for UCUM
+/// 
+/// This function now uses the centralized parsing logic from default-dimensions.
 fn get_prefix_power_ucum(prefix: &str) -> i16 {
-    SI_PREFIXES
-        .iter()
-        .find(|info| info.symbol == prefix)
-        .map(|info| info.scale_factor)
-        .unwrap_or(0)
+    get_prefix_scale_factor(prefix)
 }
 
 /// Get base unit dimensions for UCUM parsing

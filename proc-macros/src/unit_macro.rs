@@ -6,6 +6,8 @@ use syn::{Ident, LitInt, Type};
 use whippyunits_default_dimensions::{
     BASE_UNITS, SI_PREFIXES, lookup_unit_literal, is_valid_unit_literal,
     is_prefixed_base_unit, lookup_si_prefix, get_unit_dimensions as get_unit_dimensions_from_crate,
+    // Use centralized parsing functions
+    parse_unit_with_prefix,
 };
 
 /// Represents a unit with optional exponent
@@ -191,78 +193,9 @@ impl UnitExpr {
     }
 }
 
-/// Parse a unit name to extract prefix and base unit
-fn parse_unit_name(unit_name: &str) -> (Option<&str>, &str) {
-    // First check if the entire unit name is a valid base unit (prioritize exact matches)
-    if is_valid_base_unit(unit_name) {
-        return (None, unit_name);
-    }
+// Removed parse_unit_name - now using centralized parsing from default-dimensions
 
-    // Check if the entire unit name is a valid compound unit (like J, W, N, etc.)
-    if is_valid_compound_unit(unit_name) {
-        return (None, unit_name);
-    }
-
-    // Check if the entire unit name is a valid unit literal (like min, h, hr, d, etc.)
-    if is_valid_unit_literal_local(unit_name) {
-        return (None, unit_name);
-    }
-
-    // Try to find the longest matching prefix for base units
-    for prefix_info in SI_PREFIXES.iter().rev() {
-        if unit_name.starts_with(prefix_info.symbol) {
-            let base = &unit_name[prefix_info.symbol.len()..];
-            if !base.is_empty() && is_valid_base_unit(base) {
-                return (Some(prefix_info.symbol), base);
-            }
-        }
-    }
-
-    // Try to find the longest matching prefix for compound units (like kJ, kW, etc.)
-    for prefix_info in SI_PREFIXES.iter().rev() {
-        if unit_name.starts_with(prefix_info.symbol) {
-            let base = &unit_name[prefix_info.symbol.len()..];
-            if !base.is_empty() && is_valid_compound_unit(base) {
-                return (Some(prefix_info.symbol), base);
-            }
-        }
-    }
-
-    // No prefix found, treat as base unit
-    (None, unit_name)
-}
-
-/// Check if a string is a valid base unit
-fn is_valid_base_unit(unit: &str) -> bool {
-    BASE_UNITS
-        .iter()
-        .any(|base_unit_info| base_unit_info.symbol == unit)
-}
-
-/// Check if a string is a valid compound unit (like J, W, N, etc.)
-fn is_valid_compound_unit(unit: &str) -> bool {
-    // Check if the unit exists and belongs to a compound dimension (non-atomic exponents)
-    if let Some((dimension, _)) = lookup_unit_literal(unit) {
-        let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
-        let non_zero_count = [m, l, t, c, temp, a, lum, ang].iter().filter(|&&x| x != 0).count();
-        return non_zero_count > 1; // Compound units have multiple non-zero exponents
-    }
-    false
-}
-
-/// Check if a string is a valid unit literal (like min, h, hr, d, etc.)
-fn is_valid_unit_literal_local(unit: &str) -> bool {
-    is_valid_unit_literal(unit)
-}
-
-/// Get the power of 10 for a prefix
-fn get_prefix_power(prefix: &str) -> i16 {
-    SI_PREFIXES
-        .iter()
-        .find(|prefix_info| prefix_info.symbol == prefix)
-        .map(|prefix_info| prefix_info.scale_factor)
-        .unwrap_or(0)
-}
+// Removed duplicate parsing functions - now using centralized parsing from default-dimensions
 
 /// Get dimension exponents and inherent scale for a base unit or compound unit
 fn get_base_unit_dimensions(base_unit: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16) {
@@ -527,18 +460,15 @@ impl UnitMacroInput {
     }
 
     /// Parse a unit name to extract prefix and base unit
+    /// 
+    /// This function now uses the centralized parsing logic from default-dimensions.
     fn parse_prefixed_unit(unit_name: &str) -> Option<(String, String)> {
-        use whippyunits_default_dimensions::SI_PREFIXES;
-
-        for prefix_info in SI_PREFIXES.iter().rev() {
-            if unit_name.starts_with(prefix_info.symbol) {
-                let base = &unit_name[prefix_info.symbol.len()..];
-                if !base.is_empty() {
-                    return Some((prefix_info.symbol.to_string(), base.to_string()));
-                }
-            }
+        let (prefix, base) = parse_unit_with_prefix(unit_name);
+        if let Some(prefix) = prefix {
+            Some((prefix.to_string(), base.to_string()))
+        } else {
+            None
         }
-        None
     }
 
     /// Get the corresponding default declarator type for a unit

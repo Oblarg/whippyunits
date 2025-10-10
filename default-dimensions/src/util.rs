@@ -197,7 +197,7 @@ pub fn lookup_unit_literal(unit_symbol: &str) -> Option<(&'static Dimension, &'s
         }
     }
     
-    // If not found, try to handle prefixed units
+    // If not found, try to handle prefixed units (short form like "km", "cm")
     if let Some((base_symbol, _prefix)) = is_prefixed_base_unit(unit_symbol) {
         // Find the base unit in the dimensions data
         for dimension in DIMENSIONS {
@@ -205,6 +205,12 @@ pub fn lookup_unit_literal(unit_symbol: &str) -> Option<(&'static Dimension, &'s
                 return Some((dimension, unit));
             }
         }
+    }
+    
+    // If still not found, try to handle long prefixed unit names (like "kilometer", "centimeter")
+    if let Some(short_form) = scale_type_to_actual_unit_symbol(unit_symbol) {
+        // Recursively call this function with the short form
+        return lookup_unit_literal(&short_form);
     }
     
     None
@@ -215,6 +221,16 @@ pub fn lookup_unit_literal(unit_symbol: &str) -> Option<(&'static Dimension, &'s
 pub fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&'static str, &'static str)> {
     use crate::SI_PREFIXES;
     
+    // First check if this is an exact match for a unit literal by checking dimensions data directly
+    // If it is, don't treat it as a prefixed unit (e.g., "min" should not be "m" + "in")
+    for dimension in DIMENSIONS {
+        for unit in dimension.units {
+            if unit.symbols.contains(&unit_symbol) {
+                return None; // This is an exact match, not a prefixed unit
+            }
+        }
+    }
+    
     // Try each SI prefix
     for prefix_info in SI_PREFIXES {
         if unit_symbol.starts_with(prefix_info.symbol) {
@@ -223,13 +239,13 @@ pub fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&'static str, &'stati
             if let Some(base_unit_info) = lookup_base_unit(base_symbol) {
                 return Some((base_unit_info.symbol, prefix_info.symbol));
             } else {
-                // Also check if it's a derived unit in the dimensions data
-                // But avoid recursive calls by checking dimensions data directly
+                // Only check the first unit in each dimension (the SI base unit)
+                // This prevents applying prefixes to imperial units or other non-SI units
                 for dimension in DIMENSIONS {
-                    for unit in dimension.units {
-                        if unit.symbols.contains(&base_symbol) {
+                    if let Some(first_unit) = dimension.units.first() {
+                        if first_unit.symbols.contains(&base_symbol) {
                             // Use the first symbol from the unit's symbols array
-                            if let Some(&unit_symbol) = unit.symbols.first() {
+                            if let Some(&unit_symbol) = first_unit.symbols.first() {
                                 return Some((unit_symbol, prefix_info.symbol));
                             }
                         }

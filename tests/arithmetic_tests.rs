@@ -366,8 +366,8 @@ fn test_custom_formatting() {
     assert!(distance.fmt("kg").to_string().contains("Error")); // Wrong dimension
     assert!(distance.fmt("unknown_unit").to_string().contains("Error")); // Unknown unit
 
-    assert_eq!(format!("{}", distance.fmt("kilometer")), "5 km");
-    assert_eq!(format!("{}", mass.fmt("gram")), "2500 gram");
+    assert_eq!(format!("{}", distance.fmt("kilometer")), "5 kilometer");
+    assert_eq!(format!("{}", mass.fmt("gram")), "2500 g");
 
     println!("Custom formatting tests passed!");
 }

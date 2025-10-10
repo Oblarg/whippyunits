@@ -477,11 +477,13 @@ impl<
         };
 
         // Calculate target scale factors (all cases use the same logic)
+        // If scale_factors is None, it means all scale factors are 0 (SI base units)
+        let (base_p2, base_p3, base_p5, base_pi) = target_unit_info.scale_factors.unwrap_or((0, 0, 0, 0));
         let (target_p2, target_p3, target_p5, target_pi) = (
-            target_unit_info.scale_factors.unwrap().0 + prefix_scale, // p2 gets prefix
-            target_unit_info.scale_factors.unwrap().1,                // p3 unchanged
-            target_unit_info.scale_factors.unwrap().2 + prefix_scale, // p5 gets prefix
-            target_unit_info.scale_factors.unwrap().3,                // pi unchanged
+            base_p2 + prefix_scale, // p2 gets prefix
+            base_p3,                // p3 unchanged
+            base_p5 + prefix_scale, // p5 gets prefix
+            base_pi,                // pi unchanged
         );
 
         // Calculate conversion factor from source to base unit (e.g., meters)

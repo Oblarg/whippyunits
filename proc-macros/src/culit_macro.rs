@@ -152,7 +152,7 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
         }
         
         // Check if this is actually a prefixed unit that was returned as base unit
-        if let Some((_base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
+        if let Some((_base_symbol, prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
             // This is a prefixed unit, so we need to construct the proper method name
             let base_method = make_plural(unit.long_name);
             let prefix_name = get_prefix_name(prefix);
@@ -170,12 +170,12 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     }
 
     // Check if this is a prefixed compound unit (kJ, mW, etc.)
-    if let Some((_base_symbol, _prefix)) = is_prefixed_compound_unit(unit_symbol) {
+    if let Some((_base_symbol, _prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
         return format!("__COMPOUND_UNIT__{}", unit_symbol);
     }
 
     // If not found, try to parse as a prefixed unit
-    if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
+    if let Some((base_symbol, prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
         if let Some((_dimension, unit)) =
             whippyunits_default_dimensions::lookup_unit_literal(base_symbol)
         {
@@ -211,55 +211,6 @@ fn is_compound_unit(unit_symbol: &str) -> bool {
     false
 }
 
-/// Check if a unit symbol is a prefixed compound unit (kJ, mW, etc.)
-fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
-    use whippyunits_default_dimensions::{lookup_unit_literal, is_prefixed_base_unit};
-    
-    // Check if the unit starts with a valid SI prefix
-    for prefix_info in whippyunits_default_dimensions::SI_PREFIXES {
-        if unit_symbol.starts_with(prefix_info.symbol) {
-            let base_unit = &unit_symbol[prefix_info.symbol.len()..];
-            // Check if the remaining part is a compound unit
-            if let Some((dimension, _)) = lookup_unit_literal(base_unit) {
-                use whippyunits_default_dimensions::is_composite_dimension;
-                
-                // Anything that's not atomic is composite (compound or derived)
-                if is_composite_dimension(dimension.exponents) {
-                    return Some((base_unit, prefix_info.symbol));
-                }
-            }
-        }
-    }
-    
-    None
-}
-
-/// Check if a unit symbol is a prefixed base unit (e.g., "km", "cm", "mm")
-fn is_prefixed_base_unit(unit_symbol: &str) -> Option<(&str, &str)> {
-    // Try to find a base unit that this unit name ends with
-    for base_unit in whippyunits_default_dimensions::BASE_UNITS {
-        if base_unit.symbol == "dimensionless" {
-            continue;
-        }
-
-        if unit_symbol.ends_with(base_unit.symbol) {
-            let prefix_part = &unit_symbol[..unit_symbol.len() - base_unit.symbol.len()];
-
-            // If no prefix, it should have been found in the direct lookup above
-            if prefix_part.is_empty() {
-                continue;
-            }
-
-            // Check if this is a valid prefix
-            if whippyunits_default_dimensions::lookup_si_prefix(prefix_part).is_some() {
-                return Some((base_unit.symbol, prefix_part));
-            }
-
-        }
-    }
-
-    None
-}
 
 /// Get the prefix name for a prefix symbol (e.g., "k" -> "kilo", "m" -> "milli")
 fn get_prefix_name(prefix_symbol: &str) -> String {
@@ -330,8 +281,12 @@ fn get_all_unit_symbols_local() -> Vec<String> {
             // Anything that's not atomic is composite (compound or derived)
             if is_composite_dimension(dimension.exponents) {
                 for unit in dimension.units {
-                    for symbol in unit.symbols {
-                        symbols.push(format!("{}{}", prefix.symbol, symbol));
+                    // Skip prefixed versions for units with conversion factors (imperial units)
+                    // as they are stored internally in SI units and don't need prefixed types
+                    if unit.conversion_factor.is_none() {
+                        for symbol in unit.symbols {
+                            symbols.push(format!("{}{}", prefix.symbol, symbol));
+                        }
                     }
                 }
             }

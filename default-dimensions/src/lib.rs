@@ -6,6 +6,7 @@
 pub mod dimensions;
 pub mod base_units;
 pub mod util;
+pub mod parsing;
 
 // Re-export types from dimensions module
 pub use dimensions::{DimensionExponents, Unit, Dimension};
@@ -16,6 +17,10 @@ pub use util::{
     get_atomic_dimension_symbols, get_all_dimensions, lookup_unit_literal, is_prefixed_base_unit,
     get_unit_dimensions, is_valid_unit_literal, get_all_unit_symbols, get_units_by_exponents,
     dimension_exponents_to_unit_expression, scale_type_to_unit_symbol, scale_type_to_actual_unit_symbol, convert_long_name_to_short
+};
+pub use parsing::{
+    parse_unit_with_prefix, is_valid_base_unit, is_valid_unit_literal as is_valid_unit_literal_parsing,
+    is_valid_compound_unit, get_prefix_info, get_prefix_scale_factor, UnitParseResult
 };
 
 // Legacy type aliases for backward compatibility
