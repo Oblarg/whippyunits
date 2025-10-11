@@ -495,72 +495,8 @@ impl UnitMacroInput {
 
     /// Get the corresponding default declarator type for a unit
     fn get_declarator_type_for_unit(unit_name: &str) -> Option<TokenStream> {
-        use whippyunits_default_dimensions::{BASE_UNITS, lookup_unit_literal};
-
-        // Only generate documentation for units that actually have corresponding types in default_declarators
-        // This includes base units with SI prefixes and some unit literals, but NOT compound units like N, J, Pa, etc.
-        
-        // Skip dimensionless units - they don't have corresponding default declarator types
-        if unit_name == "dimensionless" {
-            return None;
-        }
-        
-        // Check if it's a base unit (these have corresponding types)
-        if let Some(base_unit) = BASE_UNITS.iter().find(|u| u.symbol == unit_name) {
-            let type_name = whippyunits_default_dimensions::util::capitalize_first(&base_unit.long_name);
-            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-            return Some(quote! {
-                whippyunits::default_declarators::#type_ident
-            });
-        }
-        
-        // Check if it's a prefixed unit FIRST (before checking unit literals)
-        if let Some((prefix_symbol, base)) = Self::parse_prefixed_unit(unit_name) {
-            // First try to find it as a prefixed base unit
-            if let Some(base_unit) = BASE_UNITS.iter().find(|u| u.symbol == base) {
-                // Get the prefix long name for proper type naming
-                use whippyunits_default_dimensions::SI_PREFIXES;
-                if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == &prefix_symbol) {
-                    // Use the same naming convention as the default declarators macro
-                    let unit_singular = base_unit.long_name.trim_end_matches('s');
-                    let combined_name = format!("{}{}", prefix_info.long_name, unit_singular);
-                    let type_name = whippyunits_default_dimensions::util::capitalize_first(&combined_name);
-                    let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-                    return Some(quote! {
-                        whippyunits::default_declarators::#type_ident
-                    });
-                }
-            }
-            
-            // If not a base unit, try to find it as a prefixed unit literal
-            if let Some((_dimension, unit)) = lookup_unit_literal(&base) {
-                use whippyunits_default_dimensions::SI_PREFIXES;
-                if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == &prefix_symbol) {
-                    // Use the same naming convention as the default declarators macro
-                    let unit_singular = unit.long_name.trim_end_matches('s');
-                    let combined_name = format!("{}{}", prefix_info.long_name, unit_singular);
-                    let type_name = whippyunits_default_dimensions::util::capitalize_first(&combined_name);
-                    let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-                    return Some(quote! {
-                        whippyunits::default_declarators::#type_ident
-                    });
-                }
-            }
-        }
-        
-        // Check if it's a unit literal that has a corresponding type - only if not a prefixed unit
-        if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
-            // Use the long name to generate the type name, matching the declarator generation logic
-            let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
-            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-            return Some(quote! {
-                whippyunits::default_declarators::#type_ident
-            });
-        }
-        
-        // For compound units (N, J, Pa, W, V, F, C, etc.) and dimensionless units (1), 
-        // we don't generate documentation since they don't have corresponding default declarator types
-        None
+        // Use the shared helper function to avoid code duplication
+        crate::get_declarator_type_for_unit(unit_name)
     }
 
 }

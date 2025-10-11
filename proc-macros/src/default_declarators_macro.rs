@@ -336,7 +336,8 @@ impl DefaultDeclaratorsInput {
                     let prefixed_scale_name_ident = syn::parse_str::<Ident>(&prefixed_type_name_capitalized).unwrap();
                     
                     // Generate prefixed function name (pluralized)
-                    let prefixed_fn_name = format!("{}{}s", prefix_info.long_name, unit.long_name);
+                    let unit_singular = unit.long_name.trim_end_matches('s');
+                    let prefixed_fn_name = format!("{}{}s", prefix_info.long_name, unit_singular);
                     let prefixed_fn_name_ident = syn::parse_str::<Ident>(&prefixed_fn_name).unwrap();
                     
                     scale_definitions.push(quote! {

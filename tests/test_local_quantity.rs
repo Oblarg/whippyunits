@@ -15,6 +15,8 @@ fn test_local_quantity_macro() {
     let energy_f64 = quantity!(100.0, J);
     println!("Energy (f64): {:?}", energy_f64);
 
+    let local_watt = quantity!(100.0, J / s);
+
     // Test with i32
     let energy_i32 = quantity!(100, J, i32);
     println!("Energy (i32): {:?}", energy_i32);
