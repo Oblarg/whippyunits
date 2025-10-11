@@ -309,7 +309,7 @@ fn test_imperial_units() {
     println!("1 stone = {:?}", mass_stones);
     println!("1 ton = {:?}", mass_tons);
 
-    assert_eq!(mass_ounces.unsafe_value, 28.349523125);
+    assert_eq!(mass_ounces.unsafe_value, 2.8349523125);
     assert_eq!(mass_pounds.unsafe_value, 0.45359237);
     assert_eq!(mass_stones.unsafe_value, 6.35029318);
     assert_eq!(mass_tons.unsafe_value, 1.0160469088);
