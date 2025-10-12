@@ -81,6 +81,6 @@ fn test_compound_unit_literals_with_local_scale() {
 
 #[test]
 fn test_compound_unit_literal_detection() {
-    let test = quantity!(1.0, J / s);
+    let test = quantity!(1.0, kW * h);
     println!("Test: {:?}", test);
 }

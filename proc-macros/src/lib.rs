@@ -6,6 +6,7 @@ use syn::parse_macro_input;
 
 mod culit_macro;
 mod define_generic_dimension;
+mod lift_trace;
 mod local_unit_macro;
 mod pow_lookup_macro;
 mod unit_macro;

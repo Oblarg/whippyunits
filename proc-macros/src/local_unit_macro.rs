@@ -7,11 +7,12 @@ use syn::{
 };
 use whippyunits_default_dimensions::{
     dimension_exponents_to_unit_expression, scale_type_to_actual_unit_symbol,
-    lookup_unit_literal, is_prefixed_base_unit,
+    lookup_unit_literal,
 };
 
 // Import the UnitExpr type from unit_macro
 use crate::unit_macro::UnitExpr;
+use crate::lift_trace::{UnitExprFormatter, DimensionProcessor, QuoteGenerator, LocalContext, is_prefixed_compound_unit};
 
 /// Input for the local quantity macro
 /// This takes a unit expression, local scale parameters, and optional storage type
@@ -83,14 +84,14 @@ impl LocalQuantityMacroInput {
         let output_expr = self.generate_output_unit_expression_string();
         let lift_trace = format!("{} -> {}", input_expr_decomposed, output_expr);
         
-        // Generate lift trace doc shadows for each unit identifier in the expression
-        let lift_trace_doc_shadows = self.generate_lift_trace_doc_shadows_for_expr(&lift_trace);
-        
         // Use the specified storage type or default to f64
         let storage_type = self
             .storage_type
             .clone()
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
+
+        // Generate lift trace doc shadows for each unit identifier in the expression
+        let lift_trace_doc_shadows = self.generate_lift_trace_doc_shadows_for_expr(&lift_trace, &storage_type);
 
         // Check if this is a single unit (not an algebraic expression)
         if let UnitExpr::Unit(unit) = &self.unit_expr {
@@ -103,7 +104,7 @@ impl LocalQuantityMacroInput {
     }
 
     /// Generate lift trace doc shadows for each unit identifier in the expression
-    fn generate_lift_trace_doc_shadows_for_expr(&self, _lift_trace: &str) -> TokenStream {
+    fn generate_lift_trace_doc_shadows_for_expr(&self, _lift_trace: &str, storage_type: &Type) -> TokenStream {
         let unit_identifiers = self.unit_expr.collect_unit_identifiers();
         let mut doc_shadows = Vec::new();
 
@@ -111,7 +112,7 @@ impl LocalQuantityMacroInput {
         let comprehensive_trace = self.generate_comprehensive_lift_trace();
 
         for identifier in unit_identifiers {
-            let doc_shadow = self.generate_lift_trace_doc_shadow_for_identifier(&identifier, &comprehensive_trace);
+            let doc_shadow = self.generate_lift_trace_doc_shadow_for_identifier(&identifier, &comprehensive_trace, storage_type);
             doc_shadows.push(doc_shadow);
         }
 
@@ -156,26 +157,6 @@ impl LocalQuantityMacroInput {
         }
     }
 
-    /// Generate the final unit expression string (showing the most appropriate unit name)
-    fn generate_final_unit_expression_string(&self) -> String {
-        // For now, return the same as transformed, but this could be enhanced to show
-        // the most appropriate unit name (e.g., μJ/s → μW)
-        let transformed = self.generate_transformed_unit_expression_string();
-        
-        // Check if this is a power expression that has a common name
-        if transformed == "μJ / s" {
-            "μW".to_string()
-        } else if transformed == "J / s" {
-            "W".to_string()
-        } else if transformed == "kJ / s" {
-            "kW".to_string()
-        } else if transformed == "mJ / s" {
-            "mW".to_string()
-        } else {
-            transformed
-        }
-    }
-
     /// Generate transformed unit expression string for a sub-expression
     fn generate_transformed_unit_expression_string_for_expr(&self, expr: &UnitExpr) -> String {
         match expr {
@@ -197,6 +178,36 @@ impl LocalQuantityMacroInput {
         }
     }
 
+    /// Generate the final unit expression string (showing the most appropriate unit name)
+    fn generate_final_unit_expression_string(&self) -> String {
+        let transformed = self.generate_transformed_unit_expression_string();
+        
+        // Evaluate the dimensions of the transformed expression to find the most appropriate unit name
+        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, _p2, _p3, _p5, _pi) = self.evaluate_dimensions();
+        
+        // Try to find a common unit name for these dimensions
+        if let Some(common_unit_name) = self.find_common_unit_name_for_dimensions((mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp)) {
+            common_unit_name
+        } else {
+            // If no common unit name found, return the transformed expression
+            transformed
+        }
+    }
+
+    /// Get the local context for unit transformations
+    fn get_local_context(&self) -> LocalContext {
+        LocalContext {
+            mass_scale: self.mass_scale.clone(),
+            length_scale: self.length_scale.clone(),
+            time_scale: self.time_scale.clone(),
+            current_scale: self.current_scale.clone(),
+            temperature_scale: self.temperature_scale.clone(),
+            amount_scale: self.amount_scale.clone(),
+            luminosity_scale: self.luminosity_scale.clone(),
+            angle_scale: self.angle_scale.clone(),
+        }
+    }
+
     /// Get the transformed unit symbol for a given unit name
     fn get_transformed_unit_symbol(&self, unit_name: &str) -> String {
         if let Some((dimension, _)) = lookup_unit_literal(unit_name) {
@@ -210,7 +221,17 @@ impl LocalQuantityMacroInput {
                 // Get the prefixed unit name
                 self.get_prefixed_unit_name(unit_name, scale_factor_diff)
             } else {
-                unit_name.to_string()
+                // Check if this is a time unit that needs conversion (like h → s)
+                if let Some(_time_conversion) = self.get_time_unit_conversion(unit_name) {
+                    // For time units with conversion factors, show the base unit (s)
+                    "s".to_string()
+                } else if self.is_prefixed_unit(unit_name) {
+                    // Even if the unit doesn't get transformed in local context,
+                    // if it's a prefixed unit, we should show the base unit in the trace
+                    self.get_base_unit_name(unit_name)
+                } else {
+                    unit_name.to_string()
+                }
             }
         } else {
             unit_name.to_string()
@@ -219,8 +240,8 @@ impl LocalQuantityMacroInput {
 
     /// Generate a comprehensive lift trace for the entire expression
     fn generate_comprehensive_lift_trace(&self) -> String {
-        let original_expr = self.generate_input_unit_expression_decomposed_string();
-        let output_expr = self.generate_output_unit_expression_string();
+        let _original_expr = self.generate_input_unit_expression_decomposed_string();
+        let _output_expr = self.generate_output_unit_expression_string();
         
         let mut trace = String::new();
         
@@ -229,9 +250,9 @@ impl LocalQuantityMacroInput {
         let transformed_expr = self.generate_transformed_unit_expression_string();
         let final_expr = self.generate_final_unit_expression_string();
         
-        // Show the transformation chain: input → transformed → final
+        // Show the transformation chain: input → transformed = final
         if transformed_expr != final_expr {
-            trace.push_str(&format!("{} → {} → {}<br><br>", input_expr, transformed_expr, final_expr));
+            trace.push_str(&format!("{} → {} = {}<br><br>", input_expr, transformed_expr, final_expr));
         } else {
             trace.push_str(&format!("{} → {}<br><br>", input_expr, transformed_expr));
         }
@@ -264,13 +285,13 @@ impl LocalQuantityMacroInput {
     }
 
     /// Generate a doc shadow for a single unit identifier with the enhanced lift trace
-    fn generate_lift_trace_doc_shadow_for_identifier(&self, identifier: &Ident, lift_trace: &str) -> TokenStream {
+    fn generate_lift_trace_doc_shadow_for_identifier(&self, identifier: &Ident, lift_trace: &str, storage_type: &Type) -> TokenStream {
         // Create a new identifier with the same span as the original, using upper camel case
         let doc_ident_name = format!("Local{}", identifier.to_string().to_uppercase());
         let doc_ident = syn::Ident::new(&doc_ident_name, identifier.span());
         
         // Determine the target type for this unit identifier in the local context
-        let target_type = self.get_local_target_type_for_unit(&identifier.to_string());
+        let target_type = self.get_local_target_type_for_unit(&identifier.to_string(), storage_type);
         
         // Use the comprehensive trace directly
         let enhanced_trace = lift_trace.to_string();
@@ -287,57 +308,10 @@ impl LocalQuantityMacroInput {
     /// Generate the input unit expression in symbolic form for the lift trace
     pub fn generate_input_unit_expression_string(&self) -> String {
         // Generate the symbolic unit expression (like "J / s")
-        match &self.unit_expr {
-            UnitExpr::Unit(unit) => unit.name.to_string(),
-            UnitExpr::Div(numerator, denominator) => {
-                let num_str = match numerator.as_ref() {
-                    UnitExpr::Unit(unit) => unit.name.to_string(),
-                    _ => self.generate_unit_expression_string_for_expr(numerator),
-                };
-                let den_str = match denominator.as_ref() {
-                    UnitExpr::Unit(unit) => unit.name.to_string(),
-                    _ => self.generate_unit_expression_string_for_expr(denominator),
-                };
-                format!("{} / {}", num_str, den_str)
-            },
-            UnitExpr::Mul(left, right) => {
-                let left_str = match left.as_ref() {
-                    UnitExpr::Unit(unit) => unit.name.to_string(),
-                    _ => self.generate_unit_expression_string_for_expr(left),
-                };
-                let right_str = match right.as_ref() {
-                    UnitExpr::Unit(unit) => unit.name.to_string(),
-                    _ => self.generate_unit_expression_string_for_expr(right),
-                };
-                format!("{} * {}", left_str, right_str)
-            },
-            UnitExpr::Pow(base, exponent) => {
-                let base_str = self.generate_unit_expression_string_for_expr(base);
-                format!("{}^{}", base_str, exponent)
-            },
-        }
+        let formatter = UnitExprFormatter::new(|unit| unit.name.to_string());
+        formatter.format(&self.unit_expr)
     }
 
-    /// Helper method to generate unit expression string for nested expressions
-    fn generate_unit_expression_string_for_expr(&self, expr: &UnitExpr) -> String {
-        match expr {
-            UnitExpr::Unit(unit) => unit.name.to_string(),
-            UnitExpr::Div(numerator, denominator) => {
-                let num_str = self.generate_unit_expression_string_for_expr(numerator);
-                let den_str = self.generate_unit_expression_string_for_expr(denominator);
-                format!("{} / {}", num_str, den_str)
-            },
-            UnitExpr::Mul(left, right) => {
-                let left_str = self.generate_unit_expression_string_for_expr(left);
-                let right_str = self.generate_unit_expression_string_for_expr(right);
-                format!("{} * {}", left_str, right_str)
-            },
-            UnitExpr::Pow(base, exponent) => {
-                let base_str = self.generate_unit_expression_string_for_expr(base);
-                format!("{}^{}", base_str, exponent)
-            },
-        }
-    }
 
     /// Generate the input unit expression in decomposed form for the lift trace
     pub fn generate_input_unit_expression_decomposed_string(&self) -> String {
@@ -449,17 +423,17 @@ impl LocalQuantityMacroInput {
         &self,
         dimensions: (i16, i16, i16, i16, i16, i16, i16, i16),
     ) -> Option<Ident> {
-        match dimensions {
-            (1, 0, 0, 0, 0, 0, 0, 0) => Some(self.mass_scale.clone()),
-            (0, 1, 0, 0, 0, 0, 0, 0) => Some(self.length_scale.clone()),
-            (0, 0, 1, 0, 0, 0, 0, 0) => Some(self.time_scale.clone()),
-            (0, 0, 0, 1, 0, 0, 0, 0) => Some(self.current_scale.clone()),
-            (0, 0, 0, 0, 1, 0, 0, 0) => Some(self.temperature_scale.clone()),
-            (0, 0, 0, 0, 0, 1, 0, 0) => Some(self.amount_scale.clone()),
-            (0, 0, 0, 0, 0, 0, 1, 0) => Some(self.luminosity_scale.clone()),
-            (0, 0, 0, 0, 0, 0, 0, 1) => Some(self.angle_scale.clone()),
-            _ => None, // Compound unit
-        }
+        let processor = DimensionProcessor::new(dimensions);
+        processor.get_scale_identifier(
+            &self.mass_scale,
+            &self.length_scale,
+            &self.time_scale,
+            &self.current_scale,
+            &self.temperature_scale,
+            &self.amount_scale,
+            &self.luminosity_scale,
+            &self.angle_scale,
+        )
     }
 
     /// Convert local base units array to string references for use in dimension_exponents_to_unit_expression
@@ -469,22 +443,14 @@ impl LocalQuantityMacroInput {
 
     /// Generate a quote! block for a simple base unit with the given scale identifier
     fn generate_simple_base_unit_quote(&self, scale_ident: &Ident, storage_type: &Type, lift_trace_doc_shadows: &TokenStream) -> TokenStream {
-        quote! {
-            <whippyunits::Helper<{
-                #lift_trace_doc_shadows
-                0
-            }, whippyunits::default_declarators::#scale_ident<#storage_type>> as whippyunits::GetSecondGeneric>::Type
-        }
+        let generator = QuoteGenerator::new(storage_type, lift_trace_doc_shadows);
+        generator.generate_for_simple_base_unit(scale_ident)
     }
 
     /// Generate a quote! block for a compound unit with the given unit expression
     fn generate_compound_unit_quote(&self, unit_expr_parsed: &syn::Expr, storage_type: &Type, lift_trace_doc_shadows: &TokenStream) -> TokenStream {
-        quote! {
-            <whippyunits::Helper<{
-                #lift_trace_doc_shadows
-                0
-            }, whippyunits::unit!(#unit_expr_parsed, #storage_type)> as whippyunits::GetSecondGeneric>::Type
-        }
+        let generator = QuoteGenerator::new(storage_type, lift_trace_doc_shadows);
+        generator.generate_for_compound_unit(unit_expr_parsed)
     }
 
     /// Evaluate unit expression dimensions and return the exponents
@@ -570,7 +536,15 @@ impl LocalQuantityMacroInput {
     }
 
     /// Get the local target type for a single unit identifier (reuses existing lift logic)
-    fn get_local_target_type_for_unit(&self, unit_name: &str) -> TokenStream {
+    fn get_local_target_type_for_unit(&self, unit_name: &str, storage_type: &Type) -> TokenStream {
+        // Check if this is a time unit that needs conversion (like h → s)
+        if let Some(_time_conversion) = self.get_time_unit_conversion(unit_name) {
+            // For time units with conversion factors, return the target time unit declarator
+            return quote! {
+                whippyunits::default_declarators::Second
+            };
+        }
+        
         // First, try to use the shared helper for units that don't get transformed in local context
         if let Some(shared_type) = crate::get_declarator_type_for_unit(unit_name) {
             // Check if this unit gets transformed in the local context
@@ -582,49 +556,23 @@ impl LocalQuantityMacroInput {
         }
         
         // For units that get transformed or don't have declarator types, use local logic
-        self.get_local_transformed_type_for_unit(unit_name)
+        self.get_local_transformed_type_for_unit(unit_name, storage_type)
     }
 
     /// Check if a unit gets transformed in the local context
     fn unit_gets_transformed_in_local_context(&self, unit_name: &str) -> bool {
-        // Check if this is a simple base unit that maps to a local scale
-        if let Some((dimension, _)) = lookup_unit_literal(unit_name) {
-            let dimensions = dimension.exponents;
-            
-            // If it's a simple base unit, check if it gets transformed
-            if let Some(_scale_ident) = self.get_scale_for_dimensions(dimensions) {
-                // For simple base units, check if there's a scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
-                return scale_factor_diff != 0;
-            }
-            
-            // For compound units, check if any of their base units get transformed
-            return self.compound_unit_gets_transformed(dimensions);
-        }
-        
-        false
+        let local_context = self.get_local_context();
+        local_context.unit_gets_transformed_in_local_context(unit_name)
     }
 
     /// Check if a compound unit gets transformed in the local context
     fn compound_unit_gets_transformed(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> bool {
-        // Check each dimension to see if it would use a different local scale
-        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = dimensions;
-        
-        // Check if any base dimension gets transformed
-        if mass_exp != 0 && self.unit_gets_transformed_in_local_context("kg") { return true; }
-        if length_exp != 0 && self.unit_gets_transformed_in_local_context("m") { return true; }
-        if time_exp != 0 && self.unit_gets_transformed_in_local_context("s") { return true; }
-        if current_exp != 0 && self.unit_gets_transformed_in_local_context("A") { return true; }
-        if temp_exp != 0 && self.unit_gets_transformed_in_local_context("K") { return true; }
-        if amount_exp != 0 && self.unit_gets_transformed_in_local_context("mol") { return true; }
-        if lum_exp != 0 && self.unit_gets_transformed_in_local_context("cd") { return true; }
-        if angle_exp != 0 && self.unit_gets_transformed_in_local_context("rad") { return true; }
-        
-        false
+        let local_context = self.get_local_context();
+        local_context.compound_unit_gets_transformed(dimensions)
     }
 
     /// Get the local transformed type for a unit (fallback when shared helper isn't sufficient)
-    fn get_local_transformed_type_for_unit(&self, unit_name: &str) -> TokenStream {
+    fn get_local_transformed_type_for_unit(&self, unit_name: &str, _storage_type: &Type) -> TokenStream {
         // For units that get transformed, we need to generate the local type
         // This should match the logic in handle_single_unit but return just the type
         
@@ -635,7 +583,7 @@ impl LocalQuantityMacroInput {
             if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
                 // For simple base units, the target type is the local scale declarator
                 quote! {
-                    whippyunits::default_declarators::#scale_ident<f64>
+                    whippyunits::default_declarators::#scale_ident
                 }
             } else {
                 // For compound units, calculate the scale factor difference and find the appropriate prefixed type
@@ -671,298 +619,101 @@ impl LocalQuantityMacroInput {
 
     /// Calculate the scale factor difference between local and default units
     fn calculate_scale_factor_difference(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> i16 {
-        use whippyunits_default_dimensions::{BASE_UNITS, scale_type_to_actual_unit_symbol};
-        
-        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = dimensions;
-        
-        let mut total_scale_diff = 0;
-        
-        // Check each dimension for scale differences using the centralized utilities
-        if mass_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("kg", &self.mass_scale) * mass_exp;
-        }
-        if length_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("m", &self.length_scale) * length_exp;
-        }
-        if time_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("s", &self.time_scale) * time_exp;
-        }
-        if current_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("A", &self.current_scale) * current_exp;
-        }
-        if temp_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("K", &self.temperature_scale) * temp_exp;
-        }
-        if amount_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("mol", &self.amount_scale) * amount_exp;
-        }
-        if lum_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("cd", &self.luminosity_scale) * lum_exp;
-        }
-        if angle_exp != 0 {
-            total_scale_diff += self.get_scale_difference_for_base_unit("rad", &self.angle_scale) * angle_exp;
-        }
-        
-        total_scale_diff
+        let local_context = self.get_local_context();
+        local_context.calculate_scale_factor_difference(dimensions)
     }
 
     /// Get the scale difference for a specific base unit using centralized utilities
-    fn get_scale_difference_for_base_unit(&self, default_unit: &str, local_scale: &Ident) -> i16 {
-        use whippyunits_default_dimensions::{BASE_UNITS, scale_type_to_actual_unit_symbol, is_prefixed_base_unit, lookup_si_prefix};
-        
-        // Get the default base unit info
-        let _default_base_unit = BASE_UNITS.iter().find(|u| u.symbol == default_unit);
-        
-        // Get the local unit symbol
-        let local_unit_symbol = scale_type_to_actual_unit_symbol(&local_scale.to_string()).unwrap_or_else(|| default_unit.to_string());
-        
-        // If the local unit is the same as default, no scale difference
-        if local_unit_symbol == default_unit {
-            return 0;
-        }
-        
-        // Check if the local unit is a prefixed version of the default unit
-        if let Some((prefix_symbol, base_symbol)) = is_prefixed_base_unit(&local_unit_symbol) {
-            if base_symbol == default_unit {
-                // Get the prefix scale factor
-                if let Some(prefix_info) = lookup_si_prefix(prefix_symbol) {
-                    return prefix_info.scale_factor;
-                }
-            }
-        }
-        
-        // If we can't determine the scale difference, return 0
-        0
+    fn get_scale_difference_for_base_unit(&self, default_unit: &str, _local_scale: &Ident) -> i16 {
+        let local_context = self.get_local_context();
+        local_context.get_scale_difference_for_base_unit(default_unit)
     }
 
     /// Find a prefixed type by scale factor using centralized utilities
     fn find_prefixed_type_by_scale_factor(&self, unit_name: &str, scale_factor_diff: i16) -> Option<TokenStream> {
-        use whippyunits_default_dimensions::{SI_PREFIXES, lookup_si_prefix};
+        let local_context = self.get_local_context();
+        local_context.find_prefixed_type_by_scale_factor(unit_name, scale_factor_diff)
+    }
+
+    /// Generate enhanced lift trace for a specific identifier with bolded formatting
+    fn generate_enhanced_lift_trace_for_identifier(&self, identifier: &Ident, lift_trace: &str) -> String {
+        let local_context = self.get_local_context();
+        local_context.generate_enhanced_lift_trace_for_identifier(identifier, lift_trace)
+    }
+
+    /// Bold a specific identifier within an expression
+    fn bold_identifier_in_expression(&self, expression: &str, identifier: &str) -> String {
+        let local_context = self.get_local_context();
+        local_context.bold_identifier_in_expression(expression, identifier)
+    }
+
+    /// Get transformation details for a specific identifier
+    fn get_transformation_details_for_identifier(&self, unit_name: &str) -> crate::lift_trace::TransformationDetails {
+        let local_context = self.get_local_context();
+        local_context.get_transformation_details_for_identifier(unit_name)
+    }
+
+    /// Generate detailed transformation explanation
+    fn generate_transformation_explanation(&self, unit_name: &str, target_type: &str, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16), scale_factor_diff: i16) -> String {
+        let local_context = self.get_local_context();
+        local_context.generate_transformation_explanation(unit_name, target_type, dimensions, scale_factor_diff)
+    }
+
+    /// Get the proper prefixed unit name from scale factor difference
+    fn get_prefixed_unit_name(&self, unit_name: &str, scale_factor_diff: i16) -> String {
+        let local_context = self.get_local_context();
+        local_context.get_prefixed_unit_name(unit_name, scale_factor_diff)
+    }
+
+    /// Get the long name for a unit (e.g., "J" -> "Joule", "W" -> "Watt")
+    fn get_unit_long_name(&self, unit_name: &str) -> String {
+        let local_context = self.get_local_context();
+        local_context.get_unit_long_name(unit_name)
+    }
+
+    /// Check if a unit is a prefixed unit (like kW, mW, etc.)
+    fn is_prefixed_unit(&self, unit_name: &str) -> bool {
+        let local_context = self.get_local_context();
+        local_context.is_prefixed_unit(unit_name)
+    }
+
+    /// Get the base unit name from a prefixed unit (e.g., "kW" -> "W")
+    fn get_base_unit_name(&self, unit_name: &str) -> String {
+        let local_context = self.get_local_context();
+        local_context.get_base_unit_name(unit_name)
+    }
+
+    /// Get time unit conversion information (e.g., "h" -> "h → s, factor: 3600")
+    fn get_time_unit_conversion(&self, unit_name: &str) -> Option<String> {
+        let local_context = self.get_local_context();
+        local_context.get_time_unit_conversion(unit_name)
+    }
+
+    /// Find a common unit name for given dimensions by looking up known units
+    fn find_common_unit_name_for_dimensions(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> Option<String> {
+        use whippyunits_default_dimensions::{get_units_by_exponents, SI_PREFIXES};
         
-        // Find the prefix that matches the scale factor difference
-        for prefix_info in SI_PREFIXES {
-            if prefix_info.scale_factor == scale_factor_diff {
-                // Try to find a prefixed version of this unit
-                let prefixed_unit_name = format!("{}{}", prefix_info.symbol, unit_name);
-                if let Some(declarator_type) = crate::get_declarator_type_for_unit(&prefixed_unit_name) {
-                    return Some(declarator_type);
+        // Use the existing infrastructure to find units with these dimensions
+        let matching_units = get_units_by_exponents(dimensions);
+        
+        if let Some((_dimension, unit)) = matching_units.first() {
+            // Get the primary symbol for this unit
+            let base_unit_symbol = unit.symbols.first()?;
+            
+            // Calculate the scale factor difference to determine the appropriate prefix
+            let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+            
+            if scale_factor_diff != 0 {
+                // Find the appropriate prefix
+                if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.scale_factor == scale_factor_diff) {
+                    let prefix_symbol = if prefix_info.symbol == "u" { "μ" } else { prefix_info.symbol };
+                    return Some(format!("{}{}", prefix_symbol, base_unit_symbol));
                 }
+            } else {
+                return Some(base_unit_symbol.to_string());
             }
         }
         
         None
     }
-
-    /// Generate enhanced lift trace for a specific identifier with bolded formatting
-    fn generate_enhanced_lift_trace_for_identifier(&self, identifier: &Ident, _lift_trace: &str) -> String {
-        let unit_name = identifier.to_string();
-        
-        // Get the original and output expressions
-        let original_expr = self.generate_input_unit_expression_decomposed_string();
-        let output_expr = self.generate_output_unit_expression_string();
-        
-        // Generate the full aggregate transformation with the specific identifier bolded
-        let mut trace = String::new();
-        
-        // Show the full expression transformation with bolded identifier
-        let bolded_original = self.bold_identifier_in_expression(&original_expr, &unit_name);
-        let bolded_output = self.bold_identifier_in_expression(&output_expr, &unit_name);
-        
-        trace.push_str(&format!("**{}** = {}\n", bolded_original, original_expr));
-        trace.push_str("         ↓\n");
-        trace.push_str(&format!("         = **{}**\n", bolded_output));
-        
-        // Add transformation details for this specific identifier
-        trace.push_str("\nTransformations:\n");
-        trace.push_str(&self.get_transformation_details_for_identifier(&unit_name).details);
-        
-        trace
-    }
-
-    /// Bold a specific identifier within an expression
-    fn bold_identifier_in_expression(&self, expression: &str, identifier: &str) -> String {
-        // Simple replacement - in a more sophisticated implementation, we could parse the expression
-        // and only bold the identifier when it appears as a standalone unit
-        expression.replace(identifier, &format!("**{}**", identifier))
-    }
-
-    /// Get transformation details for a specific identifier
-    fn get_transformation_details_for_identifier(&self, unit_name: &str) -> TransformationDetails {
-        if let Some((dimension, _)) = lookup_unit_literal(unit_name) {
-            let dimensions = dimension.exponents;
-            
-            // Check if this unit gets transformed
-            if self.unit_gets_transformed_in_local_context(unit_name) {
-                // Calculate the scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
-                
-                // Get the target type
-                let target_type = if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-                    // Simple base unit
-                    format!("{}", scale_ident)
-                } else {
-                    // Compound unit - find the prefixed type
-                    if let Some(_prefixed_type) = self.find_prefixed_type_by_scale_factor(unit_name, scale_factor_diff) {
-                        // Extract the type name from the token stream
-                        format!("Prefixed{}", unit_name) // This is a placeholder - we'd need to parse the token stream
-                    } else {
-                        unit_name.to_string()
-                    }
-                };
-                
-                // Generate the transformation details
-                let details = self.generate_transformation_explanation(unit_name, &target_type, dimensions, scale_factor_diff);
-                
-                TransformationDetails {
-                    target_type,
-                    details,
-                }
-            } else {
-                // No transformation
-                TransformationDetails {
-                    target_type: unit_name.to_string(),
-                    details: format!("**{}** (no change)", unit_name),
-                }
-            }
-        } else {
-            // Unknown unit
-            TransformationDetails {
-                target_type: unit_name.to_string(),
-                details: format!("  **{}**: Unknown unit", unit_name),
-            }
-        }
-    }
-
-    /// Generate detailed transformation explanation
-    fn generate_transformation_explanation(&self, unit_name: &str, _target_type: &str, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16), scale_factor_diff: i16) -> String {
-        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = dimensions;
-        
-        // Generate the dimensional analysis
-        let mut dim_parts = Vec::new();
-        if mass_exp != 0 { dim_parts.push(format!("kg^{}", mass_exp)); }
-        if length_exp != 0 { dim_parts.push(format!("m^{}", length_exp)); }
-        if time_exp != 0 { dim_parts.push(format!("s^{}", time_exp)); }
-        if current_exp != 0 { dim_parts.push(format!("A^{}", current_exp)); }
-        if temp_exp != 0 { dim_parts.push(format!("K^{}", temp_exp)); }
-        if amount_exp != 0 { dim_parts.push(format!("mol^{}", amount_exp)); }
-        if lum_exp != 0 { dim_parts.push(format!("cd^{}", lum_exp)); }
-        if angle_exp != 0 { dim_parts.push(format!("rad^{}", angle_exp)); }
-        
-        let original_dims = dim_parts.join(" * ");
-        
-        // Generate the transformed dimensions
-        let mut transformed_parts = Vec::new();
-        if mass_exp != 0 { 
-            let mass_unit = if self.unit_gets_transformed_in_local_context("kg") { "kg" } else { "kg" };
-            transformed_parts.push(format!("{}^{}", mass_unit, mass_exp)); 
-        }
-        if length_exp != 0 { 
-            let length_unit = if self.unit_gets_transformed_in_local_context("m") { "mm" } else { "m" };
-            transformed_parts.push(format!("{}^{}", length_unit, length_exp)); 
-        }
-        if time_exp != 0 { 
-            let time_unit = if self.unit_gets_transformed_in_local_context("s") { "s" } else { "s" };
-            transformed_parts.push(format!("{}^{}", time_unit, time_exp)); 
-        }
-        if current_exp != 0 { 
-            let current_unit = if self.unit_gets_transformed_in_local_context("A") { "A" } else { "A" };
-            transformed_parts.push(format!("{}^{}", current_unit, current_exp)); 
-        }
-        if temp_exp != 0 { 
-            let temp_unit = if self.unit_gets_transformed_in_local_context("K") { "K" } else { "K" };
-            transformed_parts.push(format!("{}^{}", temp_unit, temp_exp)); 
-        }
-        if amount_exp != 0 { 
-            let amount_unit = if self.unit_gets_transformed_in_local_context("mol") { "mol" } else { "mol" };
-            transformed_parts.push(format!("{}^{}", amount_unit, amount_exp)); 
-        }
-        if lum_exp != 0 { 
-            let lum_unit = if self.unit_gets_transformed_in_local_context("cd") { "cd" } else { "cd" };
-            transformed_parts.push(format!("{}^{}", lum_unit, lum_exp)); 
-        }
-        if angle_exp != 0 { 
-            let angle_unit = if self.unit_gets_transformed_in_local_context("rad") { "rad" } else { "rad" };
-            transformed_parts.push(format!("{}^{}", angle_unit, angle_exp)); 
-        }
-        
-        let transformed_dims = transformed_parts.join(" * ");
-        
-        // Get the proper prefixed unit name
-        let prefixed_unit_name = self.get_prefixed_unit_name(unit_name, scale_factor_diff);
-        
-        // Generate transformation explanation as individual lines
-        let mut lines = Vec::new();
-        lines.push(format!("**{}** = {}", unit_name, original_dims));
-        
-        // Add transformation steps
-        if scale_factor_diff != 0 {
-            // Find which dimensions are being transformed
-            if length_exp != 0 && self.unit_gets_transformed_in_local_context("m") {
-                lines.push(format!("       ↓ (length: m → mm, factor: 10^-3)"));
-                if length_exp != 1 {
-                    lines.push(format!("       ↓ (exponent: {}, total factor: 10^{})", length_exp, scale_factor_diff));
-                }
-            }
-            if mass_exp != 0 && self.unit_gets_transformed_in_local_context("kg") {
-                lines.push(format!("       ↓ (mass: kg → g, factor: 10^3)"));
-                if mass_exp != 1 {
-                    lines.push(format!("       ↓ (exponent: {}, total factor: 10^{})", mass_exp, scale_factor_diff));
-                }
-            }
-            // Add other dimension transformations as needed
-        }
-        
-        lines.push(format!("       = {}", transformed_dims));
-        lines.push(format!("       = **{}**", prefixed_unit_name));
-        
-        // Join with newlines for the details string
-        lines.join("\n")
-    }
-
-    /// Get the proper prefixed unit name from scale factor difference
-    fn get_prefixed_unit_name(&self, unit_name: &str, scale_factor_diff: i16) -> String {
-        use whippyunits_default_dimensions::SI_PREFIXES;
-        
-        // Find the prefix that matches the scale factor difference
-        if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.scale_factor == scale_factor_diff) {
-            // Use the Unicode symbol for micro (μ) instead of 'u' for better display
-            let prefix_symbol = if prefix_info.symbol == "u" { "μ" } else { prefix_info.symbol };
-            format!("{}{}", prefix_symbol, unit_name)
-        } else {
-            unit_name.to_string()
-        }
-    }
-
-    /// Get the long name for a unit (e.g., "J" -> "Joule", "W" -> "Watt")
-    fn get_unit_long_name(&self, unit_name: &str) -> String {
-        use whippyunits_default_dimensions::lookup_unit_literal;
-        
-        if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
-            unit.long_name.to_string()
-        } else {
-            unit_name.to_string()
-        }
-    }
-}
-
-/// Helper struct for transformation details
-struct TransformationDetails {
-    target_type: String,
-    details: String,
-}
-
-/// Check if a unit symbol is a prefixed compound unit (kPa, mW, etc.)
-fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
-    // Use the new is_prefixed_base_unit function from the util module
-    if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
-        // Check if the base unit is a compound unit (has multiple non-zero dimension exponents)
-        if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
-            let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
-            let non_zero_count = [m, l, t, c, temp, a, lum, ang].iter().filter(|&&x| x != 0).count();
-            if non_zero_count > 1 {
-                return Some((base_symbol, prefix));
-            }
-        }
-    }
-    None
 }
