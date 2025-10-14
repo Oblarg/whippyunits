@@ -1,6 +1,5 @@
 use quote::quote;
 use whippyunits_core::{Dimension, SiPrefix};
-use whippyunits_core::api_helpers::{get_atomic_dimensions, get_all_dimensions};
 
 /// Generate the custom_literal module with all unit macros
 /// This uses only the canonical data from whippyunits-core
@@ -146,17 +145,17 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     }
 
     // First, try to find the unit in the unified dimensions data
-    if let Some((_dimension, unit)) = whippyunits_core::api_helpers::lookup_unit_literal(unit_symbol) {
+    if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_symbol) {
         // Check if this is actually a compound unit that should use quantity! macro
         if is_compound_unit(unit_symbol) {
             return format!("__COMPOUND_UNIT__{}", unit_symbol);
         }
         
         // Check if this is actually a prefixed unit that was returned as base unit
-        if let Some((_base_symbol, prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
+        if let Some((prefix, _base_symbol)) = SiPrefix::strip_any_prefix_symbol(unit_symbol) {
             // This is a prefixed unit, so we need to construct the proper method name
             let base_method = make_plural(unit.name);
-            let prefix_name = get_prefix_name(&prefix);
+            let prefix_name = get_prefix_name(prefix.symbol());
             return format!("{}{}", prefix_name, base_method);
         } else {
             // This is a direct unit, use it as-is
@@ -171,22 +170,20 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     }
 
     // Check if this is a prefixed compound unit (kJ, mW, etc.)
-    if let Some((_base_symbol, _prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
+    if let Some((_prefix, _base_symbol)) = SiPrefix::strip_any_prefix_symbol(unit_symbol) {
         return format!("__COMPOUND_UNIT__{}", unit_symbol);
     }
 
     // If not found, try to parse as a prefixed unit
-    if let Some((base_symbol, prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
-        if let Some((_dimension, unit)) =
-            whippyunits_core::api_helpers::lookup_unit_literal(&base_symbol)
-        {
+    if let Some((prefix, base_symbol)) = SiPrefix::strip_any_prefix_symbol(unit_symbol) {
+        if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(&base_symbol) {
             let base_method = make_plural(unit.name);
-            let prefix_name = get_prefix_name(&prefix);
+            let prefix_name = get_prefix_name(prefix.symbol());
             let result = format!("{}{}", prefix_name, base_method);
             // Add a compile-time error to see what's being generated
             if unit_symbol == "ms" {
                 panic!("DEBUG: ms -> base_symbol={}, prefix={}, base_method={}, prefix_name={}, result={}", 
-                       base_symbol, prefix, base_method, prefix_name, result);
+                       base_symbol, prefix.symbol(), base_method, prefix_name, result);
             }
             return result;
         }
@@ -204,9 +201,7 @@ fn make_plural(singular: &str) -> String {
 
 /// Check if a unit symbol is a compound unit (J, W, N, etc.) or derived unit (Hz, lm, etc.)
 fn is_compound_unit(unit_symbol: &str) -> bool {
-    use whippyunits_core::Dimension;
-    
-    if let Some((dimension, _)) = whippyunits_core::api_helpers::lookup_unit_literal(unit_symbol) {
+    if let Some((_unit, dimension)) = Dimension::find_unit_by_symbol(unit_symbol) {
         // Check if this is not one of the 8 base dimensions
         return !Dimension::BASIS.contains(dimension);
     }
@@ -216,7 +211,7 @@ fn is_compound_unit(unit_symbol: &str) -> bool {
 
 /// Get the prefix name for a prefix symbol (e.g., "k" -> "kilo", "m" -> "milli")
 fn get_prefix_name(prefix_symbol: &str) -> String {
-    if let Some(prefix_info) = whippyunits_core::api_helpers::lookup_si_prefix(prefix_symbol) {
+    if let Some(prefix_info) = SiPrefix::from_symbol(prefix_symbol) {
         // Convert the long name to a method-friendly name
         match prefix_info.name() {
             "kilo" => "kilo".to_string(),
