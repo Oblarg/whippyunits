@@ -118,15 +118,6 @@ impl DimensionProcessor {
     pub fn new(dimensions: DynDimensionExponents) -> Self {
         Self { dimensions }
     }
-    
-    pub fn from_tuple(dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> Self {
-        Self { 
-            dimensions: DynDimensionExponents([
-                dimensions.0, dimensions.1, dimensions.2, dimensions.3,
-                dimensions.4, dimensions.5, dimensions.6, dimensions.7
-            ])
-        }
-    }
 
     /// Apply a function to each non-zero dimension
     pub fn apply_to_each<F>(&self, mut f: F) 
@@ -143,18 +134,6 @@ impl DimensionProcessor {
         if amount_exp != 0 { f("mol", amount_exp); }
         if lum_exp != 0 { f("cd", lum_exp); }
         if angle_exp != 0 { f("rad", angle_exp); }
-    }
-
-    /// Check if this represents a simple base unit (single dimension = 1, others = 0)
-    pub fn is_simple_base_unit(&self) -> bool {
-        let [mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp] = self.dimensions.0;
-        let non_zero_count = [mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp]
-            .iter()
-            .filter(|&&x| x != 0)
-            .count();
-        non_zero_count == 1 && [mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp]
-            .iter()
-            .any(|&x| x == 1)
     }
 
     /// Get the scale identifier for simple base units
@@ -375,6 +354,7 @@ impl LocalContext {
                 
                 // Try to find a prefixed version of the base unit
                 let prefixed_unit_name = format!("{}{}", prefix_info.symbol(), base_unit_name);
+                
                 if let Some(declarator_type) = crate::get_declarator_type_for_unit(&prefixed_unit_name) {
                     return Some(declarator_type);
                 }

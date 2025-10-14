@@ -720,6 +720,7 @@ impl LocalQuantityMacroInput {
         // For units that get transformed, we need to generate the local type
         // This should match the logic in handle_single_unit but return just the type
         
+        // First, try to find the unit by symbol (for base units)
         if let Some((_unit, dimension)) = Dimension::find_unit_by_symbol(unit_name) {
             let dimensions = dimension.exponents;
             
@@ -753,10 +754,29 @@ impl LocalQuantityMacroInput {
                 }
             }
         } else {
-            // Unknown unit, fall back to using it as-is
-            match crate::get_declarator_type_for_unit(unit_name) {
-                Some(declarator_type) => declarator_type,
-                None => quote! { () },
+            // Unit not found by symbol, might be a prefixed unit
+            // Try to find it using the declarator type lookup
+            if let Some(declarator_type) = crate::get_declarator_type_for_unit(unit_name) {
+                // This is a prefixed unit, we need to calculate the scale factor difference
+                // and find the appropriate transformed type
+                let (dimensions, _scales) = self.evaluate_dimensions();
+                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                
+                if scale_factor_diff != 0 {
+                    // Try to find a prefixed version that matches the scale factor
+                    if let Some(prefixed_type) = self.find_prefixed_type_by_scale_factor(unit_name, scale_factor_diff) {
+                        prefixed_type
+                    } else {
+                        // Fall back to original if no prefixed type found
+                        declarator_type
+                    }
+                } else {
+                    // No scale factor difference, use the original type
+                    declarator_type
+                }
+            } else {
+                // Unknown unit, fall back to using it as-is
+                quote! { () }
             }
         }
     }
