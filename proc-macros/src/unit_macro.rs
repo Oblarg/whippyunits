@@ -3,13 +3,20 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::{Caret, Comma, Slash, Star};
 use syn::{Ident, LitInt, Type};
-use whippyunits_core::{Dimension, SiPrefix, Unit};
+use whippyunits_core::{Dimension, SiPrefix, Unit, dimension_exponents::{DynDimensionExponents, DimensionExponents}, scale_exponents::ScaleExponents};
 
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
 pub struct UnitExprUnit {
     pub name: Ident,
     pub exponent: i16,
+}
+
+/// Result of evaluating a unit expression
+#[derive(Debug, Clone, Copy)]
+pub struct UnitEvaluationResult {
+    pub dimension_exponents: DynDimensionExponents,
+    pub scale_exponents: ScaleExponents,
 }
 
 
@@ -133,97 +140,62 @@ impl UnitExpr {
     }
 
     /// Evaluate the unit expression to get dimension exponents and scale factors
-    pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+    pub fn evaluate(&self) -> UnitEvaluationResult {
         match self {
         UnitExpr::Unit(unit) => {
             if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
-                let (mass, length, time, current, temp, amount, lum, angle) = (
-                    unit_info.exponents.0[0], unit_info.exponents.0[1], unit_info.exponents.0[2], unit_info.exponents.0[3],
-                    unit_info.exponents.0[4], unit_info.exponents.0[5], unit_info.exponents.0[6], unit_info.exponents.0[7]
-                );
-                let (p2, p3, p5, pi) = (unit_info.scale.0[0], unit_info.scale.0[1], unit_info.scale.0[2], unit_info.scale.0[3]);
+                // Get the dimension exponents and scale exponents from the unit
+                let mut dimension_exponents = unit_info.exponents.value();
+                let mut scale_exponents = unit_info.scale;
                 
                 // Check if this is a prefixed unit and adjust scale factors accordingly
-                let (adjusted_p2, adjusted_p3, adjusted_p5, adjusted_pi) = if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
+                if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
                     let prefix_factor = prefix.factor_log10();
-                    // Apply the prefix factor to the scale factors
-                    (p2 + prefix_factor, p3, p5 + prefix_factor, pi)
-                } else {
-                    (p2, p3, p5, pi)
-                };
+                    // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
+                    scale_exponents = scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                }
                 
-                (
-                    mass * unit.exponent,
-                    length * unit.exponent,
-                    time * unit.exponent,
-                    current * unit.exponent,
-                    temp * unit.exponent,
-                    amount * unit.exponent,
-                    lum * unit.exponent,
-                    angle * unit.exponent,
-                    adjusted_p2 * unit.exponent,
-                    adjusted_p3 * unit.exponent,
-                    adjusted_p5 * unit.exponent,
-                    adjusted_pi * unit.exponent,
-                )
+                // Apply the unit exponent to both dimension and scale exponents
+                if unit.exponent != 1 {
+                    dimension_exponents = dimension_exponents * unit.exponent;
+                    scale_exponents = scale_exponents.scalar_exp(unit.exponent);
+                }
+                
+                UnitEvaluationResult {
+                    dimension_exponents,
+                    scale_exponents,
+                }
             } else {
                 // Handle dimensionless or unknown units
-                (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                UnitEvaluationResult {
+                    dimension_exponents: DynDimensionExponents::ZERO,
+                    scale_exponents: ScaleExponents::IDENTITY,
+                }
             }
         }
             UnitExpr::Mul(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, pia) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, pib) = b.evaluate();
-                (
-                    ma + mb,
-                    la + lb,
-                    ta + tb,
-                    ca + cb,
-                    tempa + tempb,
-                    aa + ab,
-                    luma + lumb,
-                    anga + angb,
-                    p2a + p2b,
-                    p3a + p3b,
-                    p5a + p5b,
-                    pia + pib,
-                )
+                let result_a = a.evaluate();
+                let result_b = b.evaluate();
+                UnitEvaluationResult {
+                    dimension_exponents: result_a.dimension_exponents + result_b.dimension_exponents,
+                    scale_exponents: result_a.scale_exponents.mul(result_b.scale_exponents),
+                }
             }
             UnitExpr::Div(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, pia) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb, p2b, p3b, p5b, pib) = b.evaluate();
-                (
-                    ma - mb,
-                    la - lb,
-                    ta - tb,
-                    ca - cb,
-                    tempa - tempb,
-                    aa - ab,
-                    luma - lumb,
-                    anga - angb,
-                    p2a - p2b,
-                    p3a - p3b,
-                    p5a - p5b,
-                    pia - pib,
-                )
+                let result_a = a.evaluate();
+                let result_b = b.evaluate();
+                UnitEvaluationResult {
+                    dimension_exponents: result_a.dimension_exponents + (-result_b.dimension_exponents),
+                    scale_exponents: result_a.scale_exponents.mul(result_b.scale_exponents.neg()),
+                }
             }
             UnitExpr::Pow(base, exp) => {
-                let (m, l, t, c, temp, a, lum, ang, p2, p3, p5, pi) = base.evaluate();
+                let result = base.evaluate();
                 let exp_val: i16 = exp.base10_parse().unwrap();
-                (
-                    m * exp_val,
-                    l * exp_val,
-                    t * exp_val,
-                    c * exp_val,
-                    temp * exp_val,
-                    a * exp_val,
-                    lum * exp_val,
-                    ang * exp_val,
-                    p2 * exp_val,
-                    p3 * exp_val,
-                    p5 * exp_val,
-                    pi * exp_val,
-                )
+                UnitEvaluationResult {
+                    dimension_exponents: result.dimension_exponents * exp_val,
+                    scale_exponents: result.scale_exponents.scalar_exp(exp_val),
+                }
             }
         }
     }
@@ -243,7 +215,7 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     }
 
     // First check if this is a prefixed unit (like kg, kW, mm, etc.)
-    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+    if let Some((_prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
         // Check if the base unit exists
         if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
             // For prefixed units, we need to return a unit with adjusted scale factors
@@ -295,6 +267,7 @@ impl Parse for UnitMacroInput {
 
 impl UnitMacroInput {
     pub fn expand(self) -> TokenStream {
+        let result = self.unit_expr.evaluate();
         let (
             mass_exp,
             length_exp,
@@ -304,11 +277,22 @@ impl UnitMacroInput {
             amount_exp,
             lum_exp,
             angle_exp,
-            p2,
-            p3,
-            p5,
-            pi,
-        ) = self.unit_expr.evaluate();
+        ) = (
+            result.dimension_exponents.0[0],
+            result.dimension_exponents.0[1],
+            result.dimension_exponents.0[2],
+            result.dimension_exponents.0[3],
+            result.dimension_exponents.0[4],
+            result.dimension_exponents.0[5],
+            result.dimension_exponents.0[6],
+            result.dimension_exponents.0[7],
+        );
+        let (p2, p3, p5, pi) = (
+            result.scale_exponents.0[0],
+            result.scale_exponents.0[1],
+            result.scale_exponents.0[2],
+            result.scale_exponents.0[3],
+        );
         
 
         // Use the specified storage type or default to f64

@@ -480,10 +480,10 @@ impl LocalQuantityMacroInput {
     /// Shared helper to generate unit expression string with given base units
     fn generate_unit_expression_with_base_units(&self, base_units: &[(&str, &str); 8]) -> String {
         // Evaluate the unit expression to get dimension exponents
-        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, _p2, _p3, _p5, _pi) = self.unit_expr.evaluate();
+        let result = self.unit_expr.evaluate();
         
         // Use the provided base units to generate the expression
-        dimension_exponents_to_unit_expression_with_base_units(DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp]), base_units)
+        dimension_exponents_to_unit_expression_with_base_units(result.dimension_exponents, base_units)
     }
 
     /// Generate the output unit expression string for the lift trace
@@ -581,10 +581,8 @@ impl LocalQuantityMacroInput {
 
     /// Evaluate unit expression dimensions and return the exponents
     fn evaluate_dimensions(&self) -> (DynDimensionExponents, ScaleExponents) {
-        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, p2, p3, p5, pi) = self.unit_expr.evaluate();
-        let dimensions = DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp]);
-        let scales = ScaleExponents([p2, p3, p5, pi]);
-        (dimensions, scales)
+        let result = self.unit_expr.evaluate();
+        (result.dimension_exponents, result.scale_exponents)
     }
 
     /// Generate unit expression string from dimensions using local base units
