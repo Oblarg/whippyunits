@@ -126,7 +126,16 @@ impl SiPrefix {
     pub fn strip_any_prefix_symbol(s: &str) -> Option<(&'static Self, &str)> {
         Self::ALL
             .iter()
-            .find_map(|prefix| prefix.strip_prefix_symbol(s).map(|s| (prefix, s)))
+            .find_map(|prefix| {
+                prefix.strip_prefix_symbol(s).and_then(|base| {
+                    // Only return a prefix if there's actually a base unit after the prefix
+                    if !base.is_empty() {
+                        Some((prefix, base))
+                    } else {
+                        None
+                    }
+                })
+            })
     }
 }
 

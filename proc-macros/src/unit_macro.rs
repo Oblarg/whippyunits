@@ -143,6 +143,15 @@ impl UnitExpr {
                 );
                 let (p2, p3, p5, pi) = (unit_info.scale.0[0], unit_info.scale.0[1], unit_info.scale.0[2], unit_info.scale.0[3]);
                 
+                // Check if this is a prefixed unit and adjust scale factors accordingly
+                let (adjusted_p2, adjusted_p3, adjusted_p5, adjusted_pi) = if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
+                    let prefix_factor = prefix.factor_log10();
+                    // Apply the prefix factor to the scale factors
+                    (p2 + prefix_factor, p3, p5 + prefix_factor, pi)
+                } else {
+                    (p2, p3, p5, pi)
+                };
+                
                 (
                     mass * unit.exponent,
                     length * unit.exponent,
@@ -152,10 +161,10 @@ impl UnitExpr {
                     amount * unit.exponent,
                     lum * unit.exponent,
                     angle * unit.exponent,
-                    p2 * unit.exponent,
-                    p3 * unit.exponent,
-                    p5 * unit.exponent,
-                    pi * unit.exponent,
+                    adjusted_p2 * unit.exponent,
+                    adjusted_p3 * unit.exponent,
+                    adjusted_p5 * unit.exponent,
+                    adjusted_pi * unit.exponent,
                 )
             } else {
                 // Handle dimensionless or unknown units
@@ -234,9 +243,12 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     }
 
     // First check if this is a prefixed unit (like kg, kW, mm, etc.)
-    if let Some((_prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
         // Check if the base unit exists
         if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
+            // For prefixed units, we need to return a unit with adjusted scale factors
+            // But since we can't modify the static unit, we need to handle this differently
+            // The scale factor adjustment should be handled in the evaluation logic
             return Some(unit);
         }
     }
@@ -253,7 +265,6 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     }
 
     // If not found, return None
-    eprintln!("Unit '{}' not found", unit_name);
     None
 }
 
@@ -299,7 +310,6 @@ impl UnitMacroInput {
             pi,
         ) = self.unit_expr.evaluate();
         
-        // Debug output to see what values we're getting
 
         // Use the specified storage type or default to f64
         let storage_type = self
