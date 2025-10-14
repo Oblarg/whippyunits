@@ -3,21 +3,20 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::{Caret, Comma, Slash, Star};
 use syn::{Ident, LitInt, Type};
-use whippyunits_core::api_helpers::{
-    lookup_unit_literal, is_prefixed_base_unit, lookup_si_prefix, parse_unit_with_prefix,
-};
+use whippyunits_core::{Dimension, SiPrefix, Unit};
 
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
-pub struct Unit {
+pub struct UnitExprUnit {
     pub name: Ident,
     pub exponent: i16,
 }
 
+
 /// Represents a unit expression that can be parsed
 #[derive(Clone)]
 pub enum UnitExpr {
-    Unit(Unit),
+    Unit(UnitExprUnit),
     Mul(Box<UnitExpr>, Box<UnitExpr>),
     Div(Box<UnitExpr>, Box<UnitExpr>),
     Pow(Box<UnitExpr>, LitInt),
@@ -98,13 +97,13 @@ impl UnitExpr {
             let _lit: syn::LitInt = input.parse()?;
             // For now, we'll treat numeric literals as dimensionless
             // In a more sophisticated implementation, we could handle them properly
-            Ok(UnitExpr::Unit(Unit {
+            Ok(UnitExpr::Unit(UnitExprUnit {
                 name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
                 exponent: 1,
             }))
         } else {
             let ident: Ident = input.parse()?;
-            Ok(UnitExpr::Unit(Unit {
+            Ok(UnitExpr::Unit(UnitExprUnit {
                 name: ident,
                 exponent: 1,
             }))
@@ -137,22 +136,31 @@ impl UnitExpr {
     pub fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
         UnitExpr::Unit(unit) => {
-            let (mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi) =
-                get_unit_dimensions(&unit.name.to_string());
-            (
-                mass * unit.exponent,
-                length * unit.exponent,
-                time * unit.exponent,
-                current * unit.exponent,
-                temp * unit.exponent,
-                amount * unit.exponent,
-                lum * unit.exponent,
-                angle * unit.exponent,
-                p2 * unit.exponent,
-                p3 * unit.exponent,
-                p5 * unit.exponent,
-                pi * unit.exponent,
-            )
+            if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                let (mass, length, time, current, temp, amount, lum, angle) = (
+                    unit_info.exponents.0[0], unit_info.exponents.0[1], unit_info.exponents.0[2], unit_info.exponents.0[3],
+                    unit_info.exponents.0[4], unit_info.exponents.0[5], unit_info.exponents.0[6], unit_info.exponents.0[7]
+                );
+                let (p2, p3, p5, pi) = (unit_info.scale.0[0], unit_info.scale.0[1], unit_info.scale.0[2], unit_info.scale.0[3]);
+                
+                (
+                    mass * unit.exponent,
+                    length * unit.exponent,
+                    time * unit.exponent,
+                    current * unit.exponent,
+                    temp * unit.exponent,
+                    amount * unit.exponent,
+                    lum * unit.exponent,
+                    angle * unit.exponent,
+                    p2 * unit.exponent,
+                    p3 * unit.exponent,
+                    p5 * unit.exponent,
+                    pi * unit.exponent,
+                )
+            } else {
+                // Handle dimensionless or unknown units
+                (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            }
         }
             UnitExpr::Mul(a, b) => {
                 let (ma, la, ta, ca, tempa, aa, luma, anga, p2a, p3a, p5a, pia) = a.evaluate();
@@ -216,121 +224,37 @@ impl UnitExpr {
 
 // Removed duplicate parsing functions - now using centralized parsing from whippyunits-core
 
-/// Get dimension exponents and inherent scale for a base unit or compound unit
-fn get_base_unit_dimensions(base_unit: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16) {
-    use whippyunits_core::Unit;
-    
-    // First try the base units from whippyunits-core
-    if let Some(base_unit_info) = Unit::BASES.iter().find(|info| info.symbols.contains(&base_unit)) {
-        let (m, l, t, c, temp, a, lum, ang) = (
-            base_unit_info.exponents.0[0], // mass
-            base_unit_info.exponents.0[1], // length
-            base_unit_info.exponents.0[2], // time
-            base_unit_info.exponents.0[3], // current
-            base_unit_info.exponents.0[4], // temperature
-            base_unit_info.exponents.0[5], // amount
-            base_unit_info.exponents.0[6], // luminous_intensity
-            base_unit_info.exponents.0[7], // angle
-        );
-        return (
-            m,
-            l,
-            t,
-            c,
-            temp,
-            a,
-            lum,
-            ang,
-            0, // p10_offset is 0 for SI base units
-        );
-    }
 
-    // Try compound units from whippyunits-core (now handled by lookup_unit_literal below)
-
-    // If not found, try to find it in the shared dimension data by symbol
-    if let Some((dimension, _)) = lookup_unit_literal(base_unit) {
-        // Convert the dimension exponents to the format expected by the unit macro
-        // The shared data has (mass, length, time, current, temperature, amount, luminosity, angle)
-        // The unit macro expects (mass, length, time, current, temperature, amount, luminosity, angle, p10_offset)
-        let (m, l, t, c, temp, a, lum, ang) = (
-            dimension.exponents.0[0], // mass
-            dimension.exponents.0[1], // length
-            dimension.exponents.0[2], // time
-            dimension.exponents.0[3], // current
-            dimension.exponents.0[4], // temperature
-            dimension.exponents.0[5], // amount
-            dimension.exponents.0[6], // luminous_intensity
-            dimension.exponents.0[7], // angle
-        );
-        return (m, l, t, c, temp, a, lum, ang, 0); // p10_offset is 0 for SI derived units
-    }
-
-    panic!("Unknown base unit or compound unit: {}", base_unit)
-}
-
-/// Get special scale factors for time units that aren't powers of 10
-fn get_time_scale_factors(base_unit: &str) -> (i16, i16, i16) {
-    match base_unit {
-        "s" => (0, 0, 0),   // seconds: no special factors
-        "min" => (2, 1, 1), // 60s = 2^2 * 3 * 5
-        "h" => (4, 2, 2),   // 3600s = 2^4 * 3^2 * 5^2
-        "hr" => (4, 2, 2),  // 3600s = 2^4 * 3^2 * 5^2 (alternative symbol)
-        "d" => (7, 3, 2),   // 86400s = 2^7 * 3^3 * 5^2
-        "yr" => (7, 3, 2),  // year (approximate, same as day for simplicity)
-        _ => (0, 0, 0),
-    }
-}
-
-/// Get dimension exponents and scale factors for a unit
-/// Returns (mass, length, time, current, temperature, amount, luminosity, angle, p2, p3, p5, pi)
-pub fn get_unit_dimensions(
-    unit_name: &str,
-) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
-    use whippyunits_core::api_helpers::dyn_exponents_to_tuple;
-    
+/// Get unit information for a unit name, handling prefixes and conversions
+/// Returns the complete Unit struct with dimensions and scale factors
+pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     // Handle dimensionless units (like "1" in "1 / km")
     if unit_name == "dimensionless" {
-        return (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        return None; // Dimensionless units don't have a corresponding Unit
     }
 
     // First check if this is a prefixed unit (like kg, kW, mm, etc.)
-    if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_name) {
-        // Look up the base unit
-        if let Some((dimension, unit)) = lookup_unit_literal(&base_symbol) {
-            let (mass, length, time, current, temp, amount, lum, angle) = dyn_exponents_to_tuple(dimension.exponents);
-            let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
-            
-            // Get the prefix scale factor
-            let prefix_power = lookup_si_prefix(&prefix).map(|p| p.factor_log10()).unwrap_or(0);
-            
-            // Calculate final scale factors: add prefix power to base scale factors
-            let final_scale_factors = (
-                p2 + prefix_power,
-                p3,
-                p5 + prefix_power,
-                pi,
-            );
-            
-            return (
-                mass, length, time, current, temp, amount, lum, angle, 
-                final_scale_factors.0, final_scale_factors.1, final_scale_factors.2, final_scale_factors.3,
-            );
+    if let Some((_prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+        // Check if the base unit exists
+        if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
+            return Some(unit);
         }
     }
 
     // Then check if this is a unit literal (like min, h, hr, d, g, m, s, etc.)
-    if let Some((dimension, unit)) = lookup_unit_literal(unit_name) {
-        let (mass, length, time, current, temp, amount, lum, angle) = dyn_exponents_to_tuple(dimension.exponents);
-        let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
-        
-        return (
-            mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
-        );
+    // First try to find by symbol
+    if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
+        return Some(unit);
+    }
+    
+    // Then try to find by name
+    if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
+        return Some(unit);
     }
 
-    // If not found, return all zeros
-    eprintln!("Unit '{}' not found, returning zero dimensions", unit_name);
-    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    // If not found, return None
+    eprintln!("Unit '{}' not found", unit_name);
+    None
 }
 
 /// Input for the unit macro
@@ -449,60 +373,33 @@ impl UnitMacroInput {
     /// Get documentation text for a unit
     fn get_unit_documentation_text(unit_name: &str) -> String {
         // Try to get information from the whippyunits-core data
-        if let Some(unit_info) = Self::get_unit_info(unit_name) {
+        if let Some(unit_info) = Self::get_unit_doc_info(unit_name) {
             format!("Unit: {} - {}", unit_name, unit_info)
         } else {
             format!("Unit: {}", unit_name)
         }
     }
 
-    /// Get unit information from whippyunits-core data
-    fn get_unit_info(unit_name: &str) -> Option<String> {
-        use whippyunits_core::Unit;
-
-        // Check base units
-        if let Some(base_unit) = Unit::BASES.iter().find(|u| u.symbols.contains(&unit_name)) {
-            return Some(format!("Base unit: {}", base_unit.name));
-        }
-
-        // Check if it's a prefixed unit FIRST (before checking compound units)
-        if let Some((prefix_symbol, base_symbol)) = Self::parse_prefixed_unit(unit_name) {
-            // First check if it's a prefixed base unit
-            if let Some(base_unit) = Unit::BASES.iter().find(|u| u.symbols.contains(&base_symbol.as_str())) {
-                // Get prefix information
+    /// Get unit documentation information from whippyunits-core data
+    fn get_unit_doc_info(unit_name: &str) -> Option<String> {
+        // Use the new get_unit_info function to get the Unit struct
+        if let Some(unit) = get_unit_info(unit_name) {
+            // Check if it's a prefixed unit
+            if let Some((prefix_symbol, _base_symbol)) = Self::parse_prefixed_unit(unit_name) {
                 use whippyunits_core::SiPrefix;
                 if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
-                    // Calculate the effective scale factor, accounting for base unit offset
-                    let effective_scale = prefix_info.factor_log10();
-                    let scale_text = if effective_scale == 0 {
-                        "10^0".to_string()
-                    } else {
-                        format!("10^{}", effective_scale)
-                    };
-                    return Some(format!("Prefix: {} ({}), Base: {}", 
-                        prefix_info.name(), scale_text, base_unit.name));
-                }
-            }
-            
-            // If not a base unit, check if it's a prefixed compound unit
-            if let Some((dimension, unit)) = lookup_unit_literal(&base_symbol.as_str()) {
-                use whippyunits_core::SiPrefix;
-                if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
-                    // For compound units, the scale factor is just the prefix scale factor
                     let scale_text = if prefix_info.factor_log10() == 0 {
                         "10^0".to_string()
                     } else {
                         format!("10^{}", prefix_info.factor_log10())
                     };
-                    return Some(format!("Prefix: {} ({}), Base: {} ({})", 
-                        prefix_info.name(), scale_text, unit.name, dimension.name));
+                    return Some(format!("Prefix: {} ({}), Base: {}", 
+                        prefix_info.name(), scale_text, unit.name));
                 }
             }
-        }
-
-        // Check unit literals (including compound units) - only if not a prefixed unit
-        if let Some((dimension, unit)) = lookup_unit_literal(unit_name) {
-            return Some(format!("Unit: {} ({})", unit.name, dimension.name));
+            
+            // Regular unit
+            return Some(format!("Unit: {}", unit.name));
         }
 
         None
@@ -512,12 +409,23 @@ impl UnitMacroInput {
     /// 
     /// This function now uses the centralized parsing logic from whippyunits-core.
     fn parse_prefixed_unit(unit_name: &str) -> Option<(String, String)> {
-        let (prefix, base) = parse_unit_with_prefix(unit_name);
-        if let Some(prefix) = prefix {
-            Some((prefix.symbol().to_string(), base.to_string()))
-        } else {
-            None
+        // Try to strip any prefix from the unit name
+        if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+            // Check if the base unit exists
+            if Dimension::find_unit_by_symbol(base).is_some() {
+                return Some((prefix.symbol().to_string(), base.to_string()));
+            }
         }
+        
+        // Also try stripping prefix from name (not just symbol)
+        if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(unit_name) {
+            // Check if the base unit exists by name
+            if Dimension::find_unit_by_name(base).is_some() {
+                return Some((prefix.symbol().to_string(), base.to_string()));
+            }
+        }
+        
+        None
     }
 
     /// Get the corresponding default declarator type for a unit

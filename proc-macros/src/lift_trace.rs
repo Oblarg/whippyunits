@@ -69,7 +69,7 @@ fn scale_type_to_actual_unit_symbol(scale_type: &str) -> Option<String> {
 
 /// Visitor pattern for traversing UnitExpr and generating different types of output
 pub trait UnitExprVisitor<T> {
-    fn visit_unit(&self, unit: &crate::unit_macro::Unit) -> T;
+    fn visit_unit(&self, unit: &crate::unit_macro::UnitExprUnit) -> T;
     fn visit_div(&self, numerator: &UnitExpr, denominator: &UnitExpr) -> T;
     fn visit_mul(&self, left: &UnitExpr, right: &UnitExpr) -> T;
     fn visit_pow(&self, base: &UnitExpr, exponent: i16) -> T;
@@ -82,7 +82,7 @@ pub struct UnitExprFormatter<F> {
 
 impl<F> UnitExprFormatter<F>
 where
-    F: Fn(&crate::unit_macro::Unit) -> String,
+    F: Fn(&crate::unit_macro::UnitExprUnit) -> String,
 {
     pub fn new(unit_formatter: F) -> Self {
         Self { unit_formatter }
