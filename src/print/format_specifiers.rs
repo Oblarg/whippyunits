@@ -1,4 +1,4 @@
-use whippyunits_default_dimensions::{convert_long_name_to_short, lookup_unit_literal};
+use whippyunits_core::api_helpers::{convert_long_name_to_short, lookup_unit_literal};
 
 /// Represents a parsed format specifier for unit conversion
 #[derive(Debug, Clone, PartialEq)]
@@ -63,14 +63,14 @@ pub fn format_with_unit(value: f64, spec: &UnitFormatSpecifier) -> Result<String
             short_form
         } else {
             // This is a short prefixed unit (like "km") - use the original unit symbol
-            &spec.target_unit
+            spec.target_unit.clone()
         }
     } else if spec.target_unit == target_unit_info.1.symbols[0] {
         // This is a base unit symbol (like "g") - use the symbol from the unit info
-        &target_unit_info.1.symbols[0]
+        target_unit_info.1.symbols[0].to_string()
     } else {
         // This is a base unit long name (like "gram") - use the symbol from the unit info
-        &target_unit_info.1.symbols[0]
+        target_unit_info.1.symbols[0].to_string()
     };
 
     Ok(format!("{} {}", final_value, display_unit))

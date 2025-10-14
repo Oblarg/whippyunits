@@ -1,8 +1,9 @@
 use quote::quote;
-use whippyunits_default_dimensions::{BASE_UNITS, SI_PREFIXES, get_all_unit_symbols};
+use whippyunits_core::{Dimension, SiPrefix};
+use whippyunits_core::api_helpers::{get_atomic_dimensions, get_all_dimensions};
 
 /// Generate the custom_literal module with all unit macros
-/// This uses only the canonical data from default-dimensions
+/// This uses only the canonical data from whippyunits-core
 pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     // Get all unit symbols from the canonical data (filtered to exclude Rust keywords)
     let unit_symbols = get_all_unit_symbols_local();
@@ -60,7 +61,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     for unit_symbol in &unit_symbols {
         let macro_name_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
 
-        // Get the method name from the unit symbol using default-dimensions data
+        // Get the method name from the unit symbol using whippyunits-core data
         let method_name = get_method_name_for_unit_symbol(unit_symbol);
 
         // Check if this is a compound unit that needs special handling
@@ -125,7 +126,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
     }
 }
 
-/// Get the method name for a unit symbol using default-dimensions data
+/// Get the method name for a unit symbol using whippyunits-core data
 /// Maps unit symbols like "m", "kg", "s" to method names like "meters", "kilograms", "seconds"
 /// For compound units like "J", "W", etc., returns a special marker to use unit! macro directly
 fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
@@ -145,21 +146,21 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     }
 
     // First, try to find the unit in the unified dimensions data
-    if let Some((_dimension, unit)) = whippyunits_default_dimensions::lookup_unit_literal(unit_symbol) {
+    if let Some((_dimension, unit)) = whippyunits_core::api_helpers::lookup_unit_literal(unit_symbol) {
         // Check if this is actually a compound unit that should use quantity! macro
         if is_compound_unit(unit_symbol) {
             return format!("__COMPOUND_UNIT__{}", unit_symbol);
         }
         
         // Check if this is actually a prefixed unit that was returned as base unit
-        if let Some((_base_symbol, prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
+        if let Some((_base_symbol, prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
             // This is a prefixed unit, so we need to construct the proper method name
-            let base_method = make_plural(unit.long_name);
-            let prefix_name = get_prefix_name(prefix);
+            let base_method = make_plural(unit.name);
+            let prefix_name = get_prefix_name(&prefix);
             return format!("{}{}", prefix_name, base_method);
         } else {
             // This is a direct unit, use it as-is
-            return make_plural(unit.long_name);
+            return make_plural(unit.name);
         }
     }
 
@@ -170,17 +171,17 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
     }
 
     // Check if this is a prefixed compound unit (kJ, mW, etc.)
-    if let Some((_base_symbol, _prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
+    if let Some((_base_symbol, _prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
         return format!("__COMPOUND_UNIT__{}", unit_symbol);
     }
 
     // If not found, try to parse as a prefixed unit
-    if let Some((base_symbol, prefix)) = whippyunits_default_dimensions::is_prefixed_base_unit(unit_symbol) {
+    if let Some((base_symbol, prefix)) = whippyunits_core::api_helpers::is_prefixed_base_unit(unit_symbol) {
         if let Some((_dimension, unit)) =
-            whippyunits_default_dimensions::lookup_unit_literal(base_symbol)
+            whippyunits_core::api_helpers::lookup_unit_literal(&base_symbol)
         {
-            let base_method = make_plural(unit.long_name);
-            let prefix_name = get_prefix_name(prefix);
+            let base_method = make_plural(unit.name);
+            let prefix_name = get_prefix_name(&prefix);
             let result = format!("{}{}", prefix_name, base_method);
             // Add a compile-time error to see what's being generated
             if unit_symbol == "ms" {
@@ -203,10 +204,11 @@ fn make_plural(singular: &str) -> String {
 
 /// Check if a unit symbol is a compound unit (J, W, N, etc.) or derived unit (Hz, lm, etc.)
 fn is_compound_unit(unit_symbol: &str) -> bool {
-    use whippyunits_default_dimensions::{lookup_unit_literal, is_composite_dimension};
+    use whippyunits_core::Dimension;
     
-    if let Some((dimension, _)) = lookup_unit_literal(unit_symbol) {
-        return is_composite_dimension(dimension.exponents);
+    if let Some((dimension, _)) = whippyunits_core::api_helpers::lookup_unit_literal(unit_symbol) {
+        // Check if this is not one of the 8 base dimensions
+        return !Dimension::BASIS.contains(dimension);
     }
     false
 }
@@ -214,9 +216,9 @@ fn is_compound_unit(unit_symbol: &str) -> bool {
 
 /// Get the prefix name for a prefix symbol (e.g., "k" -> "kilo", "m" -> "milli")
 fn get_prefix_name(prefix_symbol: &str) -> String {
-    if let Some(prefix_info) = whippyunits_default_dimensions::lookup_si_prefix(prefix_symbol) {
+    if let Some(prefix_info) = whippyunits_core::api_helpers::lookup_si_prefix(prefix_symbol) {
         // Convert the long name to a method-friendly name
-        match prefix_info.long_name {
+        match prefix_info.name() {
             "kilo" => "kilo".to_string(),
             "milli" => "milli".to_string(),
             "micro" => "micro".to_string(),
@@ -241,51 +243,59 @@ fn get_prefix_name(prefix_symbol: &str) -> String {
             "quetta" => "quetta".to_string(),
             "deci" => "deci".to_string(),
             "centi" => "centi".to_string(),
-            _ => prefix_info.long_name.to_string(),
+            _ => prefix_info.name().to_string(),
         }
     } else {
         prefix_symbol.to_string()
     }
 }
 
-/// Get all unit symbols from the canonical data in default-dimensions
+/// Get all unit symbols from the canonical data in whippyunits-core
 /// This is the single source of truth for what units should have custom literals
 fn get_all_unit_symbols_local() -> Vec<String> {
+    use whippyunits_core::{Dimension, Unit, SiPrefix};
     let mut symbols = Vec::new();
 
     // Add base units from the canonical data
-    for unit in BASE_UNITS.iter() {
-        if unit.symbol != "dimensionless" {
-            symbols.push(unit.symbol.to_string());
+    for unit in Unit::BASES.iter() {
+        if unit.name != "dimensionless" {
+            for symbol in unit.symbols {
+                symbols.push(symbol.to_string());
+            }
         }
     }
 
     // Add all units from the unified dimensions data (including compound units and unit literals)
-    let all_unit_symbols = whippyunits_default_dimensions::get_all_unit_symbols();
-    symbols.extend(all_unit_symbols.iter().map(|s| s.to_string()));
+    for dimension in Dimension::ALL {
+        for unit in dimension.units {
+            for symbol in unit.symbols {
+                symbols.push(symbol.to_string());
+            }
+        }
+    }
 
     // Add prefixed units from the canonical data (base units)
-    for prefix in SI_PREFIXES.iter() {
-        for unit in BASE_UNITS.iter() {
-            if unit.symbol != "dimensionless" {
-                symbols.push(format!("{}{}", prefix.symbol, unit.symbol));
+    for prefix in SiPrefix::ALL {
+        for unit in Unit::BASES.iter() {
+            if unit.name != "dimensionless" {
+                for symbol in unit.symbols {
+                    symbols.push(format!("{}{}", prefix.symbol(), symbol));
+                }
             }
         }
     }
 
     // Add prefixed compound units and derived units (kJ, mW, kN, mHz, etc.)
-    for prefix in SI_PREFIXES.iter() {
-        for dimension in whippyunits_default_dimensions::get_all_dimensions() {
-            use whippyunits_default_dimensions::is_composite_dimension;
-            
+    for prefix in SiPrefix::ALL {
+        for dimension in Dimension::ALL {
             // Anything that's not atomic is composite (compound or derived)
-            if is_composite_dimension(dimension.exponents) {
+            if !Dimension::BASIS.contains(dimension) {
                 for unit in dimension.units {
                     // Skip prefixed versions for units with conversion factors (imperial units)
                     // as they are stored internally in SI units and don't need prefixed types
-                    if unit.conversion_factor.is_none() {
+                    if !unit.has_conversion() {
                         for symbol in unit.symbols {
-                            symbols.push(format!("{}{}", prefix.symbol, symbol));
+                            symbols.push(format!("{}{}", prefix.symbol(), symbol));
                         }
                     }
                 }

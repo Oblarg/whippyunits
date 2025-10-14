@@ -17,7 +17,8 @@ mod scoped_preferences_macro;
 /// Shared helper function to get the corresponding default declarator type for a unit
 /// This is used by both the unit! macro and local_unit! macro to avoid code duplication
 fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStream> {
-    use whippyunits_default_dimensions::{BASE_UNITS, lookup_unit_literal, parse_unit_with_prefix, SI_PREFIXES};
+    use whippyunits_core::api_helpers::{lookup_unit_literal, parse_unit_with_prefix};
+    use whippyunits_core::Dimension;
 
     // Skip dimensionless units - they don't have corresponding default declarator types
     if unit_name == "dimensionless" {
@@ -25,25 +26,27 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
     }
     
     // Check if it's a base unit (these have corresponding types)
-    if let Some(base_unit) = BASE_UNITS.iter().find(|u| u.symbol == unit_name) {
-        let type_name = whippyunits_default_dimensions::util::capitalize_first(&base_unit.long_name);
-        let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-        return Some(quote! {
-            whippyunits::default_declarators::#type_ident
-        });
+    let atomic_dimensions = Dimension::BASIS;
+    for dimension in atomic_dimensions {
+        if let Some(unit) = dimension.units.iter().find(|u| u.symbols.contains(&unit_name)) {
+            let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
+            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
+            return Some(quote! {
+                whippyunits::default_declarators::#type_ident
+            });
+        }
     }
     
     // Check if it's a prefixed unit FIRST (before checking unit literals)
     let (prefix, base) = parse_unit_with_prefix(unit_name);
-    if let Some(prefix_symbol) = prefix {
+    if let Some(prefix) = prefix {
         // First try to find it as a prefixed base unit
-        if let Some(base_unit) = BASE_UNITS.iter().find(|u| u.symbol == base) {
-            // Get the prefix long name for proper type naming
-            if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == prefix_symbol) {
+        for dimension in Dimension::BASIS {
+            if let Some(unit) = dimension.units.iter().find(|u| u.symbols.contains(&base.as_str())) {
                 // Use the same naming convention as the default declarators macro
-                let unit_singular = base_unit.long_name.trim_end_matches('s');
-                let combined_name = format!("{}{}", prefix_info.long_name, unit_singular);
-                let type_name = whippyunits_default_dimensions::util::capitalize_first(&combined_name);
+                let unit_singular = unit.name.trim_end_matches('s');
+                let combined_name = format!("{}{}", prefix.name(), unit_singular);
+                let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
                 let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
                 return Some(quote! {
                     whippyunits::default_declarators::#type_ident
@@ -53,23 +56,21 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
         
         // If not a base unit, try to find it as a prefixed unit literal
         if let Some((_dimension, unit)) = lookup_unit_literal(&base) {
-            if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == prefix_symbol) {
-                // Use the same naming convention as the default declarators macro
-                let unit_singular = unit.long_name.trim_end_matches('s');
-                let combined_name = format!("{}{}", prefix_info.long_name, unit_singular);
-                let type_name = whippyunits_default_dimensions::util::capitalize_first(&combined_name);
-                let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-                return Some(quote! {
-                    whippyunits::default_declarators::#type_ident
-                });
-            }
+            // Use the same naming convention as the default declarators macro
+            let unit_singular = unit.name.trim_end_matches('s');
+            let combined_name = format!("{}{}", prefix.name(), unit_singular);
+            let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
+            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
+            return Some(quote! {
+                whippyunits::default_declarators::#type_ident
+            });
         }
     }
     
     // Check if it's a unit literal that has a corresponding type - only if not a prefixed unit
     if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
         // Use the long name to generate the type name, matching the declarator generation logic
-        let type_name = whippyunits_default_dimensions::util::capitalize_first(unit.long_name);
+        let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
         let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
         return Some(quote! {
             whippyunits::default_declarators::#type_ident
@@ -307,7 +308,7 @@ pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
-/// Generate default declarators using the source of truth from default-dimensions
+/// Generate default declarators using the source of truth from whippyunits-core
 /// Usage: generate_default_declarators!()
 #[proc_macro]
 #[doc(hidden)]

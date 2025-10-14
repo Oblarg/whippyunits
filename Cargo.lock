@@ -1146,12 +1146,12 @@ dependencies = [
  "serde_json",
  "syn",
  "trybuild",
- "whippyunits-default-dimensions",
+ "whippyunits-core",
  "whippyunits-proc-macros",
 ]
 
 [[package]]
-name = "whippyunits-default-dimensions"
+name = "whippyunits-core"
 version = "0.1.0"
 
 [[package]]
@@ -1190,7 +1190,7 @@ dependencies = [
  "quote",
  "syn",
  "whippyunits",
- "whippyunits-default-dimensions",
+ "whippyunits-core",
 ]
 
 [[package]]

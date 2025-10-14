@@ -15,14 +15,14 @@ impl Parse for ScopedPreferencesInput {
 
 impl ScopedPreferencesInput {
     pub fn expand(self) -> TokenStream {
-        // Get the SI prefixes from default-dimensions crate
-        let si_prefixes = whippyunits_default_dimensions::SI_PREFIXES;
+        // Get the SI prefixes from whippyunits-core crate
+        let si_prefixes = whippyunits_core::SiPrefix::ALL;
         
         // Generate the define_base_units macro with all the type names from source of truth
         self.generate_define_base_units_macro(si_prefixes)
     }
     
-    fn generate_define_base_units_macro(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> TokenStream {
+    fn generate_define_base_units_macro(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> TokenStream {
         // Generate mass units
         let mass_units = self.generate_mass_units(si_prefixes);
         
@@ -222,7 +222,7 @@ impl ScopedPreferencesInput {
         }
     }
     
-    fn generate_mass_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_mass_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base gram
@@ -230,8 +230,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed grams that actually exist in default declarators
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "gram");
-            let fn_name = format!("{}grams", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "gram");
+            let fn_name = format!("{}grams", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -241,7 +241,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_length_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_length_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base meter
@@ -249,8 +249,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed meters
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "meter");
-            let fn_name = format!("{}meters", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "meter");
+            let fn_name = format!("{}meters", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -260,7 +260,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_time_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_time_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base second
@@ -268,8 +268,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed seconds
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "second");
-            let fn_name = format!("{}seconds", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "second");
+            let fn_name = format!("{}seconds", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -284,7 +284,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_current_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_current_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base ampere
@@ -292,8 +292,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed amperes
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "ampere");
-            let fn_name = format!("{}amperes", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "ampere");
+            let fn_name = format!("{}amperes", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -303,7 +303,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_amount_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_amount_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base mole
@@ -311,8 +311,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed moles
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "mole");
-            let fn_name = format!("{}moles", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "mole");
+            let fn_name = format!("{}moles", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -322,7 +322,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_luminosity_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_luminosity_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base candela
@@ -330,8 +330,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed candelas
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "candela");
-            let fn_name = format!("{}candelas", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "candela");
+            let fn_name = format!("{}candelas", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             
@@ -341,7 +341,7 @@ impl ScopedPreferencesInput {
         units
     }
     
-    fn generate_angle_units(&self, si_prefixes: &[whippyunits_default_dimensions::PrefixInfo]) -> Vec<TokenStream> {
+    fn generate_angle_units(&self, si_prefixes: &[whippyunits_core::SiPrefix]) -> Vec<TokenStream> {
         let mut units = Vec::new();
         
         // Add base radian
@@ -349,8 +349,8 @@ impl ScopedPreferencesInput {
         
         // Add all SI prefixed radians
         for prefix in si_prefixes {
-            let type_name = self.generate_scale_name(prefix.long_name, "radian");
-            let fn_name = format!("{}radians", prefix.long_name);
+            let type_name = self.generate_scale_name(prefix.name(), "radian");
+            let fn_name = format!("{}radians", prefix.name());
             let type_ident = syn::parse_str::<Ident>(&type_name).unwrap();
             let fn_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
             

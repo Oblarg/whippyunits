@@ -9,11 +9,11 @@ use crate::print::name_lookup::generate_systematic_unit_name_with_format;
 use crate::print::prettyprint::UnitFormat;
 use crate::quantity_type::Quantity;
 use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
-use whippyunits_default_dimensions::{
-    get_unit_dimensions, is_prefixed_base_unit, lookup_unit_literal, DimensionExponents, BASE_UNITS,
-    SI_PREFIXES,
-    // Use centralized parsing functions
-    parse_unit_with_prefix, get_prefix_scale_factor,
+use whippyunits_core::{
+    Unit, SiPrefix, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+};
+use whippyunits_core::api_helpers::{
+    is_prefixed_base_unit, lookup_unit_literal, parse_unit_with_prefix, get_prefix_scale_factor, get_unit_dimensions,
 };
 
 /// Represents the dimension and scale exponents for a unit
@@ -71,7 +71,7 @@ where
 #[derive(Debug, Clone, PartialEq)]
 pub enum UcumError {
     /// The dimension exponents don't match any known dimension
-    UnknownDimension(DimensionExponents),
+    UnknownDimension(whippyunits_core::dimension_exponents::DynDimensionExponents),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -197,7 +197,7 @@ pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
     // Parse the UCUM string by splitting on '/' and handling multiplication
     let parts: Vec<&str> = ucum_string.split('/').collect();
     if parts.len() > 2 {
-        return Err(UcumError::UnknownDimension((0, 0, 0, 0, 0, 0, 0, 0))); // Invalid format
+        return Err(UcumError::UnknownDimension(whippyunits_core::dimension_exponents::DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]))); // Invalid format
     }
 
     let (numerator, denominator) = if parts.len() == 1 {
@@ -314,7 +314,7 @@ fn parse_ucum_term(
         let exp_str = &term[caret_pos + 1..];
         let exp: i16 = exp_str
             .parse()
-            .map_err(|_| UcumError::UnknownDimension((0, 0, 0, 0, 0, 0, 0, 0)))?;
+            .map_err(|_| UcumError::UnknownDimension(whippyunits_core::dimension_exponents::DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0])))?;
         (base, exp)
     } else {
         // Handle implicit exponent notation (e.g., "s2" -> "s" with exponent 2)
@@ -380,8 +380,17 @@ fn get_unit_dimensions_from_ucum(
 ) -> Result<(i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16), UcumError> {
     // Check if it's a unit literal first
     if let Some((dimension, unit)) = lookup_unit_literal(unit) {
-        let (mass, length, time, current, temp, amount, lum, angle) = dimension.exponents;
-        let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
+        let (mass, length, time, current, temp, amount, lum, angle) = (
+            dimension.exponents.0[0], // mass
+            dimension.exponents.0[1], // length
+            dimension.exponents.0[2], // time
+            dimension.exponents.0[3], // current
+            dimension.exponents.0[4], // temperature
+            dimension.exponents.0[5], // amount
+            dimension.exponents.0[6], // luminosity
+            dimension.exponents.0[7], // angle
+        );
+        let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
         return Ok((
             mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
         ));
@@ -392,7 +401,7 @@ fn get_unit_dimensions_from_ucum(
 
     // Get base unit dimensions
     let (mass, length, time, current, temp, amount, lum, angle, inherent_p10) =
-        get_base_unit_dimensions_ucum(base_unit)?;
+        get_base_unit_dimensions_ucum(&base_unit)?;
 
     // Get prefix power of 10
     let prefix_p10 = prefix.map(get_prefix_power_ucum).unwrap_or(0);
@@ -401,7 +410,7 @@ fn get_unit_dimensions_from_ucum(
     let final_scale = inherent_p10 + prefix_p10;
 
     // Get special time scale factors for UCUM time units
-    let (p2, p3, p5) = match base_unit {
+    let (p2, p3, p5) = match base_unit.as_str() {
         "s" => (0, 0, 0),
         "min" => (2, 1, 1),
         "h" | "hr" => (4, 2, 2),
@@ -422,9 +431,11 @@ fn get_unit_dimensions_from_ucum(
 }
 
 /// Parse unit name to extract prefix and base unit for UCUM
-fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, &str) {
+fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, String) {
     // Use the centralized parsing logic from default-dimensions
-    parse_unit_with_prefix(unit_name)
+    let (prefix_opt, base_unit) = parse_unit_with_prefix(unit_name);
+    let prefix_str = prefix_opt.map(|p| p.symbol());
+    (prefix_str, base_unit)
 }
 
 // Removed is_valid_base_unit_ucum - now using centralized parsing from default-dimensions
@@ -433,15 +444,28 @@ fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, &str) {
 /// 
 /// This function now uses the centralized parsing logic from default-dimensions.
 fn get_prefix_power_ucum(prefix: &str) -> i16 {
-    get_prefix_scale_factor(prefix)
+    if let Some(si_prefix) = whippyunits_core::api_helpers::lookup_si_prefix(prefix) {
+        get_prefix_scale_factor(si_prefix) as i16
+    } else {
+        0
+    }
 }
 
 /// Get base unit dimensions for UCUM parsing
 fn get_base_unit_dimensions_ucum(
     base_unit: &str,
 ) -> Result<(i16, i16, i16, i16, i16, i16, i16, i16, i16), UcumError> {
-    if let Some(base_unit_info) = BASE_UNITS.iter().find(|info| info.symbol == base_unit) {
-        let (m, l, t, c, temp, a, lum, ang) = base_unit_info.dimension_exponents;
+    if let Some(base_unit_info) = whippyunits_core::Unit::BASES.iter().find(|info| info.symbols.contains(&base_unit)) {
+        let (m, l, t, c, temp, a, lum, ang) = (
+            base_unit_info.exponents.0[0], // mass
+            base_unit_info.exponents.0[1], // length
+            base_unit_info.exponents.0[2], // time
+            base_unit_info.exponents.0[3], // current
+            base_unit_info.exponents.0[4], // temperature
+            base_unit_info.exponents.0[5], // amount
+            base_unit_info.exponents.0[6], // luminosity
+            base_unit_info.exponents.0[7], // angle
+        );
         return Ok((
             m,
             l,
@@ -451,16 +475,25 @@ fn get_base_unit_dimensions_ucum(
             a,
             lum,
             ang,
-            base_unit_info.prefix_scale_offset,
+            0, // prefix_scale_offset - not available in new Unit struct
         ));
     }
 
     if let Some((dimension, _)) = lookup_unit_literal(base_unit) {
-        let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
+        let (m, l, t, c, temp, a, lum, ang) = (
+            dimension.exponents.0[0], // mass
+            dimension.exponents.0[1], // length
+            dimension.exponents.0[2], // time
+            dimension.exponents.0[3], // current
+            dimension.exponents.0[4], // temperature
+            dimension.exponents.0[5], // amount
+            dimension.exponents.0[6], // luminosity
+            dimension.exponents.0[7], // angle
+        );
         return Ok((m, l, t, c, temp, a, lum, ang, 0));
     }
 
-    Err(UcumError::UnknownDimension((0, 0, 0, 0, 0, 0, 0, 0)))
+    Err(UcumError::UnknownDimension(whippyunits_core::dimension_exponents::DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0])))
 }
 
 /// Check if two dimension vectors match (ignoring scale factors)
@@ -889,8 +922,17 @@ pub fn get_target_unit_dimensions(
 ) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
     // First try to find in unit literals
     if let Some((dimension, unit)) = lookup_unit_literal(unit_literal) {
-        let (mass, length, time, current, temp, amount, lum, angle) = dimension.exponents;
-        let (p2, p3, p5, pi) = unit.scale_factors.unwrap_or((0, 0, 0, 0));
+        let (mass, length, time, current, temp, amount, lum, angle) = (
+            dimension.exponents.0[0], // mass
+            dimension.exponents.0[1], // length
+            dimension.exponents.0[2], // time
+            dimension.exponents.0[3], // current
+            dimension.exponents.0[4], // temperature
+            dimension.exponents.0[5], // amount
+            dimension.exponents.0[6], // luminosity
+            dimension.exponents.0[7], // angle
+        );
+        let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
         (
             mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
         )
@@ -898,15 +940,23 @@ pub fn get_target_unit_dimensions(
         // Try to parse as a prefixed unit (e.g., "cm", "km", "mm")
         if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_literal) {
             // Get the base unit dimensions
-            if let Some(base_unit) = BASE_UNITS.iter().find(|unit| unit.symbol == base_symbol) {
-                let (mass, length, time, current, temp, amount, lum, angle) =
-                    base_unit.dimension_exponents;
-                let inherent_scale = base_unit.prefix_scale_offset;
+            if let Some(base_unit) = whippyunits_core::Unit::BASES.iter().find(|unit| unit.symbols.contains(&base_symbol.as_str())) {
+                let (mass, length, time, current, temp, amount, lum, angle) = (
+                    base_unit.exponents.0[0], // mass
+                    base_unit.exponents.0[1], // length
+                    base_unit.exponents.0[2], // time
+                    base_unit.exponents.0[3], // current
+                    base_unit.exponents.0[4], // temperature
+                    base_unit.exponents.0[5], // amount
+                    base_unit.exponents.0[6], // luminosity
+                    base_unit.exponents.0[7], // angle
+                );
+                let inherent_scale = 0; // No inherent scale offset in the new system
 
                 // Get the prefix scale factor
                 let prefix_scale =
-                    if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.symbol == prefix) {
-                        prefix_info.scale_factor
+                    if let Some(prefix_info) = whippyunits_core::SiPrefix::ALL.iter().find(|p| p.symbol() == prefix) {
+                        prefix_info.factor_log10()
                     } else {
                         0
                     };
@@ -933,10 +983,7 @@ pub fn get_target_unit_dimensions(
         } else {
             // Try the existing logic from default_dimensions
             if let Some(dimensions) = get_unit_dimensions(unit_literal) {
-                let (mass, length, time, current, temp, amount, lum, angle) = dimensions;
-                (
-                    mass, length, time, current, temp, amount, lum, angle, 0, 0, 0, 0,
-                )
+                dimensions
             } else {
                 panic!("Unknown unit literal: {}", unit_literal);
             }

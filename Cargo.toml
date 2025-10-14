@@ -2,15 +2,19 @@
 members = [
     ".",
     "proc-macros",
-    "default-dimensions",
+    "whippyunits-core",
     "whippyunits-pretty",
     "lsp-proxy",
 ]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
 [package]
 name = "whippyunits"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 quote = "1.0"
@@ -18,7 +22,7 @@ proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
 whippyunits-proc-macros = { path = "./proc-macros" }
-whippyunits-default-dimensions = { path = "./default-dimensions" }
+whippyunits-core = { path = "./whippyunits-core" }
 num-traits = "0.2"
 nalgebra = "0.34.0"
 ndarray = "0.16.1"

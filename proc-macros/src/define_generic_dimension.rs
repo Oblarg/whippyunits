@@ -4,7 +4,7 @@ use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::{Caret, Comma, Slash, Star};
 use syn::{Ident, LitInt, Token};
-use whippyunits_default_dimensions::{lookup_dimension_by_name, lookup_dimension_by_symbol, get_all_dimension_names, get_all_dimension_symbols};
+use whippyunits_core::api_helpers::{lookup_dimension_by_name, lookup_dimension_by_symbol, get_all_dimension_names, get_all_dimension_symbols};
 
 // Note: lookup_dimension_by_symbol is now imported from whippyunits_default_dimensions
 
@@ -74,12 +74,30 @@ impl DimensionExpr {
 
                 // First try to look up by name
                 if let Some(dim_info) = lookup_dimension_by_name(&name_or_symbol) {
-                    return dim_info.exponents;
+                    return (
+                        dim_info.exponents.0[0], // mass
+                        dim_info.exponents.0[1], // length
+                        dim_info.exponents.0[2], // time
+                        dim_info.exponents.0[3], // current
+                        dim_info.exponents.0[4], // temperature
+                        dim_info.exponents.0[5], // amount
+                        dim_info.exponents.0[6], // luminous_intensity
+                        dim_info.exponents.0[7], // angle
+                    );
                 }
 
                 // If not found by name, try to look up by symbol
                 if let Some(dim_info) = lookup_dimension_by_symbol(&name_or_symbol) {
-                    return dim_info.exponents;
+                    return (
+                        dim_info.exponents.0[0], // mass
+                        dim_info.exponents.0[1], // length
+                        dim_info.exponents.0[2], // time
+                        dim_info.exponents.0[3], // current
+                        dim_info.exponents.0[4], // temperature
+                        dim_info.exponents.0[5], // amount
+                        dim_info.exponents.0[6], // luminous_intensity
+                        dim_info.exponents.0[7], // angle
+                    );
                 }
 
                 // If neither works, generate a helpful error message

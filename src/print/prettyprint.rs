@@ -2,7 +2,7 @@ use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::utils::{get_si_prefix, to_unicode_superscript};
 use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
-use whippyunits_default_dimensions::get_atomic_dimension_symbols;
+use whippyunits_core::api_helpers::get_atomic_dimension_symbols;
 
 /// Check if a dimension is primitive (has exactly one non-zero exponent equal to 1)
 /// Primitive dimensions are the 8 SI base quantities: Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle
@@ -350,7 +350,7 @@ pub fn generate_prefixed_systematic_unit(
             // Check if this is a pure unit with an exponent
             // Find the non-zero exponent (there should be exactly one for a pure unit)
             if let Some((dimension_index, &exponent)) =
-                exponents.iter().enumerate().find(|(_, &exp)| exp != 0)
+                exponents.iter().enumerate().find(|&(_, &exp)| exp != 0)
             {
                 // Check if the scale is a multiple of the exponent
                 if effective_scale_p10 % exponent == 0 {

@@ -1,4 +1,4 @@
-use whippyunits_default_dimensions::{lookup_dimension_by_exponents, get_units_by_exponents};
+use whippyunits_core::api_helpers::{lookup_dimension_by_exponents, get_units_by_exponents};
 
 /// Configuration for a unit dimension
 #[derive(Debug, Clone)]
@@ -138,12 +138,12 @@ fn lookup_unit_literal_by_scale_factors(
     get_units_by_exponents(exponents_tuple)
         .into_iter()
         .find(|(_dimension, unit)| {
-            unit.scale_factors == Some(scale_factors)
-                && unit.conversion_factor.is_none() // Only consider pure SI units, not imperial units
+            unit.scale.0 == [scale_factors.0, scale_factors.1, scale_factors.2, scale_factors.3]
+                && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
         })
         .map(|(_dimension, unit)| {
             if long_name {
-                unit.long_name
+                unit.name
             } else {
                 unit.symbols[0]
             }
@@ -234,7 +234,7 @@ pub fn generate_systematic_unit_name_with_format(
     if is_pure {
         // Find the non-zero exponent and its index
         if let Some((dimension_index, &exponent)) =
-            exponents.iter().enumerate().find(|(_, &exp)| exp != 0)
+            exponents.iter().enumerate().find(|&(_, &exp)| exp != 0)
         {
             // For time units, we need to check if there's a unit literal that matches
             // We'll need to get the scale factors from somewhere - for now, let's check if it's a time unit
@@ -353,7 +353,7 @@ pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
     lookup_dimension_by_exponents(exponents_tuple).map(|dim_info| {
         // Get the first unit symbol and long name from the dimension (e.g., "J" and "joule" for energy, "N" and "newton" for force)
         let unit_symbol = dim_info.units.first().and_then(|unit| unit.symbols.first().copied());
-        let unit_long_name = dim_info.units.first().map(|unit| unit.long_name);
+        let unit_long_name = dim_info.units.first().map(|unit| unit.name);
         
         DimensionNames {
             dimension_name: dim_info.name,

@@ -5,10 +5,64 @@ use syn::{
     parse::{Parse, ParseStream, Result},
     Ident, Type,
 };
-use whippyunits_default_dimensions::{
-    dimension_exponents_to_unit_expression, scale_type_to_actual_unit_symbol,
-    lookup_unit_literal,
+use whippyunits_core::api_helpers::{
+    scale_type_to_actual_unit_symbol, lookup_unit_literal, get_units_by_exponents, dyn_exponents_to_tuple_format,
 };
+use whippyunits_core::dimension_exponents::DynDimensionExponents;
+
+/// Convert dimension exponents to a unit expression
+/// This converts dimension exponents back to a unit expression string using the provided base units
+fn dimension_exponents_to_unit_expression_with_base_units(exponents: DynDimensionExponents, base_units: &[(&str, &str); 8]) -> String {
+    let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = (
+        exponents.0[0], exponents.0[1], exponents.0[2], exponents.0[3],
+        exponents.0[4], exponents.0[5], exponents.0[6], exponents.0[7]
+    );
+    
+    let mut terms = Vec::new();
+    
+    // Add each dimension with non-zero exponent
+    if mass_exp != 0 {
+        terms.push(format!("{}^{}", base_units[0].0, mass_exp));
+    }
+    if length_exp != 0 {
+        terms.push(format!("{}^{}", base_units[1].0, length_exp));
+    }
+    if time_exp != 0 {
+        terms.push(format!("{}^{}", base_units[2].0, time_exp));
+    }
+    if current_exp != 0 {
+        terms.push(format!("{}^{}", base_units[3].0, current_exp));
+    }
+    if temp_exp != 0 {
+        terms.push(format!("{}^{}", base_units[4].0, temp_exp));
+    }
+    if amount_exp != 0 {
+        terms.push(format!("{}^{}", base_units[5].0, amount_exp));
+    }
+    if lum_exp != 0 {
+        terms.push(format!("{}^{}", base_units[6].0, lum_exp));
+    }
+    if angle_exp != 0 {
+        terms.push(format!("{}^{}", base_units[7].0, angle_exp));
+    }
+    
+    if terms.is_empty() {
+        "1".to_string() // dimensionless
+    } else {
+        terms.join(" * ")
+    }
+}
+
+/// Convert dimension exponents to a unit expression (legacy function for backward compatibility)
+/// This converts dimension exponents back to a unit expression string using SI base units
+fn dimension_exponents_to_unit_expression(exponents: DynDimensionExponents) -> String {
+    // Use SI base units as default
+    let base_units = [
+        ("kg", "kg"), ("m", "m"), ("s", "s"), ("A", "A"),
+        ("K", "K"), ("mol", "mol"), ("cd", "cd"), ("rad", "rad")
+    ];
+    dimension_exponents_to_unit_expression_with_base_units(exponents, &base_units)
+}
 
 // Import the UnitExpr type from unit_macro
 use crate::unit_macro::UnitExpr;
@@ -216,7 +270,7 @@ impl LocalQuantityMacroInput {
             // Check if this unit gets transformed
             if self.unit_gets_transformed_in_local_context(unit_name) {
                 // Calculate the scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 
                 // Get the prefixed unit name
                 self.get_prefixed_unit_name(unit_name, scale_factor_diff)
@@ -332,6 +386,10 @@ impl LocalQuantityMacroInput {
 
     /// Get the local base units array, converting scale types to actual unit symbols
     fn get_local_base_units(&self) -> [(String, String); 8] {
+        // Debug: print the scale type names
+        eprintln!("Scale type names: mass={}, length={}, time={}", 
+                 self.mass_scale, self.length_scale, self.time_scale);
+        
         let mass_base = scale_type_to_actual_unit_symbol(&self.mass_scale.to_string()).unwrap_or_else(|| "g".to_string());
         let length_base = scale_type_to_actual_unit_symbol(&self.length_scale.to_string()).unwrap_or_else(|| "m".to_string());
         let time_base = scale_type_to_actual_unit_symbol(&self.time_scale.to_string()).unwrap_or_else(|| "s".to_string());
@@ -340,6 +398,10 @@ impl LocalQuantityMacroInput {
         let amount_base = scale_type_to_actual_unit_symbol(&self.amount_scale.to_string()).unwrap_or_else(|| "mol".to_string());
         let luminosity_base = scale_type_to_actual_unit_symbol(&self.luminosity_scale.to_string()).unwrap_or_else(|| "cd".to_string());
         let angle_base = scale_type_to_actual_unit_symbol(&self.angle_scale.to_string()).unwrap_or_else(|| "rad".to_string());
+        
+        // Debug: print the converted unit symbols
+        eprintln!("Converted unit symbols: mass={}, length={}, time={}", 
+                 mass_base, length_base, time_base);
         
         [
             (mass_base.clone(), mass_base),
@@ -359,7 +421,7 @@ impl LocalQuantityMacroInput {
         let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp, _p2, _p3, _p5, _pi) = self.unit_expr.evaluate();
         
         // Use the provided base units to generate the expression
-        dimension_exponents_to_unit_expression((mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp), base_units)
+        dimension_exponents_to_unit_expression_with_base_units(DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp]), base_units)
     }
 
     /// Generate the output unit expression string for the lift trace
@@ -379,9 +441,9 @@ impl LocalQuantityMacroInput {
         // Check if it's a prefixed compound unit (like kPa, mW, kJ)
         if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_name) {
             // Get dimensions for the base unit (without prefix)
-            if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
+            if let Some((dimension, _)) = lookup_unit_literal(&base_symbol) {
                 let dimensions = dimension.exponents;
-                self.generate_unit_expression_from_dimensions(dimensions)
+                self.generate_unit_expression_from_dimensions(dyn_exponents_to_tuple_format(dimensions))
             } else {
                 // Fallback to original unit
                 unit_name.to_string()
@@ -391,11 +453,11 @@ impl LocalQuantityMacroInput {
             if let Some((dimension, _)) = lookup_unit_literal(unit_name) {
                 let dimensions = dimension.exponents;
                 // Check if it's a simple base unit
-                if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
+                if let Some(scale_ident) = self.get_scale_for_dimensions(dyn_exponents_to_tuple_format(dimensions)) {
                     scale_ident.to_string()
                 } else {
                     // It's a compound unit - generate the unit expression
-                    self.generate_unit_expression_from_dimensions(dimensions)
+                    self.generate_unit_expression_from_dimensions(dyn_exponents_to_tuple_format(dimensions))
                 }
             } else {
                 // Unknown unit, fall back to original
@@ -460,28 +522,34 @@ impl LocalQuantityMacroInput {
 
     /// Generate unit expression string from dimensions using local base units
     fn generate_unit_expression_from_dimensions(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> String {
-        let base_units = self.get_local_base_units_refs();
+        // Decompose into component units and map each to its local scale counterpart
+        let local_base_units = self.get_local_base_units_refs();
+        // Debug: print the local base units
+        eprintln!("Local base units: {:?}", local_base_units);
         let base_units_refs: [(&str, &str); 8] = [
-            (base_units[0].0.as_str(), base_units[0].1.as_str()),
-            (base_units[1].0.as_str(), base_units[1].1.as_str()),
-            (base_units[2].0.as_str(), base_units[2].1.as_str()),
-            (base_units[3].0.as_str(), base_units[3].1.as_str()),
-            (base_units[4].0.as_str(), base_units[4].1.as_str()),
-            (base_units[5].0.as_str(), base_units[5].1.as_str()),
-            (base_units[6].0.as_str(), base_units[6].1.as_str()),
-            (base_units[7].0.as_str(), base_units[7].1.as_str()),
+            (local_base_units[0].0.as_str(), local_base_units[0].1.as_str()),
+            (local_base_units[1].0.as_str(), local_base_units[1].1.as_str()),
+            (local_base_units[2].0.as_str(), local_base_units[2].1.as_str()),
+            (local_base_units[3].0.as_str(), local_base_units[3].1.as_str()),
+            (local_base_units[4].0.as_str(), local_base_units[4].1.as_str()),
+            (local_base_units[5].0.as_str(), local_base_units[5].1.as_str()),
+            (local_base_units[6].0.as_str(), local_base_units[6].1.as_str()),
+            (local_base_units[7].0.as_str(), local_base_units[7].1.as_str()),
         ];
-        dimension_exponents_to_unit_expression(dimensions, &base_units_refs)
+        let result = dimension_exponents_to_unit_expression_with_base_units(DynDimensionExponents([dimensions.0, dimensions.1, dimensions.2, dimensions.3, dimensions.4, dimensions.5, dimensions.6, dimensions.7]), &base_units_refs);
+        // Debug: print the generated unit expression
+        eprintln!("Generated unit expression: {}", result);
+        result
     }
 
     /// Handle prefixed compound unit logic for a single unit
     fn handle_prefixed_compound_unit(&self, unit_name: &str, storage_type: &Type, lift_trace_doc_shadows: &TokenStream) -> Option<TokenStream> {
         if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_name) {
-            if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
+            if let Some((dimension, _)) = lookup_unit_literal(&base_symbol) {
                 let dimensions = dimension.exponents;
-                let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
+                let unit_expr = self.generate_unit_expression_from_dimensions(dyn_exponents_to_tuple_format(dimensions));
                 let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
-                    syn::parse_str::<syn::Expr>(base_symbol).unwrap()
+                    syn::parse_str::<syn::Expr>(&base_symbol).unwrap()
                 });
                 return Some(self.generate_compound_unit_quote(&unit_expr_parsed, storage_type, lift_trace_doc_shadows));
             }
@@ -501,11 +569,11 @@ impl LocalQuantityMacroInput {
             let dimensions = dimension.exponents;
             
             // Check if it's a simple base unit
-            if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
+            if let Some(scale_ident) = self.get_scale_for_dimensions(dyn_exponents_to_tuple_format(dimensions)) {
                 self.generate_simple_base_unit_quote(&scale_ident, storage_type, lift_trace_doc_shadows)
             } else {
                 // It's a compound unit - generate the unit expression
-                let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
+                let unit_expr = self.generate_unit_expression_from_dimensions(dyn_exponents_to_tuple_format(dimensions));
                 let unit_expr_parsed = syn::parse_str::<syn::Expr>(&unit_expr).unwrap_or_else(|_| {
                     syn::parse_str::<syn::Expr>(unit_name).unwrap()
                 });
@@ -580,14 +648,14 @@ impl LocalQuantityMacroInput {
             let dimensions = dimension.exponents;
             
             // Check if it's a simple base unit
-            if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
+            if let Some(scale_ident) = self.get_scale_for_dimensions(dyn_exponents_to_tuple_format(dimensions)) {
                 // For simple base units, the target type is the local scale declarator
                 quote! {
                     whippyunits::default_declarators::#scale_ident
                 }
             } else {
                 // For compound units, calculate the scale factor difference and find the appropriate prefixed type
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 
                 if scale_factor_diff != 0 {
                     // Try to find a prefixed version that matches the scale factor
@@ -691,7 +759,7 @@ impl LocalQuantityMacroInput {
 
     /// Find a common unit name for given dimensions by looking up known units
     fn find_common_unit_name_for_dimensions(&self, dimensions: (i16, i16, i16, i16, i16, i16, i16, i16)) -> Option<String> {
-        use whippyunits_default_dimensions::{get_units_by_exponents, SI_PREFIXES};
+        use whippyunits_core::{Dimension, SiPrefix};
         
         // Use the existing infrastructure to find units with these dimensions
         let matching_units = get_units_by_exponents(dimensions);
@@ -705,8 +773,8 @@ impl LocalQuantityMacroInput {
             
             if scale_factor_diff != 0 {
                 // Find the appropriate prefix
-                if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.scale_factor == scale_factor_diff) {
-                    let prefix_symbol = if prefix_info.symbol == "u" { "μ" } else { prefix_info.symbol };
+                if let Some(prefix_info) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_factor_diff) {
+                    let prefix_symbol = if prefix_info.symbol() == "u" { "μ" } else { prefix_info.symbol() };
                     return Some(format!("{}{}", prefix_symbol, base_unit_symbol));
                 }
             } else {

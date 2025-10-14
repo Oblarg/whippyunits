@@ -1,10 +1,10 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Ident, Type};
-use whippyunits_default_dimensions::{
-    lookup_unit_literal, is_prefixed_base_unit,
-    scale_type_to_actual_unit_symbol, lookup_si_prefix, SI_PREFIXES,
+use whippyunits_core::api_helpers::{
+    lookup_unit_literal, is_prefixed_base_unit, lookup_si_prefix, scale_type_to_actual_unit_symbol, dyn_exponents_to_tuple_format,
 };
+use whippyunits_core::SiPrefix;
 
 // Import the UnitExpr type from unit_macro
 use crate::unit_macro::UnitExpr;
@@ -128,7 +128,7 @@ impl<'a> UnitSymbolPipeline<'a> {
             // Check if this unit gets transformed
             if self.unit_gets_transformed_in_local_context() {
                 // Calculate the scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 
                 // Get the prefixed unit name
                 self.get_prefixed_unit_name(scale_factor_diff)
@@ -153,7 +153,7 @@ impl<'a> UnitSymbolPipeline<'a> {
     fn unit_gets_transformed_in_local_context(&self) -> bool {
         if let Some((dimension, _)) = lookup_unit_literal(self.unit_name) {
             let dimensions = dimension.exponents;
-            let processor = DimensionProcessor::new(dimensions);
+            let processor = DimensionProcessor::new(dyn_exponents_to_tuple_format(dimensions));
             
             // If it's a simple base unit, check if it gets transformed
             if processor.get_scale_identifier(
@@ -167,12 +167,12 @@ impl<'a> UnitSymbolPipeline<'a> {
                 &self.local_context.angle_scale,
             ).is_some() {
                 // For simple base units, check if there's a scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 return scale_factor_diff != 0;
             }
             
             // For compound units, check if any of their base units get transformed
-            return self.compound_unit_gets_transformed(dimensions);
+            return self.compound_unit_gets_transformed(dyn_exponents_to_tuple_format(dimensions));
         }
         
         false
@@ -209,7 +209,7 @@ impl<'a> UnitSymbolPipeline<'a> {
     }
 
     fn get_scale_difference_for_base_unit(&self, default_unit: &str) -> i16 {
-        use whippyunits_default_dimensions::{scale_type_to_actual_unit_symbol, is_prefixed_base_unit, lookup_si_prefix};
+        use whippyunits_core::api_helpers::{scale_type_to_actual_unit_symbol, is_prefixed_base_unit, lookup_si_prefix};
         
         // Get the local unit symbol based on the unit type
         let local_unit_symbol = match default_unit {
@@ -233,8 +233,8 @@ impl<'a> UnitSymbolPipeline<'a> {
         if let Some((prefix_symbol, base_symbol)) = is_prefixed_base_unit(&local_unit_symbol) {
             if base_symbol == default_unit {
                 // Get the prefix scale factor
-                if let Some(prefix_info) = lookup_si_prefix(prefix_symbol) {
-                    return prefix_info.scale_factor;
+                if let Some(prefix_info) = lookup_si_prefix(&prefix_symbol) {
+                    return prefix_info.factor_log10();
                 }
             }
         }
@@ -244,12 +244,12 @@ impl<'a> UnitSymbolPipeline<'a> {
     }
 
     fn get_prefixed_unit_name(&self, scale_factor_diff: i16) -> String {
-        use whippyunits_default_dimensions::SI_PREFIXES;
+        use whippyunits_core::SiPrefix;
         
         // Find the prefix that matches the scale factor difference
-        if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.scale_factor == scale_factor_diff) {
+        if let Some(prefix_info) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_factor_diff) {
             // Use the Unicode symbol for micro (μ) instead of 'u' for better display
-            let prefix_symbol = if prefix_info.symbol == "u" { "μ" } else { prefix_info.symbol };
+            let prefix_symbol = if prefix_info.symbol() == "u" { "μ" } else { prefix_info.symbol() };
             
             // If this is a prefixed unit, apply the prefix to the base unit, not the original unit
             let base_unit = if self.is_prefixed_unit() {
@@ -293,13 +293,13 @@ impl<'a> UnitSymbolPipeline<'a> {
     }
 
     fn get_time_unit_conversion(&self) -> Option<String> {
-        use whippyunits_default_dimensions::lookup_unit_literal;
+        use whippyunits_core::api_helpers::lookup_unit_literal;
         
         if let Some((_dimension, unit)) = lookup_unit_literal(self.unit_name) {
             // Check if this is a time unit with a conversion factor
-            if let Some(scale_factors) = unit.scale_factors {
+            if unit.scale.0 != [0, 0, 0, 0] {
                 // Calculate the conversion factor from scale factors
-                let (p2, p3, p5, pi) = scale_factors;
+                let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
                 let conversion_factor = 2.0_f64.powi(p2 as i32) * 3.0_f64.powi(p3 as i32) * 5.0_f64.powi(p5 as i32) * std::f64::consts::PI.powi(pi as i32);
                 
                 if conversion_factor != 1.0 {
@@ -327,16 +327,31 @@ impl<'a> QuoteGenerator<'a> {
         let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
         let storage_type = self.storage_type;
         quote! {
-            <whippyunits::Helper<{
-                #lift_trace_doc_shadows
-                0
-            }, whippyunits::default_declarators::#scale_ident<#storage_type>> as whippyunits::GetSecondGeneric>::Type
+            whippyunits::default_declarators::#scale_ident<#storage_type>
         }
     }
 
     pub fn generate_for_compound_unit(&self, unit_expr_parsed: &syn::Expr) -> TokenStream {
         let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
         let storage_type = self.storage_type;
+        quote! {
+            <whippyunits::Helper<{
+                #lift_trace_doc_shadows
+                0
+            }, whippyunits::unit!(#unit_expr_parsed, #storage_type)> as whippyunits::GetSecondGeneric>::Type
+        }
+    }
+
+    pub fn generate_for_local_compound_unit(&self, unit_expr_parsed: &syn::Expr, local_context: &LocalContext) -> TokenStream {
+        let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
+        let storage_type = self.storage_type;
+        
+        // Parse the unit expression to get dimensions
+        let unit_expr_str = quote! { #unit_expr_parsed }.to_string();
+        
+        // We need to evaluate the unit expression and calculate the correct scale factors for the local context
+        // For now, we'll use the standard unit! macro but with the local context
+        // TODO: Implement proper scale factor calculation for local context
         quote! {
             <whippyunits::Helper<{
                 #lift_trace_doc_shadows
@@ -359,15 +374,24 @@ pub struct LocalContext {
 }
 
 /// Check if a unit symbol is a prefixed compound unit (kPa, mW, etc.)
-pub fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(&str, &str)> {
+pub fn is_prefixed_compound_unit(unit_symbol: &str) -> Option<(String, String)> {
     // Use the new is_prefixed_base_unit function from the util module
     if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_symbol) {
         // Check if the base unit is a compound unit (has multiple non-zero dimension exponents)
-        if let Some((dimension, _)) = lookup_unit_literal(base_symbol) {
-            let (m, l, t, c, temp, a, lum, ang) = dimension.exponents;
+        if let Some((dimension, _)) = lookup_unit_literal(&base_symbol) {
+            let (m, l, t, c, temp, a, lum, ang) = (
+                dimension.exponents.0[0], // mass
+                dimension.exponents.0[1], // length
+                dimension.exponents.0[2], // time
+                dimension.exponents.0[3], // current
+                dimension.exponents.0[4], // temperature
+                dimension.exponents.0[5], // amount
+                dimension.exponents.0[6], // luminous_intensity
+                dimension.exponents.0[7], // angle
+            );
             let non_zero_count = [m, l, t, c, temp, a, lum, ang].iter().filter(|&&x| x != 0).count();
             if non_zero_count > 1 {
-                return Some((base_symbol, prefix));
+                return Some((base_symbol.to_string(), prefix.to_string()));
             }
         }
     }
@@ -381,7 +405,7 @@ impl LocalContext {
         // Check if this is a simple base unit that maps to a local scale
         if let Some((dimension, _)) = lookup_unit_literal(unit_name) {
             let dimensions = dimension.exponents;
-            let processor = DimensionProcessor::new(dimensions);
+            let processor = DimensionProcessor::new(dyn_exponents_to_tuple_format(dimensions));
             
             // If it's a simple base unit, check if it gets transformed
             if processor.get_scale_identifier(
@@ -395,12 +419,12 @@ impl LocalContext {
                 &self.angle_scale,
             ).is_some() {
                 // For simple base units, check if there's a scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 return scale_factor_diff != 0;
             }
             
             // For compound units, check if any of their base units get transformed
-            return self.compound_unit_gets_transformed(dimensions);
+            return self.compound_unit_gets_transformed(dyn_exponents_to_tuple_format(dimensions));
         }
         
         false
@@ -457,8 +481,10 @@ impl LocalContext {
         if let Some((prefix_symbol, base_symbol)) = is_prefixed_base_unit(&local_unit_symbol) {
             if base_symbol == default_unit {
                 // Get the prefix scale factor
-                if let Some(prefix_info) = lookup_si_prefix(prefix_symbol) {
-                    return prefix_info.scale_factor;
+                if let Some(prefix_info) = lookup_si_prefix(&prefix_symbol) {
+                    // Return the scale factor directly - no negation needed
+                    // If local unit is smaller (e.g., mm vs m), the scale factor is negative
+                    return prefix_info.factor_log10();
                 }
             }
         }
@@ -470,13 +496,13 @@ impl LocalContext {
     /// Find a prefixed type by scale factor using centralized utilities
     pub fn find_prefixed_type_by_scale_factor(&self, unit_name: &str, scale_factor_diff: i16) -> Option<TokenStream> {
         // Find the prefix that matches the scale factor difference
-        for prefix_info in SI_PREFIXES {
-            if prefix_info.scale_factor == scale_factor_diff {
+        for prefix_info in SiPrefix::ALL {
+            if prefix_info.factor_log10() == scale_factor_diff {
                 // Get the base unit name (e.g., "kW" -> "W")
                 let base_unit_name = self.get_base_unit_name(unit_name);
                 
                 // Try to find a prefixed version of the base unit
-                let prefixed_unit_name = format!("{}{}", prefix_info.symbol, base_unit_name);
+                let prefixed_unit_name = format!("{}{}", prefix_info.symbol(), base_unit_name);
                 if let Some(declarator_type) = crate::get_declarator_type_for_unit(&prefixed_unit_name) {
                     return Some(declarator_type);
                 }
@@ -492,9 +518,9 @@ impl LocalContext {
     /// Get the proper prefixed unit name from scale factor difference
     pub fn get_prefixed_unit_name(&self, unit_name: &str, scale_factor_diff: i16) -> String {
         // Find the prefix that matches the scale factor difference
-        if let Some(prefix_info) = SI_PREFIXES.iter().find(|p| p.scale_factor == scale_factor_diff) {
+        if let Some(prefix_info) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_factor_diff) {
             // Use the Unicode symbol for micro (μ) instead of 'u' for better display
-            let prefix_symbol = if prefix_info.symbol == "u" { "μ" } else { prefix_info.symbol };
+            let prefix_symbol = if prefix_info.symbol() == "u" { "μ" } else { prefix_info.symbol() };
             
             // If this is a prefixed unit, apply the prefix to the base unit, not the original unit
             let base_unit = if self.is_prefixed_unit(unit_name) {
@@ -512,7 +538,7 @@ impl LocalContext {
     /// Get the long name for a unit (e.g., "J" -> "Joule", "W" -> "Watt")
     pub fn get_unit_long_name(&self, unit_name: &str) -> String {
         if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
-            unit.long_name.to_string()
+            unit.name.to_string()
         } else {
             unit_name.to_string()
         }
@@ -552,9 +578,9 @@ impl LocalContext {
     pub fn get_time_unit_conversion(&self, unit_name: &str) -> Option<String> {
         if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
             // Check if this is a time unit with a conversion factor
-            if let Some(scale_factors) = unit.scale_factors {
+            if unit.scale.0 != [0, 0, 0, 0] {
                 // Calculate the conversion factor from scale factors
-                let (p2, p3, p5, pi) = scale_factors;
+                let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
                 let conversion_factor = 2.0_f64.powi(p2 as i32) * 3.0_f64.powi(p3 as i32) * 5.0_f64.powi(p5 as i32) * std::f64::consts::PI.powi(pi as i32);
                 
                 if conversion_factor != 1.0 {
@@ -616,10 +642,10 @@ impl LocalContext {
             // Check if this unit gets transformed
             if self.unit_gets_transformed_in_local_context(unit_name) {
                 // Calculate the scale factor difference
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+                let scale_factor_diff = self.calculate_scale_factor_difference(dyn_exponents_to_tuple_format(dimensions));
                 
                 // Get the target type
-                let target_type = if let Some(scale_ident) = DimensionProcessor::new(dimensions).get_scale_identifier(
+                let target_type = if let Some(scale_ident) = DimensionProcessor::new(dyn_exponents_to_tuple_format(dimensions)).get_scale_identifier(
                     &self.mass_scale,
                     &self.length_scale,
                     &self.time_scale,
@@ -642,7 +668,7 @@ impl LocalContext {
                 };
                 
                 // Generate the transformation details
-                let details = self.generate_transformation_explanation(unit_name, &target_type, dimensions, scale_factor_diff);
+                let details = self.generate_transformation_explanation(unit_name, &target_type, dyn_exponents_to_tuple_format(dimensions), scale_factor_diff);
                 
                 TransformationDetails {
                     target_type,

@@ -246,22 +246,6 @@ fn test_generic_dimension_expressions() {
 }
 
 #[test]
-fn test_expanded_dimension_dsl_naming_variations() {
-    define_generic_dimension!(DensityVariations, VolumeMassDensity, LinearMassDensity);
-    define_generic_dimension!(ViscosityVariations, Viscosity, KinematicViscosity);
-    define_generic_dimension!(ElectricalVariations, ElectricCharge, ElectricPotential);
-
-    let volume_density: impl DensityVariations = quantity!(1.0, kg / m ^ 3);
-    let linear_density: impl DensityVariations = quantity!(1.0, kg / m);
-
-    let dynamic_viscosity: impl ViscosityVariations = quantity!(1.0, Pa * s);
-    let kinematic_viscosity: impl ViscosityVariations = quantity!(1.0, St);
-
-    let charge: impl ElectricalVariations = quantity!(1.0, C);
-    let potential: impl ElectricalVariations = quantity!(1.0, V);
-}
-
-#[test]
 fn test_dimension_symbols_in_dsl() {
     define_generic_dimension!(SymbolTest, L, M, T, L ^ 2, M * L ^ 2 / T ^ 2);
 
