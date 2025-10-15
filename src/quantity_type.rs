@@ -434,7 +434,12 @@ impl std::fmt::Display for QuantityFormatter {
         if self.is_error {
             write!(f, "{}", self.unit)
         } else {
-            write!(f, "{} {}", self.value, self.unit)
+            // Use the formatter's precision if specified, otherwise use default formatting
+            if let Some(precision) = f.precision() {
+                write!(f, "{:.precision$} {}", self.value, self.unit, precision = precision)
+            } else {
+                write!(f, "{} {}", self.value, self.unit)
+            }
         }
     }
 }
