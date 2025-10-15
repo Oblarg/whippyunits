@@ -265,20 +265,9 @@ impl UnitFormatter {
             DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle])
         };
         
-        // Apply base scale offset for mass quantities when using truncated format
-        let adjusted_scale = if quantity_type.contains("Scale,") && dimensions.0[0] == 1 && 
-           dimensions.0[1] == 0 && dimensions.0[2] == 0 && dimensions.0[3] == 0 && 
-           dimensions.0[4] == 0 && dimensions.0[5] == 0 && dimensions.0[6] == 0 && dimensions.0[7] == 0 {
-            // This is a pure mass quantity with truncated scale format
-            // Apply the base scale offset for mass (gram has -3 offset, so we need +3 to get to kg)
-            // Since 10^3 = 2^3 * 5^3, we add 3 to both p2 and p5
-            let mut adjusted = scale;
-            adjusted.0[0] += 3; // p2
-            adjusted.0[2] += 3; // p5
-            adjusted
-        } else {
-            scale
-        };
+        // Don't apply base scale offset here - let the prettyprint functions handle it
+        // The prettyprint functions already have the correct base scale offset logic
+        let adjusted_scale = scale;
         
         // Extract the actual generic type parameter from the type string
         let generic_type = self.extract_generic_type(quantity_type);
