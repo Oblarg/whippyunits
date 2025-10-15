@@ -14,6 +14,7 @@ tempfile = "3.0"
 shellexpand = "3.0"
 clap = { version = "4.0", features = ["derive"] }
 whippyunits = { path = ".." }
+whippyunits-core = { path = "../whippyunits-core" }
 
 [[bin]]
 name = "lsp-proxy"

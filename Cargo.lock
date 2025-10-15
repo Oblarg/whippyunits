@@ -1168,6 +1168,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "whippyunits",
+ "whippyunits-core",
 ]
 
 [[package]]

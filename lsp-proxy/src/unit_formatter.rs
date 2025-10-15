@@ -1,5 +1,7 @@
 
 
+use whippyunits_core::{dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents};
+
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
 pub struct DisplayConfig {
@@ -55,7 +57,6 @@ impl UnitFormatter {
             let after_code_start = &original_text[code_start + 7..]; // Skip "```rust"
             if let Some(code_end) = after_code_start.find("```") {
                 let code_content = &after_code_start[..code_end];
-                let after_code = &after_code_start[code_end..];
                 
                 // Format the code content
                 let formatted_content = self.format_quantity_types(code_content, config.verbose, config.unicode, false);
@@ -97,8 +98,7 @@ impl UnitFormatter {
     /// Core method to format Quantity types with configurable parameters
     fn format_quantity_types(&self, text: &str, verbose: bool, unicode: bool, is_inlay_hint: bool) -> String {
         
-        use whippyunits::print::prettyprint::{pretty_print_quantity_type, generate_dimension_symbols};
-        use whippyunits::print::name_lookup::lookup_dimension_name;
+        use whippyunits::print::prettyprint::pretty_print_quantity_type;
         
         // Handle the new format with Scale and Dimension structs (both full and truncated)
         if text.contains("Scale") && text.contains("Dimension") {
@@ -184,13 +184,8 @@ impl UnitFormatter {
         // Parse the new format: Quantity<Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>, Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>, T>
         if let Some(params) = self.parse_new_quantity_params(full_match) {
             // Check if this is a wholly unresolved type (all parameters are sentinel values)
-            let all_dimensions_unresolved = params.mass_exp == i16::MIN && params.length_exp == i16::MIN && 
-                                           params.time_exp == i16::MIN && params.electric_current_exp == i16::MIN &&
-                                           params.temperature_exp == i16::MIN && params.amount_of_substance_exp == i16::MIN &&
-                                           params.luminous_intensity_exp == i16::MIN && params.angle_exp == i16::MIN;
-            
-            let all_scales_unresolved = params.scale_p2 == i16::MIN && params.scale_p3 == i16::MIN && 
-                                       params.scale_p5 == i16::MIN && params.scale_pi == i16::MIN;
+            let all_dimensions_unresolved = params.dimensions.0.iter().all(|&exp| exp == i16::MIN);
+            let all_scales_unresolved = params.scale.0.iter().all(|&exp| exp == i16::MIN);
             
             if all_dimensions_unresolved && all_scales_unresolved {
                 // Format as wholly unresolved type
@@ -198,21 +193,17 @@ impl UnitFormatter {
             }
             
             // Check if this is a dimensionless quantity (all dimensions are zero)
-            if params.mass_exp == 0 && params.length_exp == 0 && params.time_exp == 0 && 
-               params.electric_current_exp == 0 && params.temperature_exp == 0 && 
-               params.amount_of_substance_exp == 0 && params.luminous_intensity_exp == 0 && 
-               params.angle_exp == 0 && params.scale_p2 == 0 && params.scale_p3 == 0 && 
-               params.scale_p5 == 0 && params.scale_pi == 0 {
+            if params.dimensions == DynDimensionExponents::ZERO && params.scale == ScaleExponents::IDENTITY {
                 // Format as dimensionless quantity
                 return format!("Quantity<1, {}>", params.generic_type);
             }
             if is_inlay_hint {
                 // Use the main pretty print function with verbose=false to get the unit literal
                 let full_output = pretty_print_quantity_type(
-                    params.mass_exp, params.length_exp, params.time_exp,
-                    params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
-                    params.luminous_intensity_exp, params.angle_exp,
-                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
+                    params.dimensions.0[0], params.dimensions.0[1], params.dimensions.0[2],
+                    params.dimensions.0[3], params.dimensions.0[4], params.dimensions.0[5],
+                    params.dimensions.0[6], params.dimensions.0[7],
+                    params.scale.0[0], params.scale.0[1], params.scale.0[2], params.scale.0[3],
                     &params.generic_type,
                     false, // Non-verbose mode for inlay hints
                     false, // Don't show type in brackets
@@ -229,10 +220,10 @@ impl UnitFormatter {
             } else {
                 // Use the prettyprint API with configurable parameters
                 let result = pretty_print_quantity_type(
-                    params.mass_exp, params.length_exp, params.time_exp,
-                    params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
-                    params.luminous_intensity_exp, params.angle_exp,
-                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
+                    params.dimensions.0[0], params.dimensions.0[1], params.dimensions.0[2],
+                    params.dimensions.0[3], params.dimensions.0[4], params.dimensions.0[5],
+                    params.dimensions.0[6], params.dimensions.0[7],
+                    params.scale.0[0], params.scale.0[1], params.scale.0[2], params.scale.0[3],
                     &params.generic_type,
                     verbose,
                     false, // show_type_in_brackets = false for pretty printer
@@ -254,60 +245,54 @@ impl UnitFormatter {
     /// Parse the new Quantity type format with Scale<...> and Dimension<...> structs
     fn parse_new_quantity_params(&self, quantity_type: &str) -> Option<QuantityParams> {
         // Parse Scale parameters - handle both full format and truncated format
-        let (scale_p2, scale_p3, scale_p5, scale_pi) = if quantity_type.contains("Scale<_2<") {
+        let scale = if quantity_type.contains("Scale<_2<") {
             // Full format: Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>
-            self.parse_scale_full_format(quantity_type)?
+            let (p2, p3, p5, pi) = self.parse_scale_full_format(quantity_type)?;
+            ScaleExponents([p2, p3, p5, pi])
         } else if quantity_type.contains("Scale,") {
             // Truncated format: Scale, or Scale> or Scale, Dimension (all parameters default to 0)
-            (0, 0, 0, 0)
+            ScaleExponents::IDENTITY
         } else {
             // Unknown format
             return None;
         };
         
         // Parse Dimension parameters - handle both full format and truncated format
-        let (mass_exp, length_exp, time_exp, electric_current_exp, temperature_exp, amount_of_substance_exp, luminous_intensity_exp, angle_exp) = 
-            if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<") {
-                // Full format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
-                self.parse_dimension_full_format(quantity_type)?
-            } else if quantity_type.contains("Dimension,") || quantity_type.contains("Dimension>") {
-                // Fully defaulted Dimension (dimensionless): Dimension, T or Dimension> T
-                (0, 0, 0, 0, 0, 0, 0, 0)
-            } else {
-                // Truncated format: parse only the non-zero parameters
-                // Look for patterns like Dimension<_M<0>, _L<1>> (only non-zero parameters are shown)
-                self.parse_dimension_truncated_format(quantity_type)
-            };
+        let dimensions = if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<") {
+            // Full format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
+            let (mass, length, time, current, temp, amount, lum, angle) = self.parse_dimension_full_format(quantity_type)?;
+            DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle])
+        } else if quantity_type.contains("Dimension,") || quantity_type.contains("Dimension>") {
+            // Fully defaulted Dimension (dimensionless): Dimension, T or Dimension> T
+            DynDimensionExponents::ZERO
+        } else {
+            // Truncated format: parse only the non-zero parameters
+            // Look for patterns like Dimension<_M<0>, _L<1>> (only non-zero parameters are shown)
+            let (mass, length, time, current, temp, amount, lum, angle) = self.parse_dimension_truncated_format(quantity_type);
+            DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle])
+        };
         
         // Apply base scale offset for mass quantities when using truncated format
-        let (adjusted_scale_p2, adjusted_scale_p3, adjusted_scale_p5, adjusted_scale_pi) = 
-            if quantity_type.contains("Scale,") && mass_exp == 1 && length_exp == 0 && time_exp == 0 && 
-               electric_current_exp == 0 && temperature_exp == 0 && amount_of_substance_exp == 0 && 
-               luminous_intensity_exp == 0 && angle_exp == 0 {
-                // This is a pure mass quantity with truncated scale format
-                // Apply the base scale offset for mass (gram has -3 offset, so we need +3 to get to kg)
-                // Since 10^3 = 2^3 * 5^3, we add 3 to both p2 and p5
-                (scale_p2 + 3, scale_p3, scale_p5 + 3, scale_pi)
-            } else {
-                (scale_p2, scale_p3, scale_p5, scale_pi)
-            };
+        let adjusted_scale = if quantity_type.contains("Scale,") && dimensions.0[0] == 1 && 
+           dimensions.0[1] == 0 && dimensions.0[2] == 0 && dimensions.0[3] == 0 && 
+           dimensions.0[4] == 0 && dimensions.0[5] == 0 && dimensions.0[6] == 0 && dimensions.0[7] == 0 {
+            // This is a pure mass quantity with truncated scale format
+            // Apply the base scale offset for mass (gram has -3 offset, so we need +3 to get to kg)
+            // Since 10^3 = 2^3 * 5^3, we add 3 to both p2 and p5
+            let mut adjusted = scale;
+            adjusted.0[0] += 3; // p2
+            adjusted.0[2] += 3; // p5
+            adjusted
+        } else {
+            scale
+        };
         
         // Extract the actual generic type parameter from the type string
         let generic_type = self.extract_generic_type(quantity_type);
         
         Some(QuantityParams {
-            mass_exp,
-            length_exp,
-            time_exp,
-            electric_current_exp,
-            temperature_exp,
-            amount_of_substance_exp,
-            luminous_intensity_exp,
-            angle_exp,
-            scale_p2: adjusted_scale_p2,
-            scale_p3: adjusted_scale_p3,
-            scale_p5: adjusted_scale_p5,
-            scale_pi: adjusted_scale_pi,
+            dimensions,
+            scale: adjusted_scale,
             generic_type,
         })
     }
@@ -431,78 +416,6 @@ impl UnitFormatter {
         }
         None
     }
-
-    /// Find the end of a Dimension struct, handling truncated formats
-    fn find_dimension_end(&self, dimension_content: &str) -> Option<usize> {
-        // For Dimension structs, we need to find the > that closes the Dimension< opening
-        // The issue is that we need to find the correct > that closes Dimension<, not the final > of the entire type
-        // We start with depth 1 because we're already inside Dimension<
-        let mut depth = 1;
-        let mut i = 0;
-        
-        while i < dimension_content.len() {
-            match dimension_content.chars().nth(i) {
-                Some('<') => depth += 1,
-                Some('>') => {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(i);
-                    }
-                },
-                _ => {}
-            }
-            i += 1;
-        }
-        None
-    }
-
-    /// Alternative approach: find the type parameter by looking for the pattern after Dimension
-    fn extract_generic_type_alternative(&self, quantity_type: &str) -> String {
-        // Look for the pattern: Dimension<...>, T> where T is the type parameter
-        if let Some(dimension_start) = quantity_type.find("Dimension<") {
-            // Find the end of the Dimension struct by looking for the closing > of Dimension<...>
-            let dimension_content = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
-            if let Some(dimension_end) = self.find_dimension_end(dimension_content) {
-                // dimension_end is the position within dimension_content where the Dimension struct ends
-                // We need to find the content after the Dimension struct
-                let after_dimension = &quantity_type[dimension_start + 9 + dimension_end + 1..];
-                return self.find_type_parameter(after_dimension);
-            }
-        } else if let Some(dimension_start) = quantity_type.find("Dimension,") {
-            // Handle Dimension, T format (fully defaulted Dimension)
-            let after_dimension = &quantity_type[dimension_start + 9..]; // Skip "Dimension,"
-            return self.find_type_parameter(after_dimension);
-        }
-        
-        "f64".to_string()
-    }
-
-    /// Find the end of a Quantity type by looking for the closing > after the generic type parameter
-    fn find_quantity_end(&self, content: &str, start_pos: usize) -> Option<usize> {
-        let mut depth = 1;
-        let mut i = start_pos;
-        let mut found_comma = false;
-        
-        while i < content.len() {
-            match content.chars().nth(i) {
-                Some('<') => depth += 1,
-                Some('>') => {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(i);
-                    }
-                },
-                Some(',') if depth == 1 => {
-                    // Found a comma at the top level - this should be the separator before the generic type
-                    found_comma = true;
-                },
-                _ => {}
-            }
-            i += 1;
-        }
-        None
-    }
-
 
     /// Extract the generic type parameter from a Quantity type string
     fn extract_generic_type(&self, quantity_type: &str) -> String {
@@ -678,69 +591,12 @@ impl UnitFormatter {
         text.contains("T = f64")
     }
 
-    /// Check if a type is partially resolved (has sentinel values for dimensions that should be resolved)
-    fn is_partially_resolved_type(&self, text: &str) -> bool {
-        // Check for new Scale/Dimension format first
-        if text.contains("Scale") && text.contains("Dimension") {
-            // Parse the new format to check for partially resolved types
-            if let Some(params) = self.parse_new_quantity_params(text) {
-                // Check if this is a wholly unresolved type (all parameters are sentinel values)
-                let all_dimensions_unresolved = params.mass_exp == i16::MIN && params.length_exp == i16::MIN && 
-                                               params.time_exp == i16::MIN && params.electric_current_exp == i16::MIN &&
-                                               params.temperature_exp == i16::MIN && params.amount_of_substance_exp == i16::MIN &&
-                                               params.luminous_intensity_exp == i16::MIN && params.angle_exp == i16::MIN;
-                
-                let all_scales_unresolved = params.scale_p2 == i16::MIN && params.scale_p3 == i16::MIN && 
-                                           params.scale_p5 == i16::MIN && params.scale_pi == i16::MIN;
-                
-                if all_dimensions_unresolved && all_scales_unresolved {
-                    return true; // Wholly unresolved type
-                }
-                
-                // Check if any dimension has a non-zero exponent but sentinel scale values
-                // This indicates a partially resolved type
-                
-                // Check if any dimension exponent is non-zero
-                let has_non_zero_dimension = params.mass_exp != 0 || params.length_exp != 0 || 
-                                           params.time_exp != 0 || params.electric_current_exp != 0 ||
-                                           params.temperature_exp != 0 || params.amount_of_substance_exp != 0 ||
-                                           params.luminous_intensity_exp != 0 || params.angle_exp != 0;
-                
-                if has_non_zero_dimension {
-                    // Check if any scale parameter has sentinel value (i16::MIN indicates unknown)
-                    if params.scale_p2 == i16::MIN || params.scale_p3 == i16::MIN || 
-                       params.scale_p5 == i16::MIN || params.scale_pi == i16::MIN {
-                        return true; // Has dimension but unknown scale
-                    }
-                }
-            }
-            return false; // Fully resolved new format type
-        }
-        
-        // For old format, check if it contains underscore placeholders
-        if text.contains("Quantity<") && text.contains("_") {
-            // Simple check: if it contains underscores, it's likely partially resolved
-            return true;
-        }
-        
-        false // Fully resolved type
-    }
 
 }
 
 #[derive(Debug)]
 struct QuantityParams {
-    mass_exp: i16,
-    length_exp: i16,
-    time_exp: i16,
-    electric_current_exp: i16,
-    temperature_exp: i16,
-    amount_of_substance_exp: i16,
-    luminous_intensity_exp: i16,
-    angle_exp: i16,
-    scale_p2: i16,
-    scale_p3: i16,
-    scale_p5: i16,
-    scale_pi: i16,
+    dimensions: DynDimensionExponents,
+    scale: ScaleExponents,
     generic_type: String,
 }
