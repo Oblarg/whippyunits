@@ -17,8 +17,6 @@ mod scoped_preferences_macro;
 /// Shared helper function to get the corresponding default declarator type for a unit
 /// This is used by both the unit! macro and local_unit! macro to avoid code duplication
 fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStream> {
-    use whippyunits_core::api_helpers::{lookup_unit_literal, parse_unit_with_prefix};
-    use whippyunits_core::Dimension;
 
     // Skip dimensionless units - they don't have corresponding default declarator types
     if unit_name == "dimensionless" {
@@ -26,7 +24,7 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
     }
     
     // Check if it's a base unit (these have corresponding types)
-    let atomic_dimensions = Dimension::BASIS;
+    let atomic_dimensions = whippyunits_core::Dimension::BASIS;
     for dimension in atomic_dimensions {
         if let Some(unit) = dimension.units.iter().find(|u| u.symbols.contains(&unit_name)) {
             let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
@@ -38,10 +36,10 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
     }
     
     // Check if it's a prefixed unit FIRST (before checking unit literals)
-    let (prefix, base) = parse_unit_with_prefix(unit_name);
+    let (prefix, base) = parse_unit_with_prefix_direct(unit_name);
     if let Some(prefix) = prefix {
         // First try to find it as a prefixed base unit
-        for dimension in Dimension::BASIS {
+        for dimension in whippyunits_core::Dimension::BASIS {
             if let Some(unit) = dimension.units.iter().find(|u| u.symbols.contains(&base.as_str())) {
                 // Use the same naming convention as the default declarators macro
                 let unit_singular = unit.name.trim_end_matches('s');
@@ -55,7 +53,7 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
         }
         
         // If not a base unit, try to find it as a prefixed unit literal
-        if let Some((_dimension, unit)) = lookup_unit_literal(&base) {
+        if let Some((_dimension, unit)) = lookup_unit_literal_direct(&base) {
             // Use the same naming convention as the default declarators macro
             let unit_singular = unit.name.trim_end_matches('s');
             let combined_name = format!("{}{}", prefix.name(), unit_singular);
@@ -68,7 +66,7 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
     }
     
     // Check if it's a unit literal that has a corresponding type - only if not a prefixed unit
-    if let Some((_dimension, unit)) = lookup_unit_literal(unit_name) {
+    if let Some((_dimension, unit)) = lookup_unit_literal_direct(unit_name) {
         // Use the long name to generate the type name, matching the declarator generation logic
         let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
         let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
@@ -80,6 +78,45 @@ fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStr
     // For compound units (N, J, Pa, W, V, F, C, etc.) and dimensionless units (1), 
     // we don't generate documentation since they don't have corresponding default declarator types
     None
+}
+
+// Helper functions that replace api_helpers functions with direct whippyunits-core calls
+
+/// Look up a unit literal (like "min", "h", "g", "m", "s", etc.) in the dimensions data
+fn lookup_unit_literal_direct(unit_name: &str) -> Option<(&'static whippyunits_core::Dimension, &'static whippyunits_core::Unit)> {
+    // First try to find by symbol
+    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(unit_name) {
+        return Some((dimension, unit));
+    }
+    
+    // Then try to find by name
+    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_name(unit_name) {
+        return Some((dimension, unit));
+    }
+    
+    None
+}
+
+/// Parse a unit name to extract prefix and base unit
+/// Returns (prefix_option, base_unit_name)
+fn parse_unit_with_prefix_direct(unit_name: &str) -> (Option<&'static whippyunits_core::SiPrefix>, String) {
+    // Try to strip any prefix from the unit name
+    if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_symbol(unit_name) {
+        // Check if the base unit exists
+        if whippyunits_core::Dimension::find_unit_by_symbol(base).is_some() {
+            return (Some(prefix), String::from(base));
+        }
+    }
+    
+    // Also try stripping prefix from name (not just symbol)
+    if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_name(unit_name) {
+        // Check if the base unit exists by name
+        if whippyunits_core::Dimension::find_unit_by_name(base).is_some() {
+            return (Some(prefix), String::from(base));
+        }
+    }
+    
+    (None, String::from(unit_name))
 }
 
 /// Computes unit dimensions for a unit expression.
@@ -112,7 +149,10 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     );
     
     quote! {
-        (#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7, #d8, #d9, #d10, #d11)
+        (
+            whippyunits_core::DynDimensionExponents([#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7]),
+            whippyunits_core::ScaleExponents([#d8, #d9, #d10, #d11])
+        )
     }
     .into()
 }

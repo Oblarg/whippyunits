@@ -214,7 +214,17 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
         return None; // Dimensionless units don't have a corresponding Unit
     }
 
-    // First check if this is a prefixed unit (like kg, kW, mm, etc.)
+    // First check if this is a unit literal (like min, h, hr, d, g, m, s, etc.)
+    // This must come before prefix checking to avoid false positives
+    if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
+        return Some(unit);
+    }
+    
+    if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
+        return Some(unit);
+    }
+
+    // Then check if this is a prefixed unit (like kg, kW, mm, etc.)
     if let Some((_prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
         // Check if the base unit exists
         if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
@@ -223,17 +233,6 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
             // The scale factor adjustment should be handled in the evaluation logic
             return Some(unit);
         }
-    }
-
-    // Then check if this is a unit literal (like min, h, hr, d, g, m, s, etc.)
-    // First try to find by symbol
-    if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
-        return Some(unit);
-    }
-    
-    // Then try to find by name
-    if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
-        return Some(unit);
     }
 
     // If not found, return None

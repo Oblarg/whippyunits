@@ -1,160 +1,43 @@
-use whippyunits_core::api_helpers::{lookup_dimension_by_exponents, get_units_by_exponents};
-
-/// Configuration for a unit dimension
-#[derive(Debug, Clone)]
-pub struct UnitConfig {
-    pub base_name: &'static str,
-    pub base_symbol: &'static str,
-    pub base_scale_offset: i16,
-    pub offset_adjusted_name: Option<&'static str>,
-    pub offset_adjusted_symbol: Option<&'static str>,
-    pub unknown_text: Option<&'static str>,
-}
-
-impl UnitConfig {
-    /// Get the appropriate name/symbol considering base scale offset
-    fn get_display_name(&self, long_name: bool) -> &'static str {
-        if self.base_scale_offset != 0 {
-            // This unit has a base scale offset - use the offset-adjusted name/symbol
-            if long_name {
-                self.offset_adjusted_name.unwrap_or(self.base_name)
-            } else {
-                self.offset_adjusted_symbol.unwrap_or(self.base_symbol)
-            }
-        } else {
-            // No base scale offset, use the standard name/symbol
-            if long_name {
-                self.base_name
-            } else {
-                self.base_symbol
-            }
-        }
-    }
-}
-
-/// Get unit configuration for a specific dimension index
-/// This maps the 8 basic SI dimensions to their unit configurations
-fn get_unit_config(index: usize) -> UnitConfig {
-    match index {
-        0 => UnitConfig {
-            // Mass
-            base_name: "gram",
-            base_symbol: "g",
-            base_scale_offset: 3, // gram has -3 offset relative to kg
-            offset_adjusted_name: Some("kilogram"),
-            offset_adjusted_symbol: Some("kg"),
-            unknown_text: None,
-        },
-        1 => UnitConfig {
-            // Length
-            base_name: "meter",
-            base_symbol: "m",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        2 => UnitConfig {
-            // Time
-            base_name: "second",
-            base_symbol: "s",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        3 => UnitConfig {
-            // Current
-            base_name: "ampere",
-            base_symbol: "A",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        4 => UnitConfig {
-            // Temperature
-            base_name: "kelvin",
-            base_symbol: "K",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        5 => UnitConfig {
-            // Amount
-            base_name: "mole",
-            base_symbol: "mol",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        6 => UnitConfig {
-            // Luminosity
-            base_name: "candela",
-            base_symbol: "cd",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        7 => UnitConfig {
-            // Angle
-            base_name: "radian",
-            base_symbol: "rad",
-            base_scale_offset: 0,
-            offset_adjusted_name: None,
-            offset_adjusted_symbol: None,
-            unknown_text: None,
-        },
-        _ => panic!("Invalid dimension index: {}", index),
-    }
-}
+use whippyunits_core::{Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents};
 
 /// Look up a unit literal by its dimension exponents and scale factors
 /// Returns the unit name/symbol if found, otherwise None
 fn lookup_unit_literal_by_scale_factors(
     exponents: &[i16],
-    scale_factors: (i16, i16, i16, i16),
+    scale_factors: ScaleExponents,
     long_name: bool,
 ) -> Option<&'static str> {
-    // Convert Vec<i16> to tuple for comparison
+    // Convert Vec<i16> to DynDimensionExponents for comparison
     if exponents.len() != 8 {
         return None;
     }
 
-    let exponents_tuple = (
-        exponents[0],
-        exponents[1],
-        exponents[2],
-        exponents[3],
-        exponents[4],
-        exponents[5],
-        exponents[6],
-        exponents[7],
-    );
+    let dyn_exponents = DynDimensionExponents([exponents[0], exponents[1], exponents[2], exponents[3], exponents[4], exponents[5], exponents[6], exponents[7]]);
 
-    get_units_by_exponents(exponents_tuple)
-        .into_iter()
-        .find(|(_dimension, unit)| {
-            unit.scale.0 == [scale_factors.0, scale_factors.1, scale_factors.2, scale_factors.3]
-                && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
-        })
-        .map(|(_dimension, unit)| {
-            if long_name {
-                unit.name
-            } else {
-                unit.symbols[0]
-            }
-        })
+    if let Some(dimension) = Dimension::find_dimension_by_exponents(dyn_exponents) {
+        dimension.units
+            .iter()
+            .find(|unit| {
+                unit.scale == scale_factors
+                    && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
+            })
+            .map(|unit| {
+                if long_name {
+                    unit.name
+                } else {
+                    unit.symbols[0]
+                }
+            })
+    } else {
+        None
+    }
 }
 
 /// Generate systematic unit name with scale factors
 /// This version can look up unit literals by their scale factors
 pub fn generate_systematic_unit_name_with_scale_factors(
     exponents: Vec<i16>,
-    scale_factors: (i16, i16, i16, i16),
+    scale_factors: ScaleExponents,
     long_name: bool,
 ) -> String {
     // Check if all exponents are unknown
@@ -198,14 +81,31 @@ pub fn generate_systematic_unit_name_with_format(
 
     // Render a unit that is not mixed with any other units - in this case, we try to append the SI prefix to the base unit directly
     fn render_unit_part(
-        unit_data: UnitConfig,
+        unit_name: &'static str,
+        unit_symbol: &'static str,
+        base_scale_offset: i16,
         exponent: i16,
         long_name: bool,
-        is_pure_unit: bool,
         format: crate::print::prettyprint::UnitFormat,
     ) -> String {
         if exponent != 0 {
-            let base_name = unit_data.get_display_name(long_name);
+            // Handle base scale offset (e.g., gram -> kilogram)
+            let base_name = if base_scale_offset != 0 {
+                if long_name {
+                    match unit_name {
+                        "gram" => "kilogram",
+                        _ => unit_name,
+                    }
+                } else {
+                    match unit_symbol {
+                        "g" => "kg",
+                        _ => unit_symbol,
+                    }
+                }
+            } else {
+                if long_name { unit_name } else { unit_symbol }
+            };
+            
             let exponent_str = match format {
                 crate::print::prettyprint::UnitFormat::Unicode => get_unicode_exponent(exponent),
                 crate::print::prettyprint::UnitFormat::Ucum => {
@@ -230,23 +130,6 @@ pub fn generate_systematic_unit_name_with_format(
     // check if the unit is "pure" (e.g. if only one exponent is nonzero)
     let is_pure = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
 
-    // For pure units, first try to find a unit literal that matches the scale factors
-    if is_pure {
-        // Find the non-zero exponent and its index
-        if let Some((dimension_index, &exponent)) =
-            exponents.iter().enumerate().find(|&(_, &exp)| exp != 0)
-        {
-            // For time units, we need to check if there's a unit literal that matches
-            // We'll need to get the scale factors from somewhere - for now, let's check if it's a time unit
-            if dimension_index == 2 && exponent == 1 { // Time dimension with exponent 1
-                 // This is a pure time unit - check if we can find a matching unit literal
-                 // We need to get the scale factors from the context, but for now let's use a different approach
-                 // Let's check if this is one of our known time units by looking at the scale factors
-                 // For now, we'll fall back to the original logic but this needs to be enhanced
-            }
-        }
-    }
-
     match format {
         crate::print::prettyprint::UnitFormat::Unicode => {
             // Original Unicode logic
@@ -254,8 +137,19 @@ pub fn generate_systematic_unit_name_with_format(
                 .iter()
                 .enumerate()
                 .map(|(index, &exp)| {
-                    let config = get_unit_config(index);
-                    let part = render_unit_part(config, exp, long_name, is_pure, format);
+                    // Get unit configuration directly from Dimension::BASIS
+                    let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
+                        if let Some(unit) = dimension.units.first() {
+                            // Check if this is the mass dimension with gram (which has a -3 scale offset)
+                            let base_scale_offset = if index == 0 && unit.name == "gram" { 3 } else { 0 };
+                            (unit.name, unit.symbols[0], base_scale_offset)
+                        } else {
+                            ("?", "?", 0)
+                        }
+                    } else {
+                        ("?", "?", 0)
+                    };
+                    let part = render_unit_part(unit_name, unit_symbol, base_scale_offset, exp, long_name, format);
                     part
                 })
                 .filter(|part| !part.is_empty())
@@ -276,8 +170,34 @@ pub fn generate_systematic_unit_name_with_format(
 
             for (index, &exp) in exponents.iter().enumerate() {
                 if exp != 0 && exp != i16::MIN {
-                    let config = get_unit_config(index);
-                    let base_name = config.get_display_name(long_name);
+                    // Get unit configuration directly from Dimension::BASIS
+                    let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
+                        if let Some(unit) = dimension.units.first() {
+                            // Check if this is the mass dimension with gram (which has a -3 scale offset)
+                            let base_scale_offset = if index == 0 && unit.name == "gram" { 3 } else { 0 };
+                            (unit.name, unit.symbols[0], base_scale_offset)
+                        } else {
+                            ("?", "?", 0)
+                        }
+                    } else {
+                        ("?", "?", 0)
+                    };
+                    
+                    let base_name = if base_scale_offset != 0 {
+                        if long_name {
+                            match unit_name {
+                                "gram" => "kilogram",
+                                _ => unit_name,
+                            }
+                        } else {
+                            match unit_symbol {
+                                "g" => "kg",
+                                _ => unit_symbol,
+                            }
+                        }
+                    } else {
+                        if long_name { unit_name } else { unit_symbol }
+                    };
 
                     if exp > 0 {
                         // Positive exponents go in numerator
@@ -333,24 +253,15 @@ pub struct DimensionNames {
 }
 
 pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
-    // Convert Vec<i16> to tuple for lookup
+    // Convert Vec<i16> to DynDimensionExponents for lookup
     if exponents.len() != 8 {
         return None;
     }
 
-    let exponents_tuple = (
-        exponents[0],
-        exponents[1],
-        exponents[2],
-        exponents[3],
-        exponents[4],
-        exponents[5],
-        exponents[6],
-        exponents[7],
-    );
+    let dyn_exponents = DynDimensionExponents([exponents[0], exponents[1], exponents[2], exponents[3], exponents[4], exponents[5], exponents[6], exponents[7]]);
 
-    // Use the shared dimension data as the source of truth
-    lookup_dimension_by_exponents(exponents_tuple).map(|dim_info| {
+    // Use Dimension::find_dimension_by_exponents directly
+    Dimension::find_dimension_by_exponents(dyn_exponents).map(|dim_info| {
         // Get the first unit symbol and long name from the dimension (e.g., "J" and "joule" for energy, "N" and "newton" for force)
         let unit_symbol = dim_info.units.first().and_then(|unit| unit.symbols.first().copied());
         let unit_long_name = dim_info.units.first().map(|unit| unit.name);

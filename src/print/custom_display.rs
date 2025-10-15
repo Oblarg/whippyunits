@@ -1,7 +1,5 @@
 use crate::api::aggregate_scale_factor_float;
-use crate::print::format_specifiers::{format_with_unit, UnitFormatSpecifier};
-use crate::quantity_type::Quantity;
-use whippyunits_core::api_helpers::lookup_unit_literal;
+use whippyunits_core::SiPrefix;
 
 /// Calculate the conversion factor from the source unit to the target unit
 fn calculate_conversion_factor<
@@ -14,7 +12,7 @@ fn calculate_conversion_factor<
     target_unit_info: &(&'static whippyunits_core::Dimension, &'static whippyunits_core::Unit),
 ) -> f64 {
     // First try to parse as a prefixed unit (short names like "km", "cm", etc.)
-    if let Some(prefix_info) = whippyunits_core::api_helpers::lookup_si_prefix(
+    if let Some(prefix_info) = SiPrefix::from_symbol(
         &unit[..unit.len() - target_unit_info.1.symbols[0].len()],
     ) {
         // This is a prefixed unit - create the target scale factors from the base unit + prefix

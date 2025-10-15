@@ -9,16 +9,10 @@ use crate::print::name_lookup::generate_systematic_unit_name_with_format;
 use crate::print::prettyprint::UnitFormat;
 use crate::quantity_type::Quantity;
 use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
-use whippyunits_core::{
-    Unit, SiPrefix, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
-};
-use whippyunits_core::api_helpers::{
-    is_prefixed_base_unit, lookup_unit_literal, parse_unit_with_prefix, get_prefix_scale_factor, get_unit_dimensions,
-};
+use whippyunits_core::{Unit, SiPrefix, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents};
 
-/// Represents the dimension and scale exponents for a unit
-/// Vector format: [mass, length, time, current, temperature, amount, luminosity, angle, scale_p2, scale_p3, scale_p5, scale_pi]
-pub type UnitDimensions = Vec<i16>;
+/// Represents the dimension and scale exponents for a unit using proper whippyunits-core types
+pub type UnitDimensions = (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents);
 
 #[cfg(not(feature = "std"))]
 use alloc::{String, Vec};
@@ -184,14 +178,15 @@ where
 pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
     // Handle dimensionless case
     if ucum_string == "1" {
-        return Ok(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        return Ok((
+            DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]),
+            ScaleExponents([0, 0, 0, 0])
+        ));
     }
 
     // Try simple unit first using existing machinery
-    if let Some(dims) = get_unit_dimensions(ucum_string) {
-        return Ok(vec![
-            dims.0, dims.1, dims.2, dims.3, dims.4, dims.5, dims.6, dims.7, 0, 0, 0, 0,
-        ]);
+    if let Some((dimensions, scales)) = lookup_unit_dimensions(ucum_string) {
+        return Ok((dimensions, scales));
     }
 
     // Parse the UCUM string by splitting on '/' and handling multiplication
@@ -207,95 +202,28 @@ pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
     };
 
     // Parse numerator (multiplication of terms)
-    let mut num_dims = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    let mut result_dimensions = DynDimensionExponents::ZERO;
+    let mut result_scales = ScaleExponents::IDENTITY;
     if !numerator.is_empty() {
         let terms: Vec<&str> = numerator.split('.').collect();
         for term in terms {
-            let (dims, scale) = parse_ucum_term(term)?;
-            num_dims = (
-                num_dims.0 + dims.0,
-                num_dims.1 + dims.1,
-                num_dims.2 + dims.2,
-                num_dims.3 + dims.3,
-                num_dims.4 + dims.4,
-                num_dims.5 + dims.5,
-                num_dims.6 + dims.6,
-                num_dims.7 + dims.7,
-                num_dims.8 + dims.8,
-                num_dims.9 + dims.9,
-                num_dims.10 + dims.10,
-                num_dims.11 + dims.11,
-            );
-            num_dims = (
-                num_dims.0,
-                num_dims.1,
-                num_dims.2,
-                num_dims.3,
-                num_dims.4,
-                num_dims.5,
-                num_dims.6,
-                num_dims.7,
-                num_dims.8 + scale.0,
-                num_dims.9 + scale.1,
-                num_dims.10 + scale.2,
-                num_dims.11 + scale.3,
-            );
+            let ((dimensions, _), scale) = parse_ucum_term(term)?;
+            result_dimensions = result_dimensions + dimensions;
+            result_scales = result_scales.mul(scale);
         }
     }
 
-    // Parse denominator (multiplication of terms)
-    let mut denom_dims = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // Parse denominator (division of terms)
     if !denominator.is_empty() {
         let terms: Vec<&str> = denominator.split('.').collect();
         for term in terms {
-            let (dims, scale) = parse_ucum_term(term)?;
-            denom_dims = (
-                denom_dims.0 + dims.0,
-                denom_dims.1 + dims.1,
-                denom_dims.2 + dims.2,
-                denom_dims.3 + dims.3,
-                denom_dims.4 + dims.4,
-                denom_dims.5 + dims.5,
-                denom_dims.6 + dims.6,
-                denom_dims.7 + dims.7,
-                denom_dims.8 + dims.8,
-                denom_dims.9 + dims.9,
-                denom_dims.10 + dims.10,
-                denom_dims.11 + dims.11,
-            );
-            denom_dims = (
-                denom_dims.0,
-                denom_dims.1,
-                denom_dims.2,
-                denom_dims.3,
-                denom_dims.4,
-                denom_dims.5,
-                denom_dims.6,
-                denom_dims.7,
-                denom_dims.8 + scale.0,
-                denom_dims.9 + scale.1,
-                denom_dims.10 + scale.2,
-                denom_dims.11 + scale.3,
-            );
+            let ((dimensions, _), scale) = parse_ucum_term(term)?;
+            result_dimensions = result_dimensions + (-dimensions);
+            result_scales = result_scales.mul(scale.neg());
         }
     }
 
-    // Subtract denominator from numerator
-    let result_dims = vec![
-        num_dims.0 - denom_dims.0,
-        num_dims.1 - denom_dims.1,
-        num_dims.2 - denom_dims.2,
-        num_dims.3 - denom_dims.3,
-        num_dims.4 - denom_dims.4,
-        num_dims.5 - denom_dims.5,
-        num_dims.6 - denom_dims.6,
-        num_dims.7 - denom_dims.7,
-        num_dims.8 - denom_dims.8,
-        num_dims.9 - denom_dims.9,
-        num_dims.10 - denom_dims.10,
-        num_dims.11 - denom_dims.11,
-    ];
-    Ok(result_dims)
+    Ok((result_dimensions, result_scales))
 }
 
 /// Parse a single UCUM term (e.g., "m^2", "kg", "s^-1", "s2")
@@ -303,8 +231,8 @@ fn parse_ucum_term(
     term: &str,
 ) -> Result<
     (
-        (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16),
-        (i16, i16, i16, i16),
+        (DynDimensionExponents, ScaleExponents),
+        ScaleExponents,
     ),
     UcumError,
 > {
@@ -332,54 +260,58 @@ fn parse_ucum_term(
     };
 
     // Get dimensions for the base unit using existing machinery
-    if let Some(dims) = get_unit_dimensions(base_unit) {
-        // Apply exponent
-        let result_dims = (
-            dims.0 * exponent,
-            dims.1 * exponent,
-            dims.2 * exponent,
-            dims.3 * exponent,
-            dims.4 * exponent,
-            dims.5 * exponent,
-            dims.6 * exponent,
-            dims.7 * exponent,
-            0,
-            0,
-            0,
-            0, // No scale factors for simple units
-        );
-        return Ok((result_dims, (0, 0, 0, 0)));
+    if let Some((dimensions, scales)) = lookup_unit_dimensions(base_unit) {
+        // Apply exponent to dimensions
+        let result_dimensions = DynDimensionExponents([
+            dimensions.0[0] * exponent,
+            dimensions.0[1] * exponent,
+            dimensions.0[2] * exponent,
+            dimensions.0[3] * exponent,
+            dimensions.0[4] * exponent,
+            dimensions.0[5] * exponent,
+            dimensions.0[6] * exponent,
+            dimensions.0[7] * exponent,
+        ]);
+        // Apply exponent to scale factors
+        let result_scales = ScaleExponents([
+            scales.0[0] * exponent,
+            scales.0[1] * exponent,
+            scales.0[2] * exponent,
+            scales.0[3] * exponent,
+        ]);
+        return Ok(((result_dimensions, result_scales), result_scales));
     }
 
     // Fall back to the complex parsing for special cases
-    let (mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi) =
-        get_unit_dimensions_from_ucum(base_unit)?;
+    let (dimensions, scales) = get_unit_dimensions_from_ucum(base_unit)?;
 
     // Apply exponent
-    let dims = (
-        mass * exponent,
-        length * exponent,
-        time * exponent,
-        current * exponent,
-        temp * exponent,
-        amount * exponent,
-        lum * exponent,
-        angle * exponent,
-        p2 * exponent,
-        p3 * exponent,
-        p5 * exponent,
-        pi * exponent,
-    );
+    let result_dimensions = DynDimensionExponents([
+        dimensions.0[0] * exponent,
+        dimensions.0[1] * exponent,
+        dimensions.0[2] * exponent,
+        dimensions.0[3] * exponent,
+        dimensions.0[4] * exponent,
+        dimensions.0[5] * exponent,
+        dimensions.0[6] * exponent,
+        dimensions.0[7] * exponent,
+    ]);
+    let result_scales = ScaleExponents([
+        scales.0[0] * exponent,
+        scales.0[1] * exponent,
+        scales.0[2] * exponent,
+        scales.0[3] * exponent,
+    ]);
 
-    Ok((dims, (p2, p3, p5, pi)))
+    Ok(((result_dimensions, result_scales), result_scales))
 }
 
 /// Get dimensions for a UCUM base unit
 fn get_unit_dimensions_from_ucum(
     unit: &str,
-) -> Result<(i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16), UcumError> {
+) -> Result<(DynDimensionExponents, ScaleExponents), UcumError> {
     // Check if it's a unit literal first
-    if let Some((dimension, unit)) = lookup_unit_literal(unit) {
+    if let Some((dimension, unit)) = lookup_unit_literal_direct(unit) {
         let (mass, length, time, current, temp, amount, lum, angle) = (
             dimension.exponents.0[0], // mass
             dimension.exponents.0[1], // length
@@ -392,12 +324,13 @@ fn get_unit_dimensions_from_ucum(
         );
         let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
         return Ok((
-            mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
+            DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle]),
+            ScaleExponents([p2, p3, p5, pi])
         ));
     }
 
     // Parse prefix and base unit
-    let (prefix, base_unit) = parse_unit_name_ucum(unit);
+    let (prefix, base_unit) = parse_unit_with_prefix_direct(unit);
 
     // Get base unit dimensions
     let (mass, length, time, current, temp, amount, lum, angle, inherent_p10) =
@@ -426,14 +359,15 @@ fn get_unit_dimensions_from_ucum(
     };
 
     Ok((
-        mass, length, time, current, temp, amount, lum, angle, p2_final, p3, p5_final, 0,
+        DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle]),
+        ScaleExponents([p2_final, p3, p5_final, 0])
     ))
 }
 
 /// Parse unit name to extract prefix and base unit for UCUM
-fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, String) {
-    // Use the centralized parsing logic from default-dimensions
-    let (prefix_opt, base_unit) = parse_unit_with_prefix(unit_name);
+fn parse_unit_with_prefix_direct(unit_name: &str) -> (Option<&str>, String) {
+    // Use the centralized parsing logic from whippyunits-core
+    let (prefix_opt, base_unit) = parse_unit_with_prefix_core(unit_name);
     let prefix_str = prefix_opt.map(|p| p.symbol());
     (prefix_str, base_unit)
 }
@@ -444,8 +378,8 @@ fn parse_unit_name_ucum(unit_name: &str) -> (Option<&str>, String) {
 /// 
 /// This function now uses the centralized parsing logic from default-dimensions.
 fn get_prefix_power_ucum(prefix: &str) -> i16 {
-    if let Some(si_prefix) = whippyunits_core::api_helpers::lookup_si_prefix(prefix) {
-        get_prefix_scale_factor(si_prefix) as i16
+    if let Some(si_prefix) = SiPrefix::from_symbol(prefix) {
+        si_prefix.factor_log10() as i16
     } else {
         0
     }
@@ -479,7 +413,7 @@ fn get_base_unit_dimensions_ucum(
         ));
     }
 
-    if let Some((dimension, _)) = lookup_unit_literal(base_unit) {
+    if let Some((dimension, _)) = lookup_unit_literal_direct(base_unit) {
         let (m, l, t, c, temp, a, lum, ang) = (
             dimension.exponents.0[0], // mass
             dimension.exponents.0[1], // length
@@ -496,9 +430,9 @@ fn get_base_unit_dimensions_ucum(
     Err(UcumError::UnknownDimension(whippyunits_core::dimension_exponents::DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0])))
 }
 
-/// Check if two dimension vectors match (ignoring scale factors)
+/// Check if two dimension vectors match (comparing both dimensions and scales)
 pub fn dimensions_match(a: &UnitDimensions, b: &UnitDimensions) -> bool {
-    a.len() == b.len() && a.iter().zip(b.iter()).take(8).all(|(x, y)| x == y)
+    a.0 == b.0 && a.1 == b.1
 }
 
 /// Validate dimensions and appropriate error if they don't match
@@ -534,14 +468,14 @@ pub fn validate_scale_coherence(
 pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDimensions) -> f64 {
     // Use the existing scale conversion logic
     aggregate_scale_factor_float(
-        from_dims[8],
-        from_dims[9],
-        from_dims[10],
-        from_dims[11], // from scales
-        to_dims[8],
-        to_dims[9],
-        to_dims[10],
-        to_dims[11], // to scales
+        from_dims.1.0[0],
+        from_dims.1.0[1],
+        from_dims.1.0[2],
+        from_dims.1.0[3], // from scales
+        to_dims.1.0[0],
+        to_dims.1.0[1],
+        to_dims.1.0[2],
+        to_dims.1.0[3], // to scales
     )
 }
 
@@ -559,21 +493,21 @@ macro_rules! from_json {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) =
+                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0 },
-                    { dimensions.1 },
-                    { dimensions.2 },
-                    { dimensions.3 },
-                    { dimensions.4 },
-                    { dimensions.5 },
-                    { dimensions.6 },
-                    { dimensions.7 },
-                    { dimensions.8 },
-                    { dimensions.9 },
-                    { dimensions.10 },
-                    { dimensions.11 },
+                    { dimensions.0[0] },
+                    { dimensions.0[1] },
+                    { dimensions.0[2] },
+                    { dimensions.0[3] },
+                    { dimensions.0[4] },
+                    { dimensions.0[5] },
+                    { dimensions.0[6] },
+                    { dimensions.0[7] },
+                    { scales.0[0] },
+                    { scales.0[1] },
+                    { scales.0[2] },
+                    { scales.0[3] },
                     f64,
                 >(value, &unit_str)
             }
@@ -583,23 +517,21 @@ macro_rules! from_json {
     ($json:expr, $unit:expr, $storage_type:ty) => {{
         match $crate::serialization::parse_json_input($json) {
             Ok((value, unit_str)) => {
-                // Use deserialize_core_quantity to handle dimension checking and rescaling
-                // Returns Quantity directly - no need for quantity! macro
-                const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) =
+                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0 },
-                    { dimensions.1 },
-                    { dimensions.2 },
-                    { dimensions.3 },
-                    { dimensions.4 },
-                    { dimensions.5 },
-                    { dimensions.6 },
-                    { dimensions.7 },
-                    { dimensions.8 },
-                    { dimensions.9 },
-                    { dimensions.10 },
-                    { dimensions.11 },
+                    { dimensions.0[0] },
+                    { dimensions.0[1] },
+                    { dimensions.0[2] },
+                    { dimensions.0[3] },
+                    { dimensions.0[4] },
+                    { dimensions.0[5] },
+                    { dimensions.0[6] },
+                    { dimensions.0[7] },
+                    { scales.0[0] },
+                    { scales.0[1] },
+                    { scales.0[2] },
+                    { scales.0[3] },
                     $storage_type,
                 >(value, &unit_str)
             }
@@ -672,21 +604,21 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) =
+                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0 },
-                    { dimensions.1 },
-                    { dimensions.2 },
-                    { dimensions.3 },
-                    { dimensions.4 },
-                    { dimensions.5 },
-                    { dimensions.6 },
-                    { dimensions.7 },
-                    { dimensions.8 },
-                    { dimensions.9 },
-                    { dimensions.10 },
-                    { dimensions.11 },
+                    { dimensions.0[0] },
+                    { dimensions.0[1] },
+                    { dimensions.0[2] },
+                    { dimensions.0[3] },
+                    { dimensions.0[4] },
+                    { dimensions.0[5] },
+                    { dimensions.0[6] },
+                    { dimensions.0[7] },
+                    { scales.0[0] },
+                    { scales.0[1] },
+                    { scales.0[2] },
+                    { scales.0[3] },
                     f64,
                 >(value, &unit_str)
             }
@@ -698,21 +630,21 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const dimensions: (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) =
+                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0 },
-                    { dimensions.1 },
-                    { dimensions.2 },
-                    { dimensions.3 },
-                    { dimensions.4 },
-                    { dimensions.5 },
-                    { dimensions.6 },
-                    { dimensions.7 },
-                    { dimensions.8 },
-                    { dimensions.9 },
-                    { dimensions.10 },
-                    { dimensions.11 },
+                    { dimensions.0[0] },
+                    { dimensions.0[1] },
+                    { dimensions.0[2] },
+                    { dimensions.0[3] },
+                    { dimensions.0[4] },
+                    { dimensions.0[5] },
+                    { dimensions.0[6] },
+                    { dimensions.0[7] },
+                    { scales.0[0] },
+                    { scales.0[1] },
+                    { scales.0[2] },
+                    { scales.0[3] },
                     $storage_type,
                 >(value, &unit_str)
             }
@@ -784,20 +716,24 @@ pub fn deserialize_core<
         .map_err(|e| SerializationError::ParseError(format!("Failed to parse UCUM unit: {}", e)))?;
 
     // Get target dimensions from const generics
-    let target_dims = vec![
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
-    ];
+    let target_dims = (
+        DynDimensionExponents([
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+        ]),
+        ScaleExponents([
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+        ])
+    );
 
     // Check if dimensions match
     if !dimensions_match(&parsed_dims, &target_dims) {
@@ -847,20 +783,24 @@ where
         .map_err(|e| SerializationError::ParseError(format!("Failed to parse UCUM unit: {}", e)))?;
 
     // Get target dimensions from const generics
-    let target_dims = vec![
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
-    ];
+    let target_dims = (
+        DynDimensionExponents([
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+        ]),
+        ScaleExponents([
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+        ])
+    );
 
     // Check if dimensions match
     if !dimensions_match(&parsed_dims, &target_dims) {
@@ -899,29 +839,33 @@ pub fn get_quantity_dimensions<
         Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
         T,
     >,
-) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+) -> UnitDimensions {
     (
-        MASS_EXPONENT,
-        LENGTH_EXPONENT,
-        TIME_EXPONENT,
-        CURRENT_EXPONENT,
-        TEMPERATURE_EXPONENT,
-        AMOUNT_EXPONENT,
-        LUMINOSITY_EXPONENT,
-        ANGLE_EXPONENT,
-        SCALE_P2,
-        SCALE_P3,
-        SCALE_P5,
-        SCALE_PI,
+        DynDimensionExponents([
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+        ]),
+        ScaleExponents([
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+        ])
     )
 }
 
-/// Get target unit dimensions for a unit literal using default_dimensions
+/// Get target unit dimensions for a unit literal using proper core types
 pub fn get_target_unit_dimensions(
     unit_literal: &str,
-) -> (i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16) {
+) -> UnitDimensions {
     // First try to find in unit literals
-    if let Some((dimension, unit)) = lookup_unit_literal(unit_literal) {
+    if let Some((dimension, unit)) = lookup_unit_literal_direct(unit_literal) {
         let (mass, length, time, current, temp, amount, lum, angle) = (
             dimension.exponents.0[0], // mass
             dimension.exponents.0[1], // length
@@ -934,11 +878,12 @@ pub fn get_target_unit_dimensions(
         );
         let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
         (
-            mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
+            DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle]),
+            ScaleExponents([p2, p3, p5, pi])
         )
     } else {
         // Try to parse as a prefixed unit (e.g., "cm", "km", "mm")
-        if let Some((base_symbol, prefix)) = is_prefixed_base_unit(unit_literal) {
+        if let Some((base_symbol, prefix)) = is_prefixed_base_unit_direct(unit_literal) {
             // Get the base unit dimensions
             if let Some(base_unit) = whippyunits_core::Unit::BASES.iter().find(|unit| unit.symbols.contains(&base_symbol.as_str())) {
                 let (mass, length, time, current, temp, amount, lum, angle) = (
@@ -975,15 +920,16 @@ pub fn get_target_unit_dimensions(
                 };
 
                 (
-                    mass, length, time, current, temp, amount, lum, angle, p2, p3, p5, pi,
+                    DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle]),
+                    ScaleExponents([p2, p3, p5, pi])
                 )
             } else {
                 panic!("Unknown base unit: {}", base_symbol);
             }
         } else {
-            // Try the existing logic from default_dimensions
-            if let Some(dimensions) = get_unit_dimensions(unit_literal) {
-                dimensions
+            // Try the existing logic from whippyunits-core
+            if let Some((dimensions, scales)) = lookup_unit_dimensions(unit_literal) {
+                (dimensions, scales)
             } else {
                 panic!("Unknown unit literal: {}", unit_literal);
             }
@@ -992,6 +938,81 @@ pub fn get_target_unit_dimensions(
 }
 
 // create_quantity_from_value_and_unit function removed - now using quantity! macro directly
+
+// Helper functions that replace api_helpers functions with direct whippyunits-core calls
+
+/// Look up a unit literal (like "min", "h", "g", "m", "s", etc.) in the dimensions data
+fn lookup_unit_literal_direct(unit_name: &str) -> Option<(&'static whippyunits_core::Dimension, &'static Unit)> {
+    // First try to find by symbol
+    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(unit_name) {
+        return Some((dimension, unit));
+    }
+    
+    // Then try to find by name
+    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_name(unit_name) {
+        return Some((dimension, unit));
+    }
+    
+    None
+}
+
+/// Check if a unit name is a prefixed base unit (like kg, kW, mm, etc.)
+/// Returns Some((base_unit, prefix)) if it is, None otherwise
+fn is_prefixed_base_unit_direct(unit_name: &str) -> Option<(String, String)> {
+    // Try to strip any prefix from the unit name
+    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+        // Check if the base unit exists
+        if whippyunits_core::Dimension::find_unit_by_symbol(base).is_some() {
+            return Some((String::from(base), String::from(prefix.symbol())));
+        }
+    }
+    
+    // Also try stripping prefix from name (not just symbol)
+    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(unit_name) {
+        // Check if the base unit exists by name
+        if whippyunits_core::Dimension::find_unit_by_name(base).is_some() {
+            return Some((String::from(base), String::from(prefix.symbol())));
+        }
+    }
+    
+    None
+}
+
+/// Parse a unit name to extract prefix and base unit
+/// Returns (prefix_option, base_unit_name)
+fn parse_unit_with_prefix_core(unit_name: &str) -> (Option<&'static SiPrefix>, String) {
+    // Try to strip any prefix from the unit name
+    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
+        // Check if the base unit exists
+        if whippyunits_core::Dimension::find_unit_by_symbol(base).is_some() {
+            return (Some(prefix), String::from(base));
+        }
+    }
+    
+    // Also try stripping prefix from name (not just symbol)
+    if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(unit_name) {
+        // Check if the base unit exists by name
+        if whippyunits_core::Dimension::find_unit_by_name(base).is_some() {
+            return (Some(prefix), String::from(base));
+        }
+    }
+    
+    (None, String::from(unit_name))
+}
+
+/// Get unit dimensions for a unit literal using proper whippyunits-core types
+fn lookup_unit_dimensions(unit_literal: &str) -> Option<UnitDimensions> {
+    // This is a simplified version that just returns the base dimensions
+    // The full implementation would need to handle prefixes and conversion factors
+    if let Some((_dimension, unit)) = lookup_unit_literal_direct(unit_literal) {
+        Some((
+            unit.exponents,
+            unit.scale
+        ))
+    } else {
+        None
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -1011,41 +1032,41 @@ mod tests {
     fn test_parse_ucum_unit_basic() {
         // Test basic units
         let result = parse_ucum_unit("m").unwrap();
-        assert_eq!(result, vec![0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([0, 1, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
 
         let result = parse_ucum_unit("kg").unwrap();
-        assert_eq!(result, vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([1, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
 
         let result = parse_ucum_unit("s").unwrap();
-        assert_eq!(result, vec![0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([0, 0, 1, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
     }
 
     #[test]
     fn test_parse_ucum_unit_dimensionless() {
         let result = parse_ucum_unit("1").unwrap();
-        assert_eq!(result, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
     }
 
     #[test]
     fn test_parse_ucum_unit_with_exponents() {
         let result = parse_ucum_unit("m^2").unwrap();
-        assert_eq!(result, vec![0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([0, 2, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
 
         let result = parse_ucum_unit("s^-1").unwrap();
-        assert_eq!(result, vec![0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([0, 0, -1, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
     }
 
     #[test]
     fn test_parse_ucum_unit_compound() {
         let result = parse_ucum_unit("kg.m/s^2").unwrap();
-        assert_eq!(result, vec![1, 1, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, (DynDimensionExponents([1, 1, -2, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
     }
 
     #[test]
     fn test_dimensions_match() {
-        let dims1 = vec![1, 1, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let dims2 = vec![1, 1, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let dims3 = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let dims1 = (DynDimensionExponents([1, 1, -2, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0]));
+        let dims2 = (DynDimensionExponents([1, 1, -2, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0]));
+        let dims3 = (DynDimensionExponents([1, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0]));
 
         assert!(dimensions_match(&dims1, &dims2));
         assert!(!dimensions_match(&dims1, &dims3));
@@ -1053,8 +1074,8 @@ mod tests {
 
     #[test]
     fn test_calculate_conversion_factor() {
-        let from_dims = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let to_dims = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let from_dims = (DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0]));
+        let to_dims = (DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0]));
 
         let factor = calculate_conversion_factor(&from_dims, &to_dims);
         assert!((factor - 1.0).abs() < 1e-10);

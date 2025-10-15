@@ -1,6 +1,4 @@
-use crate::api::aggregate_scale_factor_float;
-use crate::print::format_specifiers::{format_with_unit, UnitFormatSpecifier};
-use whippyunits_core::api_helpers::lookup_unit_literal;
+// No longer need api_helpers imports - this file doesn't use them
 
 /// The base-2 scale exponent of a quantity.
 pub struct _2<const EXP: i16 = 0>;
@@ -307,16 +305,138 @@ impl<
     where
         T: Copy + Into<f64>,
     {
-        // Simplified implementation that avoids complex type inference issues
-        let unit = unit.to_string();
-        let value: f64 = self.unsafe_value.into();
+        use whippyunits_core::{Dimension, scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
+        use crate::api::aggregate_scale_factor_float;
         
-        // For now, just return a simple formatted string
-        // TODO: Implement proper unit conversion and formatting
-        format!("{} {}", value, unit)
+        // Look up the target unit (handles prefixed units like "km")
+        if let Some((target_unit, target_dimension, prefix)) = Dimension::find_by_literal(unit) {
+            // Check if dimensions match
+            let source_dimensions = DynDimensionExponents([
+                MASS_EXPONENT,
+                LENGTH_EXPONENT, 
+                TIME_EXPONENT,
+                CURRENT_EXPONENT,
+                TEMPERATURE_EXPONENT,
+                AMOUNT_EXPONENT,
+                LUMINOSITY_EXPONENT,
+                ANGLE_EXPONENT,
+            ]);
+            
+            if source_dimensions == target_dimension.exponents {
+                // Dimensions match, calculate conversion factor
+                let source_scales = ScaleExponents([SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI]);
+                
+                // Calculate target scales: base unit scales + prefix scales
+                let mut target_scales = target_unit.scale;
+                if let Some(prefix) = prefix {
+                    let prefix_scale = prefix.factor_log10();
+                    // For SI prefixes, add the scale to both p2 and p5 (since 10^n = 2^n * 5^n)
+                    target_scales = ScaleExponents([
+                        target_scales.0[0] + prefix_scale, // p2
+                        target_scales.0[1],                // p3
+                        target_scales.0[2] + prefix_scale, // p5
+                        target_scales.0[3],                // pi
+                    ]);
+                }
+                
+                let conversion_factor = aggregate_scale_factor_float(
+                    source_scales.0[0], source_scales.0[1], source_scales.0[2], source_scales.0[3],
+                    target_scales.0[0], target_scales.0[1], target_scales.0[2], target_scales.0[3],
+                );
+                
+                // Apply unit conversion factor (inverted for imperial units)
+                let unit_conversion_factor = if target_unit.conversion_factor != 1.0 {
+                    1.0 / target_unit.conversion_factor
+                } else {
+                    1.0
+                };
+                
+                let converted_value: f64 = self.unsafe_value.into() * conversion_factor * unit_conversion_factor;
+                
+                // Return a formatter that displays the converted value with the unit
+                QuantityFormatter {
+                    value: converted_value,
+                    unit: unit.to_string(),
+                    is_error: false,
+                }
+            } else {
+                // Dimension mismatch - return error formatter
+                QuantityFormatter {
+                    value: 0.0,
+                    unit: format!("Error: Dimension mismatch: cannot convert from {} to {}", 
+                        self.get_source_unit_symbol(), unit),
+                    is_error: true,
+                }
+            }
+        } else {
+            // Unit not found - return error formatter
+            QuantityFormatter {
+                value: 0.0,
+                unit: format!("Error: Unknown unit: {}", unit),
+                is_error: true,
+            }
+        }
+    }
+    
+    /// Get the source unit symbol for error messages
+    fn get_source_unit_symbol(&self) -> String {
+        use whippyunits_core::{Dimension, scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
+        
+        // Create the source dimensions and scales
+        let source_dimensions = DynDimensionExponents([
+            MASS_EXPONENT,
+            LENGTH_EXPONENT, 
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+        ]);
+        let source_scales = ScaleExponents([SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI]);
+        
+        // Try to find a matching unit
+        if let Some(dimension) = Dimension::find_dimension_by_exponents(source_dimensions) {
+            // Look for a unit with matching scales and conversion_factor = 1.0 (SI base units)
+            if let Some(unit) = dimension.units.iter().find(|unit| {
+                unit.scale == source_scales && unit.conversion_factor == 1.0
+            }) {
+                return unit.symbols[0].to_string();
+            }
+            
+            // If no exact match, try to find any unit in this dimension
+            if let Some(unit) = dimension.units.first() {
+                return unit.symbols[0].to_string();
+            }
+        }
+        
+        // Fallback to dimension symbol if no unit found
+        if let Some(dimension) = Dimension::find_dimension_by_exponents(source_dimensions) {
+            return dimension.symbol.to_string();
+        }
+        
+        // Final fallback
+        "unknown unit".to_string()
     }
 
 
+}
+
+/// A formatter for displaying quantities with unit conversion
+struct QuantityFormatter {
+    value: f64,
+    unit: String,
+    is_error: bool,
+}
+
+impl std::fmt::Display for QuantityFormatter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_error {
+            write!(f, "{}", self.unit)
+        } else {
+            write!(f, "{} {}", self.value, self.unit)
+        }
+    }
 }
 
 // from/into for dimensionless quantities
@@ -708,3 +828,4 @@ macro_rules! quantity_type {
         >
     };
 }
+

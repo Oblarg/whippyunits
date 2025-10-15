@@ -16,7 +16,6 @@ pub mod scale_exponents;
 pub mod num;
 mod prefix;
 mod units;
-pub mod api_helpers;
 
 pub use dimensions::*;
 pub use prefix::*;

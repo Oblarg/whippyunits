@@ -2,7 +2,7 @@ use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::utils::{get_si_prefix, to_unicode_superscript};
 use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
-use whippyunits_core::api_helpers::get_atomic_dimension_symbols;
+use whippyunits_core::{scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
 
 /// Check if a dimension is primitive (has exactly one non-zero exponent equal to 1)
 /// Primitive dimensions are the 8 SI base quantities: Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle
@@ -134,17 +134,16 @@ pub fn generate_dimension_symbols_with_format(exponents: Vec<i16>, format: UnitF
     }
 }
 
-/// Generate dimension symbols in Unicode format (original behavior)
+/// Generate dimension symbols in Unicode format using whippyunits-core as source of truth
 fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
-    // Get atomic dimension symbols from the source of truth
-    let atomic_symbols: Vec<&str> = get_atomic_dimension_symbols();
-
     let mut parts: Vec<String> = Vec::new();
 
     // First, add solved dimensions (non-zero, non--32768 exponents)
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp != 0 && exp != -32768 {
-            let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
+            let symbol = whippyunits_core::Dimension::BASIS.get(idx)
+                .map(|dim| dim.symbol)
+                .unwrap_or("?");
             let superscript = to_unicode_superscript(exp, false);
             parts.push(format!("{}{}", symbol, superscript));
         }
@@ -155,7 +154,9 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp == -32768 {
             // Only add unsolved dimensions
-            let symbol = atomic_symbols.get(idx).unwrap_or(&"?");
+            let symbol = whippyunits_core::Dimension::BASIS.get(idx)
+                .map(|dim| dim.symbol)
+                .unwrap_or("?");
             unsolved_parts.push(format!("{}{}", symbol, "ˀ"));
         }
     }
@@ -208,38 +209,11 @@ define_generate_verbose_dimension_names!((
     (7, "Angle")
 ));
 
-#[macro_export]
-#[doc(hidden)]
-macro_rules! define_calculate_total_scale_p10 {
-    (($($dimension_params:tt)*), ($($total_scale_calculation:tt)*)) => {
-        /// Calculate total power of 10 across all dimensions
-        fn calculate_total_scale_p10(
-            $($dimension_params)*
-        ) -> i16 {
-            // total_scale_p10
-            $($total_scale_calculation)*
-        }
-    };
+/// Calculate total power of 10 using whippyunits-core ScaleExponents
+fn calculate_total_scale_p10(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> i16 {
+    let scale_exponents = whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
+    scale_exponents.log10().unwrap_or(0)
 }
-
-define_calculate_total_scale_p10!(
-    (
-        scale_p2: i16,
-        scale_p3: i16,
-        scale_p5: i16,
-        scale_pi: i16
-    ),
-    (
-        let mut total_scale_p10: i16 = 0;
-        // In the new system, powers of 10 are represented as equal powers of 2 and 5
-        // AND all other scale factors must be zero for it to be a pure power of 10
-        if scale_p2 == scale_p5 && scale_p3 == 0 && scale_pi == 0 {
-            total_scale_p10 = scale_p2;
-        }
-        // Note: scale_p3 and scale_pi don't contribute to powers of 10
-        total_scale_p10
-    )
-);
 
 /// Generate SI unit with 10^n notation when no standard prefix is available
 fn generate_si_unit_with_scale(
@@ -258,8 +232,15 @@ fn generate_si_unit_with_scale(
     }
 }
 
-/// Format scale factors by calculating the actual numeric value
+/// Format scale factors by calculating the actual numeric value using whippyunits-core
 fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
+    let scale_exponents = whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
+    
+    // If it's a pure power of 10, we don't need to show scale factors
+    if scale_exponents.log10().is_some() {
+        return String::new();
+    }
+    
     // Calculate the actual numeric value: 2^p2 * 3^p3 * 5^p5 * π^pi
     let mut value = 1.0;
 
@@ -286,46 +267,40 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
 }
 
 pub fn generate_prefixed_si_unit(
-    scale_p2: i16,
-    scale_p3: i16,
-    scale_p5: i16,
-    scale_pi: i16,
+    scale_factors: ScaleExponents,
     base_si_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(scale_p2, scale_p3, scale_p5, scale_pi);
+    let total_scale_p10 = calculate_total_scale_p10(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
 
     if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
         format!("{}{}", prefix, base_si_unit)
     } else {
-        // Check if this is a pure power of 10 (p2 == p5 and p3 == 0 and pi == 0)
-        let is_pure_power_of_10 = scale_p2 == scale_p5 && scale_p3 == 0 && scale_pi == 0;
+        // Check if this is a pure power of 10 using whippyunits-core
+        let is_pure_power_of_10 = scale_factors.log10().is_some();
 
         if is_pure_power_of_10 {
             // Fall back to SI unit with 10^n notation when SI prefix lookup fails
             generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
         } else {
             // Not a pure power of 10, show the scale factors explicitly
-            let scale_factors = format_scale_factors(scale_p2, scale_p3, scale_p5, scale_pi);
-            if scale_factors.is_empty() {
+            let scale_factors_str = format_scale_factors(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+            if scale_factors_str.is_empty() {
                 base_si_unit.to_string()
             } else {
-                format!("{}{}", scale_factors, base_si_unit)
+                format!("{}{}", scale_factors_str, base_si_unit)
             }
         }
     }
 }
 
 pub fn generate_prefixed_systematic_unit(
-    exponents: Vec<i16>,
-    scale_p2: i16,
-    scale_p3: i16,
-    scale_p5: i16,
-    scale_pi: i16,
+    exponents: DynDimensionExponents,
+    scale_factors: ScaleExponents,
     base_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(scale_p2, scale_p3, scale_p5, scale_pi);
+    let total_scale_p10 = calculate_total_scale_p10(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
 
     // Check if this is a pure unit (not compound)
     let is_pure_unit = !base_unit.contains("·");
@@ -350,7 +325,7 @@ pub fn generate_prefixed_systematic_unit(
             // Check if this is a pure unit with an exponent
             // Find the non-zero exponent (there should be exactly one for a pure unit)
             if let Some((dimension_index, &exponent)) =
-                exponents.iter().enumerate().find(|&(_, &exp)| exp != 0)
+                exponents.0.iter().enumerate().find(|&(_, &exp)| exp != 0)
             {
                 // Check if the scale is a multiple of the exponent
                 if effective_scale_p10 % exponent == 0 {
@@ -361,7 +336,7 @@ pub fn generate_prefixed_systematic_unit(
                     if let Some(factored_prefix) = get_si_prefix(factored_scale, long_name) {
                         // Get the base unit name without any scale or exponent
                         let base_unit_name = generate_systematic_unit_name(
-                            exponents
+                            exponents.0
                                 .iter()
                                 .enumerate()
                                 .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
@@ -401,13 +376,13 @@ pub fn generate_prefixed_systematic_unit(
         }
     } else {
         // No SI prefix available, check if we need to add numerical scale factor
-        let scale_factors = format_scale_factors(scale_p2, scale_p3, scale_p5, scale_pi);
-        if scale_factors.is_empty() {
+        let scale_factors_str = format_scale_factors(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+        if scale_factors_str.is_empty() {
             // No scaling needed, return base unit as-is
             base_unit.to_string()
         } else {
             // Add numerical scale factor prefix
-            format!("{}{}", scale_factors, base_unit)
+            format!("{}{}", scale_factors_str, base_unit)
         }
     }
 }
@@ -462,8 +437,8 @@ macro_rules! define_pretty_print_quantity {
 
             // Generate the best unit literal using centralized logic
             let unit_literal = generate_unit_literal(
-                [$($dimension_args)*].to_vec(),
-                $($scale_args)*,
+                whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
+                whippyunits_core::scale_exponents::ScaleExponents([$($scale_args)*]),
                 UnitLiteralConfig {
                     verbose,
                     prefer_si_units: true,
@@ -630,3 +605,4 @@ define_pretty_print_quantity_helpers!(
         scale_p2, scale_p3, scale_p5, scale_pi
     )
 );
+
