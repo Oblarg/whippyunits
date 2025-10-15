@@ -236,6 +236,14 @@ fn parse_ucum_term(
     ),
     UcumError,
 > {
+    // Handle special case for dimensionless unit "1"
+    if term == "1" {
+        return Ok((
+            (DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])),
+            ScaleExponents([0, 0, 0, 0])
+        ));
+    }
+
     // Handle exponent notation (e.g., "m^2", "s^-1")
     let (base_unit, exponent) = if let Some(caret_pos) = term.find('^') {
         let base = &term[..caret_pos];
@@ -400,6 +408,15 @@ fn get_base_unit_dimensions_ucum(
             base_unit_info.exponents.0[6], // luminosity
             base_unit_info.exponents.0[7], // angle
         );
+        
+        // Get the inherent scale offset for the base unit
+        // For gram, the scale is 10^-3, so the inherent_p10 should be -3
+        // This represents the power of 10 that the unit stores relative to the SI base unit
+        let inherent_p10 = match base_unit {
+            "g" => -3, // gram stores as 10^-3 of kilogram (SI base unit for mass)
+            _ => 0,    // other base units have no inherent scale offset
+        };
+        
         return Ok((
             m,
             l,
@@ -409,7 +426,7 @@ fn get_base_unit_dimensions_ucum(
             a,
             lum,
             ang,
-            0, // prefix_scale_offset - not available in new Unit struct
+            inherent_p10,
         ));
     }
 
@@ -1054,6 +1071,19 @@ mod tests {
 
         let result = parse_ucum_unit("s^-1").unwrap();
         assert_eq!(result, (DynDimensionExponents([0, 0, -1, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
+    }
+
+    #[test]
+    fn test_parse_ucum_unit_implicit_exponents() {
+        // Test implicit exponent notation (UCUM standard)
+        let result = parse_ucum_unit("m2").unwrap();
+        assert_eq!(result, (DynDimensionExponents([0, 2, 0, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
+
+        let result = parse_ucum_unit("1/s").unwrap();
+        assert_eq!(result, (DynDimensionExponents([0, 0, -1, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
+
+        let result = parse_ucum_unit("kg.m/s2").unwrap();
+        assert_eq!(result, (DynDimensionExponents([1, 1, -2, 0, 0, 0, 0, 0]), ScaleExponents([0, 0, 0, 0])));
     }
 
     #[test]
