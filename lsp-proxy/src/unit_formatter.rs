@@ -96,10 +96,7 @@ impl UnitFormatter {
     }
 
     /// Core method to format Quantity types with configurable parameters
-    fn format_quantity_types(&self, text: &str, verbose: bool, unicode: bool, is_inlay_hint: bool) -> String {
-        
-        use whippyunits::print::prettyprint::pretty_print_quantity_type;
-        
+    fn format_quantity_types(&self, text: &str, verbose: bool, unicode: bool, is_inlay_hint: bool) -> String {        
         // Handle the new format with Scale and Dimension structs (both full and truncated)
         if text.contains("Scale") && text.contains("Dimension") {
             // Use a more sophisticated approach to find and replace each Quantity type
@@ -200,10 +197,8 @@ impl UnitFormatter {
             if is_inlay_hint {
                 // Use the main pretty print function with verbose=false to get the unit literal
                 let full_output = pretty_print_quantity_type(
-                    params.dimensions.0[0], params.dimensions.0[1], params.dimensions.0[2],
-                    params.dimensions.0[3], params.dimensions.0[4], params.dimensions.0[5],
-                    params.dimensions.0[6], params.dimensions.0[7],
-                    params.scale.0[0], params.scale.0[1], params.scale.0[2], params.scale.0[3],
+                    params.dimensions,
+                    params.scale,
                     &params.generic_type,
                     false, // Non-verbose mode for inlay hints
                     false, // Don't show type in brackets
@@ -220,10 +215,8 @@ impl UnitFormatter {
             } else {
                 // Use the prettyprint API with configurable parameters
                 let result = pretty_print_quantity_type(
-                    params.dimensions.0[0], params.dimensions.0[1], params.dimensions.0[2],
-                    params.dimensions.0[3], params.dimensions.0[4], params.dimensions.0[5],
-                    params.dimensions.0[6], params.dimensions.0[7],
-                    params.scale.0[0], params.scale.0[1], params.scale.0[2], params.scale.0[3],
+                    params.dimensions,
+                    params.scale,
                     &params.generic_type,
                     verbose,
                     false, // show_type_in_brackets = false for pretty printer

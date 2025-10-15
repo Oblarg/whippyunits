@@ -416,193 +416,132 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
 }
 
 
-#[macro_export]
-#[doc(hidden)]
-macro_rules! define_pretty_print_quantity {
-    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*), $unit_vector_format:expr) => {
-        /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
-        pub fn pretty_print_quantity(
-            value: Option<f64>,
-            $($dimension_signature_params)*,
-            type_name: &str,
-            verbose: bool,
-            _show_type_in_brackets: bool,
-        ) -> String {
-            let value_prefix = if let Some(val) = value {
-                let formatted_val = format_float_with_sig_figs(val, 5);
-                format!("({}) ", formatted_val)
-            } else {
-                String::new()
-            };
+/// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
+pub fn pretty_print_quantity(
+    value: Option<f64>,
+    dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents,
+    scale: whippyunits_core::scale_exponents::ScaleExponents,
+    type_name: &str,
+    verbose: bool,
+    _show_type_in_brackets: bool,
+) -> String {
+    let value_prefix = if let Some(val) = value {
+        let formatted_val = format_float_with_sig_figs(val, 5);
+        format!("({}) ", formatted_val)
+    } else {
+        String::new()
+    };
 
-            // Generate the best unit literal using centralized logic
-            let unit_literal = generate_unit_literal(
-                whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
-                whippyunits_core::scale_exponents::ScaleExponents([$($scale_args)*]),
-                UnitLiteralConfig {
-                    verbose,
-                    prefer_si_units: true,
-                },
-            );
+    // Generate the best unit literal using centralized logic
+    let unit_literal = generate_unit_literal(
+        dimensions,
+        scale,
+        UnitLiteralConfig {
+            verbose,
+            prefer_si_units: true,
+        },
+    );
 
-            // Look up dimension name for secondary display
-            let dimension_info = lookup_dimension_name([$($dimension_args)*].to_vec());
+    // Look up dimension name for secondary display
+    let dimension_info = lookup_dimension_name(dimensions.0.to_vec());
 
-            let dimension_name = if let Some(ref info) = dimension_info {
-                // For recognized composite dimensions, always use the dimension name (e.g., "Force", "Energy")
-                // regardless of verbose/non-verbose mode, since these are established names
-                info.dimension_name.to_string()
-            } else {
-                if verbose {
-                    // For unrecognized dimensions in verbose mode, generate verbose dimension names
-                    generate_verbose_dimension_names([$($dimension_args)*].to_vec())
-                } else {
-                    // For unrecognized dimensions in non-verbose mode, use dimension symbols
-                    generate_dimension_symbols([$($dimension_args)*].to_vec())
-                }
-            };
-
-            let primary = if !unit_literal.is_empty() { 
-                &unit_literal 
-            } else { 
-                &dimension_name 
-            };
-            let secondary = if verbose {
-                // In verbose mode (debug), show the dimension name in parentheses
-                // but only for composite dimensions, not primitive ones
-                if dimension_info.is_some() && !is_primitive_dimension([$($dimension_args)*].to_vec()) {
-                    format!(" ({})", dimension_name)
-                } else {
-                    String::new()
-                }
-            } else {
-                // In non-verbose mode (display), don't show dimension names or semicolons
-                String::new()
-            };
-            let verbose_info = if verbose {
-                $unit_vector_format
-            } else {
-                String::new()
-            };
-
-            // Always add the type parameter at the end
-            let type_suffix = if verbose {
-                format!(", {}", type_name)
-            } else {
-                format!(", {}", type_name)
-            };
-
-            format!("{}Quantity<{}{}{}{}>", value_prefix, primary, secondary, verbose_info, type_suffix)
+    let dimension_name = if let Some(ref info) = dimension_info {
+        // For recognized composite dimensions, always use the dimension name (e.g., "Force", "Energy")
+        // regardless of verbose/non-verbose mode, since these are established names
+        info.dimension_name.to_string()
+    } else {
+        if verbose {
+            // For unrecognized dimensions in verbose mode, generate verbose dimension names
+            generate_verbose_dimension_names(dimensions.0.to_vec())
+        } else {
+            // For unrecognized dimensions in non-verbose mode, use dimension symbols
+            generate_dimension_symbols(dimensions.0.to_vec())
         }
     };
-}
 
-define_pretty_print_quantity!(
-    (
-        mass_exponent: i16,
-        length_exponent: i16,
-        time_exponent: i16,
-        electric_current_exponent: i16,
-        temperature_exponent: i16,
-        amount_of_substance_exponent: i16,
-        luminous_intensity_exponent: i16,
-        angle_exponent: i16,
-        scale_p2: i16,
-        scale_p3: i16,
-        scale_p5: i16,
-        scale_pi: i16
-    ),
-    (
-        mass_exponent, length_exponent, time_exponent, electric_current_exponent, temperature_exponent, amount_of_substance_exponent, luminous_intensity_exponent, angle_exponent
-    ),
-    (
-        scale_p2, scale_p3, scale_p5, scale_pi
-    ),
-    format!(
-        "{}{}",
-        generate_scale_brackets(scale_p2, scale_p3, scale_p5, scale_pi),
-        generate_dimension_brackets(
-            mass_exponent,
-            length_exponent,
-            time_exponent,
-            electric_current_exponent,
-            temperature_exponent,
-            amount_of_substance_exponent,
-            luminous_intensity_exponent,
-            angle_exponent
+    let primary = if !unit_literal.is_empty() { 
+        &unit_literal 
+    } else { 
+        &dimension_name 
+    };
+    let secondary = if verbose {
+        // In verbose mode (debug), show the dimension name in parentheses
+        // but only for composite dimensions, not primitive ones
+        if dimension_info.is_some() && !is_primitive_dimension(dimensions.0.to_vec()) {
+            format!(" ({})", dimension_name)
+        } else {
+            String::new()
+        }
+    } else {
+        // In non-verbose mode (display), don't show dimension names or semicolons
+        String::new()
+    };
+    let verbose_info = if verbose {
+        format!(
+            "{}{}",
+            generate_scale_brackets(scale.0[0], scale.0[1], scale.0[2], scale.0[3]),
+            generate_dimension_brackets(
+                dimensions.0[0],
+                dimensions.0[1],
+                dimensions.0[2],
+                dimensions.0[3],
+                dimensions.0[4],
+                dimensions.0[5],
+                dimensions.0[6],
+                dimensions.0[7]
+            )
         )
-    )
-);
-
-#[macro_export]
-#[doc(hidden)]
-macro_rules! define_pretty_print_quantity_helpers {
-    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*)) => {
-        /// Pretty print a quantity type (without value)
-        pub fn pretty_print_quantity_type(
-            $($dimension_signature_params)*,
-            type_name: &str,
-            verbose: bool,
-            show_type_in_brackets: bool,
-        ) -> String {
-            pretty_print_quantity(
-                None,
-                $($dimension_args)*,
-                $($scale_args)*,
-                type_name,
-                verbose,
-                show_type_in_brackets,
-            )
-        }
-
-        /// Pretty print a quantity value (with value)
-        pub fn pretty_print_quantity_value(
-            value: f64,
-            $($dimension_signature_params)*,
-            type_name: &str,
-            verbose: bool,
-            show_type_in_brackets: bool,
-        ) -> String {
-            pretty_print_quantity(
-                Some(value),
-                $($dimension_args)*,
-                $($scale_args)*,
-                type_name,
-                verbose,
-                show_type_in_brackets,
-            )
-        }
-
+    } else {
+        String::new()
     };
+
+    // Always add the type parameter at the end
+    let type_suffix = if verbose {
+        format!(", {}", type_name)
+    } else {
+        format!(", {}", type_name)
+    };
+
+    format!("{}Quantity<{}{}{}{}>", value_prefix, primary, secondary, verbose_info, type_suffix)
 }
 
-define_pretty_print_quantity_helpers!(
-    (
-        mass_exponent: i16,
-        length_exponent: i16,
-        time_exponent: i16,
-        electric_current_exponent: i16,
-        temperature_exponent: i16,
-        amount_of_substance_exponent: i16,
-        luminous_intensity_exponent: i16,
-        angle_exponent: i16,
-        scale_p2: i16,
-        scale_p3: i16,
-        scale_p5: i16,
-        scale_pi: i16
-    ),
-    (
-        mass_exponent,
-        length_exponent,
-        time_exponent,
-        electric_current_exponent,
-        temperature_exponent,
-        amount_of_substance_exponent,
-        luminous_intensity_exponent,
-        angle_exponent
-    ),
-    (
-        scale_p2, scale_p3, scale_p5, scale_pi
+
+/// Pretty print a quantity type (without value) using the new unit types from whippyunits-core
+pub fn pretty_print_quantity_type(
+    dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents,
+    scale: whippyunits_core::scale_exponents::ScaleExponents,
+    type_name: &str,
+    verbose: bool,
+    show_type_in_brackets: bool,
+) -> String {
+    pretty_print_quantity(
+        None,
+        dimensions,
+        scale,
+        type_name,
+        verbose,
+        show_type_in_brackets,
     )
-);
+}
+
+/// Pretty print a quantity value (with value) using the new unit types from whippyunits-core
+pub fn pretty_print_quantity_value(
+    value: f64,
+    dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents,
+    scale: whippyunits_core::scale_exponents::ScaleExponents,
+    type_name: &str,
+    verbose: bool,
+    show_type_in_brackets: bool,
+) -> String {
+    pretty_print_quantity(
+        Some(value),
+        dimensions,
+        scale,
+        type_name,
+        verbose,
+        show_type_in_brackets,
+    )
+}
+
+
 

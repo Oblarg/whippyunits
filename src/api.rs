@@ -430,6 +430,8 @@ define_display_traits!(
         AMOUNT_EXPONENT,
         LUMINOSITY_EXPONENT,
         ANGLE_EXPONENT,
+    ),
+    (
         SCALE_P2,
         SCALE_P3,
         SCALE_P5,

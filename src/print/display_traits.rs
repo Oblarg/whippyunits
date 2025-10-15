@@ -6,7 +6,7 @@ use std::fmt;
 #[macro_export]
 #[doc(hidden)]
 macro_rules! define_display_traits {
-    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*)) => {
+    (($($dimension_signature_params:tt)*), ($($dimension_args:tt)*), ($($scale_args:tt)*)) => {
         impl<
             $($dimension_signature_params)*
             T,
@@ -23,7 +23,8 @@ macro_rules! define_display_traits {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let pretty = pretty_print_quantity_value(
                     self.unsafe_value.into(),
-                    $($dimension_args)*
+                    whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
+                    whippyunits_core::scale_exponents::ScaleExponents([$($scale_args)*]),
                     std::any::type_name::<T>(),
                     false, // Non-verbose mode for Display
                     true, // Show type in brackets for Display (now unified)
@@ -48,7 +49,8 @@ macro_rules! define_display_traits {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let pretty = pretty_print_quantity_value(
                     self.unsafe_value.into(),
-                    $($dimension_args)*
+                    whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
+                    whippyunits_core::scale_exponents::ScaleExponents([$($scale_args)*]),
                     std::any::type_name::<T>(),
                     true, // Verbose mode for Debug
                     true, // Show type in brackets for Debug (now unified)

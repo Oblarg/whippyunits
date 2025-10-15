@@ -171,10 +171,14 @@ impl WhippyUnitsTypeConverter {
             if let Some(params) = params {
                 // For rustc output, we always show type info without values
                 pretty_print_quantity_type(
-                    params.mass_exp, params.length_exp, params.time_exp,
-                    params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
-                    params.luminous_intensity_exp, params.angle_exp,
-                    params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
+                    whippyunits_core::dimension_exponents::DynDimensionExponents([
+                        params.mass_exp, params.length_exp, params.time_exp,
+                        params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
+                        params.luminous_intensity_exp, params.angle_exp
+                    ]),
+                    whippyunits_core::scale_exponents::ScaleExponents([
+                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi
+                    ]),
                     &params.generic_type,
                     true, // verbose
                     true, // show_type_in_brackets for rustc output
@@ -242,10 +246,14 @@ impl WhippyUnitsTypeConverter {
                 } else {
                     // Use the new prettyprint API with verbose=false
                     pretty_print_quantity_type(
-                        params.mass_exp, params.length_exp, params.time_exp,
-                        params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
-                        params.luminous_intensity_exp, params.angle_exp,
-                        params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi,
+                        whippyunits_core::dimension_exponents::DynDimensionExponents([
+                            params.mass_exp, params.length_exp, params.time_exp,
+                            params.electric_current_exp, params.temperature_exp, params.amount_of_substance_exp,
+                            params.luminous_intensity_exp, params.angle_exp
+                        ]),
+                        whippyunits_core::scale_exponents::ScaleExponents([
+                            params.scale_p2, params.scale_p3, params.scale_p5, params.scale_pi
+                        ]),
                         &params.generic_type,
                         false, // not verbose
                         false, // don't show type in brackets for clean mode
