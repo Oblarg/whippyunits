@@ -149,10 +149,14 @@ impl UnitExpr {
                 let mut scale_exponents = unit_info.scale;
                 
                 // Check if this is a prefixed unit and adjust scale factors accordingly
-                if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
-                    let prefix_factor = prefix.factor_log10();
-                    // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
-                    scale_exponents = scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                // BUT ONLY if the unit name is NOT a valid unit symbol by itself
+                let is_valid_unit_symbol = Dimension::find_unit_by_symbol(&unit.name.to_string()).is_some();
+                if !is_valid_unit_symbol {
+                    if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
+                        let prefix_factor = prefix.factor_log10();
+                        // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
+                        scale_exponents = scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                    }
                 }
                 
                 // Apply the unit exponent to both dimension and scale exponents
@@ -292,6 +296,7 @@ impl UnitMacroInput {
             result.scale_exponents.0[2],
             result.scale_exponents.0[3],
         );
+        
         
 
         // Use the specified storage type or default to f64
