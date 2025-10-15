@@ -273,7 +273,23 @@ pub fn generate_prefixed_si_unit(
 ) -> String {
     let total_scale_p10 = calculate_total_scale_p10(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
 
-    if let Some(prefix) = get_si_prefix(total_scale_p10, long_name) {
+    // Apply base scale offset for mass units (same logic as generate_prefixed_systematic_unit)
+    let effective_scale_p10 = if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(base_si_unit) {
+        // Get the base scale offset from the unit's scale (systematic approach)
+        let base_scale_offset = _unit.scale.log10().unwrap_or(0);
+        total_scale_p10 - base_scale_offset
+    } else {
+        // Fallback: try to find by name if symbol lookup fails
+        if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name(base_si_unit) {
+            let base_scale_offset = _unit.scale.log10().unwrap_or(0);
+            total_scale_p10 - base_scale_offset
+        } else {
+            // No base scale offset found, use total scale as-is
+            total_scale_p10
+        }
+    };
+
+    if let Some(prefix) = get_si_prefix(effective_scale_p10, long_name) {
         format!("{}{}", prefix, base_si_unit)
     } else {
         // Check if this is a pure power of 10 using whippyunits-core
@@ -307,13 +323,32 @@ pub fn generate_prefixed_systematic_unit(
 
     // For pure units, check if we need to apply base scale offset
     let effective_scale_p10 = if is_pure_unit {
-        // Check if this is a pure unit with base scale offset (like mass with "gram")
-        if base_unit == "gram" {
-            // Mass has base_scale_offset: 3, so apply it to the scale calculation
-            total_scale_p10 + 3
+        // Find the base scale offset by looking up the unit's scale from whippyunits-core
+        let base_scale_offset = if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(base_unit) {
+            // Get the base scale offset from the unit's scale (systematic approach)
+            _unit.scale.log10().unwrap_or(0)
         } else {
-            total_scale_p10
-        }
+            // Fallback: try to find by name if symbol lookup fails
+            if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name(base_unit) {
+                _unit.scale.log10().unwrap_or(0)
+            } else {
+                // Special case: if base_unit is 'kilogram', look for 'gram' instead
+                if base_unit == "kilogram" {
+                    if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name("gram") {
+                        _unit.scale.log10().unwrap_or(0)
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                }
+            }
+        };
+        
+        // Apply the base scale offset to the scale calculation
+        // The base scale offset represents the offset of the base unit (e.g., gram = -3)
+        // We need to subtract it from the total scale to get the effective scale
+        total_scale_p10 - base_scale_offset
     } else {
         // For compound units, don't apply base scale offset to the aggregate prefix
         // The individual parts already have their base scale offsets applied
@@ -335,22 +370,28 @@ pub fn generate_prefixed_systematic_unit(
                     // Get the prefix for the factored scale
                     if let Some(factored_prefix) = get_si_prefix(factored_scale, long_name) {
                         // Get the base unit name without any scale or exponent
-                        let base_unit_name = generate_systematic_unit_name(
-                            exponents.0
-                                .iter()
-                                .enumerate()
-                                .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
-                                .collect(),
-                            long_name,
-                        );
+                        // For mass units, we need to use "gram" as the base unit, not "kilogram"
+                        let base_unit_name = if base_unit == "kilogram" {
+                            if long_name { "gram".to_string() } else { "g".to_string() }
+                        } else {
+                            generate_systematic_unit_name(
+                                exponents.0
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
+                                    .collect(),
+                                long_name,
+                            )
+                        };
 
                         // Apply the factored prefix to the base unit name, then add the exponent
-                        format!(
+                        let result = format!(
                             "{}{}{}",
                             factored_prefix,
                             base_unit_name,
                             get_unicode_exponent(exponent)
-                        )
+                        );
+                        return result;
                     } else {
                         // Fallback to original behavior
                         format!("{}{}", prefix, base_unit)

@@ -140,8 +140,9 @@ pub fn generate_systematic_unit_name_with_format(
                     // Get unit configuration directly from Dimension::BASIS
                     let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
                         if let Some(unit) = dimension.units.first() {
-                            // Check if this is the mass dimension with gram (which has a -3 scale offset)
-                            let base_scale_offset = if index == 0 && unit.name == "gram" { 3 } else { 0 };
+                            // Get the base scale offset from the unit's scale (systematic approach)
+                            // For gram, this will be -3 (10^-3 of kilogram)
+                            let base_scale_offset = unit.scale.log10().unwrap_or(0);
                             (unit.name, unit.symbols[0], base_scale_offset)
                         } else {
                             ("?", "?", 0)
@@ -173,8 +174,9 @@ pub fn generate_systematic_unit_name_with_format(
                     // Get unit configuration directly from Dimension::BASIS
                     let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
                         if let Some(unit) = dimension.units.first() {
-                            // Check if this is the mass dimension with gram (which has a -3 scale offset)
-                            let base_scale_offset = if index == 0 && unit.name == "gram" { 3 } else { 0 };
+                            // Get the base scale offset from the unit's scale (systematic approach)
+                            // For gram, this will be -3 (10^-3 of kilogram)
+                            let base_scale_offset = unit.scale.log10().unwrap_or(0);
                             (unit.name, unit.symbols[0], base_scale_offset)
                         } else {
                             ("?", "?", 0)
