@@ -442,7 +442,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
 
     pub const GRADIAN: Self = Self {
         name: "gradian",
-        symbols: &["grad", "gon"],
+        symbols: &["gon"],
         scale: ScaleExponents([-3, -1, -1, 1]),
         conversion_factor: IDENTITY,
         affine_offset: NONE,
@@ -703,9 +703,9 @@ impl Unit<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
 
     pub const ACRE: Self = Self {
         name: "acre",
-        symbols: &["ac", "acre"],
-        scale: ScaleExponents::_10(2),
-        conversion_factor: 4.0468564224, // 1 acre = 4046.8564224 m²
+        symbols: &["acre"],
+        scale: ScaleExponents::_10(3),
+        conversion_factor: 0.40468564224, // 1 acre = 4046.8564224 m²
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
@@ -747,7 +747,7 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
 
     pub const QUART_US: Self = Self {
         name: "quart",
-        symbols: &["qt"],
+        symbols: &["qrt"],
         scale: ScaleExponents::_10(-3),
         conversion_factor: 0.946352946, // 1 US quart = 0.946352946 L
         affine_offset: NONE,
@@ -757,7 +757,7 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
 
     pub const QUART_UK: Self = Self {
         name: "uk_quart",
-        symbols: &["uk_qt"],
+        symbols: &["uk_qrt"],
         scale: ScaleExponents::_10(-3),
         conversion_factor: 1.1365225, // 1 UK quart = 1.1365225 L
         affine_offset: NONE,
@@ -767,7 +767,7 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
 
     pub const PINT_US: Self = Self {
         name: "pint",
-        symbols: &["pt"],
+        symbols: &["pnt"],
         scale: ScaleExponents::_10(-3),
         conversion_factor: 0.473176473, // 1 US pint = 0.473176473 L
         affine_offset: NONE,
@@ -777,7 +777,7 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
 
     pub const PINT_UK: Self = Self {
         name: "uk_pint",
-        symbols: &["uk_pt"],
+        symbols: &["uk_pnt"],
         scale: ScaleExponents::_10(-3),
         conversion_factor: 0.56826125, // 1 UK pint = 0.56826125 L
         affine_offset: NONE,
