@@ -3,6 +3,12 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
+/// Check if a unit name can be parsed as a valid Rust identifier
+/// This filters out units with unicode characters or other invalid identifier characters
+fn is_valid_identifier(name: &str) -> bool {
+    syn::parse_str::<Ident>(name).is_ok()
+}
+
 /// Input for the generate_default_declarators macro
 /// Usage: generate_default_declarators!()
 pub struct DefaultDeclaratorsInput;
@@ -179,6 +185,11 @@ impl DefaultDeclaratorsInput {
         let mut scale_definitions = Vec::new();
         
         for unit in time_units {
+            // Skip units with invalid identifier names (e.g., unicode characters)
+            if !is_valid_identifier(unit.name) {
+                continue;
+            }
+            
             // Use the first symbol for type name generation
             let primary_symbol = unit.symbols[0];
             if seen_symbols.insert(primary_symbol) {
@@ -240,6 +251,11 @@ impl DefaultDeclaratorsInput {
         let mut nonstorage_affine_units = Vec::new();
         
         for unit in temperature_units {
+            // Skip units with invalid identifier names (e.g., unicode characters)
+            if !is_valid_identifier(unit.name) {
+                continue;
+            }
+            
             if unit.conversion_factor == 1.0 {
                 // Pure affine unit (like Celsius)
                 let fn_name = whippyunits_core::make_plural(unit.name);
@@ -324,6 +340,11 @@ impl DefaultDeclaratorsInput {
         let mut scale_definitions = Vec::new();
         
         for unit in angle_units {
+            // Skip units with invalid identifier names (e.g., unicode characters)
+            if !is_valid_identifier(unit.name) {
+                continue;
+            }
+            
             // Use the first symbol for type name generation
             let primary_symbol = unit.symbols[0];
             if seen_symbols.insert(primary_symbol) {
@@ -360,46 +381,57 @@ impl DefaultDeclaratorsInput {
     }
     
     fn generate_compound_unit_declarators(&self, expansions: &mut Vec<TokenStream>) {
-        use whippyunits_core::Dimension;
+        use whippyunits_core::{Dimension, System};
         
-        // Generate declarators for all composite units (compound or derived) defined in the dimensions data
-        let mut compound_units = Vec::new();
+        // Collect all metric units from all non-atomic dimensions
+        let mut metric_units = Vec::new();
         
         for dimension in Dimension::ALL {
             // Anything that's not atomic is composite (compound or derived)
             // Check if this is not one of the 8 base dimensions
             if !Dimension::BASIS.contains(dimension) {
                 for unit in dimension.units {
-                    // Include all units that have symbols (no whitelist needed - the data structure is clean)
-                    if !unit.symbols.is_empty() {
-                        compound_units.push((dimension, unit));
+                    // Include all metric units that have symbols
+                    if !unit.symbols.is_empty() && unit.system == System::Metric {
+                        metric_units.push((dimension, unit));
                     }
                 }
             }
         }
         
-        // Group compound units by their dimension exponents
-        let mut grouped_units: std::collections::HashMap<_, Vec<_>> = std::collections::HashMap::new();
-        for (dimension, unit) in compound_units {
-            grouped_units.entry(dimension.exponents).or_default().push((dimension, unit));
+        if metric_units.is_empty() {
+            return;
         }
         
-        // Generate declarators for each group
-        for (exponents, units) in grouped_units {
+        // Group metric units by their dimension name (not exponents)
+        let mut grouped_units: std::collections::HashMap<_, Vec<_>> = std::collections::HashMap::new();
+        for (dimension, unit) in metric_units {
+            grouped_units.entry(dimension.name).or_default().push((dimension, unit));
+        }
+        
+        // Generate declarators for each dimension group
+        for (dimension_name, units) in grouped_units {
+            // Get dimension exponents from the first unit (all units in a dimension have same exponents)
+            let dimension = &units[0].0;
             let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = (
-                exponents.0[0], // mass
-                exponents.0[1], // length
-                exponents.0[2], // time
-                exponents.0[3], // current
-                exponents.0[4], // temperature
-                exponents.0[5], // amount
-                exponents.0[6], // luminous_intensity
-                exponents.0[7], // angle
+                dimension.exponents.0[0], // mass
+                dimension.exponents.0[1], // length
+                dimension.exponents.0[2], // time
+                dimension.exponents.0[3], // current
+                dimension.exponents.0[4], // temperature
+                dimension.exponents.0[5], // amount
+                dimension.exponents.0[6], // luminous_intensity
+                dimension.exponents.0[7], // angle
             );
             
             let mut scale_definitions = Vec::new();
             
             for (_dimension, unit) in &units {
+                // Skip units with invalid identifier names (e.g., unicode characters)
+                if !is_valid_identifier(unit.name) {
+                    continue;
+                }
+                
                 let (p2, p3, p5, pi) = (unit.scale.0[0], unit.scale.0[1], unit.scale.0[2], unit.scale.0[3]);
                 
                 // Generate type name from long name
@@ -441,10 +473,14 @@ impl DefaultDeclaratorsInput {
             }
             
             if !scale_definitions.is_empty() {
-                // Generate a unique trait name for this dimension combination
-                // Use a more descriptive name based on the first unit in the group
-                let first_unit = &units[0].1;
-                let trait_name = format!("{}Unit", whippyunits_core::CapitalizedFmt(first_unit.name).to_string());
+                // Generate a trait name based on the dimension (like ImperialVolume)
+                // Remove spaces and capitalize first letter to make valid Rust identifier
+                let mut trait_name = dimension_name.to_string();
+                if let Some(first) = trait_name.chars().next() {
+                    trait_name = format!("{}{}", first.to_uppercase(), &trait_name[1..]);
+                }
+                trait_name = trait_name.replace(" ", "");
+                let trait_name = format!("Metric{}", trait_name);
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
                 
                 let expansion = quote! {
@@ -513,6 +549,11 @@ impl DefaultDeclaratorsInput {
                 let mut affine_scale_definitions = Vec::new();
                 
                 for (_dimension, unit) in &units {
+                    // Skip units with invalid identifier names (e.g., unicode characters)
+                    if !is_valid_identifier(unit.name) {
+                        continue;
+                    }
+                    
                     // Generate function name (pluralized)
                     let fn_name = whippyunits_core::make_plural(unit.name);
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
@@ -553,6 +594,11 @@ impl DefaultDeclaratorsInput {
                 let mut regular_scale_definitions = Vec::new();
                 
                 for (_dimension, unit) in &units {
+                    // Skip units with invalid identifier names (e.g., unicode characters)
+                    if !is_valid_identifier(unit.name) {
+                        continue;
+                    }
+                    
                     // Generate function name (pluralized)
                     let fn_name = whippyunits_core::make_plural(unit.name);
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();

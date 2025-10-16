@@ -689,6 +689,198 @@ impl Unit<crate::dimension_exponents!([0, 2, -1, 0, 0, 0, 0, 0])> {
     };
 }
 
+/// Area
+impl Unit<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
+    // we include an algebraic unit for square meter to avoid displaying every area storage scale
+    // in terms of hectares
+    pub const SQUARE_METER: Self = Self {
+        // unicode in name is fine here, users don't really need nominal declarators
+        // for algebraic units (they can just use the unit literal expression syntax)
+        name: "meter²",
+        symbols: &["m²"],
+        scale: ScaleExponents::_10(2),
+        conversion_factor: IDENTITY,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
+    pub const HECTARE: Self = Self {
+        name: "hectare",
+        symbols: &["hect"],
+        scale: ScaleExponents::_10(4),
+        conversion_factor: IDENTITY, // 1 hectare = 10,000 m²
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
+    pub const ACRE: Self = Self {
+        name: "acre",
+        symbols: &["ac", "acre"],
+        scale: ScaleExponents::_10(2),
+        conversion_factor: 4.0468564224, // 1 acre = 4046.8564224 m²
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+}
+
+/// Volume
+impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
+    // Metric volume units
+    pub const LITER: Self = Self {
+        name: "liter",
+        symbols: &["L", "l"],
+        scale: ScaleExponents::_10(-3),
+        conversion_factor: IDENTITY,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
+    pub const GALLON_US: Self = Self {
+        name: "gallon",
+        symbols: &["gal", "gallon"],
+        scale: ScaleExponents::_10(-2),
+        conversion_factor: 0.3785411784, // 1 US gallon = 3.785411784 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const GALLON_UK: Self = Self {
+        name: "uk_gallon",
+        symbols: &["uk_gal"],
+        scale: ScaleExponents::_10(-2),
+        conversion_factor: 0.454609, // 1 UK gallon = 4.54609 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+
+    pub const QUART_US: Self = Self {
+        name: "quart",
+        symbols: &["qt"],
+        scale: ScaleExponents::_10(-3),
+        conversion_factor: 0.946352946, // 1 US quart = 0.946352946 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const QUART_UK: Self = Self {
+        name: "uk_quart",
+        symbols: &["uk_qt"],
+        scale: ScaleExponents::_10(-3),
+        conversion_factor: 1.1365225, // 1 UK quart = 1.1365225 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const PINT_US: Self = Self {
+        name: "pint",
+        symbols: &["pt"],
+        scale: ScaleExponents::_10(-3),
+        conversion_factor: 0.473176473, // 1 US pint = 0.473176473 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const PINT_UK: Self = Self {
+        name: "uk_pint",
+        symbols: &["uk_pt"],
+        scale: ScaleExponents::_10(-3),
+        conversion_factor: 0.56826125, // 1 UK pint = 0.56826125 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const CUP_US: Self = Self {
+        name: "cup",
+        symbols: &["cup"],
+        scale: ScaleExponents::_10(-4),
+        conversion_factor: 2.365882365, // 1 US cup = 0.2365882365 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const CUP_UK: Self = Self {
+        name: "uk_cup",
+        symbols: &["uk_cup"],
+        scale: ScaleExponents::_10(-4),
+        conversion_factor: 2.84130625, // 1 UK cup = 0.284130625 L
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const FLUID_OUNCE_US: Self = Self {
+        name: "fluid_ounce",
+        symbols: &["fl_oz"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 2.95735295625,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const FLUID_OUNCE_UK: Self = Self {
+        name: "uk_fluid_ounce",
+        symbols: &["uk_fl_oz"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 2.84130625,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const TABLESPOON_US: Self = Self {
+        name: "tablespoon",
+        symbols: &["tbsp"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 1.478676478125,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const TABLESPOON_UK: Self = Self {
+        name: "uk_tablespoon",
+        symbols: &["uk_tbsp"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 1.77581640625,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const TEASPOON_US: Self = Self {
+        name: "teaspoon",
+        symbols: &["tsp"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 0.492892159375,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const TEASPOON_UK: Self = Self {
+        name: "uk_teaspoon",
+        symbols: &["uk_tsp"],
+        scale: ScaleExponents::_10(-5),
+        conversion_factor: 0.59193880208333,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+}
+
 /// Dimensionless
 impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 0])> {
     pub const DIMENSIONLESS: Self = Self {

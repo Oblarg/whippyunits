@@ -1,4 +1,4 @@
-use crate::dimension_exponents::{self, DimensionExponents, DynDimensionExponents, TypeDimensionExponents};
+use crate::dimension_exponents::{DimensionExponents, DynDimensionExponents, TypeDimensionExponents};
 use crate::prefix::SiPrefix;
 use crate::units::Unit;
 
@@ -316,7 +316,12 @@ impl Dimension<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
         name: "Area",
         symbol: "L²",
         units: &[
-            // No atomic units for area - it's a derived dimension
+            // Metric area units (canonical display unit)
+            Unit::SQUARE_METER,
+            // Imperial area units
+            Unit::ACRE,
+            // Metric area units
+            Unit::HECTARE,
         ],
     });
 }
@@ -326,7 +331,24 @@ impl Dimension<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
         name: "Volume",
         symbol: "L³",
         units: &[
-            // No atomic units for volume - it's a derived dimension
+            // Metric volume units
+            Unit::LITER,
+            // Imperial volume units
+            Unit::GALLON_US,
+            Unit::QUART_US,
+            Unit::PINT_US,
+            Unit::CUP_US,
+            Unit::FLUID_OUNCE_US,
+            Unit::TABLESPOON_US,
+            Unit::TEASPOON_US,
+            // UK Imperial volume units
+            Unit::GALLON_UK,
+            Unit::QUART_UK,
+            Unit::PINT_UK,
+            Unit::CUP_UK,
+            Unit::FLUID_OUNCE_UK,
+            Unit::TABLESPOON_UK,
+            Unit::TEASPOON_UK,
         ],
     });
 }

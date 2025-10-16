@@ -305,6 +305,36 @@ fn test_imperial_units() {
 
     assert_eq!(temp_fahrenheit.unsafe_value, 255.92777777777778);
     assert_eq!(temp_rankine.unsafe_value, 5.0 / 9.0);
+
+    let volume_us_gallon = 1.0.gallons();
+    let volume_uk_gallon = 1.0.uk_gallons();
+    let volume_us_quart = 1.0.quarts();
+    let volume_uk_quart = 1.0.uk_quarts();
+    let volume_us_pint = 1.0.pints();
+    let volume_uk_pint = 1.0.uk_pints();
+    let volume_us_cup = 1.0.cups();
+    let volume_uk_cup = 1.0.uk_cups();
+    let volume_us_fluid_ounce = 1.0.fluid_ounces();
+    let volume_uk_fluid_ounce = 1.0.uk_fluid_ounces();
+    let volume_us_tablespoon = 1.0.tablespoons();
+    let volume_uk_tablespoon = 1.0.uk_tablespoons();
+    let volume_us_teaspoon = 1.0.teaspoons();
+    let volume_uk_teaspoon = 1.0.uk_teaspoons();
+
+    println!("1 US gallon = {:?}", volume_us_gallon);
+    println!("1 UK gallon = {:?}", volume_uk_gallon);
+    println!("1 US quart = {:?}", volume_us_quart);
+    println!("1 UK quart = {:?}", volume_uk_quart);
+    println!("1 US pint = {:?}", volume_us_pint);
+    println!("1 UK pint = {:?}", volume_uk_pint);
+    println!("1 US cup = {:?}", volume_us_cup);
+    println!("1 UK cup = {:?}", volume_uk_cup);
+    println!("1 US fluid ounce = {:?}", volume_us_fluid_ounce);
+    println!("1 UK fluid ounce = {:?}", volume_uk_fluid_ounce);
+    println!("1 US tablespoon = {:?}", volume_us_tablespoon);
+    println!("1 UK tablespoon = {:?}", volume_uk_tablespoon);
+    println!("1 US teaspoon = {:?}", volume_us_teaspoon);
+    println!("1 UK teaspoon = {:?}", volume_uk_teaspoon);
 }
 
 #[test]
