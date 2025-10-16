@@ -200,6 +200,16 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         system: System::Imperial,
     };
 
+    pub const SLUG: Self = Self {
+        name: "slug",
+        symbols: &["slg"],
+        scale: ScaleExponents::_10(1),
+        conversion_factor: 1.4593902937206365,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
     pub const TON: Self = Self {
         name: "ton",
         symbols: &["t"],
@@ -253,11 +263,41 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         system: System::Imperial,
     };
 
+    pub const FATHOM: Self = Self {
+        name: "fathom",
+        symbols: &["ftm"],
+        scale: ScaleExponents::IDENTITY,
+        conversion_factor: 1.8288,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const FURLONG: Self = Self {
+        name: "furlong",
+        symbols: &["fur"],
+        scale: ScaleExponents::_10(2),
+        conversion_factor: 2.01168,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
     pub const MILE: Self = Self {
         name: "mile",
         symbols: &["mi"],
         scale: ScaleExponents::_10(3),
         conversion_factor: 1.609344,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const NAUTICAL_MILE: Self = Self {
+        name: "nautical_mile",
+        symbols: &["nmi"],
+        scale: ScaleExponents::_10(3),
+        conversion_factor: 1.852,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
