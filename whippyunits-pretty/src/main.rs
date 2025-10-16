@@ -1,7 +1,7 @@
-use std::io::{self, BufRead, BufReader};
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
 use log::info;
+use std::io::{self, BufRead, BufReader};
 
 use whippyunits_lsp_proxy::DisplayConfig;
 use whippyunits_pretty::rustc_pretty::RustcPrettyPrinter;
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     info!("🚀 WHIPPYUNITS PRETTY PRINTER STARTING");
-    
+
     // Create display configuration
     let display_config = DisplayConfig {
         verbose: args.verbose,
@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
         // Read from stdin
         let stdin = io::stdin();
         let reader = BufReader::new(stdin.lock());
-        
+
         for line in reader.lines() {
             let line = line?;
             let processed = printer.process_line(&line)?;

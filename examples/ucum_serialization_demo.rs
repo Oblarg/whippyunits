@@ -21,10 +21,18 @@ fn main() {
 
     // Convert to UCUM format
     println!("\nConverting quantities to UCUM format:");
-    println!("Length: {} -> {}", length.unsafe_value, to_ucum_unit(&length));
+    println!(
+        "Length: {} -> {}",
+        length.unsafe_value,
+        to_ucum_unit(&length)
+    );
     println!("Mass: {} -> {}", mass.unsafe_value, to_ucum_unit(&mass));
     println!("Force: {} -> {}", force.unsafe_value, to_ucum_unit(&force));
-    println!("Energy: {} -> {}", energy.unsafe_value, to_ucum_unit(&energy));
+    println!(
+        "Energy: {} -> {}",
+        energy.unsafe_value,
+        to_ucum_unit(&energy)
+    );
     println!(
         "Pressure: {} -> {}",
         pressure.unsafe_value,

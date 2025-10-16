@@ -1,6 +1,6 @@
 use crate::dimension_exponents::{DynDimensionExponents, TypeDimensionExponents};
-use crate::scale_exponents::ScaleExponents;
 use crate::prefix::SiPrefix;
+use crate::scale_exponents::ScaleExponents;
 
 /// Unit system classification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -691,20 +691,6 @@ impl Unit<crate::dimension_exponents!([0, 2, -1, 0, 0, 0, 0, 0])> {
 
 /// Area
 impl Unit<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
-    // we include an algebraic unit for square meter to avoid displaying every area storage scale
-    // in terms of hectares
-    pub const SQUARE_METER: Self = Self {
-        // unicode in name is fine here, users don't really need nominal declarators
-        // for algebraic units (they can just use the unit literal expression syntax)
-        name: "meter²",
-        symbols: &["m²"],
-        scale: ScaleExponents::_10(2),
-        conversion_factor: IDENTITY,
-        affine_offset: NONE,
-        exponents: TypeDimensionExponents::new(),
-        system: System::Metric,
-    };
-
     pub const HECTARE: Self = Self {
         name: "hectare",
         symbols: &["hect"],
@@ -758,7 +744,6 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
     };
-
 
     pub const QUART_US: Self = Self {
         name: "quart",

@@ -66,7 +66,7 @@ pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
         // Check if this is a compound unit that needs special handling
         if method_name.starts_with("__COMPOUND_UNIT__") {
             let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::call_site());
-            
+
             // Create shortname macro for float module using local quantity! macro directly
             float_macros.push(quote! {
                 macro_rules! #macro_name_ident {
@@ -139,8 +139,11 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
         ("arcmin", "arcminutes"),
         ("arcsec", "arcseconds"),
     ];
-    
-    if let Some(method_name) = special_angular_mappings.iter().find(|(symbol, _)| *symbol == unit_symbol) {
+
+    if let Some(method_name) = special_angular_mappings
+        .iter()
+        .find(|(symbol, _)| *symbol == unit_symbol)
+    {
         return method_name.1.to_string();
     }
 
@@ -150,7 +153,7 @@ fn get_method_name_for_unit_symbol(unit_symbol: &str) -> String {
         if is_compound_unit(unit_symbol) {
             return format!("__COMPOUND_UNIT__{}", unit_symbol);
         }
-        
+
         // Check if this is actually a prefixed unit that was returned as base unit
         if let Some((prefix, _base_symbol)) = SiPrefix::strip_any_prefix_symbol(unit_symbol) {
             // This is a prefixed unit, so we need to construct the proper method name
@@ -208,7 +211,6 @@ fn is_compound_unit(unit_symbol: &str) -> bool {
     false
 }
 
-
 /// Get the prefix name for a prefix symbol (e.g., "k" -> "kilo", "m" -> "milli")
 fn get_prefix_name(prefix_symbol: &str) -> String {
     if let Some(prefix_info) = SiPrefix::from_symbol(prefix_symbol) {
@@ -248,7 +250,7 @@ fn get_prefix_name(prefix_symbol: &str) -> String {
 /// Get all unit symbols from the canonical data in whippyunits-core
 /// This is the single source of truth for what units should have custom literals
 fn get_all_unit_symbols_local() -> Vec<String> {
-    use whippyunits_core::{Dimension, Unit, SiPrefix};
+    use whippyunits_core::{Dimension, SiPrefix, Unit};
     let mut symbols = Vec::new();
 
     // Add base units from the canonical data
@@ -313,4 +315,3 @@ fn get_all_unit_symbols_local() -> Vec<String> {
 
     symbols
 }
-

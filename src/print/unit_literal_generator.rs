@@ -1,6 +1,11 @@
-use crate::print::name_lookup::{lookup_dimension_name, generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors};
-use crate::print::prettyprint::{generate_prefixed_systematic_unit, generate_prefixed_si_unit};
-use whippyunits_core::{scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
+use crate::print::name_lookup::{
+    generate_systematic_unit_name, generate_systematic_unit_name_with_scale_factors,
+    lookup_dimension_name,
+};
+use crate::print::prettyprint::{generate_prefixed_si_unit, generate_prefixed_systematic_unit};
+use whippyunits_core::{
+    dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+};
 
 /// Configuration for unit literal generation
 #[derive(Debug, Clone, Copy)]
@@ -27,7 +32,7 @@ pub fn generate_unit_literal(
 ) -> String {
     // Convert DynDimensionExponents to Vec<i16> for compatibility with existing functions
     let exponents_vec = exponents.0.to_vec();
-    
+
     // Generate systematic unit literal (base unit without prefix)
     let base_systematic_literal = generate_systematic_unit_name_with_scale_factors(
         exponents_vec.clone(),
@@ -36,7 +41,9 @@ pub fn generate_unit_literal(
     );
 
     // Check if we found a unit literal match - if so, use it directly without conversion factor
-    let systematic_literal = if base_systematic_literal != generate_systematic_unit_name(exponents_vec.clone(), config.verbose) {
+    let systematic_literal = if base_systematic_literal
+        != generate_systematic_unit_name(exponents_vec.clone(), config.verbose)
+    {
         // We found a unit literal match, use it directly
         base_systematic_literal
     } else {
@@ -63,11 +70,8 @@ pub fn generate_unit_literal(
             info.unit_si_shortname_symbol
         } {
             // Apply SI prefix to the specific SI unit name
-            let prefixed_si_unit = generate_prefixed_si_unit(
-                scale_factors,
-                si_shortname,
-                config.verbose,
-            );
+            let prefixed_si_unit =
+                generate_prefixed_si_unit(scale_factors, si_shortname, config.verbose);
 
             // Return the prefixed SI unit if it's different from the systematic literal
             if prefixed_si_unit != systematic_literal {

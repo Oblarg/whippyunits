@@ -85,8 +85,10 @@ impl DimensionExpr {
                 }
 
                 // If not found, generate a helpful error message
-                let supported_names: Vec<&str> = Dimension::ALL.iter().map(|dim| dim.name).collect();
-                let supported_symbols: Vec<&str> = Dimension::ALL.iter().map(|dim| dim.symbol).collect();
+                let supported_names: Vec<&str> =
+                    Dimension::ALL.iter().map(|dim| dim.name).collect();
+                let supported_symbols: Vec<&str> =
+                    Dimension::ALL.iter().map(|dim| dim.symbol).collect();
 
                 panic!("Unsupported dimension: '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
                        name_or_symbol,
@@ -201,7 +203,7 @@ impl DefineGenericDimensionInput {
             {
                 #doc_structs
             }
-            
+
             #trait_def
 
             #(#impl_blocks)*
@@ -241,7 +243,9 @@ impl DefineGenericDimensionInput {
     }
 
     /// Generate documentation structs for dimension identifiers used in expressions
-    fn generate_dimension_documentation(dimension_exprs: &Punctuated<DimensionExpr, Comma>) -> TokenStream {
+    fn generate_dimension_documentation(
+        dimension_exprs: &Punctuated<DimensionExpr, Comma>,
+    ) -> TokenStream {
         let mut doc_structs = Vec::new();
 
         // Generate documentation for each identifier occurrence (no filtering)
@@ -255,7 +259,10 @@ impl DefineGenericDimensionInput {
     }
 
     /// Recursively collect dimension identifiers and generate documentation for each occurrence
-    fn collect_and_generate_dimension_docs(expr: &DimensionExpr, doc_structs: &mut Vec<TokenStream>) {
+    fn collect_and_generate_dimension_docs(
+        expr: &DimensionExpr,
+        doc_structs: &mut Vec<TokenStream>,
+    ) {
         match expr {
             DimensionExpr::Dimension(ident) => {
                 // Generate documentation for this specific occurrence
@@ -281,10 +288,10 @@ impl DefineGenericDimensionInput {
     fn generate_single_dimension_doc(identifier: &Ident) -> Option<TokenStream> {
         let dimension_name = identifier.to_string();
         let doc_comment = Self::generate_dimension_doc_comment(&dimension_name);
-        
+
         // Create a new identifier with the same span as the original
         let doc_ident = syn::Ident::new(&dimension_name, identifier.span());
-        
+
         // Get the corresponding dimension trait type
         let trait_type = Self::get_dimension_trait_type(&dimension_name)?;
 
@@ -295,7 +302,7 @@ impl DefineGenericDimensionInput {
                 #doc_comment
                 #[allow(dead_code)]
                 trait #doc_ident: #trait_type {}
-                
+
                 impl<U: #trait_type> #doc_ident for U {}
             };
         })
@@ -344,24 +351,24 @@ impl DefineGenericDimensionInput {
         match dimension_name {
             // Atomic dimensions - full names
             "Mass" => Some(quote! { whippyunits::dimension_traits::Mass }),
-            "Length" => Some(quote! { whippyunits::dimension_traits::Length }), 
+            "Length" => Some(quote! { whippyunits::dimension_traits::Length }),
             "Time" => Some(quote! { whippyunits::dimension_traits::Time }),
             "Current" => Some(quote! { whippyunits::dimension_traits::Current }),
             "Temperature" => Some(quote! { whippyunits::dimension_traits::Temperature }),
             "Amount" => Some(quote! { whippyunits::dimension_traits::Amount }),
             "Luminosity" => Some(quote! { whippyunits::dimension_traits::Luminosity }),
             "Angle" => Some(quote! { whippyunits::dimension_traits::Angle }),
-            
+
             // Atomic dimensions - symbols
             "M" => Some(quote! { whippyunits::dimension_traits::Mass }),
             "L" => Some(quote! { whippyunits::dimension_traits::Length }),
-            "T" => Some(quote! { whippyunits::dimension_traits::Time }), 
+            "T" => Some(quote! { whippyunits::dimension_traits::Time }),
             "I" => Some(quote! { whippyunits::dimension_traits::Current }),
             "Θ" => Some(quote! { whippyunits::dimension_traits::Temperature }),
             "N" => Some(quote! { whippyunits::dimension_traits::Amount }),
             "J" => Some(quote! { whippyunits::dimension_traits::Luminosity }),
             "A" => Some(quote! { whippyunits::dimension_traits::Angle }),
-            
+
             _ => None, // Unknown dimension
         }
     }

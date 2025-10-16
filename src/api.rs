@@ -1,15 +1,15 @@
 //! API for whippyunits quantities.
-//! 
-//! This module provides the API implementations for most operations on the 
+//!
+//! This module provides the API implementations for most operations on the
 //! whippyunits [Quantity] type.
 
+use crate::IsI16;
 use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
 use crate::define_display_traits;
 use crate::print::prettyprint::*;
 use crate::quantity_type::*;
 use crate::scale_conversion::*;
-use crate::IsI16;
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
@@ -438,4 +438,3 @@ define_display_traits!(
         SCALE_PI,
     )
 );
-

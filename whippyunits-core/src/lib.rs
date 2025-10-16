@@ -11,17 +11,17 @@
 extern crate alloc;
 
 #[cfg(not(test))]
-use alloc::string::String;
-#[cfg(not(test))]
 use alloc::format;
+#[cfg(not(test))]
+use alloc::string::String;
 #[cfg(not(test))]
 use alloc::string::ToString;
 
-mod dimensions;
 pub mod dimension_exponents;
-pub mod scale_exponents;
+mod dimensions;
 pub mod num;
 mod prefix;
+pub mod scale_exponents;
 mod units;
 
 pub use dimensions::*;

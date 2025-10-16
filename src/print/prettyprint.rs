@@ -1,8 +1,10 @@
-use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::name_lookup::generate_systematic_unit_name;
+use crate::print::name_lookup::lookup_dimension_name;
+use crate::print::unit_literal_generator::{UnitLiteralConfig, generate_unit_literal};
 use crate::print::utils::{get_si_prefix, to_unicode_superscript};
-use crate::print::unit_literal_generator::{generate_unit_literal, UnitLiteralConfig};
-use whippyunits_core::{scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
+use whippyunits_core::{
+    dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+};
 
 /// Check if a dimension is primitive (has exactly one non-zero exponent equal to 1)
 /// Primitive dimensions are the 8 SI base quantities: Mass, Length, Time, Current, Temperature, Amount, Luminosity, Angle
@@ -10,10 +12,10 @@ fn is_primitive_dimension(exponents: Vec<i16>) -> bool {
     if exponents.len() != 8 {
         return false;
     }
-    
+
     // Count non-zero exponents
     let non_zero_count = exponents.iter().filter(|&&exp| exp != 0).count();
-    
+
     // A primitive dimension has exactly one non-zero exponent, and it must be 1
     non_zero_count == 1 && exponents.iter().any(|&exp| exp == 1)
 }
@@ -44,7 +46,7 @@ fn format_scale_exponent(scale: i16) -> String {
 /// Generate scale brackets with only non-zero exponents
 fn generate_scale_brackets(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
     let mut terms = Vec::new();
-    
+
     if scale_p2 != 0 {
         terms.push(format!("2{}", format_scale_exponent(scale_p2)));
     }
@@ -57,7 +59,7 @@ fn generate_scale_brackets(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi
     if scale_pi != 0 {
         terms.push(format!("π{}", format_scale_exponent(scale_pi)));
     }
-    
+
     if terms.is_empty() {
         String::new()
     } else {
@@ -77,32 +79,56 @@ fn generate_dimension_brackets(
     angle_exponent: i16,
 ) -> String {
     let mut terms = Vec::new();
-    
+
     if mass_exponent != 0 {
-        terms.push(format!("mass{}", to_unicode_superscript(mass_exponent, true)));
+        terms.push(format!(
+            "mass{}",
+            to_unicode_superscript(mass_exponent, true)
+        ));
     }
     if length_exponent != 0 {
-        terms.push(format!("length{}", to_unicode_superscript(length_exponent, true)));
+        terms.push(format!(
+            "length{}",
+            to_unicode_superscript(length_exponent, true)
+        ));
     }
     if time_exponent != 0 {
-        terms.push(format!("time{}", to_unicode_superscript(time_exponent, true)));
+        terms.push(format!(
+            "time{}",
+            to_unicode_superscript(time_exponent, true)
+        ));
     }
     if electric_current_exponent != 0 {
-        terms.push(format!("current{}", to_unicode_superscript(electric_current_exponent, true)));
+        terms.push(format!(
+            "current{}",
+            to_unicode_superscript(electric_current_exponent, true)
+        ));
     }
     if temperature_exponent != 0 {
-        terms.push(format!("temperature{}", to_unicode_superscript(temperature_exponent, true)));
+        terms.push(format!(
+            "temperature{}",
+            to_unicode_superscript(temperature_exponent, true)
+        ));
     }
     if amount_of_substance_exponent != 0 {
-        terms.push(format!("amount{}", to_unicode_superscript(amount_of_substance_exponent, true)));
+        terms.push(format!(
+            "amount{}",
+            to_unicode_superscript(amount_of_substance_exponent, true)
+        ));
     }
     if luminous_intensity_exponent != 0 {
-        terms.push(format!("luminosity{}", to_unicode_superscript(luminous_intensity_exponent, true)));
+        terms.push(format!(
+            "luminosity{}",
+            to_unicode_superscript(luminous_intensity_exponent, true)
+        ));
     }
     if angle_exponent != 0 {
-        terms.push(format!("angle{}", to_unicode_superscript(angle_exponent, true)));
+        terms.push(format!(
+            "angle{}",
+            to_unicode_superscript(angle_exponent, true)
+        ));
     }
-    
+
     if terms.is_empty() {
         String::new()
     } else {
@@ -141,7 +167,8 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
     // First, add solved dimensions (non-zero, non--32768 exponents)
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp != 0 && exp != -32768 {
-            let symbol = whippyunits_core::Dimension::BASIS.get(idx)
+            let symbol = whippyunits_core::Dimension::BASIS
+                .get(idx)
                 .map(|dim| dim.symbol)
                 .unwrap_or("?");
             let superscript = to_unicode_superscript(exp, false);
@@ -154,7 +181,8 @@ fn generate_dimension_symbols_unicode(exponents: Vec<i16>) -> String {
     for (idx, &exp) in exponents.iter().enumerate() {
         if exp == -32768 {
             // Only add unsolved dimensions
-            let symbol = whippyunits_core::Dimension::BASIS.get(idx)
+            let symbol = whippyunits_core::Dimension::BASIS
+                .get(idx)
                 .map(|dim| dim.symbol)
                 .unwrap_or("?");
             unsolved_parts.push(format!("{}{}", symbol, "ˀ"));
@@ -211,7 +239,8 @@ define_generate_verbose_dimension_names!((
 
 /// Calculate total power of 10 using whippyunits-core ScaleExponents
 fn calculate_total_scale_p10(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> i16 {
-    let scale_exponents = whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
+    let scale_exponents =
+        whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
     scale_exponents.log10().unwrap_or(0)
 }
 
@@ -234,13 +263,14 @@ fn generate_si_unit_with_scale(
 
 /// Format scale factors by calculating the actual numeric value using whippyunits-core
 fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
-    let scale_exponents = whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
-    
+    let scale_exponents =
+        whippyunits_core::scale_exponents::ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
+
     // If it's a pure power of 10, we don't need to show scale factors
     if scale_exponents.log10().is_some() {
         return String::new();
     }
-    
+
     // Calculate the actual numeric value: 2^p2 * 3^p3 * 5^p5 * π^pi
     let mut value = 1.0;
 
@@ -271,16 +301,25 @@ pub fn generate_prefixed_si_unit(
     base_si_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+    let total_scale_p10 = calculate_total_scale_p10(
+        scale_factors.0[0],
+        scale_factors.0[1],
+        scale_factors.0[2],
+        scale_factors.0[3],
+    );
 
     // Apply base scale offset for mass units (same logic as generate_prefixed_systematic_unit)
-    let effective_scale_p10 = if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(base_si_unit) {
+    let effective_scale_p10 = if let Some((_unit, _dimension)) =
+        whippyunits_core::Dimension::find_unit_by_symbol(base_si_unit)
+    {
         // Get the base scale offset from the unit's scale (systematic approach)
         let base_scale_offset = _unit.scale.log10().unwrap_or(0);
         total_scale_p10 - base_scale_offset
     } else {
         // Fallback: try to find by name if symbol lookup fails
-        if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name(base_si_unit) {
+        if let Some((_unit, _dimension)) =
+            whippyunits_core::Dimension::find_unit_by_name(base_si_unit)
+        {
             let base_scale_offset = _unit.scale.log10().unwrap_or(0);
             total_scale_p10 - base_scale_offset
         } else {
@@ -300,7 +339,12 @@ pub fn generate_prefixed_si_unit(
             generate_si_unit_with_scale(effective_scale_p10, base_si_unit, long_name)
         } else {
             // Not a pure power of 10, show the scale factors explicitly
-            let scale_factors_str = format_scale_factors(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+            let scale_factors_str = format_scale_factors(
+                scale_factors.0[0],
+                scale_factors.0[1],
+                scale_factors.0[2],
+                scale_factors.0[3],
+            );
             if scale_factors_str.is_empty() {
                 base_si_unit.to_string()
             } else {
@@ -316,7 +360,12 @@ pub fn generate_prefixed_systematic_unit(
     base_unit: &str,
     long_name: bool,
 ) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+    let total_scale_p10 = calculate_total_scale_p10(
+        scale_factors.0[0],
+        scale_factors.0[1],
+        scale_factors.0[2],
+        scale_factors.0[3],
+    );
 
     // Check if this is a pure unit (not compound)
     let is_pure_unit = !base_unit.contains("·");
@@ -324,17 +373,23 @@ pub fn generate_prefixed_systematic_unit(
     // For pure units, check if we need to apply base scale offset
     let effective_scale_p10 = if is_pure_unit {
         // Find the base scale offset by looking up the unit's scale from whippyunits-core
-        let base_scale_offset = if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(base_unit) {
+        let base_scale_offset = if let Some((_unit, _dimension)) =
+            whippyunits_core::Dimension::find_unit_by_symbol(base_unit)
+        {
             // Get the base scale offset from the unit's scale (systematic approach)
             _unit.scale.log10().unwrap_or(0)
         } else {
             // Fallback: try to find by name if symbol lookup fails
-            if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name(base_unit) {
+            if let Some((_unit, _dimension)) =
+                whippyunits_core::Dimension::find_unit_by_name(base_unit)
+            {
                 _unit.scale.log10().unwrap_or(0)
             } else {
                 // Special case: if base_unit is 'kilogram', look for 'gram' instead
                 if base_unit == "kilogram" {
-                    if let Some((_unit, _dimension)) = whippyunits_core::Dimension::find_unit_by_name("gram") {
+                    if let Some((_unit, _dimension)) =
+                        whippyunits_core::Dimension::find_unit_by_name("gram")
+                    {
                         _unit.scale.log10().unwrap_or(0)
                     } else {
                         0
@@ -344,7 +399,7 @@ pub fn generate_prefixed_systematic_unit(
                 }
             }
         };
-        
+
         // Apply the base scale offset to the scale calculation
         // The base scale offset represents the offset of the base unit (e.g., gram = -3)
         // We need to subtract it from the total scale to get the effective scale
@@ -372,10 +427,15 @@ pub fn generate_prefixed_systematic_unit(
                         // Get the base unit name without any scale or exponent
                         // For mass units, we need to use "gram" as the base unit, not "kilogram"
                         let base_unit_name = if base_unit == "kilogram" {
-                            if long_name { "gram".to_string() } else { "g".to_string() }
+                            if long_name {
+                                "gram".to_string()
+                            } else {
+                                "g".to_string()
+                            }
                         } else {
                             generate_systematic_unit_name(
-                                exponents.0
+                                exponents
+                                    .0
                                     .iter()
                                     .enumerate()
                                     .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
@@ -417,7 +477,12 @@ pub fn generate_prefixed_systematic_unit(
         }
     } else {
         // No SI prefix available, check if we need to add numerical scale factor
-        let scale_factors_str = format_scale_factors(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
+        let scale_factors_str = format_scale_factors(
+            scale_factors.0[0],
+            scale_factors.0[1],
+            scale_factors.0[2],
+            scale_factors.0[3],
+        );
         if scale_factors_str.is_empty() {
             // No scaling needed, return base unit as-is
             base_unit.to_string()
@@ -433,13 +498,13 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
     if value == 0.0 {
         return "0".to_string();
     }
-    
+
     let abs_value = value.abs();
     let magnitude = abs_value.log10().floor() as i32;
     let scale_factor = 10_f64.powi(sig_figs as i32 - 1 - magnitude as i32);
-    
+
     let rounded = (value * scale_factor).round() / scale_factor;
-    
+
     // Format with appropriate precision
     let formatted = if magnitude >= 0 {
         // For values >= 1, show up to sig_figs digits total
@@ -447,15 +512,18 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
         format!("{:.precision$}", rounded, precision = precision)
     } else {
         // For values < 1, show sig_figs significant digits after decimal
-        format!("{:.precision$}", rounded, precision = (sig_figs as i32 + magnitude.abs()) as usize)
+        format!(
+            "{:.precision$}",
+            rounded,
+            precision = (sig_figs as i32 + magnitude.abs()) as usize
+        )
     };
-    
+
     // Note: The ~ symbol should only be added when the storage scale is truncated,
     // not when the stored value is truncated during formatting. This function
     // is only responsible for formatting the stored value, so we don't add ~ here.
     formatted
 }
-
 
 /// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
 pub fn pretty_print_quantity(
@@ -500,10 +568,10 @@ pub fn pretty_print_quantity(
         }
     };
 
-    let primary = if !unit_literal.is_empty() { 
-        &unit_literal 
-    } else { 
-        &dimension_name 
+    let primary = if !unit_literal.is_empty() {
+        &unit_literal
+    } else {
+        &dimension_name
     };
     let secondary = if verbose {
         // In verbose mode (debug), show the dimension name in parentheses
@@ -543,9 +611,11 @@ pub fn pretty_print_quantity(
         format!(", {}", type_name)
     };
 
-    format!("{}Quantity<{}{}{}{}>", value_prefix, primary, secondary, verbose_info, type_suffix)
+    format!(
+        "{}Quantity<{}{}{}{}>",
+        value_prefix, primary, secondary, verbose_info, type_suffix
+    )
 }
-
 
 /// Pretty print a quantity type (without value) using the new unit types from whippyunits-core
 pub fn pretty_print_quantity_type(
@@ -583,6 +653,3 @@ pub fn pretty_print_quantity_value(
         show_type_in_brackets,
     )
 }
-
-
-

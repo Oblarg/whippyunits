@@ -84,12 +84,12 @@ fn lookup_unit_literal_direct(unit_name: &str) -> Option<(&'static Dimension, &'
     if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(unit_name) {
         return Some((dimension, unit));
     }
-    
+
     // Then try to find by name
     if let Some((unit, dimension)) = Dimension::find_unit_by_name(unit_name) {
         return Some((dimension, unit));
     }
-    
+
     None
 }
 
@@ -100,13 +100,13 @@ fn convert_long_name_to_short_direct(long_name: &str) -> Option<String> {
     if let Some((unit, _dimension)) = Dimension::find_unit_by_name(long_name) {
         return Some(String::from(unit.symbols[0]));
     }
-    
+
     // Try to handle prefixed units by stripping prefix and finding base unit
     if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_name(long_name) {
         if let Some((unit, _dimension)) = Dimension::find_unit_by_name(base) {
             return Some(format!("{}{}", prefix.symbol(), unit.symbols[0]));
         }
     }
-    
+
     None
 }

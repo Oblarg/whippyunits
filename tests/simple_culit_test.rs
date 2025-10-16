@@ -43,17 +43,17 @@ fn test_simple_custom_literals() {
 #[test]
 fn test_compound_unit_custom_literals() {
     // Test compound unit literals (J, W, N, Pa, Hz, C, V, F, Ω, S, H, T, Wb, lm, lx)
-    let energy = 1.5J;        // Joules
-    let power = 2.0W;         // Watts
-    let force = 10.0N;        // Newtons
-    let pressure = 100.0Pa;   // Pascals
-    let frequency = 50.0Hz;   // Hertz
-    let charge = 1.0C;        // Coulombs
-    let voltage = 12.0V;      // Volts
-    let capacitance = 0.1F;   // Farads
+    let energy = 1.5J; // Joules
+    let power = 2.0W; // Watts
+    let force = 10.0N; // Newtons
+    let pressure = 100.0Pa; // Pascals
+    let frequency = 50.0Hz; // Hertz
+    let charge = 1.0C; // Coulombs
+    let voltage = 12.0V; // Volts
+    let capacitance = 0.1F; // Farads
     let resistance = 100.0Ω; // Ohms
-    let conductance = 0.01S;  // Siemens
-    let inductance = 0.5H;    // Henrys
+    let conductance = 0.01S; // Siemens
+    let inductance = 0.5H; // Henrys
     let magnetic_field = 1.0T; // Tesla
     let magnetic_flux = 0.1Wb; // Weber
     // let luminous_flux = 100.0lm; // Lumen - removed, use cd instead
@@ -85,9 +85,9 @@ fn test_compound_unit_custom_literals() {
     assert_eq!(force_i32.unsafe_value, 20);
 
     // Test prefixed compound units
-    let kilojoule = 1.5kJ;    // kilojoules
-    let milliwatt = 100.0mW;  // milliwatts
-    let kilonewton = 5.0kN;   // kilonewtons
+    let kilojoule = 1.5kJ; // kilojoules
+    let milliwatt = 100.0mW; // milliwatts
+    let kilonewton = 5.0kN; // kilonewtons
 
     assert_eq!(kilojoule.unsafe_value, 1.5);
     assert_eq!(milliwatt.unsafe_value, 100.0);
@@ -104,8 +104,14 @@ fn test_compound_unit_custom_literals() {
     println!("Resistance: {:?} (should be resistance)", resistance);
     println!("Conductance: {:?} (should be conductance)", conductance);
     println!("Inductance: {:?} (should be inductance)", inductance);
-    println!("Magnetic field: {:?} (should be magnetic field)", magnetic_field);
-    println!("Magnetic flux: {:?} (should be magnetic flux)", magnetic_flux);
+    println!(
+        "Magnetic field: {:?} (should be magnetic field)",
+        magnetic_field
+    );
+    println!(
+        "Magnetic flux: {:?} (should be magnetic flux)",
+        magnetic_flux
+    );
     println!("Illuminance: {:?} (should be illuminance)", illuminance);
 
     println!("Kilojoule: {:?} (should be energy)", kilojoule);
@@ -119,14 +125,14 @@ fn test_compound_unit_custom_literals() {
 #[test]
 fn test_angular_unit_custom_literals() {
     // Test all angular unit literals with float suffixes
-    let radian = 1.0rad;        // radian (base SI unit)
-    let degree = 90.0deg;       // degree (π/180 rad)
-    let rotation = 0.5rot;      // rotation (2π rad)
-    let turn = 0.25turn;        // turn (2π rad)
+    let radian = 1.0rad; // radian (base SI unit)
+    let degree = 90.0deg; // degree (π/180 rad)
+    let rotation = 0.5rot; // rotation (2π rad)
+    let turn = 0.25turn; // turn (2π rad)
     let arcsecond = 3600.0arcsec; // arcsecond (π/(180*3600) rad)
-    let arcminute = 60.0arcmin;   // arcminute (π/(180*60) rad)
-    let gon = 100.0gon;         // gon (π/200 rad)
-    let gradian = 100.0grad;    // gradian (π/200 rad)
+    let arcminute = 60.0arcmin; // arcminute (π/(180*60) rad)
+    let gon = 100.0gon; // gon (π/200 rad)
+    let gradian = 100.0grad; // gradian (π/200 rad)
 
     // Test integer angular unit literals
     let radian_i32 = 1rad;
@@ -167,8 +173,14 @@ fn test_angular_unit_custom_literals() {
     // Test conversions between angular units
     // Note: These conversions require proper scale factor handling
     // For now, just test that the units can be created and have correct values
-    println!("90 degrees: {} (should be angle with scale factors)", degree);
-    println!("0.5 rotations: {} (should be angle with scale factors)", rotation);
+    println!(
+        "90 degrees: {} (should be angle with scale factors)",
+        degree
+    );
+    println!(
+        "0.5 rotations: {} (should be angle with scale factors)",
+        rotation
+    );
     println!("0.25 turns: {} (should be angle with scale factors)", turn);
 
     println!("Angular unit custom literals test passed!");

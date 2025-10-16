@@ -157,8 +157,8 @@ pub type Angle = dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1]);
 #[macro_export]
 macro_rules! dimension_exponents {
     ([
-        $m:expr, 
-        $l:expr, 
+        $m:expr,
+        $l:expr,
         $t:expr,
         $i:expr,
         $h:expr,
@@ -511,7 +511,10 @@ mod tests {
     #[test]
     fn exponent_type_to_value() {
         let exp = <dimension_exponents!([1, -2, 3, -4, 5, -6, 7, -8])>::new().value();
-        assert_eq!(exp.value(), DynDimensionExponents([1, -2, 3, -4, 5, -6, 7, -8]));
+        assert_eq!(
+            exp.value(),
+            DynDimensionExponents([1, -2, 3, -4, 5, -6, 7, -8])
+        );
     }
 
     #[test]

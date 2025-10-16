@@ -1,4 +1,6 @@
-use crate::dimension_exponents::{DimensionExponents, DynDimensionExponents, TypeDimensionExponents};
+use crate::dimension_exponents::{
+    DimensionExponents, DynDimensionExponents, TypeDimensionExponents,
+};
 use crate::prefix::SiPrefix;
 use crate::units::Unit;
 
@@ -80,7 +82,9 @@ impl Dimension {
     }
 
     /// Find a dimension by its exponents.
-    pub fn find_dimension_by_exponents(exponents: DynDimensionExponents) -> Option<&'static Dimension> {
+    pub fn find_dimension_by_exponents(
+        exponents: DynDimensionExponents,
+    ) -> Option<&'static Dimension> {
         Self::ALL.iter().find(|dim| dim.exponents == exponents)
     }
 

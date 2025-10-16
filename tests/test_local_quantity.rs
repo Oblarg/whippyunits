@@ -3,7 +3,9 @@ use whippyunits::define_base_units;
 use whippyunits::{rescale_f64, rescale_i32, rescale_i64};
 
 // Set up scoped preferences with different units
-define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);
+define_base_units!(
+    Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian
+);
 
 // Define custom literals separately
 whippyunits::define_literals!();
@@ -56,18 +58,18 @@ fn test_local_quantity_macro() {
 #[test]
 fn test_compound_unit_literals_with_local_scale() {
     // Test compound unit literals with local scale preferences
-    let energy_f64 = 1.0J;  // 1 joule
-    let energy_i32 = 1J;    // 1 joule (integer)
-    
+    let energy_f64 = 1.0J; // 1 joule
+    let energy_i32 = 1J; // 1 joule (integer)
+
     // Test other compound units
-    let power_f64 = 2.0W;   // 2 watts
-    let force_f64 = 10.0N;  // 10 newtons
+    let power_f64 = 2.0W; // 2 watts
+    let force_f64 = 10.0N; // 10 newtons
     let pressure_f64 = 100.0Pa; // 100 pascals
-    
+
     // Test prefixed compound units
-    let kilojoule_f64 = 1.5kJ;  // 1.5 kilojoules
+    let kilojoule_f64 = 1.5kJ; // 1.5 kilojoules
     let milliwatt_f64 = 100.0mW; // 100 milliwatts
-    
+
     println!("Energy (f64): {}", energy_f64);
     println!("Energy (i32): {}", energy_i32);
     println!("Power (f64): {}", power_f64);
@@ -75,7 +77,7 @@ fn test_compound_unit_literals_with_local_scale() {
     println!("Pressure (f64): {}", pressure_f64);
     println!("Kilojoule (f64): {}", kilojoule_f64);
     println!("Milliwatt (f64): {}", milliwatt_f64);
-    
+
     println!("Compound unit literals with local scale preferences test passed!");
 }
 

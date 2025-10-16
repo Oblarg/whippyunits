@@ -1,6 +1,6 @@
-
-
-use whippyunits_core::{dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents};
+use whippyunits_core::{
+    dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+};
 
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
@@ -32,60 +32,81 @@ impl UnitFormatter {
     /// Format whippyunits types in text with the specified configuration
     pub fn format_types(&self, text: &str, config: &DisplayConfig) -> String {
         let mut result = self.format_quantity_types(text, config.verbose, config.unicode, false);
-        
+
         // Add raw type if requested and we actually made changes
         if config.include_raw && result != text {
             result.push_str(&format!("\n\nRaw:\n\n{}", text));
         }
-        
+
         result
     }
 
     /// Format whippyunits types in text with original text for Raw section
-    pub fn format_types_with_original(&self, text: &str, config: &DisplayConfig, original_text: &str) -> String {
+    pub fn format_types_with_original(
+        &self,
+        text: &str,
+        config: &DisplayConfig,
+        original_text: &str,
+    ) -> String {
         // Check if this contains a generic type definition that we passed through unchanged
-        let contains_generic_definition = text.contains("T = f64") || original_text.contains("T = f64");
-        
+        let contains_generic_definition =
+            text.contains("T = f64") || original_text.contains("T = f64");
+
         // If we don't need raw section or it's a generic definition, just format normally
         if !config.include_raw || contains_generic_definition {
             return self.format_quantity_types(text, config.verbose, config.unicode, false);
         }
-        
+
         // Work within the existing markdown structure
         // Find the first code block and replace its content
         if let Some(code_start) = original_text.find("```rust") {
             let after_code_start = &original_text[code_start + 7..]; // Skip "```rust"
             if let Some(code_end) = after_code_start.find("```") {
                 let code_content = &after_code_start[..code_end];
-                
+
                 // Format the code content
-                let formatted_content = self.format_quantity_types(code_content, config.verbose, config.unicode, false);
-                
+                let formatted_content =
+                    self.format_quantity_types(code_content, config.verbose, config.unicode, false);
+
                 // Extract raw type from the original code content
                 let raw_type = self.extract_raw_type_from_hover(code_content);
-                
+
                 // Replace the content in the existing code block
                 let before_code = &original_text[..code_start + 7]; // Include "```rust"
                 let after_code_block = &after_code_start[code_end + 3..]; // Skip closing ```
-                
+
                 let result = if !raw_type.is_empty() {
                     // Insert raw section after the first --- separator
                     if let Some(separator_pos) = after_code_block.find("---") {
                         let after_separator = &after_code_block[separator_pos..];
-                        format!("{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n{}", 
-                               before_code, formatted_content.trim(), raw_type, after_separator)
+                        format!(
+                            "{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n{}",
+                            before_code,
+                            formatted_content.trim(),
+                            raw_type,
+                            after_separator
+                        )
                     } else {
-                        format!("{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n", 
-                               before_code, formatted_content.trim(), raw_type)
+                        format!(
+                            "{}\n{}\n```\n\n---\nRaw:\n\n```rust\n{}\n```\n",
+                            before_code,
+                            formatted_content.trim(),
+                            raw_type
+                        )
                     }
                 } else {
-                    format!("{}\n{}\n```{}", before_code, formatted_content.trim(), after_code_block)
+                    format!(
+                        "{}\n{}\n```{}",
+                        before_code,
+                        formatted_content.trim(),
+                        after_code_block
+                    )
                 };
-                
+
                 return result;
             }
         }
-        
+
         // Fallback to normal formatting if we can't parse the markdown structure
         self.format_quantity_types(text, config.verbose, config.unicode, false)
     }
@@ -96,27 +117,33 @@ impl UnitFormatter {
     }
 
     /// Core method to format Quantity types with configurable parameters
-    fn format_quantity_types(&self, text: &str, verbose: bool, unicode: bool, is_inlay_hint: bool) -> String {        
+    fn format_quantity_types(
+        &self,
+        text: &str,
+        verbose: bool,
+        unicode: bool,
+        is_inlay_hint: bool,
+    ) -> String {
         // Handle the new format with Scale and Dimension structs (both full and truncated)
         if text.contains("Scale") && text.contains("Dimension") {
             // Use a more sophisticated approach to find and replace each Quantity type
             // We'll manually find the start and end of each Quantity type by counting brackets
             let mut result = String::new();
             let mut i = 0;
-            
+
             while i < text.len() {
                 if let Some(start) = text[i..].find("Quantity<Scale") {
                     let start_pos = i + start;
-                    
+
                     // Ensure start_pos is within bounds
                     if start_pos >= text.len() {
                         result.push_str(&text[i..]);
                         break;
                     }
-                    
+
                     let mut bracket_count = 0;
                     let mut found_end = false;
-                    
+
                     // Count brackets to find the matching end
                     // Start counting from the first '<' after "Quantity"
                     let quantity_start = start_pos + 8; // Skip "Quantity"
@@ -130,23 +157,28 @@ impl UnitFormatter {
                                     found_end = true;
                                     break;
                                 }
-                            },
+                            }
                             _ => {}
                         }
                         j += 1;
                     }
-                    
+
                     if found_end || (bracket_count == 1 && j >= text.len()) {
                         // The bracket counting found the end of the Quantity type
                         // or we've reached the end of the string with bracket_count = 1 (no generic type parameter)
                         let actual_end = if found_end { j } else { text.len() };
-                        
+
                         // Ensure we don't go beyond string bounds
                         let end_pos = std::cmp::min(actual_end + 2, text.len());
-                        
+
                         // Extract the quantity type including all the '>' characters
                         let quantity_type = &text[start_pos..end_pos];
-                        let formatted = self.format_new_quantity_type(quantity_type, verbose, unicode, is_inlay_hint);
+                        let formatted = self.format_new_quantity_type(
+                            quantity_type,
+                            verbose,
+                            unicode,
+                            is_inlay_hint,
+                        );
                         result.push_str(&text[i..start_pos]);
                         result.push_str(&formatted);
                         i = end_pos;
@@ -159,38 +191,46 @@ impl UnitFormatter {
                     break;
                 }
             }
-            
+
             return result;
         }
-        
+
         // If we reach here, no new format was found, return original text
         text.to_string()
     }
 
     /// Format the new Quantity type with Scale<...> and Dimension<...> structs
-    fn format_new_quantity_type(&self, full_match: &str, verbose: bool, _unicode: bool, is_inlay_hint: bool) -> String {
+    fn format_new_quantity_type(
+        &self,
+        full_match: &str,
+        verbose: bool,
+        _unicode: bool,
+        is_inlay_hint: bool,
+    ) -> String {
         use whippyunits::print::prettyprint::pretty_print_quantity_type;
-        
+
         // Check if this is a generic type definition (contains parameter names like Scale, Dimension, T)
         // rather than a concrete instantiation with actual values
         if self.is_generic_type_definition(full_match) {
             // Pass through generic definitions unchanged
             return full_match.to_string();
         }
-        
+
         // Parse the new format: Quantity<Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>, Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>, T>
         if let Some(params) = self.parse_new_quantity_params(full_match) {
             // Check if this is a wholly unresolved type (all parameters are sentinel values)
             let all_dimensions_unresolved = params.dimensions.0.iter().all(|&exp| exp == i16::MIN);
             let all_scales_unresolved = params.scale.0.iter().all(|&exp| exp == i16::MIN);
-            
+
             if all_dimensions_unresolved && all_scales_unresolved {
                 // Format as wholly unresolved type
                 return format!("Quantity<?, {}>", params.generic_type);
             }
-            
+
             // Check if this is a dimensionless quantity (all dimensions are zero)
-            if params.dimensions == DynDimensionExponents::ZERO && params.scale == ScaleExponents::IDENTITY {
+            if params.dimensions == DynDimensionExponents::ZERO
+                && params.scale == ScaleExponents::IDENTITY
+            {
                 // Format as dimensionless quantity
                 return format!("Quantity<1, {}>", params.generic_type);
             }
@@ -203,12 +243,12 @@ impl UnitFormatter {
                     false, // Non-verbose mode for inlay hints
                     false, // Don't show type in brackets
                 );
-                
+
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if full_output == "?" {
                     return format!("Quantity<?, {}>", params.generic_type);
                 }
-                
+
                 // The pretty_print_quantity_type already returns the correct format
                 // Just return it directly without double-formatting
                 full_output
@@ -221,12 +261,12 @@ impl UnitFormatter {
                     verbose,
                     false, // show_type_in_brackets = false for pretty printer
                 );
-                
+
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if result == "?" {
                     return format!("Quantity<?, {}>", params.generic_type);
                 }
-                
+
                 result
             }
         } else {
@@ -249,11 +289,13 @@ impl UnitFormatter {
             // Unknown format
             return None;
         };
-        
+
         // Parse Dimension parameters - handle both full format and truncated format
-        let dimensions = if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<") {
+        let dimensions = if quantity_type.contains("Dimension<_M<") && quantity_type.contains("_A<")
+        {
             // Full format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
-            let (mass, length, time, current, temp, amount, lum, angle) = self.parse_dimension_full_format(quantity_type)?;
+            let (mass, length, time, current, temp, amount, lum, angle) =
+                self.parse_dimension_full_format(quantity_type)?;
             DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle])
         } else if quantity_type.contains("Dimension,") || quantity_type.contains("Dimension>") {
             // Fully defaulted Dimension (dimensionless): Dimension, T or Dimension> T
@@ -261,17 +303,18 @@ impl UnitFormatter {
         } else {
             // Truncated format: parse only the non-zero parameters
             // Look for patterns like Dimension<_M<0>, _L<1>> (only non-zero parameters are shown)
-            let (mass, length, time, current, temp, amount, lum, angle) = self.parse_dimension_truncated_format(quantity_type);
+            let (mass, length, time, current, temp, amount, lum, angle) =
+                self.parse_dimension_truncated_format(quantity_type);
             DynDimensionExponents([mass, length, time, current, temp, amount, lum, angle])
         };
-        
+
         // Don't apply base scale offset here - let the prettyprint functions handle it
         // The prettyprint functions already have the correct base scale offset logic
         let adjusted_scale = scale;
-        
+
         // Extract the actual generic type parameter from the type string
         let generic_type = self.extract_generic_type(quantity_type);
-        
+
         Some(QuantityParams {
             dimensions,
             scale: adjusted_scale,
@@ -284,27 +327,29 @@ impl UnitFormatter {
     fn parse_scale_full_format(&self, quantity_type: &str) -> Option<(i16, i16, i16, i16)> {
         let scale_start = quantity_type.find("Scale<_2<")?;
         let scale_content = &quantity_type[scale_start + 6..]; // Skip "Scale<"
-        
+
         // Find the end of the Scale struct
         let scale_end = self.find_matching_bracket(scale_content, 0)?;
         let scale_params = &scale_content[..scale_end];
-        
+
         // Parse individual parameters: _2<P2>, _3<P3>, _5<P5>, _Pi<PI>
         // Handle missing parameters by defaulting to 0
         let p2 = self.parse_scale_param(scale_params, "_2<").unwrap_or(0);
         let p3 = self.parse_scale_param(scale_params, "_3<").unwrap_or(0);
         let p5 = self.parse_scale_param(scale_params, "_5<").unwrap_or(0);
         let pi = self.parse_scale_param(scale_params, "_Pi<").unwrap_or(0);
-        
+
         Some((p2, p3, p5, pi))
     }
 
     /// Parse full Dimension format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
-    fn parse_dimension_full_format(&self, quantity_type: &str) -> Option<(i16, i16, i16, i16, i16, i16, i16, i16)> {
+    fn parse_dimension_full_format(
+        &self,
+        quantity_type: &str,
+    ) -> Option<(i16, i16, i16, i16, i16, i16, i16, i16)> {
         let dimension_start = quantity_type.find("Dimension<_M<")?;
         let dimension_content = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
-        
-        
+
         // Parse individual parameters directly from the dimension content
         // We don't need to find the end of the Dimension struct - we can parse each parameter individually
         let mass = self.parse_dimension_param(dimension_content, "_M<")?;
@@ -315,12 +360,15 @@ impl UnitFormatter {
         let amount = self.parse_dimension_param(dimension_content, "_N<")?;
         let lum = self.parse_dimension_param(dimension_content, "_J<")?;
         let angle = self.parse_dimension_param(dimension_content, "_A<")?;
-        
+
         Some((mass, length, time, current, temp, amount, lum, angle))
     }
 
     /// Parse truncated Dimension format: Dimension<_M<0>, _L<1>> (only non-zero parameters are shown)
-    fn parse_dimension_truncated_format(&self, quantity_type: &str) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
+    fn parse_dimension_truncated_format(
+        &self,
+        quantity_type: &str,
+    ) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         let mut mass_exp = 0;
         let mut length_exp = 0;
         let mut time_exp = 0;
@@ -329,7 +377,7 @@ impl UnitFormatter {
         let mut amount_of_substance_exp = 0;
         let mut luminous_intensity_exp = 0;
         let mut angle_exp = 0;
-        
+
         // Parse individual dimension parameters that are present
         if let Some(value) = self.parse_dimension_param(quantity_type, "_M<") {
             mass_exp = value;
@@ -355,8 +403,17 @@ impl UnitFormatter {
         if let Some(value) = self.parse_dimension_param(quantity_type, "_A<") {
             angle_exp = value;
         }
-        
-        (mass_exp, length_exp, time_exp, electric_current_exp, temperature_exp, amount_of_substance_exp, luminous_intensity_exp, angle_exp)
+
+        (
+            mass_exp,
+            length_exp,
+            time_exp,
+            electric_current_exp,
+            temperature_exp,
+            amount_of_substance_exp,
+            luminous_intensity_exp,
+            angle_exp,
+        )
     }
 
     /// Parse a scale parameter like "_2<5>" and return the value
@@ -382,7 +439,7 @@ impl UnitFormatter {
     fn find_matching_bracket(&self, content: &str, start_pos: usize) -> Option<usize> {
         let mut depth = 1;
         let mut i = start_pos;
-        
+
         while i < content.len() {
             match content.chars().nth(i) {
                 Some('<') => depth += 1,
@@ -391,7 +448,7 @@ impl UnitFormatter {
                     if depth == 0 {
                         return Some(i);
                     }
-                },
+                }
                 _ => {}
             }
             i += 1;
@@ -405,7 +462,7 @@ impl UnitFormatter {
             // Pre-screen: check if there's an explicit type parameter by looking for the pattern
             // Dimension<...>, T> where T is a type parameter
             let after_dimension_start = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
-            
+
             // Look for the pattern that indicates an explicit type parameter
             if self.has_explicit_type_parameter(after_dimension_start) {
                 // Case 1: Explicit type parameter present (e.g., Dimension<_M, _L<1>>, i32>)
@@ -420,7 +477,7 @@ impl UnitFormatter {
             let after_dimension = &quantity_type[dimension_start + 9..]; // Skip "Dimension,"
             return self.find_type_parameter(after_dimension);
         }
-        
+
         "f64".to_string()
     }
 
@@ -432,7 +489,7 @@ impl UnitFormatter {
             // Found a comma, check if what follows looks like a numeric type parameter
             let potential_type = &after_dimension_start[comma_pos + 2..]; // Skip ", "
             let type_param = potential_type.trim_end_matches('>');
-            
+
             // Check if this is a valid numeric type parameter
             return self.is_numeric_type(type_param);
         }
@@ -442,9 +499,8 @@ impl UnitFormatter {
     /// Check if a string represents a valid numeric type
     fn is_numeric_type(&self, type_name: &str) -> bool {
         match type_name {
-            "i8" | "i16" | "i32" | "i64" | "i128" | "isize" |
-            "u8" | "u16" | "u32" | "u64" | "u128" | "usize" |
-            "f32" | "f64" => true,
+            "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
+            | "u128" | "usize" | "f32" | "f64" => true,
             _ => false,
         }
     }
@@ -462,21 +518,22 @@ impl UnitFormatter {
     /// Find the type parameter in a string, skipping alignment and trait information
     fn find_type_parameter(&self, content: &str) -> String {
         let parts: Vec<&str> = content.split(',').collect();
-        
+
         for part in parts {
             let cleaned = part.trim().trim_end_matches('>');
             // Check if this looks like a type (not a number, not a keyword like "align", "no", "Drop")
-            if !cleaned.parse::<i16>().is_ok() && 
-               !cleaned.starts_with("align") && 
-               !cleaned.starts_with("no") && 
-               !cleaned.starts_with("Drop") &&
-               !cleaned.starts_with("size") &&
-               !cleaned.starts_with("0x") &&
-               !cleaned.is_empty() {
+            if !cleaned.parse::<i16>().is_ok()
+                && !cleaned.starts_with("align")
+                && !cleaned.starts_with("no")
+                && !cleaned.starts_with("Drop")
+                && !cleaned.starts_with("size")
+                && !cleaned.starts_with("0x")
+                && !cleaned.is_empty()
+            {
                 return cleaned.to_string();
             }
         }
-        
+
         "f64".to_string()
     }
 
@@ -489,11 +546,6 @@ impl UnitFormatter {
         }
     }
 
-
-
-
-    
-
     /// Extract just the raw type information from hover content
     pub fn extract_raw_type_from_hover(&self, hover_text: &str) -> String {
         // Look for the pattern: let [mut] [var]: Quantity<...>
@@ -501,20 +553,26 @@ impl UnitFormatter {
             // Find the start of the variable declaration by looking backwards for 'let'
             let mut var_start = start;
             let mut found_let = false;
-            
+
             // Look backwards to find the start of the declaration
             while var_start > 0 {
-                let char_before = hover_text[var_start-1..var_start].chars().next().unwrap();
+                let char_before = hover_text[var_start - 1..var_start].chars().next().unwrap();
                 if char_before.is_whitespace() {
                     // Check if we've found "let" or "let mut"
                     let potential_start = var_start;
                     let before_whitespace = &hover_text[..potential_start];
-                    
+
                     // Look for "let" at the end of the string
                     if before_whitespace.ends_with("let") {
                         // Check if there's whitespace before "let" or if it's at the start
                         let let_start = before_whitespace.len() - 3;
-                        if let_start == 0 || hover_text[let_start-1..let_start].chars().next().unwrap().is_whitespace() {
+                        if let_start == 0
+                            || hover_text[let_start - 1..let_start]
+                                .chars()
+                                .next()
+                                .unwrap()
+                                .is_whitespace()
+                        {
                             var_start = let_start;
                             found_let = true;
                             break;
@@ -523,25 +581,37 @@ impl UnitFormatter {
                 }
                 var_start -= 1;
             }
-            
+
             if !found_let {
                 // Fallback: find the start of the variable name
-                while var_start > 0 && !hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
+                while var_start > 0
+                    && !hover_text[var_start..var_start + 1]
+                        .chars()
+                        .next()
+                        .unwrap()
+                        .is_whitespace()
+                {
                     var_start -= 1;
                 }
-                if var_start > 0 && hover_text[var_start..var_start+1].chars().next().unwrap().is_whitespace() {
+                if var_start > 0
+                    && hover_text[var_start..var_start + 1]
+                        .chars()
+                        .next()
+                        .unwrap()
+                        .is_whitespace()
+                {
                     var_start += 1; // Skip the whitespace
                 }
             }
-            
+
             // Find the end of the type declaration (before any size/align info)
             let type_start = start + ": ".len();
             let after_type = &hover_text[type_start..];
-            
+
             // Find the end of the Quantity type by looking for the closing >
             let mut bracket_count = 0;
             let mut end_pos = 0;
-            
+
             for (i, ch) in after_type.char_indices() {
                 match ch {
                     '<' => bracket_count += 1,
@@ -555,13 +625,13 @@ impl UnitFormatter {
                     _ => {}
                 }
             }
-            
+
             if end_pos > 0 {
                 let full_declaration = &hover_text[var_start..start + ": ".len() + end_pos];
                 return full_declaration.to_string();
             }
         }
-        
+
         String::new()
     }
 
@@ -572,8 +642,6 @@ impl UnitFormatter {
         // a generic type definition like "Quantity<Scale, Dimension, T = f64>"
         text.contains("T = f64")
     }
-
-
 }
 
 #[derive(Debug)]

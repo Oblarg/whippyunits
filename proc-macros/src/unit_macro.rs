@@ -3,7 +3,11 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::{Caret, Comma, Slash, Star};
 use syn::{Ident, LitInt, Type};
-use whippyunits_core::{Dimension, SiPrefix, Unit, dimension_exponents::{DynDimensionExponents, DimensionExponents}, scale_exponents::ScaleExponents};
+use whippyunits_core::{
+    dimension_exponents::{DimensionExponents, DynDimensionExponents},
+    scale_exponents::ScaleExponents,
+    Dimension, SiPrefix, Unit,
+};
 
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
@@ -18,7 +22,6 @@ pub struct UnitEvaluationResult {
     pub dimension_exponents: DynDimensionExponents,
     pub scale_exponents: ScaleExponents,
 }
-
 
 /// Represents a unit expression that can be parsed
 #[derive(Clone)]
@@ -142,46 +145,51 @@ impl UnitExpr {
     /// Evaluate the unit expression to get dimension exponents and scale factors
     pub fn evaluate(&self) -> UnitEvaluationResult {
         match self {
-        UnitExpr::Unit(unit) => {
-            if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
-                // Get the dimension exponents and scale exponents from the unit
-                let mut dimension_exponents = unit_info.exponents.value();
-                let mut scale_exponents = unit_info.scale;
-                
-                // Check if this is a prefixed unit and adjust scale factors accordingly
-                // BUT ONLY if the unit name is NOT a valid unit symbol by itself
-                let is_valid_unit_symbol = Dimension::find_unit_by_symbol(&unit.name.to_string()).is_some();
-                if !is_valid_unit_symbol {
-                    if let Some((prefix, _base)) = SiPrefix::strip_any_prefix_symbol(&unit.name.to_string()) {
-                        let prefix_factor = prefix.factor_log10();
-                        // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
-                        scale_exponents = scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+            UnitExpr::Unit(unit) => {
+                if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                    // Get the dimension exponents and scale exponents from the unit
+                    let mut dimension_exponents = unit_info.exponents.value();
+                    let mut scale_exponents = unit_info.scale;
+
+                    // Check if this is a prefixed unit and adjust scale factors accordingly
+                    // BUT ONLY if the unit name is NOT a valid unit symbol by itself
+                    let is_valid_unit_symbol =
+                        Dimension::find_unit_by_symbol(&unit.name.to_string()).is_some();
+                    if !is_valid_unit_symbol {
+                        if let Some((prefix, _base)) =
+                            SiPrefix::strip_any_prefix_symbol(&unit.name.to_string())
+                        {
+                            let prefix_factor = prefix.factor_log10();
+                            // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
+                            scale_exponents =
+                                scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                        }
+                    }
+
+                    // Apply the unit exponent to both dimension and scale exponents
+                    if unit.exponent != 1 {
+                        dimension_exponents = dimension_exponents * unit.exponent;
+                        scale_exponents = scale_exponents.scalar_exp(unit.exponent);
+                    }
+
+                    UnitEvaluationResult {
+                        dimension_exponents,
+                        scale_exponents,
+                    }
+                } else {
+                    // Handle dimensionless or unknown units
+                    UnitEvaluationResult {
+                        dimension_exponents: DynDimensionExponents::ZERO,
+                        scale_exponents: ScaleExponents::IDENTITY,
                     }
                 }
-                
-                // Apply the unit exponent to both dimension and scale exponents
-                if unit.exponent != 1 {
-                    dimension_exponents = dimension_exponents * unit.exponent;
-                    scale_exponents = scale_exponents.scalar_exp(unit.exponent);
-                }
-                
-                UnitEvaluationResult {
-                    dimension_exponents,
-                    scale_exponents,
-                }
-            } else {
-                // Handle dimensionless or unknown units
-                UnitEvaluationResult {
-                    dimension_exponents: DynDimensionExponents::ZERO,
-                    scale_exponents: ScaleExponents::IDENTITY,
-                }
             }
-        }
             UnitExpr::Mul(a, b) => {
                 let result_a = a.evaluate();
                 let result_b = b.evaluate();
                 UnitEvaluationResult {
-                    dimension_exponents: result_a.dimension_exponents + result_b.dimension_exponents,
+                    dimension_exponents: result_a.dimension_exponents
+                        + result_b.dimension_exponents,
                     scale_exponents: result_a.scale_exponents.mul(result_b.scale_exponents),
                 }
             }
@@ -189,7 +197,8 @@ impl UnitExpr {
                 let result_a = a.evaluate();
                 let result_b = b.evaluate();
                 UnitEvaluationResult {
-                    dimension_exponents: result_a.dimension_exponents + (-result_b.dimension_exponents),
+                    dimension_exponents: result_a.dimension_exponents
+                        + (-result_b.dimension_exponents),
                     scale_exponents: result_a.scale_exponents.mul(result_b.scale_exponents.neg()),
                 }
             }
@@ -209,7 +218,6 @@ impl UnitExpr {
 
 // Removed duplicate parsing functions - now using centralized parsing from whippyunits-core
 
-
 /// Get unit information for a unit name, handling prefixes and conversions
 /// Returns the complete Unit struct with dimensions and scale factors
 pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
@@ -223,7 +231,7 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
         return Some(unit);
     }
-    
+
     if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
         return Some(unit);
     }
@@ -271,16 +279,7 @@ impl Parse for UnitMacroInput {
 impl UnitMacroInput {
     pub fn expand(self) -> TokenStream {
         let result = self.unit_expr.evaluate();
-        let (
-            mass_exp,
-            length_exp,
-            time_exp,
-            current_exp,
-            temp_exp,
-            amount_exp,
-            lum_exp,
-            angle_exp,
-        ) = (
+        let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = (
             result.dimension_exponents.0[0],
             result.dimension_exponents.0[1],
             result.dimension_exponents.0[2],
@@ -296,8 +295,6 @@ impl UnitMacroInput {
             result.scale_exponents.0[2],
             result.scale_exponents.0[3],
         );
-        
-        
 
         // Use the specified storage type or default to f64
         let storage_type = self
@@ -344,10 +341,10 @@ impl UnitMacroInput {
     fn generate_single_unit_doc(identifier: &Ident) -> Option<TokenStream> {
         let unit_name = identifier.to_string();
         let doc_comment = Self::generate_unit_doc_comment(&unit_name);
-        
+
         // Create a new identifier with the same span as the original
         let doc_ident = syn::Ident::new(&unit_name, identifier.span());
-        
+
         // Get the corresponding default declarator type
         let declarator_type = Self::get_declarator_type_for_unit(&unit_name)?;
 
@@ -391,11 +388,15 @@ impl UnitMacroInput {
                     } else {
                         format!("10^{}", prefix_info.factor_log10())
                     };
-                    return Some(format!("Prefix: {} ({}), Base: {}", 
-                        prefix_info.name(), scale_text, unit.name));
+                    return Some(format!(
+                        "Prefix: {} ({}), Base: {}",
+                        prefix_info.name(),
+                        scale_text,
+                        unit.name
+                    ));
                 }
             }
-            
+
             // Regular unit
             return Some(format!("Unit: {}", unit.name));
         }
@@ -404,7 +405,7 @@ impl UnitMacroInput {
     }
 
     /// Parse a unit name to extract prefix and base unit
-    /// 
+    ///
     /// This function now uses the centralized parsing logic from whippyunits-core.
     fn parse_prefixed_unit(unit_name: &str) -> Option<(String, String)> {
         // Try to strip any prefix from the unit name
@@ -414,7 +415,7 @@ impl UnitMacroInput {
                 return Some((prefix.symbol().to_string(), base.to_string()));
             }
         }
-        
+
         // Also try stripping prefix from name (not just symbol)
         if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(unit_name) {
             // Check if the base unit exists by name
@@ -422,7 +423,7 @@ impl UnitMacroInput {
                 return Some((prefix.symbol().to_string(), base.to_string()));
             }
         }
-        
+
         None
     }
 
@@ -431,5 +432,4 @@ impl UnitMacroInput {
         // Use the shared helper function to avoid code duplication
         crate::get_declarator_type_for_unit(unit_name)
     }
-
 }

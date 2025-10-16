@@ -1,6 +1,6 @@
 use crate::print::prettyprint::pretty_print_quantity_value;
 use crate::quantity_type::Quantity;
-use crate::{Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
+use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
 use std::fmt;
 
 #[macro_export]

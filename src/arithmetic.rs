@@ -1,5 +1,5 @@
-use crate::quantity_type::Quantity;
 use crate::IsI16;
+use crate::quantity_type::Quantity;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[macro_export]

@@ -56,14 +56,15 @@ impl RadianErasureInput {
             for &exponent in &exponents {
                 let type_ident = syn::parse_str::<Ident>(type_name).unwrap();
                 let rescale_ident = syn::parse_str::<Ident>(rescale_fn).unwrap();
-                
+
                 // Convert exponent to a literal token
-                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-                
+                let exponent_lit =
+                    syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
                 let expansion = quote! {
                     define_from_for_radians_with_scale!(#exponent_lit, #type_ident, #rescale_ident);
                 };
-                
+
                 expansions.push(expansion);
             }
         }
@@ -87,13 +88,14 @@ impl RadianErasureInput {
                 let source_type_ident = syn::parse_str::<Ident>(source_type).unwrap();
                 let target_type_ident = syn::parse_str::<Ident>(target_type).unwrap();
                 let source_rescale_ident = syn::parse_str::<Ident>(source_rescale).unwrap();
-                
-                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-                
+
+                let exponent_lit =
+                    syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
                 let expansion = quote! {
                     define_from_for_radians_with_scale_cross_type!(#exponent_lit, #source_type_ident, #target_type_ident, #source_rescale_ident);
                 };
-                
+
                 expansions.push(expansion);
             }
         }
@@ -107,21 +109,25 @@ impl RadianErasureInput {
 impl RadianToDimensionlessInput {
     pub fn expand(self) -> TokenStream {
         let types = ["f32", "f64", "i16", "i32", "i64", "i128"];
-        let exponents = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let exponents = [
+            -9, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+        ];
 
         let mut expansions = Vec::new();
 
         for &exponent in &exponents {
-            let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-            
-            let type_list = types.iter()
+            let exponent_lit =
+                syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
+            let type_list = types
+                .iter()
                 .map(|&type_name| syn::parse_str::<Ident>(type_name).unwrap())
                 .collect::<Vec<_>>();
-            
+
             let expansion = quote! {
                 define_from_for_radians!(#exponent_lit, #(#type_list),*);
             };
-            
+
             expansions.push(expansion);
         }
 
@@ -134,7 +140,7 @@ impl RadianToDimensionlessInput {
 impl AllRadianErasuresInput {
     pub fn expand(self) -> TokenStream {
         let max_exponent = self.max_exponent.base10_parse::<i32>().unwrap();
-        
+
         // Generate radian to scalar conversions (with scale handling)
         let types_with_rescale = [
             ("f32", "rescale_f32"),
@@ -146,24 +152,24 @@ impl AllRadianErasuresInput {
         ];
 
         // Generate exponents for radian to scalar (limited range)
-        let scalar_exponents: Vec<i32> = (-max_exponent..=max_exponent)
-            .filter(|&x| x != 0)
-            .collect();
+        let scalar_exponents: Vec<i32> =
+            (-max_exponent..=max_exponent).filter(|&x| x != 0).collect();
 
         let mut scalar_expansions = Vec::new();
-        
+
         // Generate same-type conversions
         for (type_name, rescale_fn) in types_with_rescale {
             for &exponent in &scalar_exponents {
                 let type_ident = syn::parse_str::<Ident>(type_name).unwrap();
                 let rescale_ident = syn::parse_str::<Ident>(rescale_fn).unwrap();
-                
-                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-                
+
+                let exponent_lit =
+                    syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
                 let expansion = quote! {
                     define_from_for_radians_with_scale!(#exponent_lit, #type_ident, #rescale_ident);
                 };
-                
+
                 scalar_expansions.push(expansion);
             }
         }
@@ -187,40 +193,42 @@ impl AllRadianErasuresInput {
                 let source_type_ident = syn::parse_str::<Ident>(source_type).unwrap();
                 let target_type_ident = syn::parse_str::<Ident>(target_type).unwrap();
                 let source_rescale_ident = syn::parse_str::<Ident>(source_rescale).unwrap();
-                
-                let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-                
+
+                let exponent_lit =
+                    syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
                 let expansion = quote! {
                     define_from_for_radians_with_scale_cross_type!(#exponent_lit, #source_type_ident, #target_type_ident, #source_rescale_ident);
                 };
-                
+
                 scalar_expansions.push(expansion);
             }
         }
-        
+
         // Generate radian to dimensionless quantity conversions
         let types = ["f32", "f64", "i16", "i32", "i64", "i128"];
-        
+
         // Generate exponents for radian to dimensionless (full range)
-        let dimensionless_exponents: Vec<i32> = (-max_exponent..=max_exponent)
-            .filter(|&x| x != 0)
-            .collect();
+        let dimensionless_exponents: Vec<i32> =
+            (-max_exponent..=max_exponent).filter(|&x| x != 0).collect();
 
         let mut dimensionless_expansions = Vec::new();
         for &exponent in &dimensionless_exponents {
-            let exponent_lit = syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
-            
-            let type_list = types.iter()
+            let exponent_lit =
+                syn::LitInt::new(&exponent.to_string(), proc_macro2::Span::call_site());
+
+            let type_list = types
+                .iter()
                 .map(|&type_name| syn::parse_str::<Ident>(type_name).unwrap())
                 .collect::<Vec<_>>();
-            
+
             let expansion = quote! {
                 define_from_for_radians!(#exponent_lit, #(#type_list),*);
             };
-            
+
             dimensionless_expansions.push(expansion);
         }
-        
+
         quote! {
             #(#scalar_expansions)*
             #(#dimensionless_expansions)*

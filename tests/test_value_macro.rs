@@ -8,47 +8,47 @@ fn test_value_macro_with_different_types() {
     let distance_f64 = quantity!(1.0, m);
     let val_f64_m: f64 = value!(distance_f64, m);
     let val_f64_mm: f64 = value!(distance_f64, mm);
-    
+
     assert_eq!(val_f64_m, 1.0);
     assert_eq!(val_f64_mm, 1000.0);
-    
+
     // Test with f32
     let distance_f32 = quantity!(1.0f32, m, f32);
     let val_f32_m: f32 = value!(distance_f32, m, f32);
     let val_f32_mm: f32 = value!(distance_f32, mm, f32);
-    
+
     assert_eq!(val_f32_m, 1.0f32);
     assert_eq!(val_f32_mm, 1000.0f32);
-    
+
     // Test with i32
     let distance_i32 = quantity!(1, m, i32);
     let val_i32_m: i32 = value!(distance_i32, m, i32);
     let val_i32_mm: i32 = value!(distance_i32, mm, i32);
-    
+
     assert_eq!(val_i32_m, 1);
     assert_eq!(val_i32_mm, 1000);
-    
+
     // Test with i64
     let distance_i64 = quantity!(1i64, m, i64);
     let val_i64_m: i64 = value!(distance_i64, m, i64);
     let val_i64_mm: i64 = value!(distance_i64, mm, i64);
-    
+
     assert_eq!(val_i64_m, 1i64);
     assert_eq!(val_i64_mm, 1000i64);
-    
+
     // Test with u32
     let distance_u32 = quantity!(1u32, m, u32);
     let val_u32_m: u32 = value!(distance_u32, m, u32);
     let val_u32_mm: u32 = value!(distance_u32, mm, u32);
-    
+
     assert_eq!(val_u32_m, 1u32);
     assert_eq!(val_u32_mm, 1000u32);
-    
+
     // Test with u64
     let distance_u64 = quantity!(1u64, m, u64);
     let val_u64_m: u64 = value!(distance_u64, m, u64);
     let val_u64_mm: u64 = value!(distance_u64, mm, u64);
-    
+
     assert_eq!(val_u64_m, 1u64);
     assert_eq!(val_u64_mm, 1000u64);
 }
@@ -59,7 +59,7 @@ fn test_value_macro_with_compound_units() {
     let energy_f64 = quantity!(1.0, J);
     let val_f64_kj: f64 = value!(energy_f64, kJ);
     assert_eq!(val_f64_kj, 0.001);
-    
+
     let energy_i32 = quantity!(1000, J, i32);
     let val_i32_kj: i32 = value!(energy_i32, kJ, i32);
     assert_eq!(val_i32_kj, 1);
@@ -81,13 +81,13 @@ fn test_value_macro_type_preservation() {
     let distance_f32 = quantity!(1.0f32, m, f32);
     let distance_i32 = quantity!(1, m, i32);
     let distance_i64 = quantity!(1i64, m, i64);
-    
+
     // These should compile and return the same type as the input
     let _: f64 = value!(distance_f64, mm);
     let _: f32 = value!(distance_f32, mm, f32);
     let _: i32 = value!(distance_i32, mm, i32);
     let _: i64 = value!(distance_i64, mm, i64);
-    
+
     // These should NOT compile (type mismatch)
     // let _: f32 = value!(distance_f64, mm); // Should fail
     // let _: i32 = value!(distance_f64, mm); // Should fail
@@ -130,11 +130,11 @@ fn test_value_macro_with_mass_units() {
     let mass_f64 = quantity!(1.0, kg);
     let val_f64_g: f64 = value!(mass_f64, g);
     assert_eq!(val_f64_g, 1000.0);
-    
+
     let mass_i32 = quantity!(1, kg, i32);
     let val_i32_g: i32 = value!(mass_i32, g, i32);
     assert_eq!(val_i32_g, 1000);
-    
+
     // Test with milligrams
     let mass_f32 = quantity!(1.0f32, g, f32);
     let val_f32_mg: f32 = value!(mass_f32, mg, f32);
@@ -147,11 +147,11 @@ fn test_value_macro_with_time_units() {
     let time_f64 = quantity!(1.0, s);
     let val_f64_ms: f64 = value!(time_f64, ms);
     assert_eq!(val_f64_ms, 1000.0);
-    
+
     let time_i32 = quantity!(1, s, i32);
     let val_i32_ms: i32 = value!(time_i32, ms, i32);
     assert_eq!(val_i32_ms, 1000);
-    
+
     // Test with minutes
     let time_f32 = quantity!(60.0f32, s, f32);
     let val_f32_min: f32 = value!(time_f32, min, f32);

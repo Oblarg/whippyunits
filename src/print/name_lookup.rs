@@ -1,4 +1,6 @@
-use whippyunits_core::{Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents};
+use whippyunits_core::{
+    Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+};
 
 /// Look up a unit literal by its dimension exponents and scale factors
 /// Returns the unit name/symbol if found, otherwise None
@@ -12,14 +14,23 @@ fn lookup_unit_literal_by_scale_factors(
         return None;
     }
 
-    let dyn_exponents = DynDimensionExponents([exponents[0], exponents[1], exponents[2], exponents[3], exponents[4], exponents[5], exponents[6], exponents[7]]);
+    let dyn_exponents = DynDimensionExponents([
+        exponents[0],
+        exponents[1],
+        exponents[2],
+        exponents[3],
+        exponents[4],
+        exponents[5],
+        exponents[6],
+        exponents[7],
+    ]);
 
     if let Some(dimension) = Dimension::find_dimension_by_exponents(dyn_exponents) {
-        dimension.units
+        dimension
+            .units
             .iter()
             .find(|unit| {
-                unit.scale == scale_factors
-                    && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
+                unit.scale == scale_factors && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
             })
             .map(|unit| {
                 if long_name {
@@ -105,7 +116,7 @@ pub fn generate_systematic_unit_name_with_format(
             } else {
                 if long_name { unit_name } else { unit_symbol }
             };
-            
+
             let exponent_str = match format {
                 crate::print::prettyprint::UnitFormat::Unicode => get_unicode_exponent(exponent),
                 crate::print::prettyprint::UnitFormat::Ucum => {
@@ -138,19 +149,27 @@ pub fn generate_systematic_unit_name_with_format(
                 .enumerate()
                 .map(|(index, &exp)| {
                     // Get unit configuration directly from Dimension::BASIS
-                    let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
-                        if let Some(unit) = dimension.units.first() {
-                            // Get the base scale offset from the unit's scale (systematic approach)
-                            // For gram, this will be -3 (10^-3 of kilogram)
-                            let base_scale_offset = unit.scale.log10().unwrap_or(0);
-                            (unit.name, unit.symbols[0], base_scale_offset)
+                    let (unit_name, unit_symbol, base_scale_offset) =
+                        if let Some(dimension) = Dimension::BASIS.get(index) {
+                            if let Some(unit) = dimension.units.first() {
+                                // Get the base scale offset from the unit's scale (systematic approach)
+                                // For gram, this will be -3 (10^-3 of kilogram)
+                                let base_scale_offset = unit.scale.log10().unwrap_or(0);
+                                (unit.name, unit.symbols[0], base_scale_offset)
+                            } else {
+                                ("?", "?", 0)
+                            }
                         } else {
                             ("?", "?", 0)
-                        }
-                    } else {
-                        ("?", "?", 0)
-                    };
-                    let part = render_unit_part(unit_name, unit_symbol, base_scale_offset, exp, long_name, format);
+                        };
+                    let part = render_unit_part(
+                        unit_name,
+                        unit_symbol,
+                        base_scale_offset,
+                        exp,
+                        long_name,
+                        format,
+                    );
                     part
                 })
                 .filter(|part| !part.is_empty())
@@ -172,19 +191,20 @@ pub fn generate_systematic_unit_name_with_format(
             for (index, &exp) in exponents.iter().enumerate() {
                 if exp != 0 && exp != i16::MIN {
                     // Get unit configuration directly from Dimension::BASIS
-                    let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
-                        if let Some(unit) = dimension.units.first() {
-                            // Get the base scale offset from the unit's scale (systematic approach)
-                            // For gram, this will be -3 (10^-3 of kilogram)
-                            let base_scale_offset = unit.scale.log10().unwrap_or(0);
-                            (unit.name, unit.symbols[0], base_scale_offset)
+                    let (unit_name, unit_symbol, base_scale_offset) =
+                        if let Some(dimension) = Dimension::BASIS.get(index) {
+                            if let Some(unit) = dimension.units.first() {
+                                // Get the base scale offset from the unit's scale (systematic approach)
+                                // For gram, this will be -3 (10^-3 of kilogram)
+                                let base_scale_offset = unit.scale.log10().unwrap_or(0);
+                                (unit.name, unit.symbols[0], base_scale_offset)
+                            } else {
+                                ("?", "?", 0)
+                            }
                         } else {
                             ("?", "?", 0)
-                        }
-                    } else {
-                        ("?", "?", 0)
-                    };
-                    
+                        };
+
                     let base_name = if base_scale_offset != 0 {
                         if long_name {
                             match unit_name {
@@ -260,14 +280,26 @@ pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
         return None;
     }
 
-    let dyn_exponents = DynDimensionExponents([exponents[0], exponents[1], exponents[2], exponents[3], exponents[4], exponents[5], exponents[6], exponents[7]]);
+    let dyn_exponents = DynDimensionExponents([
+        exponents[0],
+        exponents[1],
+        exponents[2],
+        exponents[3],
+        exponents[4],
+        exponents[5],
+        exponents[6],
+        exponents[7],
+    ]);
 
     // Use Dimension::find_dimension_by_exponents directly
     Dimension::find_dimension_by_exponents(dyn_exponents).map(|dim_info| {
         // Get the first unit symbol and long name from the dimension (e.g., "J" and "joule" for energy, "N" and "newton" for force)
-        let unit_symbol = dim_info.units.first().and_then(|unit| unit.symbols.first().copied());
+        let unit_symbol = dim_info
+            .units
+            .first()
+            .and_then(|unit| unit.symbols.first().copied());
         let unit_long_name = dim_info.units.first().map(|unit| unit.name);
-        
+
         DimensionNames {
             dimension_name: dim_info.name,
             unit_si_shortname_symbol: unit_symbol, // Use actual unit symbol (e.g., "J") instead of dimension symbol (e.g., "ML²T⁻²")

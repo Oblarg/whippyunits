@@ -9,12 +9,15 @@ fn calculate_conversion_factor<
     const SCALE_PI: i16,
 >(
     unit: &str,
-    target_unit_info: &(&'static whippyunits_core::Dimension, &'static whippyunits_core::Unit),
+    target_unit_info: &(
+        &'static whippyunits_core::Dimension,
+        &'static whippyunits_core::Unit,
+    ),
 ) -> f64 {
     // First try to parse as a prefixed unit (short names like "km", "cm", etc.)
-    if let Some(prefix_info) = SiPrefix::from_symbol(
-        &unit[..unit.len() - target_unit_info.1.symbols[0].len()],
-    ) {
+    if let Some(prefix_info) =
+        SiPrefix::from_symbol(&unit[..unit.len() - target_unit_info.1.symbols[0].len()])
+    {
         // This is a prefixed unit - create the target scale factors from the base unit + prefix
         let prefix_scale = prefix_info.factor_log10();
         // Convert the target unit's scale factors to use only prime factors
@@ -79,7 +82,12 @@ fn calculate_conversion_factor<
         } else {
             // Use the scale factors from the target unit info
             let base_scale = target_unit_info.1.scale;
-            let (p2, p3, p5, pi) = (base_scale.0[0], base_scale.0[1], base_scale.0[2], base_scale.0[3]);
+            let (p2, p3, p5, pi) = (
+                base_scale.0[0],
+                base_scale.0[1],
+                base_scale.0[2],
+                base_scale.0[3],
+            );
             aggregate_scale_factor_float(SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, p2, p3, p5, pi)
         }
     }

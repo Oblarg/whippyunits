@@ -71,11 +71,11 @@ fn test_dimensionless_to_scalar_conversion() {
     let dimensionless: unit!(1) = quantity!(42.0, 1);
     let scalar_f64: f64 = dimensionless.into();
     assert_eq!(scalar_f64, 42.0);
-    
+
     let dimensionless_scaled = 100.0.millimeters() / 1.0.meters();
     let scalar_rescaled: f64 = dimensionless_scaled.into();
     assert_eq!(scalar_rescaled, 0.1);
-    
+
     let dimensionless_i32 = 5.millimeters() / 1.meters();
     let scalar_i32: i32 = dimensionless_i32.into();
     assert_eq!(scalar_i32, 0); // 0.005 rounds to 0 for i32
@@ -86,11 +86,11 @@ fn test_radian_erasure_with_scale() {
     let radians_zero_scale: unit!(rad) = quantity!(3.14159, rad);
     let scalar_f64: f64 = radians_zero_scale.into();
     assert_eq!(scalar_f64, 3.14159);
-    
+
     let radians_scaled = 180.0.degrees();
     let scalar_rescaled: f64 = radians_scaled.into();
     assert!((scalar_rescaled - std::f64::consts::PI).abs() < 1e-10);
-    
+
     // Test with different numeric types - use a simpler case
     let radians_simple = quantity!(1, rad, i32);
     let scalar_i32: i32 = radians_simple.into();
@@ -120,7 +120,7 @@ fn test_scalar_quantity_division_with_scale_exponents() {
     // Test that scale exponents are properly inverted in scalar division
     let inverse_km: unit!(1 / km) = 10.0 / 5.0.kilometers();
     assert_eq!(inverse_km.unsafe_value, 2.0); // 10 / 5km = 2 km^-1
-    
+
     // Test rescaling of inverse quantities to ensure scale exponents covary correctly
     let inverse_m: unit!(1 / m) = rescale(inverse_km);
     assert_eq!(inverse_m.unsafe_value, 0.002); // 2 km^-1 = 0.002 m^-1 (since 1/km = 0.001/m)
@@ -177,11 +177,11 @@ fn test_rescale_time() {
 #[test]
 fn test_rescale_macro() {
     use whippyunits::rescale;
-    
+
     // Test f64 default behavior
     let result = rescale!(quantity!(1.0, m), mm);
     assert_eq!(result.unsafe_value, 1000.0);
-    
+
     // Test i32 behavior (requires third type parameter)
     let result = rescale!(quantity!(1, m, i32), mm, i32);
     assert_eq!(result.unsafe_value, 1000);
@@ -231,10 +231,7 @@ fn test_generic_dimension_expressions() {
     define_generic_dimension!(Pressure, Mass / Length / Time ^ 2);
     define_generic_dimension!(Power, Mass * Length ^ 2 / Time ^ 3);
     define_generic_dimension!(ElectricField, Mass * Length / Time ^ 3 / Current);
-    define_generic_dimension!(
-        Capacitance,
-        Time ^ 4 * Current ^ 2 / Mass / Length ^ 2
-    );
+    define_generic_dimension!(Capacitance, Time ^ 4 * Current ^ 2 / Mass / Length ^ 2);
 
     let force: impl Force = quantity!(1.0, N);
     let energy: impl Energy = quantity!(1.0, J);
@@ -365,14 +362,8 @@ fn test_custom_formatting() {
     assert_eq!(format!("{}", time.fmt("h")), "0.025 h");
 
     println!("Precision formatting:");
-    assert_eq!(
-        format!("{:.2}", distance.fmt("km")),
-        "5.00 km"
-    );
-    assert_eq!(
-        format!("{:.0}", distance.fmt("cm")),
-        "500000 cm"
-    );
+    assert_eq!(format!("{:.2}", distance.fmt("km")), "5.00 km");
+    assert_eq!(format!("{:.0}", distance.fmt("cm")), "500000 cm");
     assert_eq!(format!("{:.1}", mass.fmt("g")), "2500.0 g");
 
     println!("Error cases:");

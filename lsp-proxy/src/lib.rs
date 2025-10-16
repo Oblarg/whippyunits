@@ -1,20 +1,20 @@
-use serde_json::Value;
 use anyhow::Result;
 use log::warn;
+use serde_json::Value;
 
+pub mod hover_processor;
 pub mod inlay_hint_processor;
+pub mod lsp_structures;
 pub mod quantity_detection;
 pub mod unit_formatter;
-pub mod lsp_structures;
-pub mod hover_processor;
 
 #[cfg(test)]
 mod tests;
 
-use unit_formatter::UnitFormatter;
-use lsp_structures::LspMessage;
 use hover_processor::HoverProcessor;
 use inlay_hint_processor::InlayHintProcessor;
+use lsp_structures::LspMessage;
+use unit_formatter::UnitFormatter;
 
 // Re-export for public API
 pub use unit_formatter::DisplayConfig;
@@ -71,12 +71,12 @@ impl LspProxy {
                 return Ok(message.to_string());
             }
         };
-        
+
         if !self.contains_quantity_types_fast(&json_payload) {
             // No Quantity types detected, return original message unchanged
             return Ok(message.to_string());
         }
-        
+
         // Parse the JSON payload only if we detected Quantity types
         let mut lsp_msg: LspMessage = match serde_json::from_str(&json_payload) {
             Ok(msg) => msg,
@@ -85,29 +85,27 @@ impl LspProxy {
                 return Ok(message.to_string());
             }
         };
-        
+
         // Only process specific message types we care about
         let mut needs_processing = false;
-        
+
         // Check if this is a hover response
         if let Some(result) = &lsp_msg.result {
             if let Some(hover_content) = self.hover_processor.extract_hover_content(result) {
                 match self.hover_processor.improve_hover_content(hover_content) {
-                    improved_content => {
-                        match serde_json::to_value(improved_content) {
-                            Ok(value) => {
-                                lsp_msg.result = Some(value);
-                                needs_processing = true;
-                            }
-                            Err(e) => {
-                                warn!("Failed to serialize hover content: {}", e);
-                            }
+                    improved_content => match serde_json::to_value(improved_content) {
+                        Ok(value) => {
+                            lsp_msg.result = Some(value);
+                            needs_processing = true;
                         }
-                    }
+                        Err(e) => {
+                            warn!("Failed to serialize hover content: {}", e);
+                        }
+                    },
                 }
             }
         }
-        
+
         // Check if this is an inlay hint response (including resolve responses)
         if let Some(result) = &lsp_msg.result {
             if self.is_inlay_hint_response(&lsp_msg) {
@@ -127,13 +125,16 @@ impl LspProxy {
                 }
             }
         }
-        
+
         // Only reconstruct if we actually modified something
         if needs_processing {
             match serde_json::to_string(&lsp_msg) {
                 Ok(new_json) => {
                     let content_length = new_json.len();
-                    Ok(format!("Content-Length: {}\r\n\r\n{}", content_length, new_json))
+                    Ok(format!(
+                        "Content-Length: {}\r\n\r\n{}",
+                        content_length, new_json
+                    ))
                 }
                 Err(e) => {
                     warn!("Failed to serialize LSP message: {}", e);
@@ -168,7 +169,7 @@ impl LspProxy {
         } else {
             // Fallback to line-based parsing
             let lines: Vec<&str> = message.lines().collect();
-            
+
             // Find the empty line that separates headers from JSON
             let mut json_start = 0;
             for (i, line) in lines.iter().enumerate() {
@@ -177,11 +178,11 @@ impl LspProxy {
                     break;
                 }
             }
-            
+
             if json_start >= lines.len() {
                 return Err(anyhow::anyhow!("No JSON payload found in LSP message"));
             }
-            
+
             // Join the remaining lines as JSON
             Ok(lines[json_start..].join("\n"))
         }
@@ -206,7 +207,7 @@ impl LspProxy {
                     }
                 }
             }
-            
+
             // Check if result is an object (typical for inlay hint resolve responses)
             if result.is_object() {
                 if let Some(obj) = result.as_object() {
@@ -218,7 +219,7 @@ impl LspProxy {
                 }
             }
         }
-        
+
         false
     }
 
@@ -258,16 +259,18 @@ impl LspProxy {
             "id": 1,
             "result": result
         });
-        
+
         // Convert to string for processing
         let message_str = serde_json::to_string(&full_message)?;
-        
+
         // Process the inlay hint response using our instance processor
-        let processed_str = self.inlay_hint_processor.process_inlay_hint_response(&message_str)?;
-        
+        let processed_str = self
+            .inlay_hint_processor
+            .process_inlay_hint_response(&message_str)?;
+
         // Parse back to Value
         let processed_value: Value = serde_json::from_str(&processed_str)?;
-        
+
         // Extract just the result part (remove the jsonrpc wrapper)
         if let Some(processed_result) = processed_value.get("result") {
             Ok(processed_result.clone())
