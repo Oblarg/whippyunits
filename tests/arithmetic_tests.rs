@@ -263,6 +263,12 @@ fn test_mixed_dimension_names_and_symbols() {
 }
 
 #[test]
+fn test_single_imperial_unit_debug() {
+    let volume_us_cup = 1.0.cups();
+    println!("1 US cup = {:?}", volume_us_cup);
+}
+
+#[test]
 fn test_imperial_units() {
     let length_inches = 1.0.inches();
     let length_feet = 1.0.feet();

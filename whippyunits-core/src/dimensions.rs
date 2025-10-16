@@ -320,12 +320,8 @@ impl Dimension<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
         name: "Area",
         symbol: "L²",
         units: &[
-            // Metric area units (canonical display unit)
-            Unit::SQUARE_METER,
-            // Imperial area units
-            Unit::ACRE,
-            // Metric area units
             Unit::HECTARE,
+            Unit::ACRE,
         ],
     });
 }

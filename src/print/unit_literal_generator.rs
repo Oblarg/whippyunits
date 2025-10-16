@@ -48,13 +48,12 @@ pub fn generate_unit_literal(
         base_systematic_literal
     } else {
         // No unit literal match, apply SI prefix to the systematic unit literal
-        let result = generate_prefixed_systematic_unit(
+        generate_prefixed_systematic_unit(
             exponents,
             scale_factors,
             &base_systematic_literal,
             config.verbose,
-        );
-        result
+        )
     };
 
     // If we don't prefer SI units, return the systematic literal

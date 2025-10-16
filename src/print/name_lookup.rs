@@ -292,18 +292,46 @@ pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
     ]);
 
     // Use Dimension::find_dimension_by_exponents directly
-    Dimension::find_dimension_by_exponents(dyn_exponents).map(|dim_info| {
-        // Get the first unit symbol and long name from the dimension (e.g., "J" and "joule" for energy, "N" and "newton" for force)
-        let unit_symbol = dim_info
+    Dimension::find_dimension_by_exponents(dyn_exponents).and_then(|dim_info| {
+        // For pure atomic dimensions (like area = length²), prefer systematic generation
+        // over predefined units when we have exact matches of atomic unit exponents
+        let is_pure_atomic = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
+        
+        if is_pure_atomic {
+            // For pure atomic dimensions, check if we have an exact match with identity scale factors
+            let has_exact_match = dim_info
+                .units
+                .iter()
+                .any(|unit| {
+                    unit.scale == whippyunits_core::scale_exponents::ScaleExponents::IDENTITY
+                    && unit.conversion_factor == 1.0
+                });
+            
+            if !has_exact_match {
+                // No exact match found, return None to force systematic generation
+                return None;
+            }
+        }
+        
+        // Prioritize exact matches of atomic unit exponents (scale factors of [0, 0, 0, 0])
+        // over the first unit in the lexical list
+        let preferred_unit = dim_info
             .units
-            .first()
-            .and_then(|unit| unit.symbols.first().copied());
-        let unit_long_name = dim_info.units.first().map(|unit| unit.name);
+            .iter()
+            .find(|unit| {
+                unit.scale == whippyunits_core::scale_exponents::ScaleExponents::IDENTITY
+                && unit.conversion_factor == 1.0
+            })
+            .or_else(|| dim_info.units.first()); // Fall back to first unit if no exact match
 
-        DimensionNames {
+        let unit_symbol = preferred_unit
+            .and_then(|unit| unit.symbols.first().copied());
+        let unit_long_name = preferred_unit.map(|unit| unit.name);
+
+        Some(DimensionNames {
             dimension_name: dim_info.name,
             unit_si_shortname_symbol: unit_symbol, // Use actual unit symbol (e.g., "J") instead of dimension symbol (e.g., "ML²T⁻²")
             unit_si_shortname: unit_long_name, // Use unit long name (e.g., "joule") instead of dimension name (e.g., "Energy")
-        }
+        })
     })
 }

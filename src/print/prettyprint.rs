@@ -307,6 +307,7 @@ pub fn generate_prefixed_si_unit(
         scale_factors.0[2],
         scale_factors.0[3],
     );
+    
 
     // Apply base scale offset for mass units (same logic as generate_prefixed_systematic_unit)
     let effective_scale_p10 = if let Some((_unit, _dimension)) =
@@ -484,8 +485,13 @@ pub fn generate_prefixed_systematic_unit(
             scale_factors.0[3],
         );
         if scale_factors_str.is_empty() {
-            // No scaling needed, return base unit as-is
-            base_unit.to_string()
+            // Check if this is a pure power of 10 - if so, generate 10^n notation
+            if scale_factors.log10().is_some() {
+                generate_si_unit_with_scale(effective_scale_p10, base_unit, long_name)
+            } else {
+                // No scaling needed, return base unit as-is
+                base_unit.to_string()
+            }
         } else {
             // Add numerical scale factor prefix
             format!("{}{}", scale_factors_str, base_unit)
