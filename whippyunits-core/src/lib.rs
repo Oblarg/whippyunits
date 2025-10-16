@@ -10,6 +10,13 @@
 #[cfg(not(test))]
 extern crate alloc;
 
+#[cfg(not(test))]
+use alloc::string::String;
+#[cfg(not(test))]
+use alloc::format;
+#[cfg(not(test))]
+use alloc::string::ToString;
+
 mod dimensions;
 pub mod dimension_exponents;
 pub mod scale_exponents;
@@ -32,5 +39,24 @@ impl core::fmt::Display for CapitalizedFmt<'_> {
         }
 
         write!(f, "{}", chars.as_str())
+    }
+}
+
+/// Convert a singular unit name to its plural form.
+pub fn make_plural(singular: &str) -> String {
+    // Handle exceptions to the "add s" rule
+    match singular {
+        "inch" => "inches".to_string(),
+        "foot" => "feet".to_string(),
+        "henry" => "henries".to_string(),
+        "stone" => "stone".to_string(),
+        "lux" => "lux".to_string(),
+        "candela" => "candela".to_string(),
+        "fahrenheit" => "fahrenheit".to_string(),
+        "rankine" => "rankine".to_string(),
+        _ => {
+            // Default: just add 's' (works for 99% of unit names)
+            format!("{}s", singular)
+        }
     }
 }

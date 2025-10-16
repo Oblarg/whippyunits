@@ -28,7 +28,6 @@ impl<const N: usize, T> GetSecondGeneric for Helper<N, T> {
 #[doc(hidden)]
 pub mod arithmetic_quantity_types;
 pub mod default_declarators;
-pub mod imperial_declarators;
 #[doc(hidden)]
 pub mod scale_conversion;
 #[doc(hidden)]

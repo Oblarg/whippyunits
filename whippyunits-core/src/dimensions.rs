@@ -244,7 +244,7 @@ impl Dimension<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
     pub const MASS: Self = __dim!(Self {
         name: "Mass",
         symbol: "M",
-        units: &[Unit::GRAM, Unit::OUNCE, Unit::POUND],
+        units: &[Unit::GRAM, Unit::OUNCE, Unit::POUND, Unit::STONE, Unit::TON],
     });
 }
 
@@ -276,7 +276,7 @@ impl Dimension<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
     pub const TEMPERATURE: Self = __dim!(Self {
         name: "Temperature",
         symbol: "θ",
-        units: &[Unit::KELVIN],
+        units: &[Unit::KELVIN, Unit::CELSIUS, Unit::RANKINE, Unit::FAHRENHEIT],
     });
 }
 

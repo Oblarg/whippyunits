@@ -77,6 +77,65 @@ macro_rules! define_quantity {
 }
 
 #[doc(hidden)]
+macro_rules! define_nonstorage_quantity {
+    (
+        $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
+        $trait_name:ident,
+        $(($fn_name:ident, $conversion_factor:expr, $scale_p2:expr, $scale_p3:expr, $scale_p5:expr, $scale_pi:expr)),* $(,)?
+    ) => {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    T,
+                >;
+            )*
+        }
+
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    f64,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, f64>::new(self * $conversion_factor)
+                }
+            )*
+        }
+
+        // Generate extension trait implementations for i32
+        impl $trait_name<i32> for i32 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    i32,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, i32>::new((self as f64 * $conversion_factor) as i32)
+                }
+            )*
+        }
+
+        // Generate extension trait implementations for i64
+        impl $trait_name<i64> for i64 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    i64,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, i64>::new((self as f64 * $conversion_factor) as i64)
+                }
+            )*
+        }
+    };
+}
+
+#[doc(hidden)]
 macro_rules! define_affine_quantity {
     (
         $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
@@ -110,6 +169,65 @@ macro_rules! define_affine_quantity {
             $(
                 fn $fn_name(self) -> $scale_name {
                     $storage_scale::new((self as f64) + $offset)
+                }
+            )*
+        }
+    };
+}
+
+#[doc(hidden)]
+macro_rules! define_nonstorage_affine_quantity {
+    (
+        $mass_exp:expr, $length_exp:expr, $time_exp:expr, $current_exp:expr, $temperature_exp:expr, $amount_exp:expr, $luminosity_exp:expr, $angle_exp:expr,
+        $trait_name:ident,
+        $(($fn_name:ident, $conversion_factor:expr, $affine_offset:expr, $scale_p2:expr, $scale_p3:expr, $scale_p5:expr, $scale_pi:expr)),* $(,)?
+    ) => {
+        // Generate the trait definition (generic over storage type)
+        pub trait $trait_name<T = f64> {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    T,
+                >;
+            )*
+        }
+
+        // Generate extension trait implementations for f64 (default)
+        impl $trait_name<f64> for f64 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    f64,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, f64>::new(self * $conversion_factor + $affine_offset)
+                }
+            )*
+        }
+
+        // Generate extension trait implementations for i32
+        impl $trait_name<i32> for i32 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    i32,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, i32>::new((self as f64 * $conversion_factor + $affine_offset) as i32)
+                }
+            )*
+        }
+
+        // Generate extension trait implementations for i64
+        impl $trait_name<i64> for i64 {
+            $(
+                fn $fn_name(self) -> Quantity<
+                    Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>,
+                    Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>,
+                    i64,
+                > {
+                    Quantity::<Scale<_2<$scale_p2>, _3<$scale_p3>, _5<$scale_p5>, _Pi<$scale_pi>>, Dimension<_M<$mass_exp>, _L<$length_exp>, _T<$time_exp>, _I<$current_exp>, _Θ<$temperature_exp>, _N<$amount_exp>, _J<$luminosity_exp>, _A<$angle_exp>>, i64>::new((self as f64 * $conversion_factor + $affine_offset) as i64)
                 }
             )*
         }

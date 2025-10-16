@@ -1,6 +1,25 @@
-use crate::dimension_exponents::{self, DynDimensionExponents, TypeDimensionExponents};
+use crate::dimension_exponents::{DynDimensionExponents, TypeDimensionExponents};
 use crate::scale_exponents::ScaleExponents;
 use crate::prefix::SiPrefix;
+
+/// Unit system classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum System {
+    /// Metric system (SI and derived units)
+    Metric,
+    /// Imperial system (US customary units)
+    Imperial,
+}
+
+impl System {
+    /// Get the string identifier for this system.
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            System::Metric => "Metric",
+            System::Imperial => "Imperial",
+        }
+    }
+}
 
 /// A unit.
 ///
@@ -31,16 +50,34 @@ pub struct Unit<ExponentsType = DynDimensionExponents> {
     /// multiply it by `conversion_factor`.
     pub conversion_factor: f64,
 
+    /// Affine offset for temperature units.
+    ///
+    /// For temperature units like Celsius and Fahrenheit, this represents
+    /// the offset that must be added after the multiplicative conversion.
+    /// For non-affine units, this should be 0.0 (NONE).
+    ///
+    /// The conversion formula is: storage_value = (unit_value * conversion_factor) + affine_offset
+    pub affine_offset: f64,
+
     /// Dimension the unit belongs to.
     pub exponents: ExponentsType,
+
+    /// Unit system classification.
+    pub system: System,
 }
 
 const IDENTITY: f64 = 1.0;
+const NONE: f64 = 0.0;
 
 impl<ExponentsType> Unit<ExponentsType> {
     /// Check if the unit has a conversion factor.
     pub fn has_conversion(&self) -> bool {
         self.conversion_factor != IDENTITY
+    }
+
+    /// Check if the unit has an affine offset.
+    pub fn has_affine_offset(&self) -> bool {
+        self.affine_offset != NONE
     }
 }
 
@@ -73,7 +110,9 @@ impl<
             symbols: self.symbols,
             scale: self.scale,
             conversion_factor: self.conversion_factor,
+            affine_offset: self.affine_offset,
             exponents: self.exponents.value_const(),
+            system: self.system,
         }
     }
 }
@@ -126,7 +165,9 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         symbols: &["g"],
         scale: ScaleExponents::_10(-3),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const OUNCE: Self = Self {
@@ -134,7 +175,9 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         symbols: &["oz"],
         scale: ScaleExponents::_10(-2),
         conversion_factor: 2.8349523125,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 
     pub const POUND: Self = Self {
@@ -142,7 +185,29 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         symbols: &["lb"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: 0.45359237,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const STONE: Self = Self {
+        name: "stone",
+        symbols: &["st"],
+        scale: ScaleExponents::_10(1),
+        conversion_factor: 0.635029318,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const TON: Self = Self {
+        name: "ton",
+        symbols: &["t"],
+        scale: ScaleExponents::_10(3),
+        conversion_factor: 1.0160469088,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 }
 
@@ -153,15 +218,19 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         symbols: &["m"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const INCH: Self = Self {
         name: "inch",
         symbols: &["in"],
         scale: ScaleExponents::_10(-2),
-        conversion_factor: 0.0254,
+        conversion_factor: 2.54,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 
     pub const FOOT: Self = Self {
@@ -169,7 +238,9 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         symbols: &["ft"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: 0.3048,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 
     pub const YARD: Self = Self {
@@ -177,7 +248,9 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         symbols: &["yd"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: 0.9144,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 
     pub const MILE: Self = Self {
@@ -185,7 +258,9 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         symbols: &["mi"],
         scale: ScaleExponents::_10(3),
         conversion_factor: 1.609344,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 }
 
@@ -196,7 +271,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
         symbols: &["s"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const MINUTE: Self = Self {
@@ -204,7 +281,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
         symbols: &["min"],
         scale: ScaleExponents::_10(1).mul(ScaleExponents::_6(1)),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const HOUR: Self = Self {
@@ -212,7 +291,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
         symbols: &["h", "hr"],
         scale: ScaleExponents::_10(2).mul(ScaleExponents::_6(2)),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const DAY: Self = Self {
@@ -222,7 +303,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
             .mul(ScaleExponents::_6(3))
             .mul(ScaleExponents::_2(2)),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -233,7 +316,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 1, 0, 0, 0, 0])> {
         symbols: &["A"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -244,7 +329,39 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
         symbols: &["K"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
+    pub const CELSIUS: Self = Self {
+        name: "celsius",
+        symbols: &["C"],
+        scale: ScaleExponents::IDENTITY,
+        conversion_factor: IDENTITY,
+        affine_offset: 273.15,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
+    pub const RANKINE: Self = Self {
+        name: "rankine",
+        symbols: &["R"],
+        scale: ScaleExponents::IDENTITY,
+        conversion_factor: 5.0 / 9.0,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
+    };
+
+    pub const FAHRENHEIT: Self = Self {
+        name: "fahrenheit",
+        symbols: &["degF"],
+        scale: ScaleExponents::IDENTITY,
+        conversion_factor: 5.0 / 9.0,
+        affine_offset: 255.37222222222223, // 273.15 - 32 * 5/9
+        exponents: TypeDimensionExponents::new(),
+        system: System::Imperial,
     };
 }
 
@@ -255,7 +372,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 1, 0, 0])> {
         symbols: &["mol"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -266,7 +385,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["rad"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const DEGREE: Self = Self {
@@ -274,7 +395,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["deg"],
         scale: ScaleExponents([-2, -2, -1, 1]),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const GRADIAN: Self = Self {
@@ -282,7 +405,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["grad", "gon"],
         scale: ScaleExponents([-3, -1, -1, 1]),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const TURN: Self = Self {
@@ -290,7 +415,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["rot", "turn"],
         scale: ScaleExponents([1, 0, 0, 1]),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const ARCMINUTE: Self = Self {
@@ -298,7 +425,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["arcmin"],
         scale: ScaleExponents([-4, -2, -2, 1]),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 
     pub const ARCSECOND: Self = Self {
@@ -306,7 +435,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 1])> {
         symbols: &["arcsec"],
         scale: ScaleExponents([-6, -2, -2, 1]),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -317,7 +448,9 @@ impl Unit<crate::dimension_exponents!([0, 0, -1, 0, 0, 0, 0, 0])> {
         symbols: &["Hz"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -328,7 +461,9 @@ impl Unit<crate::dimension_exponents!([1, 1, -2, 0, 0, 0, 0, 0])> {
         symbols: &["N"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -339,7 +474,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
         symbols: &["J"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -350,7 +487,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -3, 0, 0, 0, 0, 0])> {
         symbols: &["W"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -361,7 +500,9 @@ impl Unit<crate::dimension_exponents!([1, -1, -2, 0, 0, 0, 0, 0])> {
         symbols: &["Pa"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -372,7 +513,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 1, 0, 0, 0, 0])> {
         symbols: &["C"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -383,7 +526,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -3, -1, 0, 0, 0, 0])> {
         symbols: &["V"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -394,7 +539,9 @@ impl Unit<crate::dimension_exponents!([-1, -2, 4, 2, 0, 0, 0, 0])> {
         symbols: &["F"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -405,7 +552,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -3, -2, 0, 0, 0, 0])> {
         symbols: &["Ω"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -416,7 +565,9 @@ impl Unit<crate::dimension_exponents!([-1, -2, 3, 2, 0, 0, 0, 0])> {
         symbols: &["S"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -427,7 +578,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -2, -2, 0, 0, 0, 0])> {
         symbols: &["H"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -438,7 +591,9 @@ impl Unit<crate::dimension_exponents!([1, 0, -2, -1, 0, 0, 0, 0])> {
         symbols: &["T"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -449,7 +604,9 @@ impl Unit<crate::dimension_exponents!([1, 2, -2, -1, 0, 0, 0, 0])> {
         symbols: &["Wb"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -460,7 +617,9 @@ impl Unit<crate::dimension_exponents!([0, -2, 0, 0, 0, 0, 1, 0])> {
         symbols: &["lx"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -471,7 +630,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 1, 0])> {
         symbols: &["cd"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -482,7 +643,9 @@ impl Unit<crate::dimension_exponents!([0, 2, -1, 0, 0, 0, 0, 0])> {
         symbols: &["St"],
         scale: ScaleExponents::_10(-4),
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -493,7 +656,9 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 0, 0, 0, 0])> {
         symbols: &[],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
+        affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 

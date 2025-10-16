@@ -297,7 +297,7 @@ pub fn generate_prefixed_si_unit(
 
         if is_pure_power_of_10 {
             // Fall back to SI unit with 10^n notation when SI prefix lookup fails
-            generate_si_unit_with_scale(total_scale_p10, base_si_unit, long_name)
+            generate_si_unit_with_scale(effective_scale_p10, base_si_unit, long_name)
         } else {
             // Not a pure power of 10, show the scale factors explicitly
             let scale_factors_str = format_scale_factors(scale_factors.0[0], scale_factors.0[1], scale_factors.0[2], scale_factors.0[3]);
