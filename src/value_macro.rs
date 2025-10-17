@@ -3,12 +3,9 @@ macro_rules! define_value_macro {
         #[macro_export]
         #[doc(hidden)]
         macro_rules! $macro_name {
-            ($quantity:expr, $unit:expr) => {{
-                type TargetQuantity = $crate::unit!($unit, $T);
-
-                let rescaled: TargetQuantity = $crate::api::$rescale_fn($quantity);
-                rescaled.unsafe_value
-            }};
+            ($quantity:expr, $unit:expr) => {
+                ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T)).unsafe_value
+            };
         }
     };
 }
