@@ -17,6 +17,40 @@ fn test_legal_addition() {
 }
 
 #[test]
+fn test_ucum_format_parsing() {
+    // Test UCUM format with dot separators and implicit exponents
+    let force_ucum: unit!(kg.m/s2) = quantity!(100.0, kg.m/s2);
+    let force_traditional: unit!(kg * m / s^2) = quantity!(100.0, kg * m / s^2);
+    
+    // Both should represent the same unit
+    assert_eq!(force_ucum.unsafe_value, force_traditional.unsafe_value);
+    
+    // Test more complex UCUM expressions
+    let energy_ucum: unit!(kg.m2/s2) = quantity!(50.0, kg.m2/s2);
+    let energy_traditional: unit!(kg * m^2 / s^2) = quantity!(50.0, kg * m^2 / s^2);
+    
+    assert_eq!(energy_ucum.unsafe_value, energy_traditional.unsafe_value);
+    
+    // Test with explicit exponents
+    let power_ucum: unit!(kg.m2/s3) = quantity!(1000.0, kg.m2/s3);
+    let power_traditional: unit!(kg * m^2 / s^3) = quantity!(1000.0, kg * m^2 / s^3);
+    
+    assert_eq!(power_ucum.unsafe_value, power_traditional.unsafe_value);
+    
+    // Test composite denominators in UCUM format (denominator has multiple units with dots)
+    let composite_denom_ucum: unit!(m/kg.s) = quantity!(10.0, m/kg.s);
+    let composite_denom_traditional: unit!(m / (kg * s)) = quantity!(10.0, m / (kg * s));
+    
+    assert_eq!(composite_denom_ucum.unsafe_value, composite_denom_traditional.unsafe_value);
+    
+    // Test more complex composite denominator
+    let complex_composite_ucum: unit!(J/kg.m2) = quantity!(5.0, J/kg.m2);
+    let complex_composite_traditional: unit!(J / (kg * m^2)) = quantity!(5.0, J / (kg * m^2));
+    
+    assert_eq!(complex_composite_ucum.unsafe_value, complex_composite_traditional.unsafe_value);
+}
+
+#[test]
 fn test_legal_addition_assign() {
     let mut m1 = 5.0.meters();
 
@@ -300,8 +334,8 @@ fn test_imperial_units() {
     assert_eq!(value!(mass_ounces, dag), Unit::OUNCE.conversion_factor);
     assert_eq!(value!(mass_pounds, kg), Unit::POUND.conversion_factor);
     // Stones are stored as 10 kg (decakilogram), but there's no standard SI symbol for 10 kg
-    // So we test by converting to kg and adjusting for the 10x scale factor
-    assert_eq!(value!(mass_stones, kg) / 10.0, Unit::STONE.conversion_factor);
+    // So we test by converting to 10^1 * kg (which represents 10 kg) using the new power-of-10 syntax
+    assert_eq!(value!(mass_stones, 10^1 * kg), Unit::STONE.conversion_factor);
     assert_eq!(value!(mass_tons, Mg), Unit::TON.conversion_factor);
 
     let temp_fahrenheit = 1.0.fahrenheit();

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::token::{Caret, Comma, Slash, Star};
+use syn::token::{Caret, Comma, Slash, Star, Dot};
 use syn::{Ident, LitInt, Type};
 use whippyunits_core::{
     dimension_exponents::{DimensionExponents, DynDimensionExponents},
@@ -50,8 +50,13 @@ impl UnitExpr {
     fn parse_factor(input: ParseStream) -> Result<Self> {
         let mut left = Self::parse_power(input)?;
 
-        while input.peek(Star) {
-            let _star: Star = input.parse()?;
+        // Handle both * and . as multiplication operators (UCUM format uses .)
+        while input.peek(Star) || input.peek(Dot) {
+            if input.peek(Star) {
+                let _star: Star = input.parse()?;
+            } else if input.peek(Dot) {
+                let _dot: Dot = input.parse()?;
+            }
             let right = Self::parse_power(input)?;
             left = UnitExpr::Mul(Box::new(left), Box::new(right));
         }
@@ -65,6 +70,7 @@ impl UnitExpr {
         self.collect_identifiers_recursive(&mut identifiers);
         identifiers
     }
+
 
     fn collect_identifiers_recursive(&self, identifiers: &mut Vec<Ident>) {
         match self {
@@ -103,20 +109,71 @@ impl UnitExpr {
             syn::parenthesized!(content in input);
             content.parse()
         } else if input.peek(syn::LitInt) {
-            // Handle numeric literals like "1" in "1 / m"
-            let _lit: syn::LitInt = input.parse()?;
-            // For now, we'll treat numeric literals as dimensionless
-            // In a more sophisticated implementation, we could handle them properly
-            Ok(UnitExpr::Unit(UnitExprUnit {
-                name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
-                exponent: 1,
-            }))
+            // Handle numeric literals like "1" in "1 / m" or "10" in "10^4 m"
+            let lit: syn::LitInt = input.parse()?;
+            let base_value: i32 = lit.base10_parse()?;
+            
+            // Check if this is followed by a caret (^) for power notation
+            if input.peek(Caret) {
+                let _caret: Caret = input.parse()?;
+                let exponent_lit: LitInt = input.parse()?;
+                let exponent: i32 = exponent_lit.base10_parse()?;
+                
+                // Handle power-of-10 expressions like "10^4"
+                if base_value == 10 {
+                    // This is a power-of-10 scale factor
+                    // We need to create a special unit that represents this scale
+                    // For now, we'll create a unit with the appropriate scale factor
+                    Ok(UnitExpr::Unit(UnitExprUnit {
+                        name: syn::Ident::new("power_of_10", proc_macro2::Span::call_site()),
+                        exponent: exponent as i16,
+                    }))
+                } else {
+                    // For other bases, treat as regular power expression
+                    Ok(UnitExpr::Pow(
+                        Box::new(UnitExpr::Unit(UnitExprUnit {
+                            name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
+                            exponent: 1,
+                        })),
+                        exponent_lit,
+                    ))
+                }
+            } else {
+                // Regular numeric literal - treat as dimensionless
+                Ok(UnitExpr::Unit(UnitExprUnit {
+                    name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
+                    exponent: 1,
+                }))
+            }
         } else {
             let ident: Ident = input.parse()?;
-            Ok(UnitExpr::Unit(UnitExprUnit {
-                name: ident,
-                exponent: 1,
-            }))
+            
+            // Check for implicit exponent notation (UCUM format like "s2" instead of "s^2")
+            let ident_str = ident.to_string();
+            if let Some(pos) = ident_str.chars().position(|c| c.is_ascii_digit()) {
+                let base_name = &ident_str[..pos];
+                let exp_str = &ident_str[pos..];
+                if let Ok(exp) = exp_str.parse::<i16>() {
+                    // This is implicit exponent notation
+                    let base_ident = syn::Ident::new(base_name, ident.span());
+                    Ok(UnitExpr::Unit(UnitExprUnit {
+                        name: base_ident,
+                        exponent: exp,
+                    }))
+                } else {
+                    // Not a valid exponent, treat as regular unit
+                    Ok(UnitExpr::Unit(UnitExprUnit {
+                        name: ident,
+                        exponent: 1,
+                    }))
+                }
+            } else {
+                // Regular unit identifier
+                Ok(UnitExpr::Unit(UnitExprUnit {
+                    name: ident,
+                    exponent: 1,
+                }))
+            }
         }
     }
 
@@ -146,6 +203,14 @@ impl UnitExpr {
     pub fn evaluate(&self) -> UnitEvaluationResult {
         match self {
             UnitExpr::Unit(unit) => {
+                // Handle special power-of-10 scale factors
+                if unit.name.to_string() == "power_of_10" {
+                    return UnitEvaluationResult {
+                        dimension_exponents: DynDimensionExponents::ZERO,
+                        scale_exponents: ScaleExponents::_10(unit.exponent),
+                    };
+                }
+                
                 if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
                     // Get the dimension exponents and scale exponents from the unit
                     let mut dimension_exponents = unit_info.exponents.value();
@@ -221,9 +286,7 @@ impl UnitExpr {
     }
 }
 
-// Removed parse_unit_name - now using centralized parsing from whippyunits-core
 
-// Removed duplicate parsing functions - now using centralized parsing from whippyunits-core
 
 /// Get unit information for a unit name, handling prefixes and conversions
 /// Returns the complete Unit struct with dimensions and scale factors
