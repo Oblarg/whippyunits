@@ -138,8 +138,7 @@ impl Dimension {
     pub fn find_by_literal(
         literal: &str,
     ) -> Option<(&'static Unit, &'static Dimension, Option<&'static SiPrefix>)> {
-        let literal = literal.trim_end_matches("s");
-
+        // First try the literal as-is
         if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(literal)
             && let Some((unit, dimension)) = Self::find_si_unit_by_name(base)
         {
@@ -153,12 +152,36 @@ impl Dimension {
         }
 
         if let Some((unit, dimension)) = Self::find_unit_by_name(literal) {
-            Some((unit, dimension, None))
+            return Some((unit, dimension, None));
         } else if let Some((unit, dimension)) = Self::find_unit_by_symbol(literal) {
-            Some((unit, dimension, None))
-        } else {
-            None
+            return Some((unit, dimension, None));
         }
+
+        // If not found, try with plural "s" stripped (but only if the result is not empty)
+        if literal.len() > 1 {
+            let literal_singular = literal.trim_end_matches("s");
+            if !literal_singular.is_empty() {
+                if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(literal_singular)
+                    && let Some((unit, dimension)) = Self::find_si_unit_by_name(base)
+                {
+                    return Some((unit, dimension, Some(prefix)));
+                }
+
+                if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(literal_singular)
+                    && let Some((unit, dimension)) = Self::find_si_unit_by_symbol(base)
+                {
+                    return Some((unit, dimension, Some(prefix)));
+                }
+
+                if let Some((unit, dimension)) = Self::find_unit_by_name(literal_singular) {
+                    return Some((unit, dimension, None));
+                } else if let Some((unit, dimension)) = Self::find_unit_by_symbol(literal_singular) {
+                    return Some((unit, dimension, None));
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -603,6 +626,12 @@ mod tests {
         assert_eq!(
             Dimension::find_by_literal("grams").unwrap(),
             (&Unit::GRAM.erase(), &Dimension::MASS.erase(), None,)
+        );
+
+        // Test that single-letter units like "s" (second) work correctly
+        assert_eq!(
+            Dimension::find_by_literal("s").unwrap(),
+            (&Unit::SECOND.erase(), &Dimension::TIME.erase(), None,)
         );
 
         assert_eq!(Dimension::find_by_literal("millipound"), None,);
