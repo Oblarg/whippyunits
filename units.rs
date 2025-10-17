@@ -413,11 +413,10 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
     pub const WEEK: Self = Self {
         name: "week",
         symbols: &["wk"],
-        scale: ScaleExponents::_10(2)
+        scale: ScaleExponents::_10(3)
         .mul(ScaleExponents::_6(3))
-        .mul(ScaleExponents::_2(2))
-        .mul(ScaleExponents::_7(1)),
-        conversion_factor: IDENTITY,
+        .mul(ScaleExponents::_2(2)),
+        conversion_factor: 0.7,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Metric,
@@ -427,8 +426,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
         symbols: &["mo"],
         scale: ScaleExponents::_10(3)
         .mul(ScaleExponents::_6(4))
-        .mul(ScaleExponents::_2(1))
-        .mul(ScaleExponents::_7(1)),
+        .mul(ScaleExponents::_2(1)),
         conversion_factor: IDENTITY,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
@@ -603,7 +601,7 @@ impl Unit<crate::dimension_exponents!([1, 1, -2, 0, 0, 0, 0, 0])> {
     };
 }
 
-/// Energy
+/// Energy and Work
 impl Unit<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
     pub const JOULE: Self = Self {
         name: "joule",
@@ -676,6 +674,15 @@ impl Unit<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
+    };
+    pub const NEWTON_METER: Self = Self {
+        name: "newton meter",
+        symbols: &["Nm"],
+        scale: ScaleExponents::_10(1),
+        conversion_factor: 1.0,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
     };
 }
 
@@ -878,7 +885,7 @@ impl Unit<crate::dimension_exponents!([0, -2, 0, 0, 0, 0, 1, 0])> {
         name: "lumen",
         symbols: &["lm"],
         scale: ScaleExponents::IDENTITY,
-        conversion_factor: 1,
+        conversion_factor: IDENTITY,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Metric,
