@@ -300,10 +300,9 @@ fn test_imperial_units() {
     println!("1 stone = {:?}", mass_stones);
     println!("1 ton = {:?}", mass_tons);
 
-
     assert_eq!(value!(mass_ounces, dag), Unit::OUNCE.conversion_factor);
     assert_eq!(value!(mass_pounds, kg), Unit::POUND.conversion_factor);
-    assert_eq!(value!(mass_stones, 10^1*kg), Unit::STONE.conversion_factor);
+    assert_eq!(value!(mass_stones, 10*kg), Unit::STONE.conversion_factor);
     assert_eq!(value!(mass_tons, Mg), Unit::TON.conversion_factor);
 
     let temp_fahrenheit = 1.0.fahrenheit();

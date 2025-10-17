@@ -139,11 +139,20 @@ impl UnitExpr {
                     ))
                 }
             } else {
-                // Regular numeric literal - treat as dimensionless
-                Ok(UnitExpr::Unit(UnitExprUnit {
-                    name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
-                    exponent: 1,
-                }))
+                // Regular numeric literal - check if it's a power of 10
+                if base_value == 10 {
+                    // Treat "10" as "10^1" for power-of-10 scale factors
+                    Ok(UnitExpr::Unit(UnitExprUnit {
+                        name: syn::Ident::new("power_of_10", proc_macro2::Span::call_site()),
+                        exponent: 1,
+                    }))
+                } else {
+                    // Other numeric literals - treat as dimensionless
+                    Ok(UnitExpr::Unit(UnitExprUnit {
+                        name: syn::Ident::new("dimensionless", proc_macro2::Span::call_site()),
+                        exponent: 1,
+                    }))
+                }
             }
         } else {
             let ident: Ident = input.parse()?;
