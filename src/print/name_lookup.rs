@@ -100,22 +100,8 @@ pub fn generate_systematic_unit_name_with_format(
         format: crate::print::prettyprint::UnitFormat,
     ) -> String {
         if exponent != 0 {
-            // Handle base scale offset (e.g., gram -> kilogram)
-            let base_name = if base_scale_offset != 0 {
-                if long_name {
-                    match unit_name {
-                        "gram" => "kilogram",
-                        _ => unit_name,
-                    }
-                } else {
-                    match unit_symbol {
-                        "g" => "kg",
-                        _ => unit_symbol,
-                    }
-                }
-            } else {
-                if long_name { unit_name } else { unit_symbol }
-            };
+            // Use the base unit name/symbol directly - let the prefix system handle scaling
+            let base_name = if long_name { unit_name } else { unit_symbol };
 
             let exponent_str = match format {
                 crate::print::prettyprint::UnitFormat::Unicode => get_unicode_exponent(exponent),
