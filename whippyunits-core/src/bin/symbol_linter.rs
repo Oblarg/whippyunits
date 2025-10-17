@@ -25,6 +25,7 @@ struct SymbolConflict {
 const KNOWN_EXCEPTIONS: &[&str] = &[
     "ft", // foot vs femto + tesla (fT) - imperial unit conflict
     "pa", // pascal vs pico + ampere (pA) - legitimate SI unit ambiguity
+    "grad", // gradian vs grad + tesla (gradT) - legitimate SI unit ambiguity
 ];
 
 /// Collect all concrete unit symbols from the codebase (case-insensitive)

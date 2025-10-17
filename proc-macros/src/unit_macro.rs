@@ -156,13 +156,20 @@ impl UnitExpr {
                     let is_valid_unit_symbol =
                         Dimension::find_unit_by_symbol(&unit.name.to_string()).is_some();
                     if !is_valid_unit_symbol {
-                        if let Some((prefix, _base)) =
-                            SiPrefix::strip_any_prefix_symbol(&unit.name.to_string())
-                        {
-                            let prefix_factor = prefix.factor_log10();
-                            // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
-                            scale_exponents =
-                                scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                        // Try all prefixes until we find one with a valid base unit
+                        for prefix in SiPrefix::ALL {
+                            if let Some(base) = prefix.strip_prefix_symbol(&unit.name.to_string()) {
+                                if !base.is_empty() {
+                                    // Check if the base unit exists
+                                    if Dimension::find_unit_by_symbol(base).is_some() {
+                                        let prefix_factor = prefix.factor_log10();
+                                        // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
+                                        scale_exponents =
+                                            scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -237,13 +244,18 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     }
 
     // Then check if this is a prefixed unit (like kg, kW, mm, etc.)
-    if let Some((_prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
-        // Check if the base unit exists
-        if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
-            // For prefixed units, we need to return a unit with adjusted scale factors
-            // But since we can't modify the static unit, we need to handle this differently
-            // The scale factor adjustment should be handled in the evaluation logic
-            return Some(unit);
+    // Try all prefixes until we find one with a valid base unit
+    for prefix in SiPrefix::ALL {
+        if let Some(base) = prefix.strip_prefix_symbol(unit_name) {
+            if !base.is_empty() {
+                // Check if the base unit exists
+                if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
+                    // For prefixed units, we need to return a unit with adjusted scale factors
+                    // But since we can't modify the static unit, we need to handle this differently
+                    // The scale factor adjustment should be handled in the evaluation logic
+                    return Some(unit);
+                }
+            }
         }
     }
 
