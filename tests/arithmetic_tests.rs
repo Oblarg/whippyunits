@@ -300,8 +300,6 @@ fn test_imperial_units() {
 
     assert_eq!(value!(mass_ounces, dag), Unit::OUNCE.conversion_factor);
     assert_eq!(value!(mass_pounds, kg), Unit::POUND.conversion_factor);
-    // Stones are stored as 10 kg (decakilogram), but there's no standard SI symbol for 10 kg
-    // So we test by converting to 10^1 * kg (which represents 10 kg) using the new power-of-10 syntax
     assert_eq!(value!(mass_stones, 10^1*kg), Unit::STONE.conversion_factor);
     assert_eq!(value!(mass_tons, Mg), Unit::TON.conversion_factor);
 
