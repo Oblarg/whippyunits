@@ -190,12 +190,12 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
 ///             - `Length`, `Time`, `Mass`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`
 ///             - Also accepts single-character symbols: `L`, `T`, `M`, `I`, `Θ`, `N`, `J`, `A`
 ///         - A multiplication of two or more atomic dimensions:
-///             - `M * L`
+///             - `M * L` or `M.L` (UCUM style)
 ///         - A division of two or more atomic dimensions:
 ///             - `L / T`
 ///         - An exponentiation of an atomic dimension:
-///             - `L^2`, `T^-1`
-///         - A combination of the above: `M * L^2 / T^2`
+///             - `L^2`, `T^-1` or `L2`, `T^-1` (UCUM implicit exponent notation)
+///         - A combination of the above: `M * L^2 / T^2` or `M.L2/T^2` (UCUM style)
 ///
 /// ## Examples
 ///
@@ -203,14 +203,14 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
 /// use whippyunits::{define_generic_dimension, quantity};
 /// use core::ops::Mul;
 ///
-/// // Define a generic Area trait
-/// define_generic_dimension!(Area, Length^2);
+/// // Define a generic Area trait using UCUM syntax
+/// define_generic_dimension!(Area, L2);
 ///
-/// // Define a generic Energy trait
-/// define_generic_dimension!(Energy, M * L^2 / T^2);
+/// // Define a generic Energy trait using UCUM syntax
+/// define_generic_dimension!(Energy, M.L2/T^2);
 ///
 /// // Define a velocity that may be *either* linear or angular
-/// define_generic_dimension!(Velocity, L / T, A / T);
+/// define_generic_dimension!(Velocity, L/T, A/T);
 ///
 /// // Now you can write generic functions
 /// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> impl Area

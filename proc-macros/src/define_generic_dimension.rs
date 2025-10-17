@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
-use syn::token::{Caret, Comma, Slash, Star};
+use syn::token::{Caret, Comma, Slash, Star, Dot};
 use syn::{Ident, LitInt, Token};
 use whippyunits_core::Dimension;
 
@@ -32,8 +32,13 @@ impl DimensionExpr {
     fn parse_factor(input: ParseStream) -> Result<Self> {
         let mut left = Self::parse_power(input)?;
 
-        while input.peek(Star) {
-            let _star: Star = input.parse()?;
+        // Handle both * and . as multiplication operators (UCUM format uses .)
+        while input.peek(Star) || input.peek(Dot) {
+            if input.peek(Star) {
+                let _star: Star = input.parse()?;
+            } else if input.peek(Dot) {
+                let _dot: Dot = input.parse()?;
+            }
             let right = Self::parse_power(input)?;
             left = DimensionExpr::Mul(Box::new(left), Box::new(right));
         }
@@ -60,7 +65,27 @@ impl DimensionExpr {
             content.parse()
         } else {
             let ident: Ident = input.parse()?;
-            Ok(DimensionExpr::Dimension(ident))
+            
+            // Check for implicit exponent notation (UCUM format like "L2" instead of "L^2")
+            let ident_str = ident.to_string();
+            if let Some(pos) = ident_str.chars().position(|c| c.is_ascii_digit()) {
+                let base_name = &ident_str[..pos];
+                let exp_str = &ident_str[pos..];
+                if let Ok(exp) = exp_str.parse::<i16>() {
+                    // This is implicit exponent notation
+                    let base_ident = syn::Ident::new(base_name, ident.span());
+                    Ok(DimensionExpr::Pow(
+                        Box::new(DimensionExpr::Dimension(base_ident)),
+                        syn::LitInt::new(&exp.to_string(), ident.span())
+                    ))
+                } else {
+                    // Not a valid exponent, treat as regular dimension
+                    Ok(DimensionExpr::Dimension(ident))
+                }
+            } else {
+                // Regular dimension identifier
+                Ok(DimensionExpr::Dimension(ident))
+            }
         }
     }
 

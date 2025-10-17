@@ -228,12 +228,13 @@ fn test_generic_dimension() {
 
 #[test]
 fn test_generic_dimension_expressions() {
-    define_generic_dimension!(Force, Mass * Length / Time^2);
-    define_generic_dimension!(Energy, Mass * Length^2 / Time^2);
-    define_generic_dimension!(Pressure, Mass / Length / Time^2);
-    define_generic_dimension!(Power, Mass * Length^2 / Time^3);
-    define_generic_dimension!(ElectricField, Mass * Length / Time^3 / Current);
-    define_generic_dimension!(Capacitance, Time^4 * Current^2 / Mass / Length^2);
+    // Using UCUM syntax: dot multiplication with explicit exponents
+    define_generic_dimension!(Force, M.L/T^2);
+    define_generic_dimension!(Energy, M.L^2/T^2);
+    define_generic_dimension!(Pressure, M/L/T^2);
+    define_generic_dimension!(Power, M.L^2/T^3);
+    define_generic_dimension!(ElectricField, M.L/T^3/I);
+    define_generic_dimension!(Capacitance, T^4.I^2/M/L^2);
 
     let force: impl Force = quantity!(1.0, N);
     let energy: impl Energy = quantity!(1.0, J);
@@ -245,7 +246,8 @@ fn test_generic_dimension_expressions() {
 
 #[test]
 fn test_dimension_symbols_in_dsl() {
-    define_generic_dimension!(SymbolTest, L, M, T, L^2, M * L^2 / T^2);
+    // Using UCUM syntax: implicit exponents and dot multiplication
+    define_generic_dimension!(SymbolTest, L, M, T, L2, M.L2/T2);
 
     let length: impl SymbolTest = quantity!(1.0, m);
     let mass: impl SymbolTest = quantity!(1.0, kg);
@@ -256,7 +258,8 @@ fn test_dimension_symbols_in_dsl() {
 
 #[test]
 fn test_mixed_dimension_names_and_symbols() {
-    define_generic_dimension!(MixedTest, Length, M, Time, L^2, Mass * L^2 / T^2);
+    // Mix of full names and UCUM symbols with implicit exponents
+    define_generic_dimension!(MixedTest, Length, M, Time, L2, Mass.L2/T2);
     let length: impl MixedTest = quantity!(1.0, m);
     let mass: impl MixedTest = quantity!(1.0, kg);
     let time: impl MixedTest = quantity!(1.0, s);
