@@ -49,9 +49,6 @@ pub struct Unit<ExponentsType = DynDimensionExponents> {
 
     /// Symbols associated with the unit.
     /// 
-    /// Symbols are case-insensitive, since they are used for serialization
-    /// and operating systems often do not believe in case sensitivity.
-    /// 
     /// Symbols are also used for lookup, so they must be unique within
     /// the unit system.
     /// 
