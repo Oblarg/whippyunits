@@ -6,9 +6,9 @@ A zero-cost, pure rust units-of-measure library for applied computation.
 
 - **Compile-time dimensional safety**: Catch dimensional and scale coherence errors at compile-time
 - **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
-- **Unit literal DSL**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V * s^2 / m)`
-- **Scale-generic dimension type traits**: Write scale-generic or dimension-generic arithmetic that "just works" when given a concrete type
-- **Scale-generic dimension DSL**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V * T^2 / L)`
+- **Algebraic unit expressions**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V*s^2/m)`, complete with "smart" documentation via hover info on the passed-in unit identifiers
+- **Algebraic dimension expressions**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V*T^2/L)`, also with "smart" documentation via hover info on the passed-in dimension identifiers
+- **UCUM compliant**: Unit expressions, dimensions expressions, and quantity (de)serialization all support UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
 - **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
 - **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; integer types are guaranteed to use pure integer math, and floating point types use no more float math than necessary
@@ -29,6 +29,13 @@ let distance = 5.0m;
 let area = 5.0m * 5.0m;
 // or...
 let area = quantity!(5.0 * 5.0, m^2);
+
+// composite unit expressions support both "traditional" and UCUM-compliant
+// notation, and even allow mixed notation within a single expression:
+let energy = quantity!(5.0, kg.m2/s2);
+let energy = quantity!(5.0, kg*m2/s2);
+let energy = quantity!(5.0, kg*m^2/s^2);
+let energy = quantity!(5.0, kg*m^2/s^2);
 
 // ✅ dimensionally coherent operations permitted
 let legal = area + area;
@@ -226,6 +233,42 @@ fn example() {
     // compound/derived units are "lifted" to the provided scale preferences
     let energy = 1.0J; // kg * mm^2 / s^2 yields microJoules, so this stores as 1000.0 * 1000.0 microJoules
 }
+```
+
+The "smart" DSL documentation via hover info on the passed-in unit identifiers is reactive to
+changes in the base units.  When base units have been changed, in addition to the typical
+type information, the hover info on unit identifiers will display the unit to which that unit
+is lifted in the local scope, along with a thorough trace of the conversion chain of *every*
+unit identifier in the expression to its equivalent in the local base units.
+
+```rust
+define_base_units!(
+    Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian
+);
+
+let local_watt = quantity!(100.0, J / s);
+```
+
+Hovering over the `J` identifier will show the local equivalent of the unit, as
+well as a thorough trace of the conversion chain of the aggregate quantity to its
+equivalent in the local base units:
+
+```rust
+test_local_quantity
+type LocalJ = whippyunits::default_declarators::Microjoule
+size = 8, align = 0x8, no Drop
+```
+```
+J / s → µJ / s = µW
+
+Transformations:
+J = kg^1 * m^2 * s^-2
+↓ (length: m → mm, factor: 10^-3)
+↓ (exponent: 2, total factor: 10^-6)
+= kg^1 * mm^2 * s^-2
+= µJ
+
+s (no change)
 ```
 
 ## Human-readable display and debug format
