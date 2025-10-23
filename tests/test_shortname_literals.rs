@@ -1,11 +1,8 @@
 //! Test shortname custom literals like 5.0m
 
-use whippyunits::default_declarators::*;
 use whippyunits::*;
 
-define_literals!();
-
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_shortname_custom_literals() {
     // Test shortname literals that delegate to unit! macro
