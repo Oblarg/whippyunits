@@ -85,12 +85,11 @@ define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 
 ## Declarator Literals
 
-Use the `define_literals!()` macro to enable the use of unit literals in scopes tagged with the `#[culit::culit]` attribute:
+Literal declarators are available in `default_declarators::literals`.  They can be used
+in scopes tagged with the `#[culit::culit(whippyunits::default_declarators::literals)]` attribute:
 
 ```rust
-whippyunits_proc_macros::define_literals!();
-
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 fn example() {
     let distance = 100.0m; // 100.0 meters (f64)
     let mass = 10g;        // 10 grams (i32)
@@ -98,7 +97,7 @@ fn example() {
 }
 ```
 
-Supports all SI base units and prefixed units (mm, kg, μs, etc.) with type suffixes (f64, f32, i32, i64, u32, u64).
+For more information on literal declarators, see the [culit](https://crates.io/crates/culit) crate.
 
 ## Imperial and Affine Declarators
 
@@ -207,7 +206,7 @@ let centripetal_acceleration: unit!(m / s^2) = rescale((curvature * velocity * v
 assert_eq!(value!(centripetal_acceleration, m / s^2), std::f64::consts::PI / 180.0);
 ```
 
-## Scope-local base unit preferences
+## Scale-preferenced declarators
 
 Use the `define_base_units!` macro to define a local declarator syntax that obeys a given set of base SI scale preferences for storage:
 
@@ -225,8 +224,10 @@ define_base_units!(
     local_scale
 );
 
+// local scale literals are available in the "literals" module of the local_scale scope
 #[culit::culit(local_scale::literals)]
 fn example() {
+    // trait declarators and the quantity! macro are available in the module
     use local_scale::*;
     let distance = 1.0.meters();      // automatically stores as 1000.0 millimeters
     let distance = quantity!(1.0, m); // so does this
@@ -247,7 +248,7 @@ define_base_units!(
     Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale
 );
 
-let local_watt = quantity!(100.0, J / s);
+let local_watt = local_scale::quantity!(100.0, J / s);
 ```
 
 Hovering over the `J` identifier will show the local equivalent of the unit, as
