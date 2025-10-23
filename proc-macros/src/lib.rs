@@ -6,12 +6,14 @@ use syn::parse_macro_input;
 
 mod culit_macro;
 mod default_declarators_macro;
+mod define_base_units_macro;
 mod define_generic_dimension;
 mod lift_trace;
+mod local_unit_literals_macro;
 mod local_unit_macro;
 mod pow_lookup_macro;
 mod radian_erasure_macro;
-mod scoped_preferences_macro;
+mod shared_utils;
 mod unit_macro;
 
 /// Shared helper function to get the corresponding default declarator type for a unit
@@ -133,6 +135,287 @@ fn parse_unit_with_prefix_direct(
     (None, String::from(unit_name))
 }
 
+/// Get all unit symbols that should have literal macros
+/// This is the single source of truth for what units should have custom literals
+/// Used by both the regular define_literals!() and local unit literals
+fn get_all_unit_symbols_for_literals() -> Vec<String> {
+    use whippyunits_core::{Dimension, SiPrefix, Unit};
+    let mut symbols = Vec::new();
+
+    // Add base units from the canonical data
+    for unit in Unit::BASES.iter() {
+        if unit.name != "dimensionless" {
+            for symbol in unit.symbols {
+                symbols.push(symbol.to_string());
+            }
+        }
+    }
+
+    // Add all units from the unified dimensions data (including compound units and unit literals)
+    for dimension in Dimension::ALL {
+        for unit in dimension.units {
+            for symbol in unit.symbols {
+                symbols.push(symbol.to_string());
+            }
+        }
+    }
+
+    // Add prefixed units from the canonical data (base units)
+    for prefix in SiPrefix::ALL {
+        for unit in Unit::BASES.iter() {
+            if unit.name != "dimensionless" {
+                for symbol in unit.symbols {
+                    symbols.push(format!("{}{}", prefix.symbol(), symbol));
+                }
+            }
+        }
+    }
+
+    // Add prefixed compound units and derived units (kJ, mW, kN, mHz, etc.)
+    for prefix in SiPrefix::ALL {
+        for dimension in Dimension::ALL {
+            // Anything that's not atomic is composite (compound or derived)
+            if !Dimension::BASIS.contains(dimension) {
+                for unit in dimension.units {
+                    // Skip prefixed versions for units with conversion factors (imperial units)
+                    // as they are stored internally in SI units and don't need prefixed types
+                    if !unit.has_conversion() {
+                        for symbol in unit.symbols {
+                            symbols.push(format!("{}{}", prefix.symbol(), symbol));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    symbols.sort();
+    symbols.dedup();
+
+    // Filter out Rust keywords
+    let rust_keywords = [
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while", "async", "await", "dyn",
+    ];
+
+    symbols.retain(|symbol| !rust_keywords.contains(&symbol.as_str()));
+
+    symbols
+}
+
+/// Generate literal macros module - generic function that works for both default and local modes
+/// 
+/// # Parameters
+/// - `module_name`: Name of the module to generate (e.g., "custom_literal" or "local_unit_literals")
+/// - `is_local_mode`: If true, uses local quantity! macro (no prefix); if false, uses whippyunits::quantity!
+/// - `scale_params`: Optional scale parameters for lift trace (only used if is_local_mode is true)
+/// - `for_namespace`: If true, generates just the float/integer submodules without outer wrapper
+fn generate_literal_macros_module(
+    module_name: &str,
+    is_local_mode: bool,
+    scale_params: Option<(syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident)>,
+    for_namespace: bool,
+) -> proc_macro2::TokenStream {
+    // Get all unit symbols using the shared function
+    let unit_symbols = get_all_unit_symbols_for_literals();
+    
+    // Determine the correct quantity! path based on mode
+    let quantity_path = if is_local_mode {
+        // Local mode: use the local quantity! macro (no prefix, picks up from scope)
+        quote! { quantity! }
+    } else {
+        // Default mode: always use whippyunits::quantity!
+        quote! { whippyunits::quantity! }
+    };
+    
+    
+    let mut float_macros = Vec::new();
+    let mut integer_macros = Vec::new();
+
+    // Generate literal macros for each unit symbol with both float and integer variants
+    for unit_symbol in &unit_symbols {
+        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::mixed_site());
+        
+        // Generate documentation based on mode
+        let doc_string = if is_local_mode {
+            if let Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)) = &scale_params {
+                let local_context = crate::lift_trace::LocalContext {
+                    mass_scale: mass_scale.clone(),
+                    length_scale: length_scale.clone(),
+                    time_scale: time_scale.clone(),
+                    current_scale: current_scale.clone(),
+                    temperature_scale: temperature_scale.clone(),
+                    amount_scale: amount_scale.clone(),
+                    luminosity_scale: luminosity_scale.clone(),
+                    angle_scale: angle_scale.clone(),
+                };
+                let transformation_details = local_context.get_transformation_details_for_identifier(unit_symbol);
+                // Use the EXACT SAME logic as local_unit_macro
+                let lines: Vec<&str> = transformation_details.details.lines().collect();
+                let mut formatted_details = String::new();
+                for (j, line) in lines.iter().enumerate() {
+                    formatted_details.push_str(line);
+                    if j < lines.len() - 1 {
+                        formatted_details.push_str("<br>");
+                    }
+                }
+                formatted_details
+            } else {
+                format!("/// Local unit literal for `{}`", unit_symbol)
+            }
+        } else {
+            format!("/// Unit literal for `{}`", unit_symbol)
+        };
+
+        // Generate float variants
+        let unit_f64 = syn::Ident::new(&format!("{}_f64", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_f32 = syn::Ident::new(&format!("{}_f32", unit_symbol), proc_macro2::Span::mixed_site());
+        
+        float_macros.push(quote! {
+            #[doc = #doc_string]
+            macro_rules! #unit_f64 {
+                ($value:literal) => {{
+                    #quantity_path($value as f64, #unit_ident, f64)
+                }};
+            }
+            macro_rules! #unit_f32 {
+                ($value:literal) => {{
+                    #quantity_path($value as f32, #unit_ident, f32)
+                }};
+            }
+            pub(crate) use #unit_f64;
+            pub(crate) use #unit_f32;
+        });
+        
+        // Generate integer variants
+        let unit_i32 = syn::Ident::new(&format!("{}_i32", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_i64 = syn::Ident::new(&format!("{}_i64", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_u32 = syn::Ident::new(&format!("{}_u32", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_u64 = syn::Ident::new(&format!("{}_u64", unit_symbol), proc_macro2::Span::mixed_site());
+        
+        integer_macros.push(quote! {
+            #[doc = #doc_string]
+            macro_rules! #unit_i32 {
+                ($value:literal) => {{
+                    #quantity_path($value as i32, #unit_ident, i32)
+                }};
+            }
+            macro_rules! #unit_i64 {
+                ($value:literal) => {{
+                    #quantity_path($value as i64, #unit_ident, i64)
+                }};
+            }
+            macro_rules! #unit_u32 {
+                ($value:literal) => {{
+                    #quantity_path($value as u32, #unit_ident, u32)
+                }};
+            }
+            macro_rules! #unit_u64 {
+                ($value:literal) => {{
+                    #quantity_path($value as u64, #unit_ident, u64)
+                }};
+            }
+            pub(crate) use #unit_i32;
+            pub(crate) use #unit_i64;
+            pub(crate) use #unit_u32;
+            pub(crate) use #unit_u64;
+        });
+    }
+
+    // Generate shortname macros for all units (like the culit_macro does)
+    for unit_symbol in &unit_symbols {
+        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::mixed_site());
+
+        // Generate documentation based on mode
+        let doc_string = if is_local_mode {
+            if let Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)) = &scale_params {
+                let local_context = crate::lift_trace::LocalContext {
+                    mass_scale: mass_scale.clone(),
+                    length_scale: length_scale.clone(),
+                    time_scale: time_scale.clone(),
+                    current_scale: current_scale.clone(),
+                    temperature_scale: temperature_scale.clone(),
+                    amount_scale: amount_scale.clone(),
+                    luminosity_scale: luminosity_scale.clone(),
+                    angle_scale: angle_scale.clone(),
+                };
+                let transformation_details = local_context.get_transformation_details_for_identifier(unit_symbol);
+                // Use the EXACT SAME logic as local_unit_macro
+                let lines: Vec<&str> = transformation_details.details.lines().collect();
+                let mut formatted_details = String::new();
+                for (j, line) in lines.iter().enumerate() {
+                    formatted_details.push_str(line);
+                    if j < lines.len() - 1 {
+                        formatted_details.push_str("<br>");
+                    }
+                }
+                formatted_details
+            } else {
+                format!("/// Local unit literal for `{}`", unit_symbol)
+            }
+        } else {
+            format!("/// Unit literal for `{}`", unit_symbol)
+        };
+
+        // Create shortname macro for float module using #quantity_path macro directly
+        float_macros.push(quote! {
+            #[doc = #doc_string]
+            macro_rules! #unit_ident {
+                ($value:literal) => {{
+                    #quantity_path($value as f64, #unit_ident, f64)
+                }};
+            }
+            pub(crate) use #unit_ident;
+        });
+
+        // Create shortname macro for int module using #quantity_path macro directly
+        integer_macros.push(quote! {
+            #[doc = #doc_string]
+            macro_rules! #unit_ident {
+                ($value:literal) => {{
+                    #quantity_path($value as i32, #unit_ident, i32)
+                }};
+            }
+            pub(crate) use #unit_ident;
+        });
+    }
+
+    if for_namespace {
+        // For namespace use, generate just the float and integer submodules without outer wrapper
+        quote! {
+            #[allow(unused_macros)]
+            pub mod float {
+                #(#float_macros)*
+            }
+
+            #[allow(unused_macros)]
+            pub mod integer {
+                #(#integer_macros)*
+            }
+        }
+    } else {
+        // For regular use, generate the full module structure
+        let module_ident = syn::Ident::new(module_name, proc_macro2::Span::mixed_site());
+        
+        quote! {
+            #[allow(unused_macros)]
+            pub mod #module_ident {
+                #[allow(unused_macros)]
+                pub mod float {
+                    #(#float_macros)*
+                }
+
+                #[allow(unused_macros)]
+                pub mod integer {
+                    #(#integer_macros)*
+                }
+            }
+        }
+    }
+}
+
 /// Computes unit dimensions for a unit expression.
 ///
 /// Usage: `compute_unit_dimensions!(unit_expr)`
@@ -235,7 +518,7 @@ pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
 ///
 /// This is particularly useful for constraining the result of potentially-type-ambiguous operations,
 /// such as multiplication of two quantities with different dimensions.  If you want to construct a
-/// quantity with a known value, use the `quantity!` macro instead.
+/// quantity with a known value, use the `#quantity_path` macro instead.
 ///
 /// ## Syntax
 ///
@@ -288,14 +571,18 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 
 /// Defines custom literal declarators using [culit](https://crates.io/crates/culit).
 ///
-/// Culit is designed to look for literal implementations in the scope of the crate in which
-/// the literal is used; accordingly, this macro must be called in the user's crate to generate
-/// the necessary `custom_literal` module and corresponding macro implementations:
+/// By default, this places the literal declarators in the `custom_literal` module.  If
+/// a custom module name is provided, the literal declarators will be placed in that module.
+/// Culit can be pointed to a specific module by passing the module name to the culit 
+/// attribute, e.g. #[culit::culit(unit_literals)].
 ///
 /// ```rust
 /// // this must be called at least once in the user's crate, typically
 /// // at the crate root
 /// whippyunits::define_literals!();
+///
+/// // optionally, specify a custom module name to avoid conflicts
+/// whippyunits::define_literals!(unit_literals);
 ///
 /// // following this, literal declarators are available in any scope tagged with
 /// // #[culit::culit]
@@ -308,13 +595,13 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Literal declarators are effectively macro sugar for the [quantity!](crate::quantity!) macro.  The following
+/// Literal declarators are effectively macro sugar for the [#quantity_path](crate::#quantity_path) macro.  The following
 /// are equivalent:
 ///
 /// ```rust
 /// let distance = 1.0m;
 /// let distance = custom_literal::float::m(1.0);
-/// let distance = quantity!(1.0, m);
+/// let distance = #quantity_path(1.0, m);
 /// ```
 ///
 /// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
@@ -326,29 +613,32 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
 /// let mass = 10mg_i16; // i16
 /// ```
 ///
-/// Literal declarators will use *whatever version of the quantity! macro is in scope*, so if you have changed
-/// the local base units via [define_base_units!](crate::define_base_units!), the literal syntax will
-/// automatically use the appropriately-scaled declarators.
-///
 /// Because literal syntax is somewhat restrictive, we do not support the full set of algebraically-possible
 /// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are
-/// not supported.  For arbitrary algebraic expressions, use the [quantity!](crate::quantity!) macro instead.
+/// not supported.  For arbitrary algebraic expressions, use the [#quantity_path](crate::#quantity_path) macro instead.
 ///
 /// ## Note
 ///
 /// Must be called once in your crate, typically at the module level.
 /// The generated literals are only available in scopes tagged with `#[culit::culit]`.
 #[proc_macro]
-pub fn define_literals(_input: TokenStream) -> TokenStream {
-    let custom_literal_module = culit_macro::generate_custom_literal_module();
+pub fn define_literals(input: TokenStream) -> TokenStream {
+    // Parse the input to see if a module name is provided
+    let module_name = if input.is_empty() {
+        "custom_literal".to_string()
+    } else {
+        // Parse as an identifier for the module name
+        match syn::parse::<syn::Ident>(input) {
+            Ok(ident) => ident.to_string(),
+            Err(_) => {
+                // If parsing fails, use default
+                "custom_literal".to_string()
+            }
+        }
+    };
+    
+    let custom_literal_module = culit_macro::generate_custom_literal_module_with_name(&module_name);
     TokenStream::from(custom_literal_module)
-}
-
-#[proc_macro]
-#[doc(hidden)]
-pub fn generate_scoped_preferences(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as scoped_preferences_macro::ScopedPreferencesInput);
-    input.expand().into()
 }
 
 /// Generate exponentiation lookup tables with parametric range
@@ -384,6 +674,85 @@ pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
 #[doc(hidden)]
 pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as default_declarators_macro::DefaultDeclaratorsInput);
+    input.expand().into()
+}
+
+/// Generate local unit literals namespace with lift trace documentation
+#[proc_macro]
+#[doc(hidden)]
+pub fn generate_local_unit_literals(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as local_unit_literals_macro::LocalUnitLiteralsInput);
+    input.expand().into()
+}
+
+/// Define a local quantity trait and implementations for a given scale and set of units.
+///
+/// This is an internal macro used by define_base_units! to generate the trait definitions.
+/// Based on the original scoped_preferences.rs implementation.
+#[proc_macro]
+#[doc(hidden)]
+pub fn define_local_quantity(input: TokenStream) -> TokenStream {
+    // This macro should be called from within the define_base_units macro
+    // It generates the trait and implementations based on the original pattern
+    quote! {
+        // This will be expanded by the define_base_units macro
+        // The actual implementation is in the define_base_units_macro.rs file
+    }.into()
+}
+
+/// Define a set of declarators that auto-convert to a given set of base units.
+///
+/// ## Syntax
+///
+/// ```rust
+/// define_base_units!(
+///     $mass_scale:ident,
+///     $length_scale:ident,
+///     $time_scale:ident,
+///     $current_scale:ident,
+///     $temperature_scale:ident,
+///     $amount_scale:ident,
+///     $luminosity_scale:ident,
+///     $angle_scale:ident,
+///     $namespace:ident
+/// );
+/// ```
+/// 
+/// where: 
+/// - $mass_scale: The scale for mass units (full unit name, e.g. "Kilogram")
+/// - $length_scale: The scale for length units (full unit name, e.g. "Kilometer")
+/// - $time_scale: The scale for time units (full unit name, e.g. "Second")
+/// - $current_scale: The scale for current units (full unit name, e.g. "Ampere")
+/// - $temperature_scale: The scale for temperature units (full unit name, e.g. "Kelvin")
+/// - $amount_scale: The scale for amount units (full unit name, e.g. "Mole")
+/// - $luminosity_scale: The scale for luminosity units (full unit name, e.g. "Candela")
+/// - $angle_scale: The scale for angle units (full unit name, e.g. "Radian")
+/// - $namespace: The name for the declarator module
+///
+/// ## Usage
+///
+/// ```rust
+/// define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale);
+/// 
+/// // autoconverting literals are available in the inner "literals" module
+/// #[culit::culit(local_scale::literals)]
+/// fn example() {
+///     // trait declarators and the quantity! macro are available in the module
+///     use local_scale::*;
+///     let distance = 1.0.meters(); // automatically stores as 1000.0 millimeters
+///     let distance = quantity!(1.0, m); // so does this
+///     let distance = 1.0m; // and so does this!
+/// 
+///     // compound/derived units are "lifted" to the provided scale preferences
+///     let energy = 1.0J; // kg * mm^2 / s^2 yields microJoules, so this stores as 1000.0 * 1000.0 microJoules
+/// }
+/// ```
+/// 
+/// Hovering on unit identifiers or literals will provide documentation on the auto-conversion, showing both the
+/// declared unit and the unit to which it is converted, along with a detailed trace of the conversion chain.
+#[proc_macro]
+pub fn define_base_units(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as define_base_units_macro::DefineBaseUnitsInput);
     input.expand().into()
 }
 

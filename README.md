@@ -12,7 +12,7 @@ A zero-cost, pure rust units-of-measure library for applied computation.
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
 - **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
 - **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; integer types are guaranteed to use pure integer math, and floating point types use no more float math than necessary
-- **Scoped base unit preferences**: Use `define_base_units!` to change the default storage units for a scope, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
+- **Dynamic storage unit preferences**: Use `define_base_units!` to define a set of declarators that auto-convert to a given set of base units, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
 - **Language server integration**: Customized type rendering and text completion for unit types
 
 ## Example
@@ -214,18 +214,20 @@ Use the `define_base_units!` macro to define a local declarator syntax that obey
 ```rust
 define_base_units!(
     Kilogram,
-    // Local declarators will now use millimeters instead of meters
+    // local_scale declarators will use millimeters instead of meters
     Millimeter,
     Second,
     Ampere,
     Kelvin,
     Mole,
     Candela,
-    Radian
+    Radian,
+    local_scale
 );
 
-#[culit::culit]
+#[culit::culit(local_scale::literals)]
 fn example() {
+    use local_scale::*;
     let distance = 1.0.meters();      // automatically stores as 1000.0 millimeters
     let distance = quantity!(1.0, m); // so does this
     let distance = 1.0m;              // and so does this!
@@ -235,15 +237,14 @@ fn example() {
 }
 ```
 
-The "smart" DSL documentation via hover info on the passed-in unit identifiers is reactive to
-changes in the base units.  When base units have been changed, in addition to the typical
+The "smart" DSL documentation via hover info on the passed-in unit identifiers and literals is reactive to changes in the base units.  When base units have been changed, in addition to the typical
 type information, the hover info on unit identifiers will display the unit to which that unit
 is lifted in the local scope, along with a thorough trace of the conversion chain of *every*
 unit identifier in the expression to its equivalent in the local base units.
 
 ```rust
 define_base_units!(
-    Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian
+    Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale
 );
 
 let local_watt = quantity!(100.0, J / s);

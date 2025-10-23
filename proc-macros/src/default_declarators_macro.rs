@@ -3,11 +3,8 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
-/// Check if a unit name can be parsed as a valid Rust identifier
-/// This filters out units with unicode characters or other invalid identifier characters
-fn is_valid_identifier(name: &str) -> bool {
-    syn::parse_str::<Ident>(name).is_ok()
-}
+use crate::shared_utils::{is_valid_identifier, generate_scale_name};
+
 
 /// Input for the generate_default_declarators macro
 /// Usage: generate_default_declarators!()
@@ -99,7 +96,7 @@ impl DefaultDeclaratorsInput {
             let mut scale_definitions = Vec::new();
 
             // First, generate the base unit (no prefix)
-            let base_scale_name = self.generate_scale_name("", unit_suffix);
+            let base_scale_name = generate_scale_name("", unit_suffix);
             let base_fn_name = unit_suffix.to_string();
 
             // Calculate scale factors for base unit
@@ -121,7 +118,7 @@ impl DefaultDeclaratorsInput {
             // Then generate all the prefixed units
             for prefix in si_prefixes {
                 // Generate the correct naming convention using the source of truth
-                let scale_name = self.generate_scale_name(prefix.name(), unit_suffix);
+                let scale_name = generate_scale_name(prefix.name(), unit_suffix);
                 let fn_name = format!("{}{}", prefix.name(), unit_suffix);
 
                 // Calculate scale factors
@@ -167,18 +164,6 @@ impl DefaultDeclaratorsInput {
         }
     }
 
-    fn generate_scale_name(&self, prefix_name: &str, unit_suffix: &str) -> String {
-        // Systematically generate the correct naming convention
-        let unit_singular = unit_suffix.trim_end_matches('s');
-        let combined_name = if prefix_name.is_empty() {
-            unit_singular.to_string()
-        } else {
-            format!("{}{}", prefix_name, unit_singular)
-        };
-
-        // Capitalize only the first letter of the entire name
-        whippyunits_core::CapitalizedFmt(&combined_name).to_string()
-    }
 
     fn generate_common_time_declarators(&self, expansions: &mut Vec<TokenStream>) {
         use whippyunits_core::Dimension;

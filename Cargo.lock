@@ -184,9 +184,9 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "culit"
-version = "0.4.3"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d77d4da50147b82da9e0d62cc8e2852731816b2cdbb3f268adba6752ee07aa20"
+checksum = "b03ed260b7003cc0a87be77c961437f351f95148ab8d48a084e079d81289300b"
 dependencies = [
  "litrs",
 ]
