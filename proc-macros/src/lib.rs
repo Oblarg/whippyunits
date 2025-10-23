@@ -212,11 +212,13 @@ fn get_all_unit_symbols_for_literals() -> Vec<String> {
 /// - `is_local_mode`: If true, uses local quantity! macro (no prefix); if false, uses whippyunits::quantity!
 /// - `scale_params`: Optional scale parameters for lift trace (only used if is_local_mode is true)
 /// - `for_namespace`: If true, generates just the float/integer submodules without outer wrapper
+/// - `namespace_ident`: Optional namespace identifier for disambiguating local macros
 fn generate_literal_macros_module(
     module_name: &str,
     is_local_mode: bool,
     scale_params: Option<(syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident)>,
     for_namespace: bool,
+    namespace_ident: Option<syn::Ident>,
 ) -> proc_macro2::TokenStream {
     // Get all unit symbols using the shared function
     let unit_symbols = get_all_unit_symbols_for_literals();
@@ -269,24 +271,49 @@ fn generate_literal_macros_module(
             format!("/// Unit literal for `{}`", unit_symbol)
         };
 
+        // Generate unique inner names for each macro to avoid conflicts
+        // For local mode, prefix with the namespace identifier to disambiguate between different local scales
+        let inner_prefix = if is_local_mode {
+            if let Some(namespace) = &namespace_ident {
+                format!("{}_{}", namespace, unit_symbol)
+            } else {
+                unit_symbol.clone()
+            }
+        } else {
+            unit_symbol.clone()
+        };
+        
+        let inner_f64 = syn::Ident::new(&format!("{}_f64", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_f32 = syn::Ident::new(&format!("{}_f32", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_i32 = syn::Ident::new(&format!("{}_i32", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_i64 = syn::Ident::new(&format!("{}_i64", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_u32 = syn::Ident::new(&format!("{}_u32", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_u64 = syn::Ident::new(&format!("{}_u64", inner_prefix), proc_macro2::Span::mixed_site());
+
         // Generate float variants
         let unit_f64 = syn::Ident::new(&format!("{}_f64", unit_symbol), proc_macro2::Span::mixed_site());
         let unit_f32 = syn::Ident::new(&format!("{}_f32", unit_symbol), proc_macro2::Span::mixed_site());
         
         float_macros.push(quote! {
             #[doc = #doc_string]
-            macro_rules! #unit_f64 {
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_f64 {
                 ($value:literal) => {{
                     #quantity_path($value as f64, #unit_ident, f64)
                 }};
             }
-            macro_rules! #unit_f32 {
+            pub use #inner_f64 as #unit_f64;
+            
+            #[doc = #doc_string]
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_f32 {
                 ($value:literal) => {{
                     #quantity_path($value as f32, #unit_ident, f32)
                 }};
             }
-            pub(crate) use #unit_f64;
-            pub(crate) use #unit_f32;
+            pub use #inner_f32 as #unit_f32;
         });
         
         // Generate integer variants
@@ -297,30 +324,44 @@ fn generate_literal_macros_module(
         
         integer_macros.push(quote! {
             #[doc = #doc_string]
-            macro_rules! #unit_i32 {
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_i32 {
                 ($value:literal) => {{
                     #quantity_path($value as i32, #unit_ident, i32)
                 }};
             }
-            macro_rules! #unit_i64 {
+            pub use #inner_i32 as #unit_i32;
+            
+            #[doc = #doc_string]
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_i64 {
                 ($value:literal) => {{
                     #quantity_path($value as i64, #unit_ident, i64)
                 }};
             }
-            macro_rules! #unit_u32 {
+            pub use #inner_i64 as #unit_i64;
+            
+            #[doc = #doc_string]
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_u32 {
                 ($value:literal) => {{
                     #quantity_path($value as u32, #unit_ident, u32)
                 }};
             }
-            macro_rules! #unit_u64 {
+            pub use #inner_u32 as #unit_u32;
+            
+            #[doc = #doc_string]
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_u64 {
                 ($value:literal) => {{
                     #quantity_path($value as u64, #unit_ident, u64)
                 }};
             }
-            pub(crate) use #unit_i32;
-            pub(crate) use #unit_i64;
-            pub(crate) use #unit_u32;
-            pub(crate) use #unit_u64;
+            pub use #inner_u64 as #unit_u64;
         });
     }
 
@@ -359,26 +400,45 @@ fn generate_literal_macros_module(
             format!("/// Unit literal for `{}`", unit_symbol)
         };
 
+        // Generate unique inner names for shortname macros to avoid conflicts
+        // For local mode, prefix with the namespace identifier to disambiguate between different local scales
+        let inner_prefix = if is_local_mode {
+            if let Some(namespace) = &namespace_ident {
+                format!("{}_{}", namespace, unit_symbol)
+            } else {
+                unit_symbol.clone()
+            }
+        } else {
+            unit_symbol.clone()
+        };
+        
+        let inner_short_float = syn::Ident::new(&format!("{}_float", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_short_int = syn::Ident::new(&format!("{}_int", inner_prefix), proc_macro2::Span::mixed_site());
+
         // Create shortname macro for float module using #quantity_path macro directly
         float_macros.push(quote! {
             #[doc = #doc_string]
-            macro_rules! #unit_ident {
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_short_float {
                 ($value:literal) => {{
                     #quantity_path($value as f64, #unit_ident, f64)
                 }};
             }
-            pub(crate) use #unit_ident;
+            pub use #inner_short_float as #unit_ident;
         });
 
         // Create shortname macro for int module using #quantity_path macro directly
         integer_macros.push(quote! {
             #[doc = #doc_string]
-            macro_rules! #unit_ident {
+            #[macro_export]
+            #[doc(hidden)]
+            macro_rules! #inner_short_int {
                 ($value:literal) => {{
                     #quantity_path($value as i32, #unit_ident, i32)
                 }};
             }
-            pub(crate) use #unit_ident;
+            pub use #inner_short_int as #unit_ident;
         });
     }
 
@@ -677,6 +737,15 @@ pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
+/// Generate literals module for culit integration
+/// Usage: generate_literals_module!()
+#[proc_macro]
+#[doc(hidden)]
+pub fn generate_literals_module(_input: TokenStream) -> TokenStream {
+    let literals_module = generate_literal_macros_module("literals", false, None, false, None);
+    literals_module.into()
+}
+
 /// Generate local unit literals namespace with lift trace documentation
 #[proc_macro]
 #[doc(hidden)]
@@ -691,7 +760,7 @@ pub fn generate_local_unit_literals(input: TokenStream) -> TokenStream {
 /// Based on the original scoped_preferences.rs implementation.
 #[proc_macro]
 #[doc(hidden)]
-pub fn define_local_quantity(input: TokenStream) -> TokenStream {
+pub fn define_local_quantity(_input: TokenStream) -> TokenStream {
     // This macro should be called from within the define_base_units macro
     // It generates the trait and implementations based on the original pattern
     quote! {

@@ -94,6 +94,7 @@ impl DefineBaseUnitsInput {
             &amount_scale,
             &luminosity_scale,
             &angle_scale,
+            &namespace,
         );
 
         quote! {
@@ -205,14 +206,14 @@ impl DefineBaseUnitsInput {
 
         for dimension in base_dimensions {
             let (
-                mass_exp,
-                length_exp,
-                time_exp,
-                current_exp,
-                temperature_exp,
-                amount_exp,
-                luminosity_exp,
-                angle_exp,
+                _mass_exp,
+                _length_exp,
+                _time_exp,
+                _current_exp,
+                _temperature_exp,
+                _amount_exp,
+                _luminosity_exp,
+                _angle_exp,
             ) = (
                 dimension.exponents.0[0], // mass
                 dimension.exponents.0[1], // length
@@ -362,6 +363,7 @@ impl DefineBaseUnitsInput {
         amount_scale: &Ident,
         luminosity_scale: &Ident,
         angle_scale: &Ident,
+        namespace: &Ident,
     ) -> TokenStream {
         // Use the actual scale parameters to generate the literals module
         let scale_params = (
@@ -374,6 +376,6 @@ impl DefineBaseUnitsInput {
             luminosity_scale.clone(),
             angle_scale.clone(),
         );
-        super::generate_literal_macros_module("literals", true, Some(scale_params), true)
+        super::generate_literal_macros_module("literals", true, Some(scale_params), true, Some(namespace.clone()))
     }
 }

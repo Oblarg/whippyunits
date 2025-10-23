@@ -41,8 +41,14 @@ impl DefaultDeclaratorsInput {
         // Generate non-metric (imperial) unit declarators
         self.generate_nonmetric_declarators(&mut expansions);
 
+        // Generate the literals module using the new approach
+        let literals_module = self.generate_literals_module();
+        
         quote! {
             #(#expansions)*
+            
+            // Automatically generate literals module for culit integration
+            #literals_module
         }
     }
 
@@ -712,6 +718,14 @@ impl DefaultDeclaratorsInput {
                 };
                 expansions.push(expansion);
             }
+        }
+    }
+
+    /// Generate the literals module for culit integration
+    fn generate_literals_module(&self) -> TokenStream {
+        // Use the new proc macro to generate literals module
+        quote! {
+            whippyunits_proc_macros::generate_literals_module!();
         }
     }
 }

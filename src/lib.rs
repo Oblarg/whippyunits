@@ -53,7 +53,6 @@ pub use quantity_type::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimens
 
 // Re-export the proc macros for consumers to use
 pub use whippyunits_proc_macros::define_generic_dimension;
-pub use whippyunits_proc_macros::define_literals;
 pub use whippyunits_proc_macros::local_unit_type;
 pub use whippyunits_proc_macros::proc_unit as unit;
 

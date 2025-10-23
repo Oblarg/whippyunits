@@ -1,11 +1,4 @@
-//! Simple test to verify custom literals work
-
-use whippyunits::default_declarators::*;
-use whippyunits::*;
-
-whippyunits::define_literals!();
-
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_simple_custom_literals() {
     // Test float literals with float suffixes (these go to float module)
@@ -39,7 +32,7 @@ fn test_simple_custom_literals() {
     println!("Custom literals test passed!");
 }
 
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_compound_unit_custom_literals() {
     // Test compound unit literals (J, W, N, Pa, Hz, C, V, F, Ω, S, H, T, Wb, lm, lx)
@@ -121,7 +114,7 @@ fn test_compound_unit_custom_literals() {
     println!("Compound unit custom literals test passed!");
 }
 
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_angular_unit_custom_literals() {
     // Test all angular unit literals with float suffixes
@@ -186,7 +179,7 @@ fn test_angular_unit_custom_literals() {
     println!("Angular unit custom literals test passed!");
 }
 
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_inline_trig() {
     // Test cross-type conversion directly in the sin function call

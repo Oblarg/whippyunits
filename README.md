@@ -88,7 +88,7 @@ define_generic_dimension!(Energy, Mass * Length^2 / Time^2)
 Use the `define_literals!()` macro to enable the use of unit literals in scopes tagged with the `#[culit::culit]` attribute:
 
 ```rust
-whippyunits::define_literals!();
+whippyunits_proc_macros::define_literals!();
 
 #[culit::culit]
 fn example() {

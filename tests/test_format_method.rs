@@ -3,7 +3,7 @@
 use whippyunits::default_declarators::*;
 use whippyunits::*;
 
-whippyunits::define_literals!();
+whippyunits_proc_macros::define_literals!();
 
 #[culit::culit]
 #[test]
