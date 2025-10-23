@@ -12,8 +12,6 @@ fn test_local_unit_literals() {
     let energy_f64 = 1.0J; // 1 joule
     let energy_i32 = 1J; // 1 joule (integer)
 
-    crate::
-
     // Test other compound units
     let power_f64 = 2.0W; // 2 watts
     let force_f64 = 10.0N; // 10 newtons
