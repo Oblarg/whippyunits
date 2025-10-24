@@ -552,7 +552,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
         symbols: &["degF"],
         scale: ScaleExponents([0, -2, 1, 0]),
         conversion_factor: IDENTITY,
-        affine_offset: 255.37222222222223, // 273.15 - 32 * 5/9
+        affine_offset: 459.7,
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
     };
