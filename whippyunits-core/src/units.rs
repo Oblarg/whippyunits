@@ -544,7 +544,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
         conversion_factor: IDENTITY,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
-        system: System::Metric,
+        system: System::Imperial,
     };
 
     pub const FAHRENHEIT: Self = Self {
