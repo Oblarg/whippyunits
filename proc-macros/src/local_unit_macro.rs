@@ -730,32 +730,20 @@ impl LocalQuantityMacroInput {
                 if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(&base_symbol) {
                     (unit, dimension)
                 } else {
-                    // Unknown unit, fall back to original
-                    return self.generate_compound_unit_quote(
-                        &syn::parse_str::<syn::Expr>(unit_name).unwrap(),
-                        storage_type,
-                        lift_trace_doc_shadows,
-                    );
+                    // Unknown unit, generate error with suggestions
+                    return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
                 }
             } else if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_name) {
                 // If not found directly, try to find the base unit
                 if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(&base_symbol) {
                     (unit, dimension)
                 } else {
-                    // Unknown unit, fall back to original
-                    return self.generate_compound_unit_quote(
-                        &syn::parse_str::<syn::Expr>(unit_name).unwrap(),
-                        storage_type,
-                        lift_trace_doc_shadows,
-                    );
+                    // Unknown unit, generate error with suggestions
+                    return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
                 }
             } else {
-                // Unknown unit, fall back to original
-                return self.generate_compound_unit_quote(
-                    &syn::parse_str::<syn::Expr>(unit_name).unwrap(),
-                    storage_type,
-                    lift_trace_doc_shadows,
-                );
+                // Unknown unit, generate error with suggestions
+                return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
             };
 
         let dimensions = dimension.exponents;
@@ -799,6 +787,47 @@ impl LocalQuantityMacroInput {
                 storage_type,
                 lift_trace_doc_shadows,
             )
+        }
+    }
+
+    /// Generate error for unknown unit with suggestions
+    fn generate_unknown_unit_error(
+        &self,
+        unit_name: &str,
+        storage_type: &Type,
+        lift_trace_doc_shadows: &TokenStream,
+    ) -> TokenStream {
+        use crate::unit_suggestions::find_similar_units;
+        
+        let suggestions = find_similar_units(unit_name, 0.7);
+        let error_message = if suggestions.is_empty() {
+            format!("Unknown unit '{}'. No similar units found.", unit_name)
+        } else {
+            let suggestion_list = suggestions
+                .iter()
+                .map(|(suggestion, _)| format!("'{}'", suggestion))
+                .collect::<Vec<_>>()
+                .join(", ");
+            
+            format!(
+                "Unknown unit '{}'. Did you mean: {}?",
+                unit_name,
+                suggestion_list
+            )
+        };
+
+        // Generate a doc shadow that shows the error
+        let doc_ident_name = format!("Local{}", unit_name.to_uppercase());
+        let doc_ident = syn::Ident::new(&doc_ident_name, proc_macro2::Span::call_site());
+        
+        quote! {
+            const _: () = {
+                #[doc = #error_message]
+                #[allow(dead_code, non_camel_case_types)]
+                type #doc_ident = ();
+                
+                compile_error!(#error_message);
+            };
         }
     }
 

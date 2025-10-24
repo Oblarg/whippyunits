@@ -26,7 +26,7 @@ pub fn find_similar_units(unknown_unit: &str, threshold: f64) -> Vec<(String, f6
 
 /// Calculate similarity between two strings using Damerau-Levenshtein distance
 fn calculate_similarity(s1: &str, s2: &str) -> f64 {
-    let distance = damerau_levenshtein(s1, s2);
+    let distance = damerau_levenshtein(&s1.to_lowercase(), &s2.to_lowercase());
     let max_len = s1.len().max(s2.len()) as f64;
     
     if max_len == 0.0 {
