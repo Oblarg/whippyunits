@@ -9,6 +9,8 @@ use whippyunits_core::{
     Dimension, SiPrefix, Unit,
 };
 
+use crate::unit_suggestions::find_similar_units;
+
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
 pub struct UnitExprUnit {
@@ -186,27 +188,6 @@ impl UnitExpr {
         }
     }
 
-    /// Convert the unit expression to a string representation
-    pub fn to_string(&self) -> String {
-        match self {
-            UnitExpr::Unit(unit) => {
-                if unit.exponent == 1 {
-                    unit.name.to_string()
-                } else {
-                    format!("{}^{}", unit.name, unit.exponent)
-                }
-            }
-            UnitExpr::Mul(a, b) => {
-                format!("{} * {}", a.to_string(), b.to_string())
-            }
-            UnitExpr::Div(a, b) => {
-                format!("{} / {}", a.to_string(), b.to_string())
-            }
-            UnitExpr::Pow(base, exp) => {
-                format!("{}^{}", base.to_string(), exp)
-            }
-        }
-    }
 
     /// Evaluate the unit expression to get dimension exponents and scale factors
     pub fn evaluate(&self) -> UnitEvaluationResult {
@@ -335,6 +316,56 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     None
 }
 
+/// Check if a unit name is valid
+fn is_valid_unit(unit_name: &str) -> bool {
+    // Handle special cases for numeric literals and dimensionless units
+    if unit_name == "dimensionless" || unit_name == "power_of_10" {
+        return true;
+    }
+
+    // Check if it's a direct unit match
+    if Dimension::find_unit_by_symbol(unit_name).is_some() 
+        || Dimension::find_unit_by_name(unit_name).is_some() {
+        return true;
+    }
+
+    // Check if it's a valid prefixed unit
+    for prefix in SiPrefix::ALL {
+        if let Some(base) = prefix.strip_prefix_symbol(unit_name) {
+            if !base.is_empty() && Dimension::find_unit_by_symbol(base).is_some() {
+                return true;
+            }
+        }
+        if let Some(base) = prefix.strip_prefix_name(unit_name) {
+            if !base.is_empty() && Dimension::find_unit_by_name(base).is_some() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Generate error message with suggestions for an unknown unit
+fn generate_unit_error_message(unit_name: &str) -> String {
+    let suggestions = find_similar_units(unit_name, 0.7);
+    if suggestions.is_empty() {
+        format!("Unknown unit '{}'. No similar units found.", unit_name)
+    } else {
+        let suggestion_list = suggestions
+            .iter()
+            .map(|(suggestion, _)| format!("'{}'", suggestion))
+            .collect::<Vec<_>>()
+            .join(", ");
+        
+        format!(
+            "Unknown unit '{}'. Did you mean: {}?",
+            unit_name,
+            suggestion_list
+        )
+    }
+}
+
 /// Input for the unit macro
 pub struct UnitMacroInput {
     pub unit_expr: UnitExpr,
@@ -424,6 +455,17 @@ impl UnitMacroInput {
     /// Generate documentation for a single unit identifier
     fn generate_single_unit_doc(identifier: &Ident) -> Option<TokenStream> {
         let unit_name = identifier.to_string();
+        
+        // Check if the unit is valid first
+        if !is_valid_unit(&unit_name) {
+            let error_message = generate_unit_error_message(&unit_name);
+            return Some(quote! {
+                const _: () = {
+                    compile_error!(#error_message);
+                };
+            });
+        }
+        
         let doc_comment = Self::generate_unit_doc_comment(&unit_name);
 
         // Create a new identifier with the same span as the original

@@ -15,6 +15,7 @@ mod pow_lookup_macro;
 mod radian_erasure_macro;
 mod shared_utils;
 mod unit_macro;
+mod unit_suggestions;
 
 /// Shared helper function to get the corresponding default declarator type for a unit
 /// This is used by both the unit! macro and local_unit! macro to avoid code duplication

@@ -10,6 +10,7 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0"
 quote = "1.0"
+strsim = "0.11"
 syn = { version = "2.0", features = ["full"] }
 whippyunits-core = { path = "../whippyunits-core" }
 
