@@ -26,17 +26,8 @@ impl DefaultDeclaratorsInput {
         // Generate SI base unit declarators
         self.generate_si_base_declarators(&mut expansions, si_prefixes);
 
-        // Generate common time declarators
-        self.generate_common_time_declarators(&mut expansions);
-
-        // Generate common temperature declarators
-        self.generate_common_temperature_declarators(&mut expansions);
-
-        // Generate common angle declarators
-        self.generate_common_angle_declarators(&mut expansions);
-
-        // Generate compound unit declarators (J, W, N, Pa, etc.)
-        self.generate_compound_unit_declarators(&mut expansions);
+        // Generate non-base unit declarators (J, W, N, Pa, etc.)
+        self.generate_non_base_unit_declarators(&mut expansions);
 
         // Generate non-metric (imperial) unit declarators
         self.generate_nonmetric_declarators(&mut expansions);
@@ -59,10 +50,8 @@ impl DefaultDeclaratorsInput {
     ) {
         use whippyunits_core::Dimension;
 
-        // Get the atomic dimensions (first 8 dimensions are the base dimensions)
-        let base_dimensions = Dimension::BASIS;
-
-        for dimension in base_dimensions {
+        // Get all dimensions and process their base units (first unit in each dimension)
+        for dimension in Dimension::ALL {
             let (
                 mass_exp,
                 length_exp,
@@ -83,6 +72,17 @@ impl DefaultDeclaratorsInput {
                 dimension.exponents.0[7], // angle
             );
 
+            // Get the first unit (base unit) from this dimension
+            let base_unit = match dimension.units.first() {
+                Some(unit) => unit,
+                None => continue,
+            };
+
+            // Only process metric base units
+            if base_unit.system != whippyunits_core::System::Metric {
+                continue;
+            }
+
             // Determine the trait name and unit names based on dimension
             let (trait_name, unit_suffix) = match dimension.name {
                 "Mass" => ("SIMass", "grams"),
@@ -93,6 +93,26 @@ impl DefaultDeclaratorsInput {
                 "Amount" => ("SIAmount", "moles"),
                 "Luminosity" => ("SILuminosity", "candelas"),
                 "Angle" => ("SIAngle", "radians"),
+                "Energy" => ("SIEnergy", "joules"),
+                "Force" => ("SIForce", "newtons"),
+                "Power" => ("SIPower", "watts"),
+                "Pressure" => ("SIPressure", "pascals"),
+                "Electric Charge" => ("SIElectricCharge", "coulombs"),
+                "Electric Potential" => ("SIElectricPotential", "volts"),
+                "Capacitance" => ("SICapacitance", "farads"),
+                "Electric Resistance" => ("SIElectricResistance", "ohms"),
+                "Electric Conductance" => ("SIElectricConductance", "siemens"),
+                "Inductance" => ("SIInductance", "henries"),
+                "Magnetic Field" => ("SIMagneticField", "teslas"),
+                "Magnetic Flux" => ("SIMagneticFlux", "webers"),
+                "Illuminance" => ("SIIlluminance", "luxes"),
+                "Volume Mass Density" => ("SIVolumeMassDensity", "kilograms_per_cubic_meter"),
+                "Linear Mass Density" => ("SILinearMassDensity", "kilograms_per_meter"),
+                "Dynamic Viscosity" => ("SIDynamicViscosity", "pascal_seconds"),
+                "Kinematic Viscosity" => ("SIKinematicViscosity", "square_meters_per_second"),
+                "Area" => ("SIArea", "square_meters"),
+                "Volume" => ("SIVolume", "cubic_meters"),
+                "Frequency" => ("SIFrequency", "hertz"),
                 _ => continue,
             };
 
@@ -171,70 +191,6 @@ impl DefaultDeclaratorsInput {
     }
 
 
-    fn generate_common_time_declarators(&self, expansions: &mut Vec<TokenStream>) {
-        use whippyunits_core::Dimension;
-
-        // Find time units (dimension exponents: (0, 0, 1, 0, 0, 0, 0, 0))
-        let time_dimension = Dimension::TIME;
-        let time_units: Vec<_> = time_dimension
-            .units
-            .iter()
-            .filter(|unit| !unit.symbols.is_empty() && !unit.symbols.contains(&"s")) // Exclude base second
-            .collect();
-
-        if time_units.is_empty() {
-            return;
-        }
-
-        // Deduplicate by symbol to avoid duplicate definitions
-        let mut seen_symbols = std::collections::HashSet::new();
-        let mut scale_definitions = Vec::new();
-
-        for unit in time_units {
-            // Skip units with invalid identifier names (e.g., unicode characters)
-            if !is_valid_identifier(unit.name) {
-                continue;
-            }
-
-            // Use the first symbol for type name generation
-            let primary_symbol = unit.symbols[0];
-            if seen_symbols.insert(primary_symbol) {
-                let (p2, p3, p5, pi) = (
-                    unit.scale.0[0],
-                    unit.scale.0[1],
-                    unit.scale.0[2],
-                    unit.scale.0[3],
-                );
-                // Generate type name from long name
-                let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
-                let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
-
-                // Add 's' to make function names plural
-                let fn_name = whippyunits_core::make_plural(unit.name);
-                let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
-
-                scale_definitions.push(quote! {
-                    (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
-                });
-            }
-        }
-
-        let expansion = quote! {
-            define_quantity!(
-                0,
-                0,
-                1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                CommonTime,
-                #(#scale_definitions),*
-            );
-        };
-        expansions.push(expansion);
-    }
 
     fn generate_common_temperature_declarators(&self, expansions: &mut Vec<TokenStream>) {
         use whippyunits_core::{Dimension, System};
@@ -408,19 +364,18 @@ impl DefaultDeclaratorsInput {
         expansions.push(expansion);
     }
 
-    fn generate_compound_unit_declarators(&self, expansions: &mut Vec<TokenStream>) {
+    fn generate_non_base_unit_declarators(&self, expansions: &mut Vec<TokenStream>) {
         use whippyunits_core::{Dimension, System};
 
-        // Collect all metric units from all non-atomic dimensions
+        // Collect all metric units from all dimensions
         let mut metric_units = Vec::new();
 
         for dimension in Dimension::ALL {
-            // Anything that's not atomic is composite (compound or derived)
-            // Check if this is not one of the 8 base dimensions
-            if !Dimension::BASIS.contains(dimension) {
-                for unit in dimension.units {
-                    // Include all metric units that have symbols
-                    if !unit.symbols.is_empty() && unit.system == System::Metric {
+            for (i, unit) in dimension.units.iter().enumerate() {
+                if !unit.symbols.is_empty() && unit.system == System::Metric {
+                    // For all dimensions: include metric units that are NOT the base unit
+                    // (the base unit already gets prefix treatment in generate_si_base_declarators)
+                    if i > 0 {
                         metric_units.push((dimension, unit));
                     }
                 }
