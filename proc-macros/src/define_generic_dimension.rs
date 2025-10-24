@@ -6,6 +6,8 @@ use syn::token::{Caret, Comma, Slash, Star, Dot};
 use syn::{Ident, LitInt, Token};
 use whippyunits_core::Dimension;
 
+use crate::dimension_suggestions::find_similar_dimensions;
+
 // Parse dimension expressions like "Length / Time", "L / T", or "Mass * Length^2 / Time^2", "M * L^2 / T^2"
 pub enum DimensionExpr {
     Dimension(Ident),
@@ -89,8 +91,8 @@ impl DimensionExpr {
         }
     }
 
-    // Evaluate the expression to get dimension exponents
-    fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
+    // Evaluate the expression to get dimension exponents (safe version that doesn't panic)
+    fn evaluate_safe(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
             DimensionExpr::Dimension(ident) => {
                 let name_or_symbol = ident.to_string();
@@ -109,20 +111,12 @@ impl DimensionExpr {
                     );
                 }
 
-                // If not found, generate a helpful error message
-                let supported_names: Vec<&str> =
-                    Dimension::ALL.iter().map(|dim| dim.name).collect();
-                let supported_symbols: Vec<&str> =
-                    Dimension::ALL.iter().map(|dim| dim.symbol).collect();
-
-                panic!("Unsupported dimension: '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
-                       name_or_symbol,
-                       supported_names.join(", "),
-                       supported_symbols.join(", "));
+                // If not found, return zero exponents (error will be caught in documentation generation)
+                (0, 0, 0, 0, 0, 0, 0, 0)
             }
             DimensionExpr::Mul(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate();
+                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate_safe();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate_safe();
                 (
                     ma + mb,
                     la + lb,
@@ -135,8 +129,8 @@ impl DimensionExpr {
                 )
             }
             DimensionExpr::Div(a, b) => {
-                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate();
-                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate();
+                let (ma, la, ta, ca, tempa, aa, luma, anga) = a.evaluate_safe();
+                let (mb, lb, tb, cb, tempb, ab, lumb, angb) = b.evaluate_safe();
                 (
                     ma - mb,
                     la - lb,
@@ -149,7 +143,7 @@ impl DimensionExpr {
                 )
             }
             DimensionExpr::Pow(base, exp) => {
-                let (m, l, t, c, temp, a, lum, ang) = base.evaluate();
+                let (m, l, t, c, temp, a, lum, ang) = base.evaluate_safe();
                 let exp_val: i16 = exp.base10_parse().unwrap();
                 (
                     m * exp_val,
@@ -163,6 +157,12 @@ impl DimensionExpr {
                 )
             }
         }
+    }
+
+    // Evaluate the expression to get dimension exponents (original version for backward compatibility)
+    fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
+        // Delegate to the safe version
+        self.evaluate_safe()
     }
 }
 
@@ -201,16 +201,8 @@ impl DefineGenericDimensionInput {
             .dimension_exprs
             .iter()
             .map(|expr| {
-                let (
-                    mass_exp,
-                    length_exp,
-                    time_exp,
-                    current_exp,
-                    temp_exp,
-                    amount_exp,
-                    lum_exp,
-                    angle_exp,
-                ) = expr.evaluate();
+                // Try to evaluate the expression, but handle errors gracefully
+                let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = expr.evaluate_safe();
                 self.generate_impl(
                     mass_exp,
                     length_exp,
@@ -234,6 +226,7 @@ impl DefineGenericDimensionInput {
             #(#impl_blocks)*
         }
     }
+
 
     fn generate_impl(
         &self,
@@ -312,6 +305,17 @@ impl DefineGenericDimensionInput {
     /// Generate documentation for a single dimension identifier
     fn generate_single_dimension_doc(identifier: &Ident) -> Option<TokenStream> {
         let dimension_name = identifier.to_string();
+        
+        // Check if the dimension is valid first
+        if !Self::is_valid_dimension(&dimension_name) {
+            let error_message = Self::generate_dimension_error_message(&dimension_name);
+            return Some(quote! {
+                const _: () = {
+                    compile_error!(#error_message);
+                };
+            });
+        }
+        
         let doc_comment = Self::generate_dimension_doc_comment(&dimension_name);
 
         // Create a new identifier with the same span as the original
@@ -342,7 +346,6 @@ impl DefineGenericDimensionInput {
     }
 
     /// Get documentation text for a dimension
-    #[allow(mixed_script_confusables)]
     fn get_dimension_documentation_text(dimension_name: &str) -> String {
         // Map dimension names/symbols to their documentation
         match dimension_name {
@@ -395,6 +398,41 @@ impl DefineGenericDimensionInput {
             "A" => Some(quote! { whippyunits::dimension_traits::Angle }),
 
             _ => None, // Unknown dimension
+        }
+    }
+
+    /// Check if a dimension name is valid
+    fn is_valid_dimension(dimension_name: &str) -> bool {
+        // Check if it's a direct dimension match
+        Dimension::find_dimension(dimension_name).is_some()
+    }
+
+    /// Generate error message with suggestions for an unknown dimension
+    fn generate_dimension_error_message(dimension_name: &str) -> String {
+        let suggestions = find_similar_dimensions(dimension_name, 0.7);
+        if suggestions.is_empty() {
+            let supported_names: Vec<&str> =
+                Dimension::ALL.iter().map(|dim| dim.name).collect();
+            let supported_symbols: Vec<&str> =
+                Dimension::ALL.iter().map(|dim| dim.symbol).collect();
+            
+            format!(
+                "Unknown dimension '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
+                dimension_name,
+                supported_names.join(", "),
+                supported_symbols.join(", ")
+            )
+        } else {
+            let suggestion_list = suggestions
+                .iter()
+                .map(|(suggestion, _)| format!("'{}'", suggestion))
+                .collect::<Vec<_>>()
+                .join(", ");
+            
+            format!(
+                "Unknown dimension '{}'. Did you mean: {}?",
+                dimension_name, suggestion_list
+            )
         }
     }
 }

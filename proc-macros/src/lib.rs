@@ -1,4 +1,5 @@
 #![feature(trait_alias)]
+#![allow(mixed_script_confusables)]
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -8,11 +9,13 @@ mod culit_macro;
 mod default_declarators_macro;
 mod define_base_units_macro;
 mod define_generic_dimension;
+mod dimension_suggestions;
 mod lift_trace;
 mod local_unit_literals_macro;
 mod local_unit_macro;
 mod pow_lookup_macro;
 mod radian_erasure_macro;
+mod scale_suggestions;
 mod shared_utils;
 mod unit_macro;
 mod unit_suggestions;

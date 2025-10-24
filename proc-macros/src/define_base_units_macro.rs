@@ -4,6 +4,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
 use crate::shared_utils::generate_scale_name;
+use crate::scale_suggestions::find_similar_scales;
 
 /// Input for the define_base_units macro
 /// Usage: define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale)
@@ -69,6 +70,18 @@ impl DefineBaseUnitsInput {
         let angle_scale = self.angle_scale;
         let namespace = self.namespace;
 
+        // Generate documentation structs for scale identifiers
+        let doc_structs = Self::generate_scale_documentation(
+            &mass_scale,
+            &length_scale,
+            &time_scale,
+            &current_scale,
+            &temperature_scale,
+            &amount_scale,
+            &luminosity_scale,
+            &angle_scale,
+        );
+
         // Generate all trait definitions using the same iteration strategy as default_declarators
         let mut trait_definitions = Vec::new();
         Self::generate_local_quantity_traits(
@@ -98,6 +111,11 @@ impl DefineBaseUnitsInput {
         );
 
         quote! {
+            // Generate documentation structs for scale identifiers (validation happens here)
+            const _: () = {
+                #doc_structs
+            };
+
             pub mod #namespace {
                 use whippyunits::rescale_f64;
                 use whippyunits::rescale_i32;
@@ -396,5 +414,156 @@ impl DefineBaseUnitsInput {
             angle_scale.clone(),
         );
         super::generate_literal_macros_module("literals", true, Some(scale_params), true, Some(namespace.clone()))
+    }
+
+    /// Generate documentation structs for scale identifiers
+    fn generate_scale_documentation(
+        mass_scale: &Ident,
+        length_scale: &Ident,
+        time_scale: &Ident,
+        current_scale: &Ident,
+        temperature_scale: &Ident,
+        amount_scale: &Ident,
+        luminosity_scale: &Ident,
+        angle_scale: &Ident,
+    ) -> TokenStream {
+        let mut doc_structs = Vec::new();
+
+        // Generate documentation for each scale identifier
+        let scales = vec![
+            ("Mass", mass_scale),
+            ("Length", length_scale),
+            ("Time", time_scale),
+            ("Current", current_scale),
+            ("Temperature", temperature_scale),
+            ("Amount", amount_scale),
+            ("Luminosity", luminosity_scale),
+            ("Angle", angle_scale),
+        ];
+
+        for (dimension_name, scale_ident) in scales {
+            if let Some(doc_struct) = Self::generate_single_scale_doc(scale_ident, dimension_name) {
+                doc_structs.push(doc_struct);
+            }
+        }
+
+        quote! {
+            #(#doc_structs)*
+        }
+    }
+
+    /// Generate documentation for a single scale identifier
+    fn generate_single_scale_doc(identifier: &Ident, dimension_name: &str) -> Option<TokenStream> {
+        let scale_name = identifier.to_string();
+        
+        // Check if the scale is valid first
+        if !Self::is_valid_scale(&scale_name) {
+            let error_message = Self::generate_scale_error_message(&scale_name);
+            return Some(quote! {
+                const _: () = {
+                    compile_error!(#error_message);
+                };
+            });
+        }
+        
+        let doc_comment = Self::generate_scale_doc_comment(&scale_name, dimension_name);
+
+        // Create a new identifier with the same span as the original
+        let doc_ident = syn::Ident::new(&scale_name, identifier.span());
+
+        // Get the corresponding default declarator type
+        let declarator_type = Self::get_declarator_type_for_scale(&scale_name)?;
+
+        Some(quote! {
+            const _: () = {
+                #doc_comment
+                #[allow(non_camel_case_types)]
+                type #doc_ident = #declarator_type;
+            };
+        })
+    }
+
+    /// Generate documentation comment for a scale
+    fn generate_scale_doc_comment(scale_name: &str, dimension_name: &str) -> TokenStream {
+        let doc_text = Self::get_scale_documentation_text(scale_name, dimension_name);
+        quote! {
+            #[doc = #doc_text]
+        }
+    }
+
+    /// Get documentation text for a scale
+    fn get_scale_documentation_text(scale_name: &str, dimension_name: &str) -> String {
+        format!(
+            "Scale identifier: {} - Base unit for {} dimension. This will be used as the storage unit for all {} quantities in the local scale.",
+            scale_name, dimension_name, dimension_name
+        )
+    }
+
+    /// Check if a scale name is valid
+    fn is_valid_scale(scale_name: &str) -> bool {
+        // Check if it's a valid default declarator type by looking up the actual type
+        Self::get_declarator_type_for_scale(scale_name).is_some()
+    }
+
+    /// Generate error message with suggestions for an unknown scale
+    fn generate_scale_error_message(scale_name: &str) -> String {
+        let suggestions = find_similar_scales(scale_name, 0.7);
+        if suggestions.is_empty() {
+            format!(
+                "Unknown scale identifier '{}'. Please use a valid default declarator type name (e.g., Kilogram, Meter, Second, etc.).",
+                scale_name
+            )
+        } else {
+            let suggestion_list = suggestions
+                .iter()
+                .map(|(suggestion, _)| format!("'{}'", suggestion))
+                .collect::<Vec<_>>()
+                .join(", ");
+            
+            format!(
+                "Unknown scale identifier '{}'. Did you mean: {}?",
+                scale_name, suggestion_list
+            )
+        }
+    }
+
+    /// Get the corresponding default declarator type for a scale
+    fn get_declarator_type_for_scale(scale_name: &str) -> Option<TokenStream> {
+        // For scale identifiers, we need to check if they correspond to actual default declarator types
+        // Scale identifiers are typically the capitalized names of base units
+        
+        // Check if it's a base unit name (like "Second", "Kilogram", "Meter", etc.)
+        let atomic_dimensions = whippyunits_core::Dimension::BASIS;
+        for dimension in atomic_dimensions {
+            for unit in dimension.units {
+                // Check if the scale name matches the unit name (capitalized)
+                let unit_name_capitalized = whippyunits_core::CapitalizedFmt(unit.name).to_string();
+                if unit_name_capitalized == scale_name {
+                    let type_ident = syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
+                    return Some(quote! {
+                        whippyunits::default_declarators::#type_ident
+                    });
+                }
+            }
+        }
+        
+        // Check if it's a prefixed unit name (like "Kilogram", "Millimeter", etc.)
+        for prefix in whippyunits_core::SiPrefix::ALL {
+            for dimension in atomic_dimensions {
+                if let Some(base_unit) = dimension.units.first() {
+                    let unit_singular = base_unit.name.trim_end_matches('s');
+                    let combined_name = format!("{}{}", prefix.name(), unit_singular);
+                    let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
+                    if type_name == scale_name {
+                        let type_ident = syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
+                        return Some(quote! {
+                            whippyunits::default_declarators::#type_ident
+                        });
+                    }
+                }
+            }
+        }
+        
+        None
     }
 }
