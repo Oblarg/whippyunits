@@ -307,12 +307,6 @@ fn test_imperial_units() {
     assert_eq!(value!(mass_stones, 10*kg), Unit::STONE.conversion_factor);
     assert_eq!(value!(mass_tons, Mg), Unit::TON.conversion_factor);
 
-    let temp_fahrenheit = 1.0.fahrenheit();
-    let temp_rankine = 1.0.rankine();
-
-    println!("1°F = {:?}", temp_fahrenheit);
-    println!("1°R = {:?}", temp_rankine);
-
     let volume_us_gallon = 1.0.gallons();
     let volume_uk_gallon = 1.0.uk_gallons();
     let volume_us_quart = 1.0.quarts();

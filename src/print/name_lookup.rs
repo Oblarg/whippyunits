@@ -148,9 +148,30 @@ pub fn generate_systematic_unit_name_with_format(
                         } else {
                             ("?", "?", 0)
                         };
+                    // For compound units only, convert g to kg for mass terms
+                    // Check if this is a compound unit (multiple non-zero exponents)
+                    let is_compound_unit = exponents.iter().filter(|&&exp| exp != 0).count() > 1;
+                    
+                    let (adjusted_unit_name, adjusted_unit_symbol) = if is_compound_unit && base_scale_offset != 0 && index == 0 {
+                        // This is a compound unit with mass dimension (index 0) that has a scale offset
+                        if long_name {
+                            match unit_name {
+                                "gram" => ("kilogram", unit_symbol),
+                                _ => (unit_name, unit_symbol),
+                            }
+                        } else {
+                            match unit_symbol {
+                                "g" => (unit_name, "kg"),
+                                _ => (unit_name, unit_symbol),
+                            }
+                        }
+                    } else {
+                        (unit_name, unit_symbol)
+                    };
+
                     let part = render_unit_part(
-                        unit_name,
-                        unit_symbol,
+                        adjusted_unit_name,
+                        adjusted_unit_symbol,
                         base_scale_offset,
                         exp,
                         long_name,
