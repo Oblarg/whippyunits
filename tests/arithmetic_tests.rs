@@ -428,32 +428,18 @@ fn test_unit_macro_with_different_types() {
     let _area_type_check: unit!(m^2, i32) = 5.meters() * 10.meters();
 }
 
-// #[test]
-// fn test_imperial_declarators_generic_storage_types() {
-//     let length_f64: default_declarators::Centimeter<f64> = 12.0.inches();
-//     assert_eq!(length_f64.unsafe_value, 12.0 * 2.54);
+#[test]
+fn test_temperature_declarators() {
+    let temp_fahrenheit = 1.0.fahrenheit();
+    let temp_rankine = 1.0.rankine();
+    let temp_kelvin = 1.0.kelvin();
+    let temp_celsius = 1.0.celsius();
 
-//     let length_i32: default_declarators::Centimeter<i32> = 12i32.inches();
-//     assert_eq!(length_i32.unsafe_value, (12.0 * 2.54) as i32);
-
-//     let length_i64: default_declarators::Centimeter<i64> = 12i64.inches();
-//     assert_eq!(length_i64.unsafe_value, (12.0 * 2.54) as i64);
-
-//     let mass_f64: default_declarators::Kilogram<f64> = 2.0.pounds();
-//     assert_eq!(mass_f64.unsafe_value, 2.0 * 0.45359237);
-
-//     let mass_i32: default_declarators::Kilogram<i32> = 2i32.pounds();
-//     assert_eq!(mass_i32.unsafe_value, (2.0 * 0.45359237) as i32);
-
-//     let temp_f64: Fahrenheit<f64> = 32.0.fahrenheit();
-//     assert_eq!(temp_f64.unsafe_value, 32.0 * 5.0 / 9.0 + 255.3722222222222);
-
-//     let temp_i32: Fahrenheit<i32> = 32i32.fahrenheit();
-//     assert_eq!(
-//         temp_i32.unsafe_value,
-//         (32.0 * 5.0 / 9.0 + 255.3722222222222) as i32
-//     );
-// }
+    println!("1°F = {:?}", temp_fahrenheit);
+    println!("1°R = {:?}", temp_rankine);
+    println!("1 K = {:?}", temp_kelvin);
+    println!("1°C = {:?}", temp_celsius);
+}
 
 #[test]
 fn test_all_types_arithmetic_available() {

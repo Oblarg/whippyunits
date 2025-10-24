@@ -58,6 +58,8 @@ pub fn make_plural(singular: &str) -> String {
         "horsepower" => "horsepower".to_string(),
         "torr" => "torr".to_string(),
         "bar" => "bar".to_string(),
+        "celsius" => "celsius".to_string(),
+        "kelvin" => "kelvin".to_string(),
         _ => {
             // Default: just add 's' (works for 99% of unit names)
             format!("{}s", singular)

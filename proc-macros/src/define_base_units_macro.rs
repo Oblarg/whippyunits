@@ -225,26 +225,45 @@ impl DefineBaseUnitsInput {
                 dimension.exponents.0[7], // angle
             );
 
-            // Determine the trait name and unit names based on dimension
-            let (trait_name, unit_suffix, scale_ident) = match dimension.name {
-                "Mass" => ("LocalMass", "grams", mass_scale),
-                "Length" => ("LocalLength", "meters", length_scale),
-                "Time" => ("LocalTime", "seconds", time_scale),
-                "Current" => ("LocalCurrent", "amperes", current_scale),
-                "Temperature" => ("LocalTemperature", "kelvins", temperature_scale),
-                "Amount" => ("LocalAmount", "moles", amount_scale),
-                "Luminosity" => ("LocalLuminosity", "candelas", luminosity_scale),
-                "Angle" => ("LocalAngle", "radians", angle_scale),
+            // Get the first unit (base unit) from this dimension
+            let base_unit = match dimension.units.first() {
+                Some(unit) => unit,
+                None => continue,
+            };
+
+            // Only process metric base units
+            if base_unit.system != whippyunits_core::System::Metric {
+                continue;
+            }
+
+            // Get the base unit name from the dimension programmatically
+            let base_unit_name = base_unit.name;
+            let unit_suffix = whippyunits_core::make_plural(base_unit_name);
+            
+            // Generate trait name from dimension name, converting spaces to underscores
+            let sanitized_name = dimension.name.replace(" ", "");
+            let trait_name = format!("Local{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string());
+            
+            // Determine scale identifier based on dimension
+            let scale_ident = match dimension.name {
+                "Mass" => mass_scale,
+                "Length" => length_scale,
+                "Time" => time_scale,
+                "Current" => current_scale,
+                "Temperature" => temperature_scale,
+                "Amount" => amount_scale,
+                "Luminosity" => luminosity_scale,
+                "Angle" => angle_scale,
                 _ => continue,
             };
 
-            let trait_ident = syn::parse_str::<Ident>(trait_name).unwrap();
+            let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
 
             // Generate the scale definitions for each SI prefix
             let mut scale_definitions = Vec::new();
 
             // First, generate the base unit (no prefix)
-            let base_scale_name = generate_scale_name("", unit_suffix);
+            let base_scale_name = generate_scale_name("", &unit_suffix);
             let base_fn_name = unit_suffix.to_string();
 
             let base_scale_name_ident = syn::parse_str::<Ident>(&base_scale_name).unwrap();
@@ -257,7 +276,7 @@ impl DefineBaseUnitsInput {
             // Then generate all the prefixed units
             for prefix in si_prefixes {
                 // Generate the correct naming convention using the source of truth
-                let scale_name = generate_scale_name(prefix.name(), unit_suffix);
+                let scale_name = generate_scale_name(prefix.name(), &unit_suffix);
                 let fn_name = format!("{}{}", prefix.name(), unit_suffix);
 
                 let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();

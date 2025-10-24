@@ -42,7 +42,8 @@ pub fn generate_unit_literal(
 
     // Check if we found a unit literal match - if so, use it directly without conversion factor
     let pure_systematic = generate_systematic_unit_name(exponents_vec.clone(), config.verbose);
-    let systematic_literal = if base_systematic_literal != pure_systematic {
+    let found_unit_literal = base_systematic_literal != pure_systematic;
+    let systematic_literal = if found_unit_literal {
         // We found a unit literal match, use it directly
         base_systematic_literal
     } else {
@@ -72,8 +73,8 @@ pub fn generate_unit_literal(
                 generate_prefixed_si_unit(scale_factors, si_shortname, config.verbose);
 
             // Return the prefixed SI unit if it's different from the systematic literal
-            // But only if we didn't find a unit literal match (i.e., if systematic_literal == pure_systematic)
-            if prefixed_si_unit != systematic_literal && systematic_literal == pure_systematic {
+            // But only if we didn't find a unit literal match
+            if prefixed_si_unit != systematic_literal && !found_unit_literal {
                 prefixed_si_unit
             } else {
                 systematic_literal

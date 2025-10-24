@@ -83,46 +83,21 @@ impl DefaultDeclaratorsInput {
                 continue;
             }
 
-            // Determine the trait name and unit names based on dimension
-            let (trait_name, unit_suffix) = match dimension.name {
-                "Mass" => ("SIMass", "grams"),
-                "Length" => ("SILength", "meters"),
-                "Time" => ("SITime", "seconds"),
-                "Current" => ("SICurrent", "amperes"),
-                "Temperature" => ("SITemperature", "kelvins"),
-                "Amount" => ("SIAmount", "moles"),
-                "Luminosity" => ("SILuminosity", "candelas"),
-                "Angle" => ("SIAngle", "radians"),
-                "Energy" => ("SIEnergy", "joules"),
-                "Force" => ("SIForce", "newtons"),
-                "Power" => ("SIPower", "watts"),
-                "Pressure" => ("SIPressure", "pascals"),
-                "Electric Charge" => ("SIElectricCharge", "coulombs"),
-                "Electric Potential" => ("SIElectricPotential", "volts"),
-                "Capacitance" => ("SICapacitance", "farads"),
-                "Electric Resistance" => ("SIElectricResistance", "ohms"),
-                "Electric Conductance" => ("SIElectricConductance", "siemens"),
-                "Inductance" => ("SIInductance", "henries"),
-                "Magnetic Field" => ("SIMagneticField", "teslas"),
-                "Magnetic Flux" => ("SIMagneticFlux", "webers"),
-                "Illuminance" => ("SIIlluminance", "luxes"),
-                "Volume Mass Density" => ("SIVolumeMassDensity", "kilograms_per_cubic_meter"),
-                "Linear Mass Density" => ("SILinearMassDensity", "kilograms_per_meter"),
-                "Dynamic Viscosity" => ("SIDynamicViscosity", "pascal_seconds"),
-                "Kinematic Viscosity" => ("SIKinematicViscosity", "square_meters_per_second"),
-                "Area" => ("SIArea", "square_meters"),
-                "Volume" => ("SIVolume", "cubic_meters"),
-                "Frequency" => ("SIFrequency", "hertz"),
-                _ => continue,
-            };
+            // Get the base unit name from the dimension programmatically
+            let base_unit_name = base_unit.name;
+            let unit_suffix = whippyunits_core::make_plural(base_unit_name);
+            
+            // Generate trait name from dimension name, converting spaces to underscores
+            let sanitized_name = dimension.name.replace(" ", "");
+            let trait_name = format!("SI{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string());
 
-            let trait_ident = syn::parse_str::<Ident>(trait_name).unwrap();
+            let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
 
             // Generate the scale definitions for each SI prefix
             let mut scale_definitions = Vec::new();
 
             // First, generate the base unit (no prefix)
-            let base_scale_name = generate_scale_name("", unit_suffix);
+            let base_scale_name = generate_scale_name("", &unit_suffix);
             let base_fn_name = unit_suffix.to_string();
 
             // Calculate scale factors for base unit
@@ -144,7 +119,7 @@ impl DefaultDeclaratorsInput {
             // Then generate all the prefixed units
             for prefix in si_prefixes {
                 // Generate the correct naming convention using the source of truth
-                let scale_name = generate_scale_name(prefix.name(), unit_suffix);
+                let scale_name = generate_scale_name(prefix.name(), &unit_suffix);
                 let fn_name = format!("{}{}", prefix.name(), unit_suffix);
 
                 // Calculate scale factors
