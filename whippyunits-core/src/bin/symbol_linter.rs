@@ -26,6 +26,10 @@ const KNOWN_EXCEPTIONS: &[&str] = &[
     "ft", // foot vs femto + tesla (fT) - imperial unit conflict
     "pa", // pascal vs pico + ampere (pA) - legitimate SI unit ambiguity
     "grad", // gradian vs grad + tesla (gradT) - legitimate SI unit ambiguity
+    "ct", // carat vs centitesla (cT)
+    "nm", // nanometer vs Newton-meter (Nm)
+    "pc", // parsec vs picocoulomb (pC)
+    "ev", // electron-volt (eV) vs exavolt (EV)
 ];
 
 /// Collect all concrete unit symbols from the codebase (case-insensitive)
