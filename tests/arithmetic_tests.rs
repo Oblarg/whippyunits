@@ -268,12 +268,6 @@ fn test_mixed_dimension_names_and_symbols() {
 }
 
 #[test]
-fn test_single_imperial_unit_debug() {
-    let volume_us_cup = 1.0.cups();
-    println!("1 US cup = {:?}", volume_us_cup);
-}
-
-#[test]
 fn test_imperial_units() {
     let length_inches = 1.0.inches();
     let length_feet = 1.0.feet();
@@ -290,12 +284,20 @@ fn test_imperial_units() {
     assert_eq!(value!(length_yards, m), Unit::YARD.conversion_factor);
     assert_eq!(value!(length_miles, km), Unit::MILE.conversion_factor);
 
+    let mass_grains = 1.0.grains();
+    let mass_carats = 1.0.carats();
     let mass_ounces = 1.0.ounces();
+    // let mass_troy_ounces = 1.0.troy_ounces();
+    // let mass_troy_pounds = 1.0.troy_pounds();
     let mass_pounds = 1.0.pounds();
     let mass_stones = 1.0.stone();
     let mass_tons = 1.0.tons();
 
-    println!("1 ounces = {:?}", mass_ounces);
+    println!("1 grain = {:?}", mass_grains);
+    println!("1 carat = {:?}", mass_carats);
+    println!("1 ounce = {:?}", mass_ounces);
+    // println!("1 troy ounce = {:?}", mass_troy_ounces);
+    // println!("1 troy pound = {:?}", mass_troy_pounds);
     println!("1 pound = {:?}", mass_pounds);
     println!("1 stone = {:?}", mass_stones);
     println!("1 ton = {:?}", mass_tons);
@@ -331,6 +333,7 @@ fn test_imperial_units() {
     let volume_uk_tablespoon = 1.0.uk_tablespoons();
     let volume_us_teaspoon = 1.0.teaspoons();
     let volume_uk_teaspoon = 1.0.uk_teaspoons();
+    let volume_bushel = 1.0.bushels();
 
     println!("1 US gallon = {:?}", volume_us_gallon);
     println!("1 UK gallon = {:?}", volume_uk_gallon);
@@ -346,6 +349,18 @@ fn test_imperial_units() {
     println!("1 UK tablespoon = {:?}", volume_uk_tablespoon);
     println!("1 US teaspoon = {:?}", volume_us_teaspoon);
     println!("1 UK teaspoon = {:?}", volume_uk_teaspoon);
+
+    let energy_foot_pound = 1.0.foot_pounds();
+
+    println!("1 foot-pound = {:?}", energy_foot_pound);
+
+    let power_horsepower = 1.0.horsepowers();
+
+    println!("1 horsepower = {:?}", power_horsepower);
+
+    let pressure_psi = 1.0.psis();
+
+    println!("1 PSI = {:?}", pressure_psi);
 }
 
 #[test]
@@ -374,6 +389,7 @@ fn test_custom_formatting() {
     assert_eq!(format!("{}", time.fmt("s")), "90 s");
     assert_eq!(format!("{}", time.fmt("min")), "1.5 min");
     assert_eq!(format!("{}", time.fmt("h")), "0.025 h");
+    // add tests for larger time units
 
     println!("Precision formatting:");
     assert_eq!(format!("{:.2}", distance.fmt("km")), "5.00 km");

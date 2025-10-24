@@ -218,10 +218,10 @@ impl Dimension {
         Dimension::POWER.erase(),
         Dimension::PRESSURE.erase(),
         Dimension::ELECTRIC_CHARGE.erase(),
-        Dimension::ELETRIC_POTENTIAL.erase(),
+        Dimension::ELECTRIC_POTENTIAL.erase(),
         Dimension::CAPACITANCE.erase(),
-        Dimension::ELETRIC_RESISTANCE.erase(),
-        Dimension::ELETRIC_CONDUCTANCE.erase(),
+        Dimension::ELECTRIC_RESISTANCE.erase(),
+        Dimension::ELECTRIC_CONDUCTANCE.erase(),
         Dimension::INDUCTANCE.erase(),
         Dimension::MAGNETIC_FIELD.erase(),
         Dimension::MAGNETIC_FLUX.erase(),
@@ -271,7 +271,7 @@ impl Dimension<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
     pub const MASS: Self = __dim!(Self {
         name: "Mass",
         symbol: "M",
-        units: &[Unit::GRAM, Unit::OUNCE, Unit::POUND, Unit::STONE, Unit::TON],
+        units: &[Unit::GRAM, Unit::GRAIN, Unit::CARAT, Unit::OUNCE, Unit::TROY_OUNCE, Unit::TROY_POUND, Unit::POUND, Unit::STONE, Unit::TON],
     });
 }
 
@@ -279,7 +279,7 @@ impl Dimension<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
     pub const LENGTH: Self = __dim!(Self {
         name: "Length",
         symbol: "L",
-        units: &[Unit::METER, Unit::INCH, Unit::FOOT, Unit::YARD, Unit::MILE],
+        units: &[Unit::METER, Unit::INCH, Unit::FOOT, Unit::YARD, Unit::MILE, Unit::NAUTICAL_MILE, Unit::ASTRONOMICAL_UNIT, Unit::LIGHT_YEAR, Unit::PARSEC],
     });
 }
 
@@ -287,7 +287,7 @@ impl Dimension<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
     pub const TIME: Self = __dim!(Self {
         name: "Time",
         symbol: "T",
-        units: &[Unit::SECOND, Unit::MINUTE, Unit::HOUR, Unit::DAY],
+        units: &[Unit::SECOND, Unit::MINUTE, Unit::HOUR, Unit::DAY, Unit::WEEK, Unit::MONTH, Unit::YEAR],
     });
 }
 
@@ -372,6 +372,7 @@ impl Dimension<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
             Unit::FLUID_OUNCE_UK,
             Unit::TABLESPOON_UK,
             Unit::TEASPOON_UK,
+            Unit::BUSHEL
         ],
     });
 }
@@ -396,7 +397,7 @@ impl Dimension<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
     pub const ENERGY: Self = __dim!(Self {
         name: "Energy",
         symbol: "ML²T⁻²",
-        units: &[Unit::JOULE],
+        units: &[Unit::JOULE, Unit::ELECTRONVOLT, Unit::ERG, Unit::NEWTON_METER, Unit::CALORIE, Unit::FOOT_POUND, Unit::KILOWATT_HOUR, Unit::THERM],
     });
 }
 
@@ -404,7 +405,7 @@ impl Dimension<crate::dimension_exponents!([1, 2, -3, 0, 0, 0, 0, 0])> {
     pub const POWER: Self = __dim!(Self {
         name: "Power",
         symbol: "ML²T⁻³",
-        units: &[Unit::WATT],
+        units: &[Unit::WATT, Unit::HORSEPOWER],
     });
 }
 
@@ -412,7 +413,7 @@ impl Dimension<crate::dimension_exponents!([1, -1, -2, 0, 0, 0, 0, 0])> {
     pub const PRESSURE: Self = __dim!(Self {
         name: "Pressure",
         symbol: "ML⁻¹T⁻²",
-        units: &[Unit::PASCAL],
+        units: &[Unit::PASCAL, Unit::TORR, Unit::PSI, Unit::BAR, Unit::ATMOSPHERE],
     });
 }
 
@@ -425,7 +426,7 @@ impl Dimension<crate::dimension_exponents!([0, 0, 1, 1, 0, 0, 0, 0])> {
 }
 
 impl Dimension<crate::dimension_exponents!([1, 2, -3, -1, 0, 0, 0, 0])> {
-    pub const ELETRIC_POTENTIAL: Self = __dim!(Self {
+    pub const ELECTRIC_POTENTIAL: Self = __dim!(Self {
         name: "Electric Potential",
         symbol: "ML²T⁻³I⁻¹",
         units: &[Unit::VOLT],
@@ -441,7 +442,7 @@ impl Dimension<crate::dimension_exponents!([-1, -2, 4, 2, 0, 0, 0, 0])> {
 }
 
 impl Dimension<crate::dimension_exponents!([1, 2, -3, -2, 0, 0, 0, 0])> {
-    pub const ELETRIC_RESISTANCE: Self = __dim!(Self {
+    pub const ELECTRIC_RESISTANCE: Self = __dim!(Self {
         name: "Electric Resistance",
         symbol: "ML²T⁻³I⁻²",
         units: &[Unit::OHM],
@@ -449,7 +450,7 @@ impl Dimension<crate::dimension_exponents!([1, 2, -3, -2, 0, 0, 0, 0])> {
 }
 
 impl Dimension<crate::dimension_exponents!([-1, -2, 3, 2, 0, 0, 0, 0])> {
-    pub const ELETRIC_CONDUCTANCE: Self = __dim!(Self {
+    pub const ELECTRIC_CONDUCTANCE: Self = __dim!(Self {
         name: "Electric Conductance",
         symbol: "M⁻¹L⁻²T³I²",
         units: &[Unit::SIEMENS],
@@ -468,7 +469,7 @@ impl Dimension<crate::dimension_exponents!([1, 0, -2, -1, 0, 0, 0, 0])> {
     pub const MAGNETIC_FIELD: Self = __dim!(Self {
         name: "Magnetic Field",
         symbol: "MT⁻²I⁻¹",
-        units: &[Unit::TESLA],
+        units: &[Unit::TESLA, Unit::GAUSS],
     });
 }
 
@@ -484,7 +485,7 @@ impl Dimension<crate::dimension_exponents!([0, -2, 0, 0, 0, 0, 1, 0])> {
     pub const ILLUMINANCE: Self = __dim!(Self {
         name: "Illuminance",
         symbol: "L⁻²Cd",
-        units: &[Unit::LUX],
+        units: &[Unit::LUX, Unit::LUMEN],
     });
 }
 
