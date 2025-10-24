@@ -439,8 +439,8 @@ impl DefaultDeclaratorsInput {
                 let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
                 let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
 
-                // Add 's' to make function names plural for composite units
-                let fn_name = format!("{}s", unit.name);
+                // Generate function name (pluralized)
+                let fn_name = whippyunits_core::make_plural(unit.name);
                 let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
 
                 scale_definitions.push(quote! {

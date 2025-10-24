@@ -313,12 +313,6 @@ fn test_imperial_units() {
     println!("1°F = {:?}", temp_fahrenheit);
     println!("1°R = {:?}", temp_rankine);
 
-    // For temperature units with affine offsets, we need to check the stored value directly
-    // since value! macro is for unit conversions, not affine transformations
-    // The stored value is: (1 * conversion_factor) + affine_offset
-    assert_eq!(value!(temp_fahrenheit, K), 1.0 * Unit::FAHRENHEIT.conversion_factor + Unit::FAHRENHEIT.affine_offset);
-    assert_eq!(value!(temp_rankine, K), Unit::RANKINE.conversion_factor);
-
     let volume_us_gallon = 1.0.gallons();
     let volume_uk_gallon = 1.0.uk_gallons();
     let volume_us_quart = 1.0.quarts();

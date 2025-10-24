@@ -540,18 +540,18 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
     pub const RANKINE: Self = Self {
         name: "rankine",
         symbols: &["R"],
-        scale: ScaleExponents::IDENTITY,
-        conversion_factor: 5.0 / 9.0,
+        scale: ScaleExponents([0, -2, 1, 0]),
+        conversion_factor: IDENTITY,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
-        system: System::Imperial,
+        system: System::Metric,
     };
 
     pub const FAHRENHEIT: Self = Self {
         name: "fahrenheit",
         symbols: &["degF"],
-        scale: ScaleExponents::IDENTITY,
-        conversion_factor: 5.0 / 9.0,
+        scale: ScaleExponents([0, -2, 1, 0]),
+        conversion_factor: IDENTITY,
         affine_offset: 255.37222222222223, // 273.15 - 32 * 5/9
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,

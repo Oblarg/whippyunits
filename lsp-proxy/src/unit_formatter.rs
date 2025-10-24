@@ -277,10 +277,10 @@ impl UnitFormatter {
 
     /// Parse the new Quantity type format with Scale<...> and Dimension<...> structs
     fn parse_new_quantity_params(&self, quantity_type: &str) -> Option<QuantityParams> {
-        // Parse Scale parameters - handle both full format and truncated format
-        let scale = if quantity_type.contains("Scale<_2<") {
-            // Full format: Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>
-            let (p2, p3, p5, pi) = self.parse_scale_full_format(quantity_type)?;
+        // Parse Scale parameters - handle all possible combinations of defaulted parameters
+        let scale = if quantity_type.contains("Scale<") {
+            // Any Scale format with parameters - handle all combinations of defaulted values
+            let (p2, p3, p5, pi) = self.parse_scale_general_format(quantity_type)?;
             ScaleExponents([p2, p3, p5, pi])
         } else if quantity_type.contains("Scale,") {
             // Truncated format: Scale, or Scale> or Scale, Dimension (all parameters default to 0)
@@ -322,24 +322,39 @@ impl UnitFormatter {
         })
     }
 
-    /// Parse full Scale format: Scale<_2<P2>, _3<P3>, _5<P5>, _Pi<PI>>
-    /// Handles cases where some parameters may be missing (e.g., only _2, _3, _5 without _Pi)
-    fn parse_scale_full_format(&self, quantity_type: &str) -> Option<(i16, i16, i16, i16)> {
-        let scale_start = quantity_type.find("Scale<_2<")?;
+    /// Parse general Scale format: Scale<_2[<P2>], _3[<P3>], _5[<P5>], _Pi[<PI>]>
+    /// Handles all possible combinations of defaulted parameters
+    /// Parameters can be either _2<value> (explicit) or _2 (defaulted to 0)
+    fn parse_scale_general_format(&self, quantity_type: &str) -> Option<(i16, i16, i16, i16)> {
+        let scale_start = quantity_type.find("Scale<")?;
         let scale_content = &quantity_type[scale_start + 6..]; // Skip "Scale<"
 
         // Find the end of the Scale struct
         let scale_end = self.find_matching_bracket(scale_content, 0)?;
         let scale_params = &scale_content[..scale_end];
 
-        // Parse individual parameters: _2<P2>, _3<P3>, _5<P5>, _Pi<PI>
-        // Handle missing parameters by defaulting to 0
-        let p2 = self.parse_scale_param(scale_params, "_2<").unwrap_or(0);
-        let p3 = self.parse_scale_param(scale_params, "_3<").unwrap_or(0);
-        let p5 = self.parse_scale_param(scale_params, "_5<").unwrap_or(0);
-        let pi = self.parse_scale_param(scale_params, "_Pi<").unwrap_or(0);
+        // Parse each parameter, handling both explicit values and defaults
+        let p2 = self.parse_scale_param_with_default(scale_params, "_2");
+        let p3 = self.parse_scale_param_with_default(scale_params, "_3");
+        let p5 = self.parse_scale_param_with_default(scale_params, "_5");
+        let pi = self.parse_scale_param_with_default(scale_params, "_Pi");
 
         Some((p2, p3, p5, pi))
+    }
+
+    /// Parse a scale parameter that may be either explicit (_2<value>) or defaulted (_2)
+    fn parse_scale_param_with_default(&self, content: &str, prefix: &str) -> i16 {
+        // First try to find explicit value: _2<value>
+        if let Some(value) = self.parse_scale_param(content, &format!("{}<", prefix)) {
+            value
+        } else {
+            // Check if parameter exists in defaulted form: _2 (without <value>)
+            if content.contains(&format!("{},", prefix)) || content.ends_with(prefix) {
+                0 // Default value
+            } else {
+                0 // Parameter not found, default to 0
+            }
+        }
     }
 
     /// Parse full Dimension format: Dimension<_M<MASS>, _L<LENGTH>, _T<TIME>, _I<CURRENT>, _Θ<TEMP>, _N<AMOUNT>, _J<LUMINOSITY>, _A<ANGLE>>
