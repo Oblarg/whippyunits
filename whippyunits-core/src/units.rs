@@ -250,7 +250,7 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
     };
 
     pub const TROY_OUNCE: Self = Self {
-        name: "troy ounce",
+        name: "troy_ounce",
         symbols: &["ozt"],
         scale: ScaleExponents::_10(-2),
         conversion_factor: 3.11034768,
@@ -259,7 +259,7 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         system: System::Imperial,
     };
     pub const TROY_POUND: Self = Self {
-        name: "troy pound",
+        name: "troy_pound",
         symbols: &["lbt"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: 0.3732417216,

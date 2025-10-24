@@ -54,6 +54,10 @@ pub fn make_plural(singular: &str) -> String {
         "candela" => "candela".to_string(),
         "fahrenheit" => "fahrenheit".to_string(),
         "rankine" => "rankine".to_string(),
+        "psi" => "psi".to_string(),
+        "horsepower" => "horsepower".to_string(),
+        "torr" => "torr".to_string(),
+        "bar" => "bar".to_string(),
         _ => {
             // Default: just add 's' (works for 99% of unit names)
             format!("{}s", singular)

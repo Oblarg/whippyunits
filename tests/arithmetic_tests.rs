@@ -287,8 +287,8 @@ fn test_imperial_units() {
     let mass_grains = 1.0.grains();
     let mass_carats = 1.0.carats();
     let mass_ounces = 1.0.ounces();
-    // let mass_troy_ounces = 1.0.troy_ounces();
-    // let mass_troy_pounds = 1.0.troy_pounds();
+    let mass_troy_ounces = 1.0.troy_ounces();
+    let mass_troy_pounds = 1.0.troy_pounds();
     let mass_pounds = 1.0.pounds();
     let mass_stones = 1.0.stone();
     let mass_tons = 1.0.tons();
@@ -296,8 +296,8 @@ fn test_imperial_units() {
     println!("1 grain = {:?}", mass_grains);
     println!("1 carat = {:?}", mass_carats);
     println!("1 ounce = {:?}", mass_ounces);
-    // println!("1 troy ounce = {:?}", mass_troy_ounces);
-    // println!("1 troy pound = {:?}", mass_troy_pounds);
+    println!("1 troy ounce = {:?}", mass_troy_ounces);
+    println!("1 troy pound = {:?}", mass_troy_pounds);
     println!("1 pound = {:?}", mass_pounds);
     println!("1 stone = {:?}", mass_stones);
     println!("1 ton = {:?}", mass_tons);
@@ -354,11 +354,11 @@ fn test_imperial_units() {
 
     println!("1 foot-pound = {:?}", energy_foot_pound);
 
-    let power_horsepower = 1.0.horsepowers();
+    let power_horsepower = 1.0.horsepower();
 
     println!("1 horsepower = {:?}", power_horsepower);
 
-    let pressure_psi = 1.0.psis();
+    let pressure_psi = 1.0.psi();
 
     println!("1 PSI = {:?}", pressure_psi);
 }
