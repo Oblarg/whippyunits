@@ -486,27 +486,40 @@ impl DefaultDeclaratorsInput {
     }
 
     fn generate_nonmetric_declarators(&self, expansions: &mut Vec<TokenStream>) {
-        use whippyunits_core::{Dimension, System};
+        use whippyunits_core::System;
 
-        // Collect all imperial units from all dimensions
-        let mut imperial_units = Vec::new();
+        // Define all non-metric systems to iterate over
+        const NON_METRIC_SYSTEMS: &[System] = &[System::Imperial, System::Astronomical];
+
+        // Loop over all non-metric systems
+        for system in NON_METRIC_SYSTEMS {
+            self.generate_system_declarators(expansions, *system);
+        }
+    }
+
+    /// Generate declarators for a specific system (Imperial, Astronomical, etc.)
+    fn generate_system_declarators(&self, expansions: &mut Vec<TokenStream>, system: whippyunits_core::System) {
+        use whippyunits_core::Dimension;
+
+        // Collect all units from the specified system
+        let mut system_units = Vec::new();
 
         for dimension in Dimension::ALL {
             for unit in dimension.units {
-                if unit.system == System::Imperial {
-                    imperial_units.push((dimension, unit));
+                if unit.system == system {
+                    system_units.push((dimension, unit));
                 }
             }
         }
 
-        if imperial_units.is_empty() {
+        if system_units.is_empty() {
             return;
         }
 
-        // Group imperial units by their dimension name (not exponents)
+        // Group units by their dimension name (not exponents)
         let mut grouped_units: std::collections::HashMap<_, Vec<_>> =
             std::collections::HashMap::new();
-        for (dimension, unit) in imperial_units {
+        for (dimension, unit) in system_units {
             grouped_units
                 .entry(dimension.name)
                 .or_default()
@@ -573,9 +586,11 @@ impl DefaultDeclaratorsInput {
                     });
                 }
 
-                // Generate a trait name based on the dimension
+                // Generate trait name using the system's canonical name from units.rs
+                let system_name = system.as_str();
                 let trait_name = format!(
-                    "Imperial{}",
+                    "{}{}",
+                    system_name,
                     whippyunits_core::CapitalizedFmt(dimension_name).to_string()
                 );
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
@@ -625,9 +640,11 @@ impl DefaultDeclaratorsInput {
                     });
                 }
 
-                // Generate a trait name based on the dimension
+                // Generate trait name using the system's canonical name from units.rs
+                let system_name = system.as_str();
                 let trait_name = format!(
-                    "Imperial{}",
+                    "{}{}",
+                    system_name,
                     whippyunits_core::CapitalizedFmt(dimension_name).to_string()
                 );
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
