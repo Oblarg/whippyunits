@@ -1118,6 +1118,16 @@ impl Unit<crate::dimension_exponents!([0, 3, 0, 0, 0, 0, 0, 0])> {
         system: System::Imperial,
     };
 
+    pub const METRIC_FLUID_OUNCE: Self = Self {
+        name: "metric_fluid_ounce",
+        symbols: &["metric_fl_oz"],
+        scale: ScaleExponents::_10(-5).mul(ScaleExponents::_3(1)),
+        conversion_factor: IDENTITY,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Metric,
+    };
+
     pub const TABLESPOON_US: Self = Self {
         name: "tablespoon",
         symbols: &["tbsp"],

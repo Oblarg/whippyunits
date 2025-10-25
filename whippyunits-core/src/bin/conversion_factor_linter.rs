@@ -1,13 +1,18 @@
 #!/usr/bin/env cargo +nightly -Zscript
 
-//! Conversion factor range linter for whippyunits-core
+//! Conversion factor linter for whippyunits-core
 //!
-//! This linter ensures that all unit conversion factors are within the specified range
-//! [1/sqrt(10), sqrt(10)] ≈ [0.316, 3.162] as per the whippyunits specification.
-//!
-//! The rationale for this range is to ensure that conversion factors are reasonably
-//! close to 1.0, which helps maintain numerical stability and prevents extreme
-//! scaling that could lead to precision issues.
+//! This linter ensures that:
+//! - All conversion factors are within the range [1/sqrt(10), sqrt(10)] ≈ [0.316, 3.162]
+//! - No non-identity conversion factors are exactly representable using the prime factor scheme
+//! 
+//! [1/sqrt(10), sqrt(10)] represents a single order of magnitude centered around 1.0,
+//! which means that nonstorage units are stored as their "nearest neighbor" power-of-10 multiple of
+//! a SI base unit.  Power-of-10 multiples of an SI base unit are guaranteed to have sensible display
+//! names, so this is a good compromise between precision and interpretability.
+//! 
+//! If a conversion factor is exactly representable by the scale exponents, the scale exponents should
+//! be used instead, and the conversion factor should be changed to identity.
 
 use whippyunits_core::{Dimension, Unit};
 

@@ -11,6 +11,21 @@ impl ScaleExponents {
         Self([power, 0, 0, 0])
     }
 
+    /// A power of 3.
+    pub const fn _3(power: i16) -> Self {
+        Self([0, power, 0, 0])
+    }
+
+    /// A power of 5.
+    pub const fn _5(power: i16) -> Self {
+        Self([0, 0, power, 0])
+    }
+
+    /// A power of pi.
+    pub const fn _Pi(power: i16) -> Self {
+        Self([0, 0, 0, power])
+    }
+
     /// A power of 6.
     pub const fn _6(power: i16) -> Self {
         // We factorize 6 as 2 * 3 so we split the power cross those.
