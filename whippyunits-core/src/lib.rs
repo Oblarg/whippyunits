@@ -22,10 +22,12 @@ mod dimensions;
 pub mod num;
 mod prefix;
 pub mod scale_exponents;
+pub mod storage_unit;
 mod units;
 
 pub use dimensions::*;
 pub use prefix::*;
+pub use storage_unit::*;
 pub use units::*;
 
 pub struct CapitalizedFmt<'r>(pub &'r str);

@@ -337,6 +337,7 @@ fn test_imperial_units() {
     println!("1 UK tablespoon = {:?}", volume_uk_tablespoon);
     println!("1 US teaspoon = {:?}", volume_us_teaspoon);
     println!("1 UK teaspoon = {:?}", volume_uk_teaspoon);
+    println!("1 bushel = {:?}", volume_bushel);
 
     let energy_foot_pound = 1.0.foot_pounds();
 

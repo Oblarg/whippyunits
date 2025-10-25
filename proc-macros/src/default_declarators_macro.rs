@@ -408,7 +408,7 @@ impl DefaultDeclaratorsInput {
                 expansions.push(expansion);
             } else {
                 // If no units have affine offset, use the regular nonstorage macro
-                let mut regular_scale_definitions = Vec::new();
+                let mut unit_definitions = Vec::new();
 
                 for (_dimension, unit) in &units {
                     // Skip units with invalid identifier names (e.g., unicode characters)
@@ -431,9 +431,10 @@ impl DefaultDeclaratorsInput {
                         unit.scale.0[3],
                     );
 
-                    regular_scale_definitions.push(quote! {
-                        (#fn_name_ident, #conversion_factor, #p2, #p3, #p5, #pi)
-                    });
+                    // Generate storage unit name from scale exponents and dimension exponents during proc macro expansion
+                    let storage_unit_name = self.get_storage_unit_name(p2, p3, p5, pi, mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp);
+                    
+                    unit_definitions.push((fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name));
                 }
 
                 // Generate trait name using the system's canonical name from units.rs
@@ -445,20 +446,12 @@ impl DefaultDeclaratorsInput {
                 );
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
 
-                let expansion = quote! {
-                    define_nonstorage_quantity!(
-                        #mass_exp,
-                        #length_exp,
-                        #time_exp,
-                        #current_exp,
-                        #temperature_exp,
-                        #amount_exp,
-                        #luminosity_exp,
-                        #angle_exp,
-                        #trait_ident,
-                        #(#regular_scale_definitions),*
-                    );
-                };
+                // Generate the entire trait definition directly
+                let expansion = self.generate_nonstorage_trait_with_docs(
+                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    &trait_ident,
+                    &unit_definitions,
+                );
                 expansions.push(expansion);
             }
         }
@@ -469,6 +462,151 @@ impl DefaultDeclaratorsInput {
         // Use the new proc macro to generate literals module
         quote! {
             whippyunits_proc_macros::generate_literals_module!();
+        }
+    }
+
+    /// Get the storage unit name from scale exponents and dimension exponents
+    /// This uses the exact same logic as the prettyprint to ensure consistency
+    fn get_storage_unit_name(&self, p2: i16, p3: i16, p5: i16, pi: i16, mass_exp: i16, length_exp: i16, time_exp: i16, current_exp: i16, temperature_exp: i16, amount_exp: i16, luminosity_exp: i16, angle_exp: i16) -> String {
+        use whippyunits_core::{
+            scale_exponents::ScaleExponents, 
+            dimension_exponents::DynDimensionExponents,
+            storage_unit::{UnitLiteralConfig, generate_unit_literal}
+        };
+        
+        // Create scale exponents from the parameters
+        let scale_factors = ScaleExponents([p2, p3, p5, pi]);
+        
+        // Create dimension exponents from the parameters
+        let dimension_exponents = DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp]);
+        
+        // Use the exact same logic as prettyprint by calling the same functions from core
+        // This ensures the proc macro generates the same storage unit names as the inlay hints
+        let unit_literal = generate_unit_literal(
+            dimension_exponents,
+            scale_factors,
+            UnitLiteralConfig {
+                verbose: true, // Use long names for storage units
+                prefer_si_units: true,
+            },
+        );
+        
+        // If we got a unit literal, use it; otherwise fall back to systematic generation
+        if !unit_literal.is_empty() {
+            unit_literal
+        } else {
+            // Fallback to systematic generation
+            use whippyunits_core::storage_unit::generate_systematic_unit_name;
+            let exponents_vec = dimension_exponents.0.to_vec();
+            generate_systematic_unit_name(exponents_vec, true)
+        }
+    }
+
+    /// Get the base unit name for a given dimension
+    fn get_base_unit_for_dimension(dimension_name: &str) -> &'static str {
+        match dimension_name {
+            "Mass" => "gram",
+            "Length" => "meter", 
+            "Time" => "second",
+            "Current" => "ampere",
+            "Temperature" => "kelvin",
+            "Amount" => "mole",
+            "Luminous Intensity" => "candela",
+            "Angle" => "radian",
+            _ => "unit",
+        }
+    }
+
+    /// Generate the entire non-storage trait with documentation
+    fn generate_nonstorage_trait_with_docs(
+        &self,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        trait_ident: &Ident,
+        unit_definitions: &[(Ident, f64, i16, i16, i16, i16, String)],
+    ) -> TokenStream {
+        use quote::quote;
+        // Note: These types are re-exported from the main crate, not whippyunits_core
+        // We'll use the fully qualified paths in the generated code
+
+        // Generate trait methods with documentation
+        let mut trait_methods = Vec::new();
+        let mut impl_f64_methods = Vec::new();
+        let mut impl_i32_methods = Vec::new();
+        let mut impl_i64_methods = Vec::new();
+
+        for (fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name) in unit_definitions {
+            let doc_string = format!(
+                "Storage unit: **{}**<br>Conversion factor: **{}**",
+                storage_unit_name, conversion_factor
+            );
+
+            // Generate trait method with documentation
+            trait_methods.push(quote! {
+                #[doc = #doc_string]
+                fn #fn_name_ident(self) -> crate::quantity_type::Quantity<
+                    crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>,
+                    crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>,
+                    T,
+                >;
+            });
+
+            // Generate f64 implementation
+            impl_f64_methods.push(quote! {
+                fn #fn_name_ident(self) -> crate::quantity_type::Quantity<
+                    crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>,
+                    crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>,
+                    f64,
+                > {
+                    crate::quantity_type::Quantity::<crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>, crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>, f64>::new(self * #conversion_factor)
+                }
+            });
+
+            // Generate i32 implementation
+            impl_i32_methods.push(quote! {
+                fn #fn_name_ident(self) -> crate::quantity_type::Quantity<
+                    crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>,
+                    crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>,
+                    i32,
+                > {
+                    crate::quantity_type::Quantity::<crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>, crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>, i32>::new((self as f64 * #conversion_factor) as i32)
+                }
+            });
+
+            // Generate i64 implementation
+            impl_i64_methods.push(quote! {
+                fn #fn_name_ident(self) -> crate::quantity_type::Quantity<
+                    crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>,
+                    crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>,
+                    i64,
+                > {
+                    crate::quantity_type::Quantity::<crate::Scale<crate::_2<#p2>, crate::_3<#p3>, crate::_5<#p5>, crate::_Pi<#pi>>, crate::Dimension<crate::_M<#mass_exp>, crate::_L<#length_exp>, crate::_T<#time_exp>, crate::_I<#current_exp>, crate::_Θ<#temperature_exp>, crate::_N<#amount_exp>, crate::_J<#luminosity_exp>, crate::_A<#angle_exp>>, i64>::new((self as f64 * #conversion_factor) as i64)
+                }
+            });
+        }
+
+        quote! {
+            pub trait #trait_ident<T = f64> {
+                #(#trait_methods)*
+            }
+
+            impl #trait_ident<f64> for f64 {
+                #(#impl_f64_methods)*
+            }
+
+            impl #trait_ident<i32> for i32 {
+                #(#impl_i32_methods)*
+            }
+
+            impl #trait_ident<i64> for i64 {
+                #(#impl_i64_methods)*
+            }
         }
     }
 }

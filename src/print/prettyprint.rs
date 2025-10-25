@@ -296,64 +296,6 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
     }
 }
 
-pub fn generate_prefixed_si_unit(
-    scale_factors: ScaleExponents,
-    base_si_unit: &str,
-    long_name: bool,
-) -> String {
-    let total_scale_p10 = calculate_total_scale_p10(
-        scale_factors.0[0],
-        scale_factors.0[1],
-        scale_factors.0[2],
-        scale_factors.0[3],
-    );
-    
-
-    // Apply base scale offset for mass units (same logic as generate_prefixed_systematic_unit)
-    let effective_scale_p10 = if let Some((_unit, _dimension)) =
-        whippyunits_core::Dimension::find_unit_by_symbol(base_si_unit)
-    {
-        // Get the base scale offset from the unit's scale (systematic approach)
-        let base_scale_offset = _unit.scale.log10().unwrap_or(0);
-        total_scale_p10 - base_scale_offset
-    } else {
-        // Fallback: try to find by name if symbol lookup fails
-        if let Some((_unit, _dimension)) =
-            whippyunits_core::Dimension::find_unit_by_name(base_si_unit)
-        {
-            let base_scale_offset = _unit.scale.log10().unwrap_or(0);
-            total_scale_p10 - base_scale_offset
-        } else {
-            // No base scale offset found, use total scale as-is
-            total_scale_p10
-        }
-    };
-
-    if let Some(prefix) = get_si_prefix(effective_scale_p10, long_name) {
-        format!("{}{}", prefix, base_si_unit)
-    } else {
-        // Check if this is a pure power of 10 using whippyunits-core
-        let is_pure_power_of_10 = scale_factors.log10().is_some();
-
-        if is_pure_power_of_10 {
-            // Fall back to SI unit with 10^n notation when SI prefix lookup fails
-            generate_si_unit_with_scale(effective_scale_p10, base_si_unit, long_name)
-        } else {
-            // Not a pure power of 10, show the scale factors explicitly
-            let scale_factors_str = format_scale_factors(
-                scale_factors.0[0],
-                scale_factors.0[1],
-                scale_factors.0[2],
-                scale_factors.0[3],
-            );
-            if scale_factors_str.is_empty() {
-                base_si_unit.to_string()
-            } else {
-                format!("{}{}", scale_factors_str, base_si_unit)
-            }
-        }
-    }
-}
 
 pub fn generate_prefixed_systematic_unit(
     exponents: DynDimensionExponents,
