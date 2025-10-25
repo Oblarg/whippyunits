@@ -297,16 +297,33 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     }
 
     // Then check if this is a prefixed unit (like kg, kW, mm, etc.)
-    // Try all prefixes until we find one with a valid base unit
+    // Only allow prefixing of base units (first unit in each dimension) and only for metric units
     for prefix in SiPrefix::ALL {
         if let Some(base) = prefix.strip_prefix_symbol(unit_name) {
             if !base.is_empty() {
-                // Check if the base unit exists
-                if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(base) {
-                    // For prefixed units, we need to return a unit with adjusted scale factors
-                    // But since we can't modify the static unit, we need to handle this differently
-                    // The scale factor adjustment should be handled in the evaluation logic
-                    return Some(unit);
+                // Check if the base unit exists and is a base unit (first unit in its dimension)
+                if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(base) {
+                    // Check if this is the first unit in its dimension (base unit)
+                    if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                        // Only allow prefixing if the base unit is a metric unit (not imperial)
+                        if unit.system == whippyunits_core::System::Metric {
+                            return Some(unit);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(base) = prefix.strip_prefix_name(unit_name) {
+            if !base.is_empty() {
+                // Check if the base unit exists by name and is a base unit
+                if let Some((unit, dimension)) = Dimension::find_unit_by_name(base) {
+                    // Check if this is the first unit in its dimension (base unit)
+                    if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                        // Only allow prefixing if the base unit is a metric unit (not imperial)
+                        if unit.system == whippyunits_core::System::Metric {
+                            return Some(unit);
+                        }
+                    }
                 }
             }
         }
@@ -495,36 +512,51 @@ impl UnitMacroInput {
     fn get_unit_documentation_text(unit_name: &str) -> String {
         // Try to get information from the whippyunits-core data
         if let Some(unit_info) = Self::get_unit_doc_info(unit_name) {
-            format!("Unit: {} - {}", unit_name, unit_info)
+            unit_info
         } else {
-            format!("Unit: {}", unit_name)
+            format!("{} ({})", unit_name.to_uppercase(), unit_name)
         }
     }
 
     /// Get unit documentation information from whippyunits-core data
     fn get_unit_doc_info(unit_name: &str) -> Option<String> {
-        // Use the new get_unit_info function to get the Unit struct
-        if let Some(unit) = get_unit_info(unit_name) {
-            // Check if it's a prefixed unit
-            if let Some((prefix_symbol, _base_symbol)) = Self::parse_prefixed_unit(unit_name) {
-                use whippyunits_core::SiPrefix;
-                if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
-                    let scale_text = if prefix_info.factor_log10() == 0 {
-                        "10^0".to_string()
-                    } else {
-                        format!("10^{}", prefix_info.factor_log10())
-                    };
-                    return Some(format!(
-                        "Prefix: {} ({}), Base: {}",
-                        prefix_info.name(),
-                        scale_text,
-                        unit.name
-                    ));
-                }
-            }
+        // First check for exact unit match (prioritize exact matches over prefix matches)
+        if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
+            return Some(format!("{} ({})", unit.name, unit_name));
+        }
+        
+        if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
+            return Some(format!("{} ({})", unit.name, unit_name));
+        }
 
-            // Regular unit
-            return Some(format!("Unit: {}", unit.name));
+        // Only if no exact match found, check if it's a prefixed unit
+        if let Some((prefix_symbol, _base_symbol)) = Self::parse_prefixed_unit(unit_name) {
+            use whippyunits_core::{SiPrefix, to_unicode_superscript, Dimension};
+            if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
+                let scale_text = if prefix_info.factor_log10() == 0 {
+                    "10⁰".to_string()
+                } else {
+                    format!("10{}", to_unicode_superscript(prefix_info.factor_log10(), false))
+                };
+                
+                // Get the base unit name from the base symbol
+                let base_unit_name = Dimension::find_unit_by_symbol(&_base_symbol)
+                    .map(|(base_unit, _)| base_unit.name)
+                    .unwrap_or(&_base_symbol);
+                
+                // Construct the full prefixed unit name
+                let prefixed_unit_name = format!("{}{}", prefix_info.name(), base_unit_name);
+                
+                return Some(format!(
+                    "{} ({}) - Prefix: {} ({}), Base: {} ({})",
+                    prefixed_unit_name,
+                    unit_name,
+                    prefix_info.name(),
+                    scale_text,
+                    base_unit_name,
+                    _base_symbol
+                ));
+            }
         }
 
         None
@@ -533,20 +565,33 @@ impl UnitMacroInput {
     /// Parse a unit name to extract prefix and base unit
     ///
     /// This function now uses the centralized parsing logic from whippyunits-core.
+    /// Only allows prefixing of base units (first unit in each dimension by declaration order).
     fn parse_prefixed_unit(unit_name: &str) -> Option<(String, String)> {
         // Try to strip any prefix from the unit name
         if let Some((prefix, base)) = SiPrefix::strip_any_prefix_symbol(unit_name) {
-            // Check if the base unit exists
-            if Dimension::find_unit_by_symbol(base).is_some() {
-                return Some((prefix.symbol().to_string(), base.to_string()));
+            // Check if the base unit exists and is a base unit (first unit in its dimension)
+            if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(base) {
+                // Check if this is the first unit in its dimension (base unit)
+                if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                    // Only allow prefixing if the base unit is a metric unit (not imperial)
+                    if unit.system == whippyunits_core::System::Metric {
+                        return Some((prefix.symbol().to_string(), base.to_string()));
+                    }
+                }
             }
         }
 
         // Also try stripping prefix from name (not just symbol)
         if let Some((prefix, base)) = SiPrefix::strip_any_prefix_name(unit_name) {
-            // Check if the base unit exists by name
-            if Dimension::find_unit_by_name(base).is_some() {
-                return Some((prefix.symbol().to_string(), base.to_string()));
+            // Check if the base unit exists by name and is a base unit
+            if let Some((unit, dimension)) = Dimension::find_unit_by_name(base) {
+                // Check if this is the first unit in its dimension (base unit)
+                if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                    // Only allow prefixing if the base unit is a metric unit (not imperial)
+                    if unit.system == whippyunits_core::System::Metric {
+                        return Some((prefix.symbol().to_string(), base.to_string()));
+                    }
+                }
             }
         }
 

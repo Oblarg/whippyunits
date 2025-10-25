@@ -101,6 +101,10 @@ pub struct Dimension<
 /// or a [literal macro](crate::define_literals!), which will handle the const generic parameters for you:
 ///
 /// ```rust
+/// # #[culit::culit(whippyunits::default_declarators::literals)]
+/// # fn main() {
+/// # use whippyunits::default_declarators::*;
+/// # use whippyunits::quantity;
 /// // declarator method
 /// let distance = 1.0.meters();
 ///
@@ -109,13 +113,19 @@ pub struct Dimension<
 ///
 /// // literal (only in scopes tagged with #[culit::culit]):
 /// let distance = 1.0m;
+/// # }
 /// ```
 ///
 /// If you want a concrete Quantity type *as a type*, use the [unit!](crate::unit!) macro:
 ///
 /// ```rust
+/// # fn main() {
+/// # use whippyunits::unit;
+/// # use whippyunits::quantity;
+/// let distance = quantity!(1.0, m);
 /// // explicit type assertion provides additional unit safety
 /// let area: unit!(m^2) = distance * distance;
+/// # }
 /// ```
 ///
 /// Because quantity scale is represented at compile-time, the runtime value of a quantity
@@ -142,7 +152,11 @@ pub struct Quantity<Scale, Dimension, T = f64> {
     ///
     /// ## Example
     /// ```rust
-    /// use whippyunits::*;
+    /// # #[culit::culit(whippyunits::default_declarators::literals)]
+    /// # fn main() {
+    /// # use whippyunits::default_declarators::*;
+    /// # use whippyunits::quantity;
+    /// # use whippyunits::value;
     ///
     /// let angle = 90.0.degrees(); // erasable unit
     /// let distance = quantity!(1.0, m); // non-erasable unit
@@ -162,6 +176,7 @@ pub struct Quantity<Scale, Dimension, T = f64> {
     /// // ❌ BUG: .unsafe_value bypasses dimensional/scale safety for non-erasable units,
     /// //         returns in meters (not millimeters)
     /// let millimeters: f64 = distance.unsafe_value;
+    /// # }
     /// ```
     pub unsafe_value: T,
     _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension)>,
@@ -306,13 +321,21 @@ impl<
     ///
     /// Returns a formatter that implements Display, allowing use with println! macros:
     /// ```rust
+    /// # fn main() {
+    /// # use whippyunits::default_declarators::*;
+    /// let value = 1000.0.feet();
     /// println!("{}", value.fmt("ft")); // "1000.0 ft"
+    /// # }
     /// ```
     ///
     /// Dimensionally-incompatible units will print an error message, but will *not* panic:
     ///
     /// ```rust
+    /// # fn main() {
+    /// # use whippyunits::default_declarators::*;
+    /// let value = 1000.0.feet();
     /// println!("{}", value.fmt("kg")); // "Error: Dimension mismatch: cannot convert from m to kg"
+    /// # }
     /// ```
     ///
     /// if a panic is desired, use a type assertion instead.
@@ -484,24 +507,26 @@ impl std::fmt::Display for QuantityFormatter {
 // proper dimensionless quantities (all exponents are 0, scales irrelevant)
 #[doc(hidden)]
 macro_rules! define_from_dimensionless_cross_type {
-    ($source_type:ty, $target_type:ty, $rescale_fn:ident) => {
+    ($source_type:ty, $target_type:ty) => {
         /// Converts dimensionless quantities between different numeric types with proper scaling.
         ///
         /// Performs de-scaling before type conversion to ensure unit-safe numeric extraction.
         ///
         /// ## Examples
         /// ```rust
-        /// use whippyunits::*;
+        /// # fn main() {
+        /// use whippyunits::default_declarators::*;
         ///
-        /// // Cross-type conversion from f32 to f64
-        /// let dimensionless_f32 = (1.0f32.meters() / 1.0f32.meters());
-        /// let result_f64: f64 = dimensionless_f32.into();
+        /// // Cross-type conversion from i32 to f64
+        /// let dimensionless_i32 = (1.meters() / 1.meters());
+        /// let result_f64: f64 = dimensionless_i32.into();
         /// assert_eq!(result_f64, 1.0);
         ///
         /// // Cross-type conversion with scale handling
-        /// let ratio_f32 = (1.0f32.meters() / 1.0f32.millimeters());
-        /// let result_f64: f64 = ratio_f32.into();
+        /// let ratio_i32 = (1.meters() / 1.millimeters());
+        /// let result_f64: f64 = ratio_i32.into();
         /// assert_eq!(result_f64, 1000.0);
+        /// # }
         /// ```
         impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
             From<
@@ -564,7 +589,8 @@ macro_rules! define_from_dimensionless {
         ///
         /// ## Examples
         /// ```rust
-        /// use whippyunits::*;
+        /// # fn main() {
+        /// # use whippyunits::default_declarators::*;
         ///
         /// // Division yields dimensionless quantity
         /// let dimensionless: f64 = (1.0.meters() / 1.0.meters()).into();
@@ -573,6 +599,7 @@ macro_rules! define_from_dimensionless {
         /// // Non-unity scales are rescaled before erasure
         /// let ratio: f64 = (1.0.meters() / 1.0.millimeters()).into();
         /// assert_eq!(ratio, 1000.0);
+        /// # }
         /// ```
         impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
             From<
@@ -620,28 +647,19 @@ macro_rules! define_from_dimensionless {
     };
 }
 
-define_from_dimensionless!(f32, rescale_f32);
+define_from_dimensionless!(i32, rescale_i32);
 define_from_dimensionless!(f64, rescale_f64);
 define_from_dimensionless!(i16, rescale_i16);
-define_from_dimensionless!(i32, rescale_i32);
-define_from_dimensionless!(i64, rescale_i64);
-define_from_dimensionless!(i128, rescale_i128);
 
 // Cross-type conversions for dimensionless quantities
-define_from_dimensionless_cross_type!(f32, f64, rescale_f32);
-define_from_dimensionless_cross_type!(f64, f32, rescale_f64);
-define_from_dimensionless_cross_type!(i16, f32, rescale_i16);
-define_from_dimensionless_cross_type!(i16, f64, rescale_i16);
-define_from_dimensionless_cross_type!(i32, f32, rescale_i32);
-define_from_dimensionless_cross_type!(i32, f64, rescale_i32);
-define_from_dimensionless_cross_type!(i64, f32, rescale_i64);
-define_from_dimensionless_cross_type!(i64, f64, rescale_i64);
-define_from_dimensionless_cross_type!(i128, f32, rescale_i128);
-define_from_dimensionless_cross_type!(i128, f64, rescale_i128);
-define_from_dimensionless_cross_type!(f32, i32, rescale_f32);
-define_from_dimensionless_cross_type!(f64, i32, rescale_f64);
-define_from_dimensionless_cross_type!(f32, i64, rescale_f32);
-define_from_dimensionless_cross_type!(f64, i64, rescale_f64);
+define_from_dimensionless_cross_type!(i32, f64);
+define_from_dimensionless_cross_type!(i32, f32);
+define_from_dimensionless_cross_type!(i32, i64);
+define_from_dimensionless_cross_type!(f64, i16);
+define_from_dimensionless_cross_type!(f64, i32);
+define_from_dimensionless_cross_type!(f64, f32);
+define_from_dimensionless_cross_type!(i64, f64);
+define_from_dimensionless_cross_type!(i64, f32);
 
 // Cross-type conversion for radian quantities
 #[doc(hidden)]
@@ -653,16 +671,18 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
         ///
         /// ## Examples
         /// ```rust
-        /// use whippyunits::*;
+        /// # fn main() {
+        /// # use whippyunits::default_declarators::*;
         ///
-        /// // Cross-type conversion from f32 to f64
-        /// let angle_f32 = 90.0f32.degrees();
-        /// let result_f64: f64 = angle_f32.into();
+        /// // Cross-type conversion from i32 to f64
+        /// let angle_i32 = 90.degrees();
+        /// let result_f64: f64 = angle_i32.into();
         /// assert_eq!(result_f64, std::f64::consts::PI / 2.0);
         ///
         /// // Enables unit-safe trigonometric functions with cross-type conversion
-        /// let sin_value: f64 = f64::sin(90.0f32.degrees().into());
+        /// let sin_value: f64 = f64::sin(90.degrees().into());
         /// assert_eq!(sin_value, 1.0);
+        /// # }
         /// ```
         impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
             From<
@@ -726,7 +746,8 @@ macro_rules! define_from_for_radians_with_scale {
         ///
         /// ## Examples
         /// ```rust
-        /// use whippyunits::*;
+        /// # fn main() {
+        /// # use whippyunits::default_declarators::*;
         ///
         /// // Pure radian quantities erase directly
         /// let radians: f64 = 1.0.radians().into();
@@ -739,6 +760,7 @@ macro_rules! define_from_for_radians_with_scale {
         /// // Enables unit-safe trigonometric functions
         /// let sin_value: f64 = f64::sin(90.0.degrees().into());
         /// assert_eq!(sin_value, 1.0);
+        /// # }
         /// ```
         impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16>
             From<
@@ -798,7 +820,11 @@ macro_rules! define_from_for_radians {
             ///
             /// ## Examples
             /// ```rust
-            /// use whippyunits::*;
+            /// # fn main() {
+            /// # use whippyunits::default_declarators::*;
+            /// # use whippyunits::quantity;
+            /// # use whippyunits::unit;
+            /// # use whippyunits::value;
             ///
             /// // Curvature in radians per meter
             /// let curvature = quantity!(1.0, rad / m);
@@ -807,6 +833,7 @@ macro_rules! define_from_for_radians {
             /// // Erase radian component for centripetal acceleration calculation
             /// let centripetal_acceleration: unit!(m / s^2) = (curvature * velocity * velocity).into();
             /// assert_eq!(value!(centripetal_acceleration, m / s^2), 1.0);
+            /// # }
             /// ```
             impl<
                     const MASS_EXPONENT: i16,

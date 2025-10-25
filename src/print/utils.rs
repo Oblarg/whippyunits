@@ -1,28 +1,5 @@
-/// Convert any integer to Unicode superscript notation
-/// Returns empty string for unity exponent (1) unless show_unity is true
-/// Returns "?" for unknown values (i16::MIN)
-pub fn to_unicode_superscript(num: i16, show_unity: bool) -> String {
-    if num == i16::MIN {
-        return "ˀ".to_string();
-    }
-
-    if num == 1 && !show_unity {
-        return String::new();
-    }
-
-    num.to_string()
-        .replace('-', "⁻")
-        .replace('0', "⁰")
-        .replace('1', "¹")
-        .replace('2', "²")
-        .replace('3', "³")
-        .replace('4', "⁴")
-        .replace('5', "⁵")
-        .replace('6', "⁶")
-        .replace('7', "⁷")
-        .replace('8', "⁸")
-        .replace('9', "⁹")
-}
+// Re-export the function from whippyunits-core for backward compatibility
+pub use whippyunits_core::to_unicode_superscript;
 
 use whippyunits_core::SiPrefix;
 
