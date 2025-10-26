@@ -347,55 +347,6 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     None
 }
 
-/// Check if a unit name is valid
-fn is_valid_unit(unit_name: &str) -> bool {
-    // Handle special cases for numeric literals and dimensionless units
-    if unit_name == "dimensionless" || unit_name == "power_of_10" {
-        return true;
-    }
-
-    // Check if it's a direct unit match
-    if Dimension::find_unit_by_symbol(unit_name).is_some() 
-        || Dimension::find_unit_by_name(unit_name).is_some() {
-        return true;
-    }
-
-    // Check if it's a valid prefixed unit
-    for prefix in SiPrefix::ALL {
-        if let Some(base) = prefix.strip_prefix_symbol(unit_name) {
-            if !base.is_empty() && Dimension::find_unit_by_symbol(base).is_some() {
-                return true;
-            }
-        }
-        if let Some(base) = prefix.strip_prefix_name(unit_name) {
-            if !base.is_empty() && Dimension::find_unit_by_name(base).is_some() {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Generate error message with suggestions for an unknown unit
-fn generate_unit_error_message(unit_name: &str) -> String {
-    let suggestions = find_similar_units(unit_name, 0.7);
-    if suggestions.is_empty() {
-        format!("Unknown unit '{}'. No similar units found.", unit_name)
-    } else {
-        let suggestion_list = suggestions
-            .iter()
-            .map(|(suggestion, _)| format!("'{}'", suggestion))
-            .collect::<Vec<_>>()
-            .join(", ");
-        
-        format!(
-            "Unknown unit '{}'. Did you mean: {}?",
-            unit_name,
-            suggestion_list
-        )
-    }
-}
 
 /// Input for the unit macro
 pub struct UnitMacroInput {
@@ -448,7 +399,10 @@ impl UnitMacroInput {
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
 
         // Generate documentation structs for unit identifiers in const expression
-        let doc_structs = Self::generate_unit_documentation_for_expr(&self.unit_expr);
+        let doc_structs = Self::generate_unit_documentation_for_expr(
+            mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp,
+            p2, p3, p5, pi
+        );
 
         // Generate the actual quantity type
         let quantity_type = quote! {
@@ -467,52 +421,42 @@ impl UnitMacroInput {
         }
     }
 
-    /// Generate documentation structs for each unit identifier in the expression
-    fn generate_unit_documentation_for_expr(unit_expr: &UnitExpr) -> TokenStream {
-        let unit_identifiers = unit_expr.collect_unit_identifiers();
-        let mut doc_structs = Vec::new();
+    /// Generate documentation structs for the unit expression using dimension and scale exponents
+    /// This uses the same authoritative typename logic as default declarators
+    fn generate_unit_documentation_for_expr(
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        p2: i16,
+        p3: i16,
+        p5: i16,
+        pi: i16,
+    ) -> TokenStream {
+        // Generate the typename using the same logic as default declarators
+        let typename = Self::get_storage_unit_name(
+            p2, p3, p5, pi,
+            mass_exp, length_exp, time_exp, current_exp,
+            temperature_exp, amount_exp, luminosity_exp, angle_exp
+        );
 
-        for identifier in unit_identifiers {
-            if let Some(doc_struct) = Self::generate_single_unit_doc(&identifier) {
-                doc_structs.push(doc_struct);
-            }
-        }
+        // Generate documentation for the unit
+        let doc_comment = Self::generate_unit_doc_comment(&typename);
+        let doc_ident = syn::Ident::new(&typename, proc_macro2::Span::call_site());
 
         quote! {
-            #(#doc_structs)*
-        }
-    }
-
-    /// Generate documentation for a single unit identifier
-    fn generate_single_unit_doc(identifier: &Ident) -> Option<TokenStream> {
-        let unit_name = identifier.to_string();
-        
-        // Check if the unit is valid first
-        if !is_valid_unit(&unit_name) {
-            let error_message = generate_unit_error_message(&unit_name);
-            return Some(quote! {
-                const _: () = {
-                    compile_error!(#error_message);
-                };
-            });
-        }
-        
-        let doc_comment = Self::generate_unit_doc_comment(&unit_name);
-
-        // Create a new identifier with the same span as the original
-        let doc_ident = syn::Ident::new(&unit_name, identifier.span());
-
-        // Get the corresponding default declarator type
-        let declarator_type = Self::get_declarator_type_for_unit(&unit_name)?;
-
-        Some(quote! {
             const _: () = {
                 #doc_comment
                 #[allow(non_camel_case_types)]
-                type #doc_ident = #declarator_type;
+                type #doc_ident = ();
             };
-        })
+        }
     }
+
 
     /// Generate documentation comment for a unit
     fn generate_unit_doc_comment(unit_name: &str) -> TokenStream {
@@ -620,9 +564,45 @@ impl UnitMacroInput {
         None
     }
 
-    /// Get the corresponding default declarator type for a unit
-    fn get_declarator_type_for_unit(unit_name: &str) -> Option<TokenStream> {
-        // Use the shared helper function to avoid code duplication
-        crate::get_declarator_type_for_unit(unit_name)
+
+    /// Get the storage unit name from scale exponents and dimension exponents
+    /// This uses the exact same logic as the prettyprint to ensure consistency
+    fn get_storage_unit_name(
+        p2: i16, p3: i16, p5: i16, pi: i16,
+        mass_exp: i16, length_exp: i16, time_exp: i16, current_exp: i16,
+        temperature_exp: i16, amount_exp: i16, luminosity_exp: i16, angle_exp: i16
+    ) -> String {
+        use whippyunits_core::{
+            scale_exponents::ScaleExponents, 
+            dimension_exponents::DynDimensionExponents,
+            storage_unit::{UnitLiteralConfig, generate_unit_literal}
+        };
+        
+        // Create scale exponents from the parameters
+        let scale_factors = ScaleExponents([p2, p3, p5, pi]);
+        
+        // Create dimension exponents from the parameters
+        let dimension_exponents = DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp]);
+        
+        // Use the exact same logic as prettyprint by calling the same functions from core
+        // This ensures the proc macro generates the same storage unit names as the inlay hints
+        let unit_literal = generate_unit_literal(
+            dimension_exponents,
+            scale_factors,
+            UnitLiteralConfig {
+                verbose: true, // Use long names for storage units
+                prefer_si_units: true,
+            },
+        );
+        
+        // If we got a unit literal, use it; otherwise fall back to systematic generation
+        if !unit_literal.is_empty() {
+            unit_literal
+        } else {
+            // Fallback to systematic generation
+            use whippyunits_core::storage_unit::generate_systematic_unit_name;
+            let exponents_vec = dimension_exponents.0.to_vec();
+            generate_systematic_unit_name(exponents_vec, true)
+        }
     }
 }
