@@ -500,13 +500,20 @@ impl UnitFormatter {
     fn has_explicit_type_parameter(&self, after_dimension_start: &str) -> bool {
         // Look for the pattern: Dimension<...>, T> where T is the type parameter
         // We need to find a comma that separates the Dimension struct from the type parameter
-        if let Some(comma_pos) = after_dimension_start.rfind(", ") {
-            // Found a comma, check if what follows looks like a numeric type parameter
-            let potential_type = &after_dimension_start[comma_pos + 2..]; // Skip ", "
-            let type_param = potential_type.trim_end_matches('>');
+        // Try both ", " and "," patterns to be more robust
+        let comma_patterns = [", ", ","];
+        
+        for comma_pattern in &comma_patterns {
+            if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
+                // Found a comma, check if what follows looks like a numeric type parameter
+                let potential_type = &after_dimension_start[comma_pos + comma_pattern.len()..];
+                let type_param = potential_type.trim().trim_end_matches('>').trim();
 
-            // Check if this is a valid numeric type parameter
-            return self.is_numeric_type(type_param);
+                // Check if this is a valid numeric type parameter
+                if self.is_numeric_type(type_param) {
+                    return true;
+                }
+            }
         }
         false
     }
@@ -522,10 +529,19 @@ impl UnitFormatter {
 
     /// Extract the explicit type parameter from a string that contains ", T>"
     fn extract_explicit_type_parameter(&self, after_dimension_start: &str) -> String {
-        if let Some(comma_pos) = after_dimension_start.rfind(", ") {
-            let potential_type = &after_dimension_start[comma_pos + 2..]; // Skip ", "
-            let type_param = potential_type.trim_end_matches('>');
-            return type_param.to_string();
+        // Try both ", " and "," patterns to be more robust
+        let comma_patterns = [", ", ","];
+        
+        for comma_pattern in &comma_patterns {
+            if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
+                let potential_type = &after_dimension_start[comma_pos + comma_pattern.len()..];
+                let type_param = potential_type.trim().trim_end_matches('>').trim();
+                
+                // Verify this is a valid numeric type before returning it
+                if self.is_numeric_type(type_param) {
+                    return type_param.to_string();
+                }
+            }
         }
         "f64".to_string()
     }

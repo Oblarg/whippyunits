@@ -179,6 +179,33 @@ fn test_hover_tooltip_processing() {
 }
 
 #[test]
+fn test_hover_tooltip_processing_i32() {
+    let proxy = LspProxy::new();
+
+    // Test hover response with i32 type (like in the user's case)
+    let hover_response = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "contents": {
+                "kind": "markdown",
+                "value": "```rust\nlet length_i32: Quantity<Scale, Dimension<_M, _L<1>>, i32> = 10.meters();\n```"
+            }
+        }
+    });
+
+    let response_str = serde_json::to_string(&hover_response).unwrap();
+    let processed = proxy.process_incoming(&response_str).unwrap();
+
+    println!("Input hover: {}", response_str);
+    println!("Processed hover: {}", processed);
+    
+    // Should contain pretty-printed type with i32, not f64
+    assert!(processed.contains("Quantity<") && processed.contains("i32"));
+    assert!(!processed.contains("f64"));
+}
+
+#[test]
 fn test_type_conversion() {
     let converter = UnitFormatter::new();
 
