@@ -551,33 +551,32 @@ impl UnitMacroInput {
         if let Some((prefix_symbol, _base_symbol)) = Self::parse_prefixed_unit(unit_name) {
             use whippyunits_core::{SiPrefix, to_unicode_superscript, Dimension};
             if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
+                // PARSE: Get the abstract representation (prefix + base unit)
+                let (base_unit_name, base_unit_symbol) = if let Some((base_unit, _)) = Dimension::find_unit_by_symbol(&_base_symbol) {
+                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
+                } else if let Some((base_unit, _)) = Dimension::find_unit_by_name(&_base_symbol) {
+                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
+                } else {
+                    (_base_symbol.as_str(), &_base_symbol.as_str())
+                };
+                
+                // TRANSFORM: Convert abstract representation to normalized display format
                 let scale_text = if prefix_info.factor_log10() == 0 {
                     "10⁰".to_string()
                 } else {
                     format!("10{}", to_unicode_superscript(prefix_info.factor_log10(), false))
                 };
                 
-                // Get the base unit name and symbol from the base symbol
-                let (base_unit_name, base_unit_symbol) = if let Some((base_unit, _)) = Dimension::find_unit_by_name(&_base_symbol) {
-                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
-                } else {
-                    (_base_symbol.as_str(), &_base_symbol.as_str())
-                };
-                
-                // Construct the full prefixed unit name
                 let prefixed_unit_name = format!("{}{}", prefix_info.name(), base_unit_name);
-                
-                // Construct the proper symbol by combining prefix symbol with base unit symbol
                 let prefixed_symbol = format!("{}{}", prefix_info.symbol(), base_unit_symbol);
                 
                 return Some(format!(
-                    "{} ({}) - Prefix: {} ({}), Base: {} ({})",
+                    "{} ({}) - Prefix: {} ({}), Base: {}",
                     prefixed_unit_name,
                     prefixed_symbol,
                     prefix_info.name(),
                     scale_text,
-                    base_unit_name,
-                    base_unit_symbol
+                    base_unit_name
                 ));
             }
         }
