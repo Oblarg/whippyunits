@@ -20,78 +20,6 @@ mod shared_utils;
 mod unit_macro;
 mod unit_suggestions;
 
-/// Shared helper function to get the corresponding default declarator type for a unit
-/// This is used by both the unit! macro and local_unit! macro to avoid code duplication
-fn get_declarator_type_for_unit(unit_name: &str) -> Option<proc_macro2::TokenStream> {
-    // Skip dimensionless units - they don't have corresponding default declarator types
-    if unit_name == "dimensionless" {
-        return None;
-    }
-
-    // Check if it's a base unit (these have corresponding types)
-    let atomic_dimensions = whippyunits_core::Dimension::BASIS;
-    for dimension in atomic_dimensions {
-        if let Some(unit) = dimension
-            .units
-            .iter()
-            .find(|u| u.symbols.contains(&unit_name))
-        {
-            let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
-            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-            return Some(quote! {
-                whippyunits::default_declarators::#type_ident
-            });
-        }
-    }
-
-    // Check if it's a prefixed unit FIRST (before checking unit literals)
-    let (prefix, base) = parse_unit_with_prefix_direct(unit_name);
-    if let Some(prefix) = prefix {
-        // First try to find it as a prefixed base unit
-        for dimension in whippyunits_core::Dimension::BASIS {
-            if let Some(unit) = dimension
-                .units
-                .iter()
-                .find(|u| u.symbols.contains(&base.as_str()))
-            {
-                // Use the same naming convention as the default declarators macro
-                let unit_singular = unit.name.trim_end_matches('s');
-                let combined_name = format!("{}{}", prefix.name(), unit_singular);
-                let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
-                let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-                return Some(quote! {
-                    whippyunits::default_declarators::#type_ident
-                });
-            }
-        }
-
-        // If not a base unit, try to find it as a prefixed unit literal
-        if let Some((_dimension, unit)) = lookup_unit_literal_direct(&base) {
-            // Use the same naming convention as the default declarators macro
-            let unit_singular = unit.name.trim_end_matches('s');
-            let combined_name = format!("{}{}", prefix.name(), unit_singular);
-            let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
-            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-            return Some(quote! {
-                whippyunits::default_declarators::#type_ident
-            });
-        }
-    }
-
-    // Check if it's a unit literal that has a corresponding type - only if not a prefixed unit
-    if let Some((_dimension, unit)) = lookup_unit_literal_direct(unit_name) {
-        // Use the long name to generate the type name, matching the declarator generation logic
-        let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
-        let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
-        return Some(quote! {
-            whippyunits::default_declarators::#type_ident
-        });
-    }
-
-    // For compound units (N, J, Pa, W, V, F, C, etc.) and dimensionless units (1),
-    // we don't generate documentation since they don't have corresponding default declarator types
-    None
-}
 
 // Helper functions that replace api_helpers functions with direct whippyunits-core calls
 
@@ -487,7 +415,7 @@ fn generate_literal_macros_module(
 #[proc_macro]
 #[doc(hidden)]
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
-    let unit_expr: unit_macro::UnitExpr = syn::parse(input).expect("Expected unit expression");
+    let unit_expr: whippyunits_core::UnitExpr = syn::parse(input).expect("Expected unit expression");
 
     let result = unit_expr.evaluate();
 

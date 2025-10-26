@@ -126,7 +126,7 @@ fn dimension_exponents_to_unit_expression_with_base_units(
 
 // Import the UnitExpr type from unit_macro
 use crate::lift_trace::{DimensionProcessor, LocalContext, QuoteGenerator, UnitExprFormatter};
-use crate::unit_macro::UnitExpr;
+use whippyunits_core::UnitExpr;
 
 /// Input for the local quantity macro
 /// This takes a unit expression, local scale parameters, and optional storage type
@@ -842,7 +842,7 @@ impl LocalQuantityMacroInput {
         }
 
         // First, try to use the shared helper for units that don't get transformed in local context
-        if let Some(shared_type) = crate::get_declarator_type_for_unit(unit_name) {
+        if let Some(shared_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
             // Check if this unit gets transformed in the local context
             if !self.unit_gets_transformed_in_local_context(unit_name) {
                 // Unit doesn't get transformed, use the shared declarator type
@@ -892,14 +892,14 @@ impl LocalQuantityMacroInput {
                         prefixed_type
                     } else {
                         // Fall back to original if no prefixed type found
-                        match crate::get_declarator_type_for_unit(unit_name) {
+                        match crate::shared_utils::get_declarator_type_for_unit(unit_name) {
                             Some(declarator_type) => declarator_type,
                             None => quote! { () },
                         }
                     }
                 } else {
                     // No scale factor difference, use the original type
-                    match crate::get_declarator_type_for_unit(unit_name) {
+                    match crate::shared_utils::get_declarator_type_for_unit(unit_name) {
                         Some(declarator_type) => declarator_type,
                         None => quote! { () },
                     }
@@ -908,7 +908,7 @@ impl LocalQuantityMacroInput {
         } else {
             // Unit not found by symbol, might be a prefixed unit
             // Try to find it using the declarator type lookup
-            if let Some(declarator_type) = crate::get_declarator_type_for_unit(unit_name) {
+            if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
                 // This is a prefixed unit, we need to calculate the scale factor difference
                 // and find the appropriate transformed type
                 let (dimensions, _scales) = self.evaluate_dimensions();

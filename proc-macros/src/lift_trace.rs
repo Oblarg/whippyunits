@@ -7,7 +7,7 @@ use whippyunits_core::{
 };
 
 // Import the UnitExpr type from unit_macro
-use crate::unit_macro::UnitExpr;
+use whippyunits_core::UnitExpr;
 
 /// Check if a unit name is a prefixed base unit (like kg, kW, mm, etc.)
 /// Returns Some((base_unit, prefix)) if it is, None otherwise
@@ -72,7 +72,7 @@ fn scale_type_to_actual_unit_symbol(scale_type: &str) -> Option<String> {
 
 /// Visitor pattern for traversing UnitExpr and generating different types of output
 pub trait UnitExprVisitor<T> {
-    fn visit_unit(&self, unit: &crate::unit_macro::UnitExprUnit) -> T;
+    fn visit_unit(&self, unit: &whippyunits_core::UnitExprUnit) -> T;
     fn visit_div(&self, numerator: &UnitExpr, denominator: &UnitExpr) -> T;
     fn visit_mul(&self, left: &UnitExpr, right: &UnitExpr) -> T;
     fn visit_pow(&self, base: &UnitExpr, exponent: i16) -> T;
@@ -85,7 +85,7 @@ pub struct UnitExprFormatter<F> {
 
 impl<F> UnitExprFormatter<F>
 where
-    F: Fn(&crate::unit_macro::UnitExprUnit) -> String,
+    F: Fn(&whippyunits_core::UnitExprUnit) -> String,
 {
     pub fn new(unit_formatter: F) -> Self {
         Self { unit_formatter }
@@ -406,7 +406,7 @@ impl LocalContext {
                 let prefixed_unit_name = format!("{}{}", prefix_info.symbol(), base_unit_name);
 
                 if let Some(declarator_type) =
-                    crate::get_declarator_type_for_unit(&prefixed_unit_name)
+                    crate::shared_utils::get_declarator_type_for_unit(&prefixed_unit_name)
                 {
                     return Some(declarator_type);
                 }

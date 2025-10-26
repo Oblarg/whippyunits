@@ -853,6 +853,10 @@ dependencies = [
 [[package]]
 name = "whippyunits-core"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "syn",
+]
 
 [[package]]
 name = "whippyunits-lsp-proxy"

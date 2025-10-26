@@ -20,12 +20,14 @@ use alloc::string::ToString;
 pub mod dimension_exponents;
 mod dimensions;
 pub mod num;
+pub mod parser;
 mod prefix;
 pub mod scale_exponents;
 pub mod storage_unit;
 mod units;
 
 pub use dimensions::*;
+pub use parser::*;
 pub use prefix::*;
 pub use storage_unit::*;
 pub use units::*;
