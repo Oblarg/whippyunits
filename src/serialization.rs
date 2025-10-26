@@ -88,10 +88,6 @@ pub enum SerializationError {
         expected: UnitDimensions,
         actual: UnitDimensions,
     },
-    ScaleIncoherence {
-        expected: UnitDimensions,
-        actual: UnitDimensions,
-    },
     InvalidFormat(String),
     ParseError(String),
     UnknownUnit(String),
@@ -116,13 +112,6 @@ impl core::fmt::Display for SerializationError {
                 write!(
                     f,
                     "Dimension mismatch: expected {:?}, got {:?}",
-                    expected, actual
-                )
-            }
-            SerializationError::ScaleIncoherence { expected, actual } => {
-                write!(
-                    f,
-                    "Scale incoherence: expected {:?}, got {:?}. Use non-strict macros for automatic rescaling.",
                     expected, actual
                 )
             }
@@ -479,7 +468,7 @@ fn get_base_unit_dimensions_ucum(
 
 /// Check if two dimension vectors match (comparing both dimensions and scales)
 pub fn dimensions_match(a: &UnitDimensions, b: &UnitDimensions) -> bool {
-    a.0 == b.0 && a.1 == b.1
+    a.0 == b.0
 }
 
 /// Validate dimensions and appropriate error if they don't match
@@ -489,20 +478,6 @@ pub fn validate_dimensions(
 ) -> Result<(), SerializationError> {
     if !dimensions_match(expected, actual) {
         return Err(SerializationError::DimensionMismatch {
-            expected: expected.clone(),
-            actual: actual.clone(),
-        });
-    }
-    Ok(())
-}
-
-/// Validate scale coherence and appropriate error if they don't match
-pub fn validate_scale_coherence(
-    expected: &UnitDimensions,
-    actual: &UnitDimensions,
-) -> Result<(), SerializationError> {
-    if expected != actual {
-        return Err(SerializationError::ScaleIncoherence {
             expected: expected.clone(),
             actual: actual.clone(),
         });
@@ -540,8 +515,10 @@ macro_rules! from_json {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
+                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { dimensions.0[0] },
                     { dimensions.0[1] },
@@ -564,8 +541,10 @@ macro_rules! from_json {
     ($json:expr, $unit:expr, $storage_type:ty) => {{
         match $crate::serialization::parse_json_input($json) {
             Ok((value, unit_str)) => {
-                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
+                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { dimensions.0[0] },
                     { dimensions.0[1] },
@@ -651,8 +630,10 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
+                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { dimensions.0[0] },
                     { dimensions.0[1] },
@@ -677,8 +658,10 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const (dimensions, scales): (whippyunits_core::DynDimensionExponents, whippyunits_core::ScaleExponents) =
+                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { dimensions.0[0] },
                     { dimensions.0[1] },
