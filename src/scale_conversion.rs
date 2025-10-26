@@ -126,10 +126,15 @@ macro_rules! _define_float_rescale {
         /// the [unit!](crate::unit!) macro:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale;
+        /// # use whippyunits::unit;
         /// let distance: unit!(mm) = rescale(1.0m); // ✅ 1000.0 Quantity<mm, f64>
         /// let distance: unit!(m) = rescale(1000.0mm); // ✅ 1.0 Quantity<m, f64>
-        /// let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error (dimension mismatch)
-        /// let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
+        /// // let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error (dimension mismatch)
+        /// // let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
+        /// # }
         /// ```
         ///
         /// If you are in an inline context where it is not easy to specify the target type, you can use the
@@ -140,18 +145,27 @@ macro_rules! _define_float_rescale {
         /// must use the `rescale` function to convert one of the quantities to the scale of the other:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale;
         /// let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
         /// let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
-        /// let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
+        /// // let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
+        /// # }
         /// ```
         ///
         /// Types other than `f64` are supported, but must use nominally-separate suffixed rescale functions
         /// to avoid type inference issues:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale_i32;
+        /// # use whippyunits::unit;
         /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
-        /// let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
-        /// let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
+        /// // let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
+        /// // let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
+        /// # }
         /// ```
         pub const fn $fn<
             $($float_rescale_const_params)*
@@ -185,10 +199,15 @@ macro_rules! _define_int_rescale {
         /// the [unit!](crate::unit!) macro:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale;
+        /// # use whippyunits::unit;
         /// let distance: unit!(mm) = rescale(1.0m); // ✅ 1000.0 Quantity<mm, f64>
         /// let distance: unit!(m) = rescale(1000.0mm); // ✅ 1.0 Quantity<m, f64>
-        /// let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error (dimension mismatch)
-        /// let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
+        /// // let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error (dimension mismatch)
+        /// // let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
+        /// # }
         /// ```
         ///
         /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
@@ -196,18 +215,27 @@ macro_rules! _define_int_rescale {
         /// must use the `rescale` function to convert one of the quantities to the scale of the other:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale;
         /// let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
         /// let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
-        /// let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
+        /// // let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
+        /// # }
         /// ```
         ///
         /// Types other than `f64` are supported, but must use nominally-separate suffixed rescale functions
         /// to avoid type inference issues:
         ///
         /// ```rust
+        /// # #[culit::culit(whippyunits::default_declarators::literals)]
+        /// # fn main() {
+        /// # use whippyunits::api::rescale_i32;
+        /// # use whippyunits::unit;
         /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
-        /// let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
-        /// let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
+        /// // let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
+        /// // let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
+        /// # }
         /// ```
         pub const fn $fn<
             $($int_rescale_const_params)*

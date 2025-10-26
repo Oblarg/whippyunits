@@ -7,7 +7,7 @@
 ///
 /// ## Syntax
 ///
-/// ```rust
+/// ```rust,ignore
 /// rescale!(quantity, target_unit)                // Returns Quantity<target_unit, f64>
 /// rescale!(quantity, target_unit, storage_type)  // Returns Quantity<target_unit, storage_type>
 /// ```
@@ -31,15 +31,18 @@
 /// ## Examples
 ///
 /// ```rust
+/// # #[culit::culit(whippyunits::default_declarators::literals)]
+/// # fn main() {
 /// use whippyunits::rescale;
 ///
 /// // Default f64 storage type
 /// let distance = rescale!(1.0m, mm); // ✅ 1000.0 Quantity<mm, f64>
-/// let _distance = rescale!(1.0m, ms); // ❌ Compile error (dimension mismatch)
+/// // let _distance = rescale!(1.0m, ms); // ❌ Compile error (dimension mismatch)
 /// let distance = rescale!(1m, mm, i32); // ✅ 1000 Quantity<mm, i32>
 ///
 /// // Use in expressions where type assertion is awkward
 /// let total = rescale!(1.0m, mm) + 500.0mm; // 1500.0 mm
+/// # }
 /// ```
 #[macro_export]
 macro_rules! rescale {

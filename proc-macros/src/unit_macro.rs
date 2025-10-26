@@ -213,10 +213,24 @@ impl UnitExpr {
                     if !is_valid_unit_symbol {
                         // Try all prefixes until we find one with a valid base unit
                         for prefix in SiPrefix::ALL {
+                            // Try prefix symbol first (e.g., "kW" -> "W")
                             if let Some(base) = prefix.strip_prefix_symbol(&unit.name.to_string()) {
                                 if !base.is_empty() {
                                     // Check if the base unit exists
                                     if Dimension::find_unit_by_symbol(base).is_some() {
+                                        let prefix_factor = prefix.factor_log10();
+                                        // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
+                                        scale_exponents =
+                                            scale_exponents.mul(ScaleExponents::_10(prefix_factor));
+                                        break;
+                                    }
+                                }
+                            }
+                            // Try prefix name (e.g., "kilowatt" -> "watt")
+                            if let Some(base) = prefix.strip_prefix_name(&unit.name.to_string()) {
+                                if !base.is_empty() {
+                                    // Check if the base unit exists by name
+                                    if Dimension::find_unit_by_name(base).is_some() {
                                         let prefix_factor = prefix.factor_log10();
                                         // Apply the prefix factor to the scale factors (powers of 2 and 5 for log10)
                                         scale_exponents =
@@ -522,11 +536,15 @@ impl UnitMacroInput {
     fn get_unit_doc_info(unit_name: &str) -> Option<String> {
         // First check for exact unit match (prioritize exact matches over prefix matches)
         if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
-            return Some(format!("{} ({})", unit.name, unit_name));
+            // Use the first symbol from unit.symbols as the abbreviation
+            let symbol = unit.symbols.first().unwrap_or(&unit_name);
+            return Some(format!("{} ({})", unit.name, symbol));
         }
         
         if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
-            return Some(format!("{} ({})", unit.name, unit_name));
+            // Use the first symbol from unit.symbols as the abbreviation
+            let symbol = unit.symbols.first().unwrap_or(&unit_name);
+            return Some(format!("{} ({})", unit.name, symbol));
         }
 
         // Only if no exact match found, check if it's a prefixed unit
@@ -539,22 +557,27 @@ impl UnitMacroInput {
                     format!("10{}", to_unicode_superscript(prefix_info.factor_log10(), false))
                 };
                 
-                // Get the base unit name from the base symbol
-                let base_unit_name = Dimension::find_unit_by_symbol(&_base_symbol)
-                    .map(|(base_unit, _)| base_unit.name)
-                    .unwrap_or(&_base_symbol);
+                // Get the base unit name and symbol from the base symbol
+                let (base_unit_name, base_unit_symbol) = if let Some((base_unit, _)) = Dimension::find_unit_by_name(&_base_symbol) {
+                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
+                } else {
+                    (_base_symbol.as_str(), &_base_symbol.as_str())
+                };
                 
                 // Construct the full prefixed unit name
                 let prefixed_unit_name = format!("{}{}", prefix_info.name(), base_unit_name);
                 
+                // Construct the proper symbol by combining prefix symbol with base unit symbol
+                let prefixed_symbol = format!("{}{}", prefix_info.symbol(), base_unit_symbol);
+                
                 return Some(format!(
                     "{} ({}) - Prefix: {} ({}), Base: {} ({})",
                     prefixed_unit_name,
-                    unit_name,
+                    prefixed_symbol,
                     prefix_info.name(),
                     scale_text,
                     base_unit_name,
-                    _base_symbol
+                    base_unit_symbol
                 ));
             }
         }
