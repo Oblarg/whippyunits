@@ -9,7 +9,6 @@ use whippyunits_core::{
     Dimension, SiPrefix, Unit,
 };
 
-use crate::unit_suggestions::find_similar_units;
 
 /// Represents a unit with optional exponent
 #[derive(Debug, Clone)]
@@ -400,6 +399,7 @@ impl UnitMacroInput {
 
         // Generate documentation structs for unit identifiers in const expression
         let doc_structs = Self::generate_unit_documentation_for_expr(
+            &self.unit_expr,
             mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp,
             p2, p3, p5, pi
         );
@@ -424,39 +424,60 @@ impl UnitMacroInput {
     /// Generate documentation structs for the unit expression using dimension and scale exponents
     /// This uses the same authoritative typename logic as default declarators
     fn generate_unit_documentation_for_expr(
-        mass_exp: i16,
-        length_exp: i16,
-        time_exp: i16,
-        current_exp: i16,
-        temperature_exp: i16,
-        amount_exp: i16,
-        luminosity_exp: i16,
-        angle_exp: i16,
-        p2: i16,
-        p3: i16,
-        p5: i16,
-        pi: i16,
+        unit_expr: &UnitExpr,
+        _mass_exp: i16,
+        _length_exp: i16,
+        _time_exp: i16,
+        _current_exp: i16,
+        _temperature_exp: i16,
+        _amount_exp: i16,
+        _luminosity_exp: i16,
+        _angle_exp: i16,
+        _p2: i16,
+        _p3: i16,
+        _p5: i16,
+        _pi: i16,
     ) -> TokenStream {
-        // Generate the typename using the same logic as default declarators
-        let typename = Self::get_storage_unit_name(
-            p2, p3, p5, pi,
-            mass_exp, length_exp, time_exp, current_exp,
-            temperature_exp, amount_exp, luminosity_exp, angle_exp
-        );
-
-        // Generate documentation for the unit
-        let doc_comment = Self::generate_unit_doc_comment(&typename);
-        let doc_ident = syn::Ident::new(&typename, proc_macro2::Span::call_site());
+        // Extract identifiers from the unit expression
+        let mut identifiers = Vec::new();
+        Self::collect_identifiers_from_expr(unit_expr, &mut identifiers);
+        
+        // Generate documentation for each identifier
+        let doc_structs: Vec<TokenStream> = identifiers.into_iter().map(|ident| {
+            let doc_comment = Self::generate_unit_doc_comment(&ident.to_string());
+            quote! {
+                const _: () = {
+                    #doc_comment
+                    #[allow(non_camel_case_types)]
+                    type #ident = ();
+                };
+            }
+        }).collect();
 
         quote! {
-            const _: () = {
-                #doc_comment
-                #[allow(non_camel_case_types)]
-                type #doc_ident = ();
-            };
+            #(#doc_structs)*
         }
     }
 
+    /// Recursively collect identifiers from a unit expression
+    fn collect_identifiers_from_expr(expr: &UnitExpr, identifiers: &mut Vec<Ident>) {
+        match expr {
+            UnitExpr::Unit(unit) => {
+                identifiers.push(unit.name.clone());
+            }
+            UnitExpr::Mul(left, right) => {
+                Self::collect_identifiers_from_expr(left, identifiers);
+                Self::collect_identifiers_from_expr(right, identifiers);
+            }
+            UnitExpr::Div(left, right) => {
+                Self::collect_identifiers_from_expr(left, identifiers);
+                Self::collect_identifiers_from_expr(right, identifiers);
+            }
+            UnitExpr::Pow(base, _) => {
+                Self::collect_identifiers_from_expr(base, identifiers);
+            }
+        }
+    }
 
     /// Generate documentation comment for a unit
     fn generate_unit_doc_comment(unit_name: &str) -> TokenStream {
