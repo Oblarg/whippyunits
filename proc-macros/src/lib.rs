@@ -348,6 +348,42 @@ fn generate_literal_macros_module(
         
         quote! {
             #[allow(unused_macros)]
+            /// Custom literal declarator sugar for the [quantity!](crate::quantity!) macro, for use with
+            /// the [culit](https://crates.io/crates/culit) crate.
+            ///
+            /// ```rust
+            /// #[culit::culit(whippyunits::default_declarators::literals)]
+            /// fn main() {
+            ///     let distance = 1.0m;
+            /// }
+            /// ```
+            ///
+            /// Literal declarators are effectively macro sugar for the [quantity!](crate::quantity!) macro.  The following
+            /// are equivalent:
+            ///
+            /// ```rust
+            /// # #[culit::culit(whippyunits::default_declarators::literals)]
+            /// # fn main() {
+            /// let distance = 1.0m;
+            /// let distance = whippyunits::default_declarators::literals::float::m!(1.0);
+            /// let distance = whippyunits::quantity!(1.0, m);
+            /// # }
+            /// ```
+            ///
+            /// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
+            ///
+            /// ```rust
+            /// # #[culit::culit(whippyunits::default_declarators::literals)]
+            /// # fn main() {
+            /// let distance = 1.0m; // f64 (default for float literals)
+            /// let energy = 1.0J_f32; // f32
+            /// let time = 5ms; // i32 (default for integer literals)
+            /// # }
+            /// ```
+            ///
+            /// Because literal syntax is somewhat restrictive, we do not support the full set of algebraically-possible
+            /// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are
+            /// not supported.  For arbitrary algebraic expressions, use the [quantity!](crate::quantity!) macro instead.
             pub mod #module_ident {
                 #[allow(unused_macros)]
                 pub mod float {
@@ -516,58 +552,6 @@ pub fn local_unit_type(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
-/// Defines custom literal declarators using [culit](https://crates.io/crates/culit).
-///
-/// By default, this places the literal declarators in the `custom_literal` module.  If
-/// a custom module name is provided, the literal declarators will be placed in that module.
-/// Culit can be pointed to a specific module by passing the module name to the culit 
-/// attribute, e.g. #[culit::culit(unit_literals)].
-///
-/// ```rust
-/// // this must be called at least once in the user's crate, typically
-/// // at the crate root
-/// whippyunits::define_literals!();
-///
-/// // optionally, specify a custom module name to avoid conflicts
-/// whippyunits::define_literals!(unit_literals);
-///
-/// // following this, literal declarators are available in any scope tagged with
-/// // #[culit::culit]
-/// #[culit::culit]
-/// fn example() {
-///     let distance = 1.0m;
-///     let energy = 1.0J_f32;
-///     let time = 5ms;
-///     let mass = 10mg_i16;
-/// }
-/// ```
-///
-/// Literal declarators are effectively macro sugar for the [#quantity_path](crate::#quantity_path) macro.  The following
-/// are equivalent:
-///
-/// ```rust
-/// let distance = 1.0m;
-/// let distance = custom_literal::float::m(1.0);
-/// let distance = #quantity_path(1.0, m);
-/// ```
-///
-/// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
-///
-/// ```rust
-/// let distance = 1.0m; // f64 (default for float literals)
-/// let energy = 1.0J_f32; // f32
-/// let time = 5ms; // i32 (default for integer literals)
-/// let mass = 10mg_i16; // i16
-/// ```
-///
-/// Because literal syntax is somewhat restrictive, we do not support the full set of algebraically-possible
-/// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are
-/// not supported.  For arbitrary algebraic expressions, use the [#quantity_path](crate::#quantity_path) macro instead.
-///
-/// ## Note
-///
-/// Must be called once in your crate, typically at the module level.
-/// The generated literals are only available in scopes tagged with `#[culit::culit]`.
 #[proc_macro]
 pub fn define_literals(input: TokenStream) -> TokenStream {
     // Parse the input to see if a module name is provided

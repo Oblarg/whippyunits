@@ -1,18 +1,3 @@
-//! Generated Arithmetic Quantity Types with Full Base Unit Dimensions
-//!
-//! This file is auto-generated from dimension_data.rs and includes support
-//! for all base unit dimensions defined in the system.
-//!
-//! Base dimensions supported:
-//! //! - mass (primes: [10])
-//! - length (primes: [10])
-//! - time (primes: [2, 3, 5])
-//! - current (primes: [10])
-//! - temperature (primes: [10])
-//! - amount (primes: [10])
-//! - luminosity (primes: [10])
-//! - angle (primes: [2, 3, 5])
-
 #[macro_export]
 #[doc(hidden)]
 macro_rules! inverse_quantity_type {

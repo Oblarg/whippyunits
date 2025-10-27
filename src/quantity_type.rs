@@ -32,18 +32,18 @@ pub struct _A<const EXP: i16 = 0>;
 /// (kilogram, meter, second, ampere, kelvin, mole, candela, radian, or
 /// some combination thereof).
 ///
-/// SI prefixes indicate scales of 10^n = _2<n>, _3<0>, _5<n>, _Pi<0>, e.g.
-///  - milli: 10^-3 = _2<-3>, _3<0>, _5<-3>, _Pi<0>
-///  - kilo: 10^3 = _2<3>, _3<0>, _5<3>, _Pi<0>
+/// SI prefixes indicate scales of `10^n = _2<n>, _3<0>, _5<n>, _Pi<0>`, e.g.
+///  - milli: `10^-3 = _2<-3>, _3<0>, _5<-3>, _Pi<0>`
+///  - kilo: `10^3 = _2<3>, _3<0>, _5<3>, _Pi<0>`
 ///
-/// Certain time units involve factors of 60^n = _2<2>, _3<1>, _5<1>, _Pi<0>, e.g.
-///  - minute: 60 = _2<2>, _3<1>, _5<1>, _Pi<0>
-///  - hour: 3600 = _2<4>, _3<2>, _5<2>, _Pi<0>
+/// Certain time units involve factors of `60^n = _2<2>, _3<1>, _5<1>, _Pi<0>`, e.g.
+///  - minute: `60 = _2<2>, _3<1>, _5<1>, _Pi<0>`
+///  - hour: `3600 = _2<4>, _3<2>, _5<2>, _Pi<0>`
 ///
 /// Angular units can involve "all of the above", plus a possible factor of π:
-///  - revolution: 2π = _2<1>, _3<0>, _5<0>, _Pi<1>
-///  - degree: π/180 = _2<-2>, _3<-2>, _5<-1>, _Pi<1>
-///  - arcminute: π/10800 = _2<-4>, _3<-2>, _5<-2>, _Pi<1>
+///  - revolution: `2π = _2<1>, _3<0>, _5<0>, _Pi<1>`
+///  - degree: `π/180 = _2<-2>, _3<-2>, _5<-1>, _Pi<1>`
+///  - arcminute: `π/10800 = _2<-4>, _3<-2>, _5<-2>, _Pi<1>`
 #[allow(dead_code)]
 pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
     _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
@@ -54,23 +54,23 @@ pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
 /// If all dimension exponents are zero, the quantity is dimensionless.
 ///
 /// Atomic dimensions have a single dimension exponent of 1:
-///  - length: _L<1>
-///  - mass: _M<1>
-///  - time: _T<1>
-///  - current: _I<1>
-///  - temperature: _Θ<1>
-///  - amount: _N<1>
-///  - luminosity: _J<1>
-///  - angle: _A<1>
+///  - length: `_L<1>`
+///  - mass: `_M<1>`
+///  - time: `_T<1>`
+///  - current: `_I<1>`
+///  - temperature: `_Θ<1>`
+///  - amount: `_N<1>`
+///  - luminosity: `_J<1>`
+///  - angle: `_A<1>`
 ///
 /// Derived dimensions have a mixture of dimension exponents:
-///  - velocity: _L<1>, _T<-1>
-///  - acceleration: _L<1>, _T<-2>
-///  - force: _M<1>, _L<1>, _T<-2>
-///  - energy: _M<1>, _L<2>, _T<-2>
-///  - power: _M<1>, _L<2>, _T<-3>
-///  - pressure: _M<1>, _L<-1>, _T<-2>
-///  - frequency: _T<-1>
+///  - velocity: `_L<1>, _T<-1>`    
+///  - acceleration: `_L<1>, _T<-2>`
+///  - force: `_M<1>, _L<1>, _T<-2>`
+///  - energy: `_M<1>, _L<2>, _T<-2>`
+///  - power: `_M<1>, _L<2>, _T<-3>`
+///  - pressure: `_M<1>, _L<-1>, _T<-2>`
+///  - frequency: `_T<-1>`
 #[allow(dead_code)]
 pub struct Dimension<
     MASS = _M<0>,
@@ -98,7 +98,8 @@ pub struct Dimension<
 ///
 /// Since the type is highly-parameterized, direct usage is discouraged.  Interaction with the
 /// Quantity type should generally be done through an API method, the [quantity!](crate::quantity!) macro,
-/// or a [literal macro](crate::define_literals!), which will handle the const generic parameters for you:
+/// or a [literal declarator](crate::default_declarators::literals), which will handle the const generic
+/// parameters for you:
 ///
 /// ```rust
 /// # #[culit::culit(whippyunits::default_declarators::literals)]
