@@ -6,9 +6,9 @@
 //!
 //! Declarator methods are technically non-const, since const traits are not yet generally available.
 //! If const declaration is required, use the [quantity!](crate::quantity!) macro.
-//!
-//! [Literal declarators](crate::define_literals!) can also be generated that sugar the
-//! trait declarators, e.g. `1.0m` is equivalent to `1.0.meters()`.
+//! 
+//! [Literal declarators](crate::default_declarators::literals) exist that sugar the `quantity!` macro
+//! for all units with a unique unit symbol.  Bespoke algebraic combinations must use the `quantity!` macro.
 //!
 //! ## Usage
 //!
@@ -271,7 +271,6 @@ generate_default_declarators!();
 /// ```rust
 /// # fn main() {
 /// # use whippyunits::quantity;
-///
 /// // Basic quantities
 /// let distance = quantity!(5.0, m);
 /// let mass = quantity!(2.5, kg);
