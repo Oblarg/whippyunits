@@ -322,21 +322,21 @@ macro_rules! from_json {
                 // Returns Quantity directly - no need for quantity! macro
                 const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
-                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0[0] },
-                    { dimensions.0[1] },
-                    { dimensions.0[2] },
-                    { dimensions.0[3] },
-                    { dimensions.0[4] },
-                    { dimensions.0[5] },
-                    { dimensions.0[6] },
-                    { dimensions.0[7] },
-                    { scales.0[0] },
-                    { scales.0[1] },
-                    { scales.0[2] },
-                    { scales.0[3] },
+                    { DIMENSIONS.0[0] },
+                    { DIMENSIONS.0[1] },
+                    { DIMENSIONS.0[2] },
+                    { DIMENSIONS.0[3] },
+                    { DIMENSIONS.0[4] },
+                    { DIMENSIONS.0[5] },
+                    { DIMENSIONS.0[6] },
+                    { DIMENSIONS.0[7] },
+                    { SCALES.0[0] },
+                    { SCALES.0[1] },
+                    { SCALES.0[2] },
+                    { SCALES.0[3] },
                     f64,
                 >(value, &unit_str)
             }
@@ -348,21 +348,21 @@ macro_rules! from_json {
             Ok((value, unit_str)) => {
                 const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
-                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0[0] },
-                    { dimensions.0[1] },
-                    { dimensions.0[2] },
-                    { dimensions.0[3] },
-                    { dimensions.0[4] },
-                    { dimensions.0[5] },
-                    { dimensions.0[6] },
-                    { dimensions.0[7] },
-                    { scales.0[0] },
-                    { scales.0[1] },
-                    { scales.0[2] },
-                    { scales.0[3] },
+                    { DIMENSIONS.0[0] },
+                    { DIMENSIONS.0[1] },
+                    { DIMENSIONS.0[2] },
+                    { DIMENSIONS.0[3] },
+                    { DIMENSIONS.0[4] },
+                    { DIMENSIONS.0[5] },
+                    { DIMENSIONS.0[6] },
+                    { DIMENSIONS.0[7] },
+                    { SCALES.0[0] },
+                    { SCALES.0[1] },
+                    { SCALES.0[2] },
+                    { SCALES.0[3] },
                     $storage_type,
                 >(value, &unit_str)
             }
@@ -435,21 +435,21 @@ macro_rules! from_string {
                 // Returns Quantity directly - no need for quantity! macro
                 const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
-                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0[0] },
-                    { dimensions.0[1] },
-                    { dimensions.0[2] },
-                    { dimensions.0[3] },
-                    { dimensions.0[4] },
-                    { dimensions.0[5] },
-                    { dimensions.0[6] },
-                    { dimensions.0[7] },
-                    { scales.0[0] },
-                    { scales.0[1] },
-                    { scales.0[2] },
-                    { scales.0[3] },
+                    { DIMENSIONS.0[0] },
+                    { DIMENSIONS.0[1] },
+                    { DIMENSIONS.0[2] },
+                    { DIMENSIONS.0[3] },
+                    { DIMENSIONS.0[4] },
+                    { DIMENSIONS.0[5] },
+                    { DIMENSIONS.0[6] },
+                    { DIMENSIONS.0[7] },
+                    { SCALES.0[0] },
+                    { SCALES.0[1] },
+                    { SCALES.0[2] },
+                    { SCALES.0[3] },
                     f64,
                 >(value, &unit_str)
             }
@@ -463,21 +463,21 @@ macro_rules! from_string {
                 // Returns Quantity directly - no need for quantity! macro
                 const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
                     whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
-                const scales: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
-                    { dimensions.0[0] },
-                    { dimensions.0[1] },
-                    { dimensions.0[2] },
-                    { dimensions.0[3] },
-                    { dimensions.0[4] },
-                    { dimensions.0[5] },
-                    { dimensions.0[6] },
-                    { dimensions.0[7] },
-                    { scales.0[0] },
-                    { scales.0[1] },
-                    { scales.0[2] },
-                    { scales.0[3] },
+                    { DIMENSIONS.0[0] },
+                    { DIMENSIONS.0[1] },
+                    { DIMENSIONS.0[2] },
+                    { DIMENSIONS.0[3] },
+                    { DIMENSIONS.0[4] },
+                    { DIMENSIONS.0[5] },
+                    { DIMENSIONS.0[6] },
+                    { DIMENSIONS.0[7] },
+                    { SCALES.0[0] },
+                    { SCALES.0[1] },
+                    { SCALES.0[2] },
+                    { SCALES.0[3] },
                     $storage_type,
                 >(value, &unit_str)
             }

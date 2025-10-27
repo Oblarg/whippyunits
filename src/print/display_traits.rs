@@ -1,8 +1,3 @@
-use crate::print::prettyprint::pretty_print_quantity_value;
-use crate::quantity_type::Quantity;
-use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
-use std::fmt;
-
 #[macro_export]
 #[doc(hidden)]
 macro_rules! define_display_traits {

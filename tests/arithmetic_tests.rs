@@ -242,6 +242,7 @@ fn test_generic_dimension_expressions() {
     let power: impl Power = quantity!(1.0, W);
     let electric_field: impl ElectricField = quantity!(1.0, V/m);
     let capacitance: impl Capacitance = quantity!(1.0, F);
+
 }
 
 #[test]

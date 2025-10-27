@@ -7,7 +7,7 @@ use whippyunits_core::{
     UnitExpr, Dimension, SiPrefix,
 };
 
-use crate::shared_utils::get_declarator_type_for_unit;
+use crate::shared_utils::{get_declarator_type_for_unit, get_declarator_type_for_exponents};
 
 
 /// Input for the unit macro

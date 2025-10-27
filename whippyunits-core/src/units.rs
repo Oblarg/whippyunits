@@ -529,7 +529,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
 
     pub const CELSIUS: Self = Self {
         name: "celsius",
-        symbols: &["C"],
+        symbols: &["degC"],
         scale: ScaleExponents::IDENTITY,
         conversion_factor: IDENTITY,
         affine_offset: 273.15,
@@ -539,7 +539,7 @@ impl Unit<crate::dimension_exponents!([0, 0, 0, 0, 1, 0, 0, 0])> {
 
     pub const RANKINE: Self = Self {
         name: "rankine",
-        symbols: &["R"],
+        symbols: &["degR"],
         scale: ScaleExponents([0, -2, 1, 0]),
         conversion_factor: IDENTITY,
         affine_offset: NONE,

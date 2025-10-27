@@ -10,13 +10,13 @@ pub fn is_valid_identifier(name: &str) -> bool {
 
 /// Generate scale name using the same logic as default_declarators_macro
 /// This ensures consistency between define_base_units and default_declarators macros
-pub fn generate_scale_name(prefix_name: &str, unit_suffix: &str) -> String {
+pub fn generate_scale_name(prefix_name: &str, unit_name: &str) -> String {
     // Systematically generate the correct naming convention
-    let unit_singular = unit_suffix.trim_end_matches('s');
+    // Use the unit name as-is (it's already singular) for type names
     let combined_name = if prefix_name.is_empty() {
-        unit_singular.to_string()
+        unit_name.to_string()
     } else {
-        format!("{}{}", prefix_name, unit_singular)
+        format!("{}{}", prefix_name, unit_name)
     };
 
     // Use the same capitalization logic as default_declarators_macro
@@ -53,9 +53,8 @@ pub fn get_declarator_type_for_unit(unit_name: &str) -> Option<TokenStream> {
         // Find the base unit
         if let Some((base_unit, _)) = whippyunits_core::Dimension::find_unit_by_symbol(&base) {
             // Generate the prefixed type name by combining prefix name with base unit name
-            let unit_singular = base_unit.name.trim_end_matches('s');
-            let combined_name = format!("{}{}", prefix.name(), unit_singular);
-            let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
+            // Use the same logic as generate_scale_name to ensure consistency
+            let type_name = generate_scale_name(prefix.name(), base_unit.name);
             let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
             return Some(quote::quote! {
                 whippyunits::default_declarators::#type_ident
@@ -75,12 +74,79 @@ pub fn get_declarator_type_for_unit(unit_name: &str) -> Option<TokenStream> {
     None
 }
 
-/// Parse unit name to extract prefix and base unit for UCUM
-fn parse_unit_with_prefix_direct(unit_name: &str) -> (Option<&str>, String) {
-    // Use the centralized parsing logic from whippyunits-core
-    let (prefix_opt, base_unit) = parse_unit_with_prefix_core(unit_name);
-    let prefix_str = prefix_opt.map(|p| p.symbol());
-    (prefix_str, base_unit)
+/// Get the corresponding default declarator type for a unit based on dimension and scale exponents
+/// This uses the same logic as default declarators to ensure consistency
+pub fn get_declarator_type_for_exponents(
+    dimension_exponents: whippyunits_core::dimension_exponents::DynDimensionExponents,
+    scale_exponents: whippyunits_core::scale_exponents::ScaleExponents,
+) -> Option<TokenStream> {
+    use whippyunits_core::{Dimension, System, SiPrefix};
+    use whippyunits_core::dimension_exponents::DynDimensionExponents;
+
+    // Skip dimensionless units - they don't have corresponding default declarator types
+    if dimension_exponents == DynDimensionExponents::ZERO {
+        return None;
+    }
+
+    // Find the dimension that matches these exponents
+    let matching_dimension = Dimension::ALL
+        .iter()
+        .find(|dim| dim.exponents == dimension_exponents)?;
+
+    // Look for a unit in this dimension that matches the scale exponents
+    // We need to find a unit that has the same scale exponents
+    for unit in matching_dimension.units {
+        if unit.scale == scale_exponents {
+            // Found a matching unit - generate type name using same logic as default declarators
+            let type_name = if unit.system == System::Metric {
+                // For metric units, use the same logic as default_declarators_macro
+                // Check if this is a base unit (first unit in the dimension)
+                let is_base_unit = matching_dimension.units[0].name == unit.name;
+                
+                if is_base_unit {
+                    // For base units, use the pluralized name
+                    let unit_suffix = whippyunits_core::make_plural(unit.name);
+                    generate_scale_name("", &unit_suffix)
+                } else {
+                    // For derived units, use the capitalized name
+                    whippyunits_core::CapitalizedFmt(unit.name).to_string()
+                }
+            } else {
+                // For non-metric units, use the capitalized name
+                whippyunits_core::CapitalizedFmt(unit.name).to_string()
+            };
+
+            let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
+            return Some(quote::quote! {
+                whippyunits::default_declarators::#type_ident
+            });
+        }
+    }
+
+    // If no exact match found, check if this could be a prefixed unit
+    // Look for a base unit in the same dimension and see if we can match with a prefix
+    for unit in matching_dimension.units {
+        if unit.system == System::Metric {
+            // Check if this could be a prefixed version of the base unit
+            // The base unit is the first unit in the dimension
+            let base_unit = &matching_dimension.units[0];
+            
+            // Check if the scale difference corresponds to a known prefix
+            let scale_diff = scale_exponents.0[0] - base_unit.scale.0[0]; // Check p2 difference
+            if let Some(prefix) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_diff) {
+                // Generate prefixed type name using same logic as default_declarators_macro
+                let unit_suffix = whippyunits_core::make_plural(base_unit.name);
+                let type_name = generate_scale_name(prefix.name(), &unit_suffix);
+                
+                let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
+                return Some(quote::quote! {
+                    whippyunits::default_declarators::#type_ident
+                });
+            }
+        }
+    }
+
+    None
 }
 
 /// Parse a unit name to extract prefix and base unit

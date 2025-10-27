@@ -103,10 +103,10 @@ impl DefaultDeclaratorsInput {
 
             if is_base_unit {
                 // Generate base unit with all SI prefixes
+                // For type names, use the unit name as-is (it's already singular)
+                let base_scale_name = generate_scale_name("", unit.name);
+                // For function names, use the plural form
                 let unit_suffix = whippyunits_core::make_plural(unit.name);
-                
-                // Generate the base unit (no prefix)
-                let base_scale_name = generate_scale_name("", &unit_suffix);
                 let base_fn_name = unit_suffix.to_string();
 
                 // Calculate scale factors for base unit
@@ -127,7 +127,9 @@ impl DefaultDeclaratorsInput {
 
                 // Generate all the prefixed units
                 for prefix in SiPrefix::ALL {
-                    let scale_name = generate_scale_name(prefix.name(), &unit_suffix);
+                    // For type names, use the unit name as-is (it's already singular)
+                    let scale_name = generate_scale_name(prefix.name(), unit.name);
+                    // For function names, use the plural form
                     let fn_name = format!("{}{}", prefix.name(), unit_suffix);
 
                     // Calculate scale factors
@@ -183,18 +185,14 @@ impl DefaultDeclaratorsInput {
                         let prefixed_p5 = p5 + prefix_info.factor_log10();
                         let prefixed_pi = pi;
 
-                        let unit_singular = unit.name.trim_end_matches('s');
-                        let prefixed_type_name = format!("{}{}", prefix_info.name(), unit_singular);
-                        let prefixed_type_name_capitalized =
-                            whippyunits_core::CapitalizedFmt(&prefixed_type_name).to_string();
+                        // For type names, use the unit name as-is (it's already singular)
+                        let prefixed_type_name = generate_scale_name(prefix_info.name(), unit.name);
                         let prefixed_scale_name_ident =
-                            syn::parse_str::<Ident>(&prefixed_type_name_capitalized).unwrap();
+                            syn::parse_str::<Ident>(&prefixed_type_name).unwrap();
 
-                        let prefixed_fn_name = whippyunits_core::make_plural(&format!(
-                            "{}{}",
-                            prefix_info.name(),
-                            unit_singular
-                        ));
+                        // For function names, use the plural form
+                        let unit_suffix = whippyunits_core::make_plural(unit.name);
+                        let prefixed_fn_name = format!("{}{}", prefix_info.name(), unit_suffix);
                         let prefixed_fn_name_ident =
                             syn::parse_str::<Ident>(&prefixed_fn_name).unwrap();
 

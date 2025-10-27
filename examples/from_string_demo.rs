@@ -4,7 +4,7 @@
 //! string representations of whippyunits quantities back to typed quantities.
 //! The format is "value unit" (e.g., "5.0 m", "2.5 kg", "10.0 N").
 
-use whippyunits::{from_string, quantity, serialization::SerializationError};
+use whippyunits::{from_string, serialization::SerializationError};
 
 fn main() {
     println!("from_string! Macro Demo");

@@ -551,9 +551,8 @@ impl DefineBaseUnitsInput {
         for prefix in whippyunits_core::SiPrefix::ALL {
             for dimension in atomic_dimensions {
                 if let Some(base_unit) = dimension.units.first() {
-                    let unit_singular = base_unit.name.trim_end_matches('s');
-                    let combined_name = format!("{}{}", prefix.name(), unit_singular);
-                    let type_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
+                    // Use the same logic as generate_scale_name to ensure consistency
+                    let type_name = crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
                     if type_name == scale_name {
                         let type_ident = syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
                         return Some(quote! {

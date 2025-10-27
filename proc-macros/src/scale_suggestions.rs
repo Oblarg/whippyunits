@@ -53,9 +53,8 @@ fn get_all_available_scales() -> Vec<String> {
     for prefix in SiPrefix::ALL {
         for dimension in Dimension::BASIS {
             if let Some(base_unit) = dimension.units.first() {
-                let unit_singular = base_unit.name.trim_end_matches('s');
-                let combined_name = format!("{}{}", prefix.name(), unit_singular);
-                let capitalized_name = whippyunits_core::CapitalizedFmt(&combined_name).to_string();
+                // Use the same logic as generate_scale_name to ensure consistency
+                let capitalized_name = crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
                 scales.push(capitalized_name);
             }
         }

@@ -11,6 +11,7 @@ use whippyunits_core::{Dimension, Unit};
 
 // Import the helper functions from lift_trace
 use crate::lift_trace::{is_prefixed_base_unit, is_prefixed_compound_unit};
+use crate::shared_utils::{get_declarator_type_for_unit, get_declarator_type_for_exponents};
 
 /// Convert a scale type name to the actual unit symbol
 /// This uses direct core APIs instead of api_helpers
@@ -906,31 +907,37 @@ impl LocalQuantityMacroInput {
                 }
             }
         } else {
-            // Unit not found by symbol, might be a prefixed unit
-            // Try to find it using the declarator type lookup
-            if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
-                // This is a prefixed unit, we need to calculate the scale factor difference
-                // and find the appropriate transformed type
-                let (dimensions, _scales) = self.evaluate_dimensions();
-                let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
+            // Unit not found by symbol, try to find declarator type using dimension and scale exponents
+            let (dimensions, scales) = self.evaluate_dimensions();
+            
+            // First try the new exponent-based approach
+            if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_exponents(dimensions, scales) {
+                declarator_type
+            } else {
+                // Fall back to the old unit name-based approach
+                if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
+                    // This is a prefixed unit, we need to calculate the scale factor difference
+                    // and find the appropriate transformed type
+                    let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
 
-                if scale_factor_diff != 0 {
-                    // Try to find a prefixed version that matches the scale factor
-                    if let Some(prefixed_type) =
-                        self.find_prefixed_type_by_scale_factor(unit_name, scale_factor_diff)
-                    {
-                        prefixed_type
+                    if scale_factor_diff != 0 {
+                        // Try to find a prefixed version that matches the scale factor
+                        if let Some(prefixed_type) =
+                            self.find_prefixed_type_by_scale_factor(unit_name, scale_factor_diff)
+                        {
+                            prefixed_type
+                        } else {
+                            // Fall back to original if no prefixed type found
+                            declarator_type
+                        }
                     } else {
-                        // Fall back to original if no prefixed type found
+                        // No scale factor difference, use the original type
                         declarator_type
                     }
                 } else {
-                    // No scale factor difference, use the original type
-                    declarator_type
+                    // Unknown unit, fall back to using it as-is
+                    quote! { () }
                 }
-            } else {
-                // Unknown unit, fall back to using it as-is
-                quote! { () }
             }
         }
     }

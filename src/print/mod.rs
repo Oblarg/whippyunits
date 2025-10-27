@@ -1,4 +1,3 @@
-pub mod custom_display;
 pub mod format_specifiers;
 pub mod name_lookup;
 pub mod prettyprint;
