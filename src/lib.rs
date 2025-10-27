@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(trait_alias)]
 

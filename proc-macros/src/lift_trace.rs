@@ -70,14 +70,6 @@ fn scale_type_to_actual_unit_symbol(scale_type: &str) -> Option<String> {
     }
 }
 
-/// Visitor pattern for traversing UnitExpr and generating different types of output
-pub trait UnitExprVisitor<T> {
-    fn visit_unit(&self, unit: &whippyunits_core::UnitExprUnit) -> T;
-    fn visit_div(&self, numerator: &UnitExpr, denominator: &UnitExpr) -> T;
-    fn visit_mul(&self, left: &UnitExpr, right: &UnitExpr) -> T;
-    fn visit_pow(&self, base: &UnitExpr, exponent: i16) -> T;
-}
-
 /// Generic visitor implementation that can be parameterized with different strategies
 pub struct UnitExprFormatter<F> {
     pub unit_formatter: F,

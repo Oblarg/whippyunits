@@ -158,12 +158,6 @@ impl DimensionExpr {
             }
         }
     }
-
-    // Evaluate the expression to get dimension exponents (original version for backward compatibility)
-    fn evaluate(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
-        // Delegate to the safe version
-        self.evaluate_safe()
-    }
 }
 
 pub struct DefineGenericDimensionInput {

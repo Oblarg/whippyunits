@@ -5,6 +5,15 @@ use syn::Ident;
 
 use crate::shared_utils::{is_valid_identifier, generate_scale_name};
 
+/// Unit type classification
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum UnitType {
+    Storage,
+    NonStorage,
+    StorageAffine,
+    NonStorageAffine,
+}
+
 /// Input for the generate_default_declarators macro
 /// Usage: generate_default_declarators!()
 pub struct DefaultDeclaratorsInput;
@@ -33,6 +42,189 @@ impl DefaultDeclaratorsInput {
             
             // Automatically generate literals module for culit integration
             #literals_module
+        }
+    }
+
+    /// Extract dimension exponents from a dimension
+    fn extract_dimension_exponents(dimension: &whippyunits_core::Dimension) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
+        (
+            dimension.exponents.0[0], // mass
+            dimension.exponents.0[1], // length
+            dimension.exponents.0[2], // time
+            dimension.exponents.0[3], // current
+            dimension.exponents.0[4], // temperature
+            dimension.exponents.0[5], // amount
+            dimension.exponents.0[6], // luminous_intensity
+            dimension.exponents.0[7], // angle
+        )
+    }
+
+    /// Extract scale factors from a unit
+    fn extract_scale_factors(unit: &whippyunits_core::Unit) -> (i16, i16, i16, i16) {
+        (
+            unit.scale.0[0],
+            unit.scale.0[1],
+            unit.scale.0[2],
+            unit.scale.0[3],
+        )
+    }
+
+    /// Generate trait name for metric units
+    fn generate_metric_trait_name(dimension_name: &str) -> String {
+        let sanitized_name = dimension_name.replace(" ", "");
+        format!("Metric{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string())
+    }
+
+    /// Generate trait name for system units (Imperial, Astronomical, etc.)
+    fn generate_system_trait_name(system: &whippyunits_core::System, dimension_name: &str) -> String {
+        let system_name = system.as_str();
+        format!("{}{}", system_name, whippyunits_core::CapitalizedFmt(dimension_name).to_string())
+    }
+
+    /// Generate trait name for affine units
+    fn generate_affine_trait_name(base_trait_name: &str) -> String {
+        format!("{}Affine", base_trait_name)
+    }
+
+    /// Generate trait name for non-storage units
+    fn generate_nonstorage_trait_name(base_trait_name: &str) -> String {
+        format!("{}NonStorage", base_trait_name)
+    }
+
+    /// Generate trait name for non-storage affine units
+    fn generate_nonstorage_affine_trait_name(base_trait_name: &str) -> String {
+        format!("{}NonStorageAffine", base_trait_name)
+    }
+
+    /// Classify a unit by its conversion factor and affine offset
+    fn classify_unit(unit: &whippyunits_core::Unit) -> UnitType {
+        match (unit.conversion_factor == 1.0, unit.affine_offset != 0.0) {
+            (true, false) => UnitType::Storage,
+            (false, false) => UnitType::NonStorage,
+            (true, true) => UnitType::StorageAffine,
+            (false, true) => UnitType::NonStorageAffine,
+        }
+    }
+
+
+
+    /// Process units of a specific type and generate the appropriate trait
+    fn process_units_by_type(
+        &self,
+        expansions: &mut Vec<TokenStream>,
+        units: &[&whippyunits_core::Unit],
+        unit_type: UnitType,
+        dimension: &whippyunits_core::Dimension,
+        base_trait_name: &str,
+    ) {
+        let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
+            Self::extract_dimension_exponents(dimension);
+
+        // Filter units by type
+        let filtered_units: Vec<_> = units
+            .iter()
+            .filter(|unit| Self::classify_unit(unit) == unit_type && is_valid_identifier(unit.name))
+            .collect();
+
+        if filtered_units.is_empty() {
+            return;
+        }
+
+        match unit_type {
+            UnitType::Storage => {
+                let mut scale_definitions = Vec::new();
+                for unit in &filtered_units {
+                    let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
+                    let fn_name = whippyunits_core::make_plural(unit.name);
+                    let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                    let scale_name = generate_scale_name("", unit.name);
+                    let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();
+                    
+                    scale_definitions.push(quote! {
+                        (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
+                    });
+                }
+
+                let trait_ident = syn::parse_str::<Ident>(base_trait_name).unwrap();
+                let expansion = self.generate_storage_quantity_expansion(
+                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    &trait_ident,
+                    &scale_definitions,
+                );
+                expansions.push(expansion);
+            }
+            UnitType::NonStorage => {
+                let mut scale_definitions = Vec::new();
+                for unit in &filtered_units {
+                    let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
+                    let fn_name = whippyunits_core::make_plural(unit.name);
+                    let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                    let conversion_factor = unit.conversion_factor;
+                    
+                    scale_definitions.push(quote! {
+                        (#fn_name_ident, #conversion_factor, #p2, #p3, #p5, #pi)
+                    });
+                }
+
+                let trait_name = Self::generate_nonstorage_trait_name(base_trait_name);
+                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
+                let expansion = self.generate_nonstorage_quantity_expansion(
+                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    &trait_ident,
+                    &scale_definitions,
+                );
+                expansions.push(expansion);
+            }
+            UnitType::StorageAffine => {
+                let mut scale_definitions = Vec::new();
+                for unit in &filtered_units {
+                    let fn_name = whippyunits_core::make_plural(unit.name);
+                    let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                    let scale_name = generate_scale_name("", unit.name);
+                    let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();
+                    let affine_offset = unit.affine_offset;
+                    
+                    scale_definitions.push(quote! {
+                        (#scale_name_ident, #fn_name_ident, #affine_offset)
+                    });
+                }
+
+                let trait_name = Self::generate_affine_trait_name(base_trait_name);
+                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
+                let storage_scale_name = self.get_storage_scale_name_for_dimension(&dimension.name);
+                let storage_scale_ident = syn::parse_str::<Ident>(&storage_scale_name).unwrap();
+                
+                let expansion = self.generate_storage_affine_quantity_expansion(
+                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    &trait_ident,
+                    &storage_scale_ident,
+                    &scale_definitions,
+                );
+                expansions.push(expansion);
+            }
+            UnitType::NonStorageAffine => {
+                let mut scale_definitions = Vec::new();
+                for unit in &filtered_units {
+                    let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
+                    let fn_name = whippyunits_core::make_plural(unit.name);
+                    let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
+                    let conversion_factor = unit.conversion_factor;
+                    let affine_offset = unit.affine_offset;
+                    
+                    scale_definitions.push(quote! {
+                        (#fn_name_ident, #conversion_factor, #affine_offset, #p2, #p3, #p5, #pi)
+                    });
+                }
+
+                let trait_name = Self::generate_nonstorage_affine_trait_name(base_trait_name);
+                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
+                let expansion = self.generate_nonstorage_affine_quantity_expansion(
+                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    &trait_ident,
+                    &scale_definitions,
+                );
+                expansions.push(expansion);
+            }
         }
     }
 
@@ -65,29 +257,11 @@ impl DefaultDeclaratorsInput {
     ) {
         use whippyunits_core::SiPrefix;
 
-        let (
-            mass_exp,
-            length_exp,
-            time_exp,
-            current_exp,
-            temperature_exp,
-            amount_exp,
-            luminosity_exp,
-            angle_exp,
-        ) = (
-            dimension.exponents.0[0], // mass
-            dimension.exponents.0[1], // length
-            dimension.exponents.0[2], // time
-            dimension.exponents.0[3], // current
-            dimension.exponents.0[4], // temperature
-            dimension.exponents.0[5], // amount
-            dimension.exponents.0[6], // luminous_intensity
-            dimension.exponents.0[7], // angle
-        );
+        let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
+            Self::extract_dimension_exponents(dimension);
 
-        // Generate trait name from dimension name, sanitizing spaces
-        let sanitized_name = dimension.name.replace(" ", "");
-        let trait_name = format!("Metric{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string());
+        // Generate trait name from dimension name
+        let trait_name = Self::generate_metric_trait_name(&dimension.name);
         let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
 
         let mut scale_definitions = Vec::new();
@@ -155,20 +329,15 @@ impl DefaultDeclaratorsInput {
                     });
                 }
             } else {
-                // Non-base unit: classify as affine or non-affine
+                // Non-base unit: classify based on conversion factor and affine offset
                 if unit.affine_offset != 0.0 {
                     // This is an affine unit - handle separately
                     continue; // We'll handle affine units in a separate trait
-                } else {
-                    // This is a non-affine unit
-                    let (p2, p3, p5, pi) = (
-                        unit.scale.0[0],
-                        unit.scale.0[1],
-                        unit.scale.0[2],
-                        unit.scale.0[3],
-                    );
+                } else if unit.conversion_factor == 1.0 {
+                    // This is a storage unit (conversion_factor == 1.0)
+                    let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
 
-                    let type_name = whippyunits_core::CapitalizedFmt(unit.name).to_string();
+                    let type_name = generate_scale_name("", unit.name);
                     let scale_name_ident = syn::parse_str::<Ident>(&type_name).unwrap();
 
                     let fn_name = whippyunits_core::make_plural(unit.name);
@@ -200,81 +369,27 @@ impl DefaultDeclaratorsInput {
                             (#prefixed_scale_name_ident, #prefixed_fn_name_ident, #prefixed_p2, #prefixed_p3, #prefixed_p5, #prefixed_pi)
                         });
                     }
+                } else {
+                    // This is a non-storage unit (conversion_factor != 1.0) - handle separately
+                    continue; // We'll handle non-storage units in a separate trait
                 }
             }
         }
 
-        // Generate the main trait for non-affine units
+        // Generate the main trait for storage units (conversion_factor == 1.0)
         if !scale_definitions.is_empty() {
-            let expansion = quote! {
-                define_quantity!(
-                    #mass_exp,
-                    #length_exp,
-                    #time_exp,
-                    #current_exp,
-                    #temperature_exp,
-                    #amount_exp,
-                    #luminosity_exp,
-                    #angle_exp,
-                    #trait_ident,
-                    #(#scale_definitions),*
-                );
-            };
-
+            let expansion = self.generate_storage_quantity_expansion(
+                mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                &trait_ident,
+                &scale_definitions,
+            );
             expansions.push(expansion);
         }
 
-        // Handle affine units separately with "Affine" suffix
-        let mut affine_units = Vec::new();
-        for unit in metric_units {
-            if unit.affine_offset != 0.0 {
-                affine_units.push(unit);
-            }
-        }
-
-        if !affine_units.is_empty() {
-            let mut affine_scale_definitions = Vec::new();
-
-            for unit in &affine_units {
-                let fn_name = whippyunits_core::make_plural(unit.name);
-                let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
-
-                let conversion_factor = unit.conversion_factor;
-                let affine_offset = unit.affine_offset;
-
-                let (p2, p3, p5, pi) = (
-                    unit.scale.0[0],
-                    unit.scale.0[1],
-                    unit.scale.0[2],
-                    unit.scale.0[3],
-                );
-
-                affine_scale_definitions.push(quote! {
-                    (#fn_name_ident, #conversion_factor, #affine_offset, #p2, #p3, #p5, #pi)
-                });
-            }
-
-            // Generate trait name for affine units with "Affine" suffix
-            let affine_trait_name = format!("{}Affine", trait_name);
-            let affine_trait_ident = syn::parse_str::<Ident>(&affine_trait_name).unwrap();
-
-            let expansion = quote! {
-                define_nonstorage_affine_quantity!(
-                    #mass_exp,
-                    #length_exp,
-                    #time_exp,
-                    #current_exp,
-                    #temperature_exp,
-                    #amount_exp,
-                    #luminosity_exp,
-                    #angle_exp,
-                    #affine_trait_ident,
-                    #(#affine_scale_definitions),*
-                );
-            };
-
-            expansions.push(expansion);
-        }
+        // Process other unit types using the unified system
+        self.process_units_by_type(expansions, metric_units, UnitType::NonStorage, dimension, &trait_name);
+        self.process_units_by_type(expansions, metric_units, UnitType::StorageAffine, dimension, &trait_name);
+        self.process_units_by_type(expansions, metric_units, UnitType::NonStorageAffine, dimension, &trait_name);
     }
 
 
@@ -324,134 +439,50 @@ impl DefaultDeclaratorsInput {
         for (dimension_name, units) in grouped_units {
             // Get dimension exponents from the first unit (all units in a dimension have same exponents)
             let dimension = &units[0].0;
-            let (
-                mass_exp,
-                length_exp,
-                time_exp,
-                current_exp,
-                temperature_exp,
-                amount_exp,
-                luminosity_exp,
-                angle_exp,
-            ) = (
-                dimension.exponents.0[0], // mass
-                dimension.exponents.0[1], // length
-                dimension.exponents.0[2], // time
-                dimension.exponents.0[3], // current
-                dimension.exponents.0[4], // temperature
-                dimension.exponents.0[5], // amount
-                dimension.exponents.0[6], // luminous_intensity
-                dimension.exponents.0[7], // angle
-            );
+            let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
+                Self::extract_dimension_exponents(dimension);
 
-            // Check if any units have affine offset
-            let has_affine_units = units
-                .iter()
-                .any(|(_dimension, unit)| unit.affine_offset != 0.0);
 
-            if has_affine_units {
-                // If any units have affine offset, use the affine macro for all units
-                let mut affine_scale_definitions = Vec::new();
 
-                for (_dimension, unit) in &units {
-                    // Skip units with invalid identifier names (e.g., unicode characters)
-                    if !is_valid_identifier(unit.name) {
-                        continue;
-                    }
+            // Convert units to the format expected by process_units_by_type
+            let units_refs: Vec<&whippyunits_core::Unit> = units.iter().map(|(_dim, unit)| *unit).collect();
+            let base_trait_name = Self::generate_system_trait_name(&system, dimension_name);
 
-                    // Generate function name (pluralized)
-                    let fn_name = whippyunits_core::make_plural(unit.name);
-                    let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
-
-                    // Extract conversion factor and affine offset
-                    let conversion_factor = unit.conversion_factor;
-                    let affine_offset = unit.affine_offset;
-
-                    // Extract scale parameters directly from the unit
-                    let (p2, p3, p5, pi) = (
-                        unit.scale.0[0],
-                        unit.scale.0[1],
-                        unit.scale.0[2],
-                        unit.scale.0[3],
-                    );
-
-                    affine_scale_definitions.push(quote! {
-                        (#fn_name_ident, #conversion_factor, #affine_offset, #p2, #p3, #p5, #pi)
-                    });
-                }
-
-                // Generate trait name using the system's canonical name from units.rs
-                let system_name = system.as_str();
-                let trait_name = format!(
-                    "{}{}",
-                    system_name,
-                    whippyunits_core::CapitalizedFmt(dimension_name).to_string()
-                );
-                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
-
-                let expansion = quote! {
-                    define_nonstorage_affine_quantity!(
-                        #mass_exp,
-                        #length_exp,
-                        #time_exp,
-                        #current_exp,
-                        #temperature_exp,
-                        #amount_exp,
-                        #luminosity_exp,
-                        #angle_exp,
-                        #trait_ident,
-                        #(#affine_scale_definitions),*
-                    );
-                };
-                expansions.push(expansion);
-            } else {
-                // If no units have affine offset, use the regular nonstorage macro
+            // Check if we need the special non-storage trait with docs
+            let has_nonstorage_units = units.iter().any(|(_dimension, unit)| unit.conversion_factor != 1.0 && unit.affine_offset == 0.0);
+            
+            if has_nonstorage_units {
+                // Special case: use the detailed non-storage trait with docs
                 let mut unit_definitions = Vec::new();
-
                 for (_dimension, unit) in &units {
-                    // Skip units with invalid identifier names (e.g., unicode characters)
-                    if !is_valid_identifier(unit.name) {
+                    if !is_valid_identifier(unit.name) || unit.conversion_factor == 1.0 || unit.affine_offset != 0.0 {
                         continue;
                     }
 
-                    // Generate function name (pluralized)
                     let fn_name = whippyunits_core::make_plural(unit.name);
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
-
-                    // Extract conversion factor
                     let conversion_factor = unit.conversion_factor;
-
-                    // Extract scale parameters directly from the unit
-                    let (p2, p3, p5, pi) = (
-                        unit.scale.0[0],
-                        unit.scale.0[1],
-                        unit.scale.0[2],
-                        unit.scale.0[3],
-                    );
-
-                    // Generate storage unit name from scale exponents and dimension exponents during proc macro expansion
+                    let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
                     let storage_unit_name = self.get_storage_unit_name(p2, p3, p5, pi, mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp);
                     
                     unit_definitions.push((fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name));
                 }
 
-                // Generate trait name using the system's canonical name from units.rs
-                let system_name = system.as_str();
-                let trait_name = format!(
-                    "{}{}",
-                    system_name,
-                    whippyunits_core::CapitalizedFmt(dimension_name).to_string()
-                );
-                let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
-
-                // Generate the entire trait definition directly
+                let trait_ident = syn::parse_str::<Ident>(&base_trait_name).unwrap();
                 let expansion = self.generate_nonstorage_trait_with_docs(
                     mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
                     &trait_ident,
                     &unit_definitions,
                 );
                 expansions.push(expansion);
+            } else {
+                // Use the unified system for storage units
+                self.process_units_by_type(expansions, &units_refs, UnitType::Storage, dimension, &base_trait_name);
             }
+
+            // Process other unit types using the unified system
+            self.process_units_by_type(expansions, &units_refs, UnitType::StorageAffine, dimension, &base_trait_name);
+            self.process_units_by_type(expansions, &units_refs, UnitType::NonStorageAffine, dimension, &base_trait_name);
         }
     }
 
@@ -500,18 +531,138 @@ impl DefaultDeclaratorsInput {
         }
     }
 
-    /// Get the base unit name for a given dimension
-    fn get_base_unit_for_dimension(dimension_name: &str) -> &'static str {
-        match dimension_name {
-            "Mass" => "gram",
-            "Length" => "meter", 
-            "Time" => "second",
-            "Current" => "ampere",
-            "Temperature" => "kelvin",
-            "Amount" => "mole",
-            "Luminous Intensity" => "candela",
-            "Angle" => "radian",
-            _ => "unit",
+    /// Get the storage scale name for a given dimension using the canonical core function
+    fn get_storage_scale_name_for_dimension(&self, dimension_name: &str) -> String {
+        use whippyunits_core::{
+            scale_exponents::ScaleExponents,
+            storage_unit::get_storage_unit_name_by_dimension_name
+        };
+        
+        // Use identity scale factors to get the base storage unit name
+        let scale_factors = ScaleExponents::IDENTITY;
+        let unit_name = get_storage_unit_name_by_dimension_name(scale_factors, dimension_name, true);
+        whippyunits_core::CapitalizedFmt(&unit_name).to_string()
+    }
+
+    /// Generate a storage quantity trait expansion
+    fn generate_storage_quantity_expansion(
+        &self,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        trait_ident: &Ident,
+        scale_definitions: &[TokenStream],
+    ) -> TokenStream {
+        quote! {
+            define_quantity!(
+                #mass_exp,
+                #length_exp,
+                #time_exp,
+                #current_exp,
+                #temperature_exp,
+                #amount_exp,
+                #luminosity_exp,
+                #angle_exp,
+                #trait_ident,
+                #(#scale_definitions),*
+            );
+        }
+    }
+
+    /// Generate a non-storage quantity trait expansion
+    fn generate_nonstorage_quantity_expansion(
+        &self,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        trait_ident: &Ident,
+        scale_definitions: &[TokenStream],
+    ) -> TokenStream {
+        quote! {
+            define_nonstorage_quantity!(
+                #mass_exp,
+                #length_exp,
+                #time_exp,
+                #current_exp,
+                #temperature_exp,
+                #amount_exp,
+                #luminosity_exp,
+                #angle_exp,
+                #trait_ident,
+                #(#scale_definitions),*
+            );
+        }
+    }
+
+    /// Generate a storage affine quantity trait expansion
+    fn generate_storage_affine_quantity_expansion(
+        &self,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        trait_ident: &Ident,
+        storage_scale_ident: &Ident,
+        scale_definitions: &[TokenStream],
+    ) -> TokenStream {
+        quote! {
+            define_affine_quantity!(
+                #mass_exp,
+                #length_exp,
+                #time_exp,
+                #current_exp,
+                #temperature_exp,
+                #amount_exp,
+                #luminosity_exp,
+                #angle_exp,
+                #trait_ident,
+                #storage_scale_ident,
+                #(#scale_definitions),*
+            );
+        }
+    }
+
+    /// Generate a non-storage affine quantity trait expansion
+    fn generate_nonstorage_affine_quantity_expansion(
+        &self,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+        trait_ident: &Ident,
+        scale_definitions: &[TokenStream],
+    ) -> TokenStream {
+        quote! {
+            define_nonstorage_affine_quantity!(
+                #mass_exp,
+                #length_exp,
+                #time_exp,
+                #current_exp,
+                #temperature_exp,
+                #amount_exp,
+                #luminosity_exp,
+                #angle_exp,
+                #trait_ident,
+                #(#scale_definitions),*
+            );
         }
     }
 

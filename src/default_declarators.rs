@@ -175,6 +175,7 @@ macro_rules! define_affine_quantity {
     };
 }
 
+#[allow(unused)]
 #[doc(hidden)]
 macro_rules! define_nonstorage_affine_quantity {
     (

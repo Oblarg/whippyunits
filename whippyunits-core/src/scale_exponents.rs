@@ -22,6 +22,7 @@ impl ScaleExponents {
     }
 
     /// A power of pi.
+    #[allow(non_snake_case)]
     pub const fn _Pi(power: i16) -> Self {
         Self([0, 0, 0, power])
     }

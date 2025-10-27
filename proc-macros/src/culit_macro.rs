@@ -1,11 +1,5 @@
 use quote::quote;
 
-/// Generate the custom_literal module with all unit macros
-/// This uses only the canonical data from whippyunits-core
-pub fn generate_custom_literal_module() -> proc_macro2::TokenStream {
-    generate_custom_literal_module_with_name("custom_literal")
-}
-
 /// Generate the custom_literal module with all unit macros using a custom module name
 /// This uses only the canonical data from whippyunits-core
 pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro2::TokenStream {

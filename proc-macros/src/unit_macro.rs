@@ -7,8 +7,7 @@ use whippyunits_core::{
     UnitExpr, Dimension, SiPrefix,
 };
 
-use crate::shared_utils::{get_declarator_type_for_unit, get_declarator_type_for_exponents};
-
+use crate::shared_utils::{get_declarator_type_for_unit};
 
 /// Input for the unit macro
 pub struct UnitMacroInput {
@@ -260,47 +259,5 @@ impl UnitMacroInput {
         }
 
         None
-    }
-
-
-    /// Get the storage unit name from scale exponents and dimension exponents
-    /// This uses the exact same logic as the prettyprint to ensure consistency
-    fn get_storage_unit_name(
-        p2: i16, p3: i16, p5: i16, pi: i16,
-        mass_exp: i16, length_exp: i16, time_exp: i16, current_exp: i16,
-        temperature_exp: i16, amount_exp: i16, luminosity_exp: i16, angle_exp: i16
-    ) -> String {
-        use whippyunits_core::{
-            scale_exponents::ScaleExponents, 
-            dimension_exponents::DynDimensionExponents,
-            storage_unit::{UnitLiteralConfig, generate_unit_literal}
-        };
-        
-        // Create scale exponents from the parameters
-        let scale_factors = ScaleExponents([p2, p3, p5, pi]);
-        
-        // Create dimension exponents from the parameters
-        let dimension_exponents = DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp]);
-        
-        // Use the exact same logic as prettyprint by calling the same functions from core
-        // This ensures the proc macro generates the same storage unit names as the inlay hints
-        let unit_literal = generate_unit_literal(
-            dimension_exponents,
-            scale_factors,
-            UnitLiteralConfig {
-                verbose: true, // Use long names for storage units
-                prefer_si_units: true,
-            },
-        );
-        
-        // If we got a unit literal, use it; otherwise fall back to systematic generation
-        if !unit_literal.is_empty() {
-            unit_literal
-        } else {
-            // Fallback to systematic generation
-            use whippyunits_core::storage_unit::generate_systematic_unit_name;
-            let exponents_vec = dimension_exponents.0.to_vec();
-            generate_systematic_unit_name(exponents_vec, true)
-        }
     }
 }

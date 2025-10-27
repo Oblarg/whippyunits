@@ -11,7 +11,6 @@ use whippyunits_core::{Dimension, Unit};
 
 // Import the helper functions from lift_trace
 use crate::lift_trace::{is_prefixed_base_unit, is_prefixed_compound_unit};
-use crate::shared_utils::{get_declarator_type_for_unit, get_declarator_type_for_exponents};
 
 /// Convert a scale type name to the actual unit symbol
 /// This uses direct core APIs instead of api_helpers
@@ -344,7 +343,7 @@ impl LocalQuantityMacroInput {
     /// Get the transformed unit symbol for a given unit name
     fn get_transformed_unit_symbol(&self, unit_name: &str) -> String {
         // First try to find the unit directly
-        let (unit, dimension) =
+        let (_unit, dimension) =
             if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(unit_name) {
                 (unit, dimension)
             } else if let Some((base_symbol, _prefix)) = is_prefixed_base_unit(unit_name) {
@@ -577,7 +576,7 @@ impl LocalQuantityMacroInput {
 
     /// Generate expression string for an algebraic expression
     fn generate_algebraic_expression_string(&self) -> String {
-        let (dimensions, scales) = self.evaluate_dimensions();
+        let (dimensions, _scales) = self.evaluate_dimensions();
 
         // Check if it's a simple base unit (single dimension = 1, others = 0)
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
@@ -723,7 +722,7 @@ impl LocalQuantityMacroInput {
         }
 
         // Handle as regular unit - first try direct lookup, then try prefixed units
-        let (unit, dimension) =
+        let (_unit, dimension) =
             if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(unit_name) {
                 (unit, dimension)
             } else if let Some((base_symbol, _prefix)) = is_prefixed_base_unit(unit_name) {
@@ -732,7 +731,7 @@ impl LocalQuantityMacroInput {
                     (unit, dimension)
                 } else {
                     // Unknown unit, generate error with suggestions
-                    return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
+                    return self.generate_unknown_unit_error(unit_name);
                 }
             } else if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_name) {
                 // If not found directly, try to find the base unit
@@ -740,11 +739,11 @@ impl LocalQuantityMacroInput {
                     (unit, dimension)
                 } else {
                     // Unknown unit, generate error with suggestions
-                    return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
+                    return self.generate_unknown_unit_error(unit_name);
                 }
             } else {
                 // Unknown unit, generate error with suggestions
-                return self.generate_unknown_unit_error(unit_name, storage_type, lift_trace_doc_shadows);
+                return self.generate_unknown_unit_error(unit_name);
             };
 
         let dimensions = dimension.exponents;
@@ -771,7 +770,7 @@ impl LocalQuantityMacroInput {
         storage_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
-        let (dimensions, scales) = self.evaluate_dimensions();
+        let (dimensions, _scales) = self.evaluate_dimensions();
 
         // Check if it's a simple base unit (single dimension = 1, others = 0)
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
@@ -794,9 +793,7 @@ impl LocalQuantityMacroInput {
     /// Generate error for unknown unit with suggestions
     fn generate_unknown_unit_error(
         &self,
-        unit_name: &str,
-        storage_type: &Type,
-        lift_trace_doc_shadows: &TokenStream,
+        unit_name: &str
     ) -> TokenStream {
         use crate::unit_suggestions::find_similar_units;
         
@@ -996,7 +993,7 @@ impl LocalQuantityMacroInput {
         &self,
         dimensions: DynDimensionExponents,
     ) -> Option<String> {
-        use whippyunits_core::{Dimension, SiPrefix};
+        use whippyunits_core::{SiPrefix};
 
         // Use the existing infrastructure to find units with these dimensions
         let matching_units = get_units_by_exponents(dimensions);

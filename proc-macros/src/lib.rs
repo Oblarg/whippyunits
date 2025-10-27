@@ -21,52 +21,6 @@ mod unit_macro;
 mod unit_suggestions;
 
 
-// Helper functions that replace api_helpers functions with direct whippyunits-core calls
-
-/// Look up a unit literal (like "min", "h", "g", "m", "s", etc.) in the dimensions data
-fn lookup_unit_literal_direct(
-    unit_name: &str,
-) -> Option<(
-    &'static whippyunits_core::Dimension,
-    &'static whippyunits_core::Unit,
-)> {
-    // First try to find by symbol
-    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_symbol(unit_name) {
-        return Some((dimension, unit));
-    }
-
-    // Then try to find by name
-    if let Some((unit, dimension)) = whippyunits_core::Dimension::find_unit_by_name(unit_name) {
-        return Some((dimension, unit));
-    }
-
-    None
-}
-
-/// Parse a unit name to extract prefix and base unit
-/// Returns (prefix_option, base_unit_name)
-fn parse_unit_with_prefix_direct(
-    unit_name: &str,
-) -> (Option<&'static whippyunits_core::SiPrefix>, String) {
-    // Try to strip any prefix from the unit name
-    if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_symbol(unit_name) {
-        // Check if the base unit exists
-        if whippyunits_core::Dimension::find_unit_by_symbol(base).is_some() {
-            return (Some(prefix), String::from(base));
-        }
-    }
-
-    // Also try stripping prefix from name (not just symbol)
-    if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_name(unit_name) {
-        // Check if the base unit exists by name
-        if whippyunits_core::Dimension::find_unit_by_name(base).is_some() {
-            return (Some(prefix), String::from(base));
-        }
-    }
-
-    (None, String::from(unit_name))
-}
-
 /// Get all unit symbols that should have literal macros
 /// This is the single source of truth for what units should have custom literals
 /// Used by both the regular define_literals!() and local unit literals
