@@ -276,16 +276,16 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 ///     - `"value"`: A numeric value (integer or floating point)
 ///     - `"unit"`: A unit literal expression
 ///        - A "unit literal expression" is either:
-///            - An atomic unit:
+///            - An atomic unit (may include prefix):
 ///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
-///            - A multiplication of two or more atomic units:
-///                - `m * kg`
-///            - A division of two or more atomic units:
-///                - `m / s`
 ///            - An exponentiation of an atomic unit:
-///                - `m^2`, `s^-1`
-///            - A combination of the above:
-///                - `m * kg / s^2`
+///                - `m2`, `m^2`
+///            - A multiplication of two or more exponentiated atomic units:
+///                - `kg.m2`, `kg * m2`
+///            - A division of two such product expressions:
+///                - `kg.m2/s2`, `kg * m2 / s^2`
+///                - There may be at most one division expression in a unit literal expression
+///                - All terms trailing the division symbol are considered to be in the denominator
 ///  - `target_unit`: A unit literal expression
 ///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
 ///
@@ -389,16 +389,16 @@ macro_rules! from_json {
 ///     - A numeric value (integer or floating point)
 ///     - A unit literal expression
 ///        - A "unit literal expression" is either:
-///            - An atomic unit:
+///            - An atomic unit (may include prefix):
 ///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
-///            - A multiplication of two or more atomic units:
-///                - `m * kg`
-///            - A division of two or more atomic units:
-///                - `m / s`
 ///            - An exponentiation of an atomic unit:
-///                - `m^2`, `s^-1`
-///            - A combination of the above:
-///                - `m * kg / s^2`
+///                - `m2`, `m^2`
+///            - A multiplication of two or more exponentiated atomic units:
+///                - `kg.m2`, `kg * m2`
+///            - A division of two such product expressions:
+///                - `kg.m2/s2`, `kg * m2 / s^2`
+///                - There may be at most one division expression in a unit literal expression
+///                - All terms trailing the division symbol are considered to be in the denominator
 ///  - `target_unit`: A unit literal expression
 ///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
 /// 

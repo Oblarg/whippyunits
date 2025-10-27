@@ -254,16 +254,16 @@ generate_default_declarators!();
 /// - `value`: The value of the quantity
 /// - `unit_expression`: A "unit literal expression"
 ///     - A "unit literal expression" is either:
-///         - An atomic unit:
+///         - An atomic unit (may include prefix):
 ///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
-///         - A multiplication of two or more atomic units:
-///             - `m * kg`
-///         - A division of two or more atomic units:
-///             - `m / s`
 ///         - An exponentiation of an atomic unit:
-///             - `m^2`, `s^-1`
-///         - A combination of the above:
-///             - `m * kg / s^2`
+///             - `m2`, `m^2`
+///         - A multiplication of two or more exponentiated atomic units:
+///             - `kg.m2`, `kg * m2`
+///         - A division of two such product expressions:
+///             - `kg.m2/s2`, `kg * m2 / s^2`
+///             - There may be at most one division expression in a unit literal expression
+///             - All terms trailing the division symbol are considered to be in the denominator
 /// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
 ///
 /// ## Examples
@@ -278,18 +278,18 @@ generate_default_declarators!();
 /// let time = quantity!(10.0, s);
 ///
 /// // Compound units
-/// let velocity = quantity!(10.0, m / s);
-/// let acceleration = quantity!(9.81, m / s^2);
-/// let force = quantity!(100.0, kg * m / s^2);
-/// let energy = quantity!(50.0, kg * m^2 / s^2);
+/// let velocity = quantity!(10.0, m/s);
+/// let acceleration = quantity!(9.81, m/s^2);
+/// let force = quantity!(100.0, kg*m/s^2);
+/// let energy = quantity!(50.0, kg.m2/s2);
 ///
 /// // With explicit storage type
 /// let distance_f32 = quantity!(5.0, m, f32);
 /// let mass_i32 = quantity!(2, kg, i32);
 ///
 /// // Complex expressions
-/// let power = quantity!(1000.0, kg * m^2 / s^3);
-/// let pressure = quantity!(101325.0, kg / m / s^2);
+/// let power = quantity!(1000.0, kg.m^2/s^3);
+/// let pressure = quantity!(101325.0, kg/m.s^2);
 /// # }
 /// ```
 #[macro_export]

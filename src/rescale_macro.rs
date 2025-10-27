@@ -16,16 +16,16 @@
 /// - `quantity`: A [quantity](crate::quantity!) to rescale.
 /// - `unit_expression`: A "unit literal expression"
 ///     - A "unit literal expression" is either:
-///         - An atomic unit:
+///         - An atomic unit (may include prefix):
 ///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
-///         - A multiplication of two or more atomic units:
-///             - `m * kg`
-///         - A division of two or more atomic units:
-///             - `m / s`
 ///         - An exponentiation of an atomic unit:
-///             - `m^2`, `s^-1`
-///         - A combination of the above:
-///             - `m * kg / s^2`
+///             - `m2`, `m^2`
+///         - A multiplication of two or more exponentiated atomic units:
+///             - `kg.m2`, `kg * m2`
+///         - A division of two such product expressions:
+///             - `kg.m2/s2`, `kg * m2 / s^2`
+///             - There may be at most one division expression in a unit literal expression
+///             - All terms trailing the division symbol are considered to be in the denominator
 /// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
 ///
 /// ## Examples
