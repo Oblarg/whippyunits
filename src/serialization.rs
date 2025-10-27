@@ -259,11 +259,60 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 
 /// Deserializes a quantity from JSON representation.
 ///
-/// Usage: `from_json!(json_string, <unit_literal>)`
+/// Parses a JSON object in the format `{"value": number, "unit": "unit_string"}` 
+/// (e.g., `{"value": 5.0, "unit": "m"}`, `{"value": 2.5, "unit": "kg"}`)
+/// and returns a `Quantity` with the specified unit type. It performs dimension
+/// validation and automatic unit conversion.
 ///
-/// 1. Parses the JSON to extract value and unit
-/// 2. Uses deserialize_core_quantity to validate dimensions and rescale if needed
-/// 3. Returns a Quantity directly (optimized - no quantity! macro needed)
+/// # Syntax
+///
+/// ```rust, ignore
+/// from_json!(json_string, target_unit)
+/// from_json!(json_string, target_unit, storage_type)
+/// ```
+/// 
+/// where
+///  - `json_string`: A JSON string containing:
+///     - `"value"`: A numeric value (integer or floating point)
+///     - `"unit"`: A unit literal expression
+///        - A "unit literal expression" is either:
+///            - An atomic unit:
+///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+///            - A multiplication of two or more atomic units:
+///                - `m * kg`
+///            - A division of two or more atomic units:
+///                - `m / s`
+///            - An exponentiation of an atomic unit:
+///                - `m^2`, `s^-1`
+///            - A combination of the above:
+///                - `m * kg / s^2`
+///  - `target_unit`: A unit literal expression
+///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
+///
+/// # Examples
+///
+/// ```rust
+/// # use whippyunits::from_json;
+/// # use whippyunits::value;
+/// # use whippyunits::unit;
+///
+/// # fn main() {
+/// let length: unit!(m) = from_json!(r#"{"value": 5.0, "unit": "m"}"#, m).unwrap();
+/// assert_eq!(value!(length, m), 5.0);
+/// let length: unit!(km) = from_json!(r#"{"value": 5.0, "unit": "m"}"#, km).unwrap();
+/// assert_eq!(value!(length, km), 0.005);
+/// let error = from_json!(r#"{"value": 5.0, "unit": "m"}"#, kg);
+/// assert!(error.is_err());
+/// # }
+/// ```
+/// 
+/// # Error Handling
+///
+/// The macro returns a `Result<Quantity, SerializationError>`:
+/// - `Ok(quantity)`: Successfully parsed and converted quantity
+/// - `Err(SerializationError::DimensionMismatch)`: Unit dimension doesn't match target
+/// - `Err(SerializationError::InvalidFormat)`: JSON format is invalid or missing required fields
+/// - `Err(SerializationError::ParseError)`: JSON parsing failed or unit string couldn't be parsed
 #[macro_export]
 macro_rules! from_json {
     ($json:expr, $unit:expr) => {{
@@ -330,37 +379,46 @@ macro_rules! from_json {
 ///
 /// # Syntax
 ///
-/// ```rust
+/// ```rust, ignore
 /// from_string!(string_literal, target_unit)
+/// from_string!(string_literal, target_unit, storage_type)
 /// ```
-///
+/// 
+/// where
+///  - `string_literal`: A string literal containing, separated by a space:
+///     - A numeric value (integer or floating point)
+///     - A unit literal expression
+///        - A "unit literal expression" is either:
+///            - An atomic unit:
+///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+///            - A multiplication of two or more atomic units:
+///                - `m * kg`
+///            - A division of two or more atomic units:
+///                - `m / s`
+///            - An exponentiation of an atomic unit:
+///                - `m^2`, `s^-1`
+///            - A combination of the above:
+///                - `m * kg / s^2`
+///  - `target_unit`: A unit literal expression
+///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
+/// 
 /// # Examples
 ///
 /// ```rust
-/// use whippyunits::from_string;
+/// # use whippyunits::from_string;
+/// # use whippyunits::value;
+/// # use whippyunits::unit;
 ///
-/// // Basic units
-/// let length = from_string!("5.0 m", m).unwrap();
-/// let mass = from_string!("2.5 kg", kg).unwrap();
-/// let time = from_string!("10.0 s", s).unwrap();
-///
-/// // Unit conversions
-/// let km_from_m = from_string!("1000.0 m", km).unwrap();
-/// let cm_from_m = from_string!("1.0 m", cm).unwrap();
-/// let kg_from_g = from_string!("1000.0 g", kg).unwrap();
-///
-/// // Compound units
-/// let velocity = from_string!("10.0 m/s", m / s).unwrap();
-/// let acceleration = from_string!("9.81 m/s2", m / s^2).unwrap();
-/// let force = from_string!("100.0 kg.m/s2", kg * m / s^2).unwrap();
+/// # fn main() {
+/// let length: unit!(m) = from_string!("5.0 m", m).unwrap();
+/// assert_eq!(value!(length, m), 5.0);
+/// let length: unit!(km) = from_string!("5.0 m", km).unwrap();
+/// assert_eq!(value!(length, km), 0.005);
+/// let error = from_string!("5.0 m", kg);
+/// assert!(error.is_err());
+/// # }
 /// ```
-///
-/// # String Format
-///
-/// The input string must be in the format "value unit" where:
-/// - `value`: A numeric value (integer or floating point)
-/// - `unit`: A unit symbol or expression (e.g., `m`, `kg`, `m/s`, `kg.m/s2`)
-///
+/// 
 /// # Error Handling
 ///
 /// The macro returns a `Result<Quantity, SerializationError>`:
@@ -368,17 +426,6 @@ macro_rules! from_json {
 /// - `Err(SerializationError::DimensionMismatch)`: Unit dimension doesn't match target
 /// - `Err(SerializationError::InvalidFormat)`: String format is invalid
 /// - `Err(SerializationError::ParseError)`: Numeric value couldn't be parsed
-///
-/// # Dimension Validation
-///
-/// The macro ensures that the parsed unit has the same dimensions as the target unit.
-/// For example, `from_string!("5.0 m", kg)` will return a dimension mismatch error.
-///
-/// # Unit Conversion
-///
-/// If the parsed unit has the same dimensions but different scale than the target unit,
-/// automatic conversion is performed. For example, `from_string!("1000.0 m", km)` will
-/// return a quantity representing 1.0 km.
 #[macro_export]
 macro_rules! from_string {
     ($string:expr, $unit:expr) => {{
