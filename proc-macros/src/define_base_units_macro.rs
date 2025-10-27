@@ -97,6 +97,19 @@ impl DefineBaseUnitsInput {
             &angle_scale,
         );
 
+        // Generate base units documentation string
+        let base_units_docstring = Self::generate_base_units_docstring(
+            &namespace,
+            &mass_scale,
+            &length_scale,
+            &time_scale,
+            &current_scale,
+            &temperature_scale,
+            &amount_scale,
+            &luminosity_scale,
+            &angle_scale,
+        );
+
         // Generate literals module
         let literals_module = Self::generate_literals_module_static(
             &mass_scale,
@@ -116,6 +129,26 @@ impl DefineBaseUnitsInput {
                 #doc_structs
             };
 
+            #[doc = #base_units_docstring]
+            ///
+            /// Declarator module for local base units.  This shadows the entire [default_declarators](crate::default_declarators) module,
+            /// but automatically converts all declared units to the local base units before storing the value.
+            /// 
+            /// ## Example 
+            /// 
+            /// ```rust
+            /// define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale);
+            /// #[culit::culit(local_scale::literals)]
+            /// fn main() {
+            ///     use local_scale::*;
+            ///     let distance = 1.0.meters(); // automatically converted to 1000.0 millimeters
+            ///     let distance = quantity!(1.0, m); // automatically converted to 1000.0 millimeters
+            ///     let distance = 1.0m; // automatically converted to 1000.0 millimeters
+            /// }
+            /// ```
+            /// 
+            /// Literal declarators are also available in the inner `literals` module, for use with
+            /// the [culit](https://crates.io/crates/culit) crate.
             pub mod #namespace {
                 use whippyunits::rescale_f64;
                 use whippyunits::rescale_i32;
@@ -125,6 +158,28 @@ impl DefineBaseUnitsInput {
                 // Generate the trait definitions and implementations for each dimension
                 #(#trait_definitions)*
 
+                #[doc = #base_units_docstring]
+                /// 
+                /// Custom literal declarator sugar for the local base units, for use with
+                /// the [culit](https://crates.io/crates/culit) crate.  This sugars the local version of the
+                /// quantity! macro, which automatically converts all declared units to the local base units
+                /// before storing the value.
+                /// 
+                /// ## Example
+                ///
+                /// ```rust
+                /// define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale);
+                /// #[culit::culit(local_scale::literals)]
+                /// fn main() {
+                ///     let distance = 1.0m;
+                ///     assert_eq!(distance.unsafe_value, 1000.0); // automatically converted to millimeters
+                ///     let energy = 1.0J; // automatically converted to microJoules
+                ///     assert_eq!(energy.unsafe_value, 1000.0 * 1000.0);
+                /// }
+                /// ```
+                /// 
+                /// Hovering on the literal declarators will provide documentation of the auto-conversion, showing both the
+                /// declared unit and the unit to which it is converted, along with a detailed trace of the conversion chain.
                 pub mod literals {
                     #literals_module
                 }
@@ -450,6 +505,26 @@ impl DefineBaseUnitsInput {
         quote! {
             #(#doc_structs)*
         }
+    }
+
+    /// Generate documentation string showing the defined base units
+    fn generate_base_units_docstring(
+        namespace: &Ident,
+        mass_scale: &Ident,
+        length_scale: &Ident,
+        time_scale: &Ident,
+        current_scale: &Ident,
+        temperature_scale: &Ident,
+        amount_scale: &Ident,
+        luminosity_scale: &Ident,
+        angle_scale: &Ident,
+    ) -> String {
+        format!(
+            "Name: **{}** <br>\
+            Base units: **{}, {}, {}, {}, {}, {}, {}, {}** <br>",
+            namespace, mass_scale, length_scale, time_scale, current_scale, 
+            temperature_scale, amount_scale, luminosity_scale, angle_scale
+        )
     }
 
     /// Generate documentation for a single scale identifier
