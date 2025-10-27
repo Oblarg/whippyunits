@@ -337,7 +337,7 @@ macro_rules! from_json {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     f64,
-                >(value, &unit_str)
+                >(value, &unit_str) as Result<whippyunits::unit!($unit, f64), $crate::serialization::SerializationError>
             }
             Err(e) => Err(e),
         }
@@ -363,7 +363,7 @@ macro_rules! from_json {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     $storage_type,
-                >(value, &unit_str)
+                >(value, &unit_str) as Result<whippyunits::unit!($unit, $storage_type), $crate::serialization::SerializationError>
             }
             Err(e) => Err(e),
         }
@@ -451,7 +451,7 @@ macro_rules! from_string {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     f64,
-                >(value, &unit_str)
+                >(value, &unit_str) as Result<whippyunits::unit!($unit, f64), $crate::serialization::SerializationError>
             }
             Err(e) => Err(e),
         }
@@ -479,7 +479,7 @@ macro_rules! from_string {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     $storage_type,
-                >(value, &unit_str)
+                >(value, &unit_str) as Result<whippyunits::unit!($unit, $storage_type), $crate::serialization::SerializationError>
             }
             Err(e) => Err(e),
         }
