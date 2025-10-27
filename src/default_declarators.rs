@@ -13,8 +13,10 @@
 //! ## Usage
 //!
 //! ```rust
-//! use whippyunits::default_declarators::*;
-//!
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! # use whippyunits::default_declarators::*;
+//! # use whippyunits::quantity;
 //! // atomic units...
 //! let distance = 1.0.meters();
 //! let distance = quantity!(1.0, m);
@@ -27,6 +29,7 @@
 //!
 //! // bespoke units...
 //! let bespoke = quantity!(1.0, V * s^2 / m);
+//! # }
 //! ```
 
 use crate::quantity_type::Quantity;
@@ -242,7 +245,7 @@ generate_default_declarators!();
 ///
 /// ## Syntax
 ///
-/// ```rust
+/// ```rust,ignore
 /// quantity!(value, unit_expression)
 /// quantity!(value, unit_expression, storage_type)
 /// ```
@@ -266,7 +269,8 @@ generate_default_declarators!();
 /// ## Examples
 ///
 /// ```rust
-/// use whippyunits::quantity;
+/// # fn main() {
+/// # use whippyunits::quantity;
 ///
 /// // Basic quantities
 /// let distance = quantity!(5.0, m);
@@ -286,6 +290,7 @@ generate_default_declarators!();
 /// // Complex expressions
 /// let power = quantity!(1000.0, kg * m^2 / s^3);
 /// let pressure = quantity!(101325.0, kg / m / s^2);
+/// # }
 /// ```
 #[macro_export]
 macro_rules! quantity {

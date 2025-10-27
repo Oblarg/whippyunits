@@ -32,15 +32,21 @@ define_value_macro!(value_u128, rescale_u128, u128);
 ///
 /// Examples:
 /// ```rust
+/// # fn main() {
+/// # use whippyunits::default_declarators::*;
+/// # use whippyunits::value;
+/// # use whippyunits::quantity;
+/// 
 /// let distance_f64 = quantity!(1.0, m);
 /// let val_f64: f64 = value!(distance_f64, m);   // 1.0
 /// let val_f64: f64 = value!(distance_f64, mm);  // 1000.0
-/// let _value: f64 = value!(distance_f64, s);  // ❌ compile error (incompatible dimension)
+/// // let _value: f64 = value!(distance_f64, s);  // ❌ compile error (incompatible dimension)
 ///
 /// let distance_i32 = quantity!(1, m, i32);
 /// let val_i32: i32 = value!(distance_i32, m, i32);   // 1
 /// let val_i32: i32 = value!(distance_i32, mm, i32);  // 1000
-/// let _value: i32 = value!(distance_i32, s, i32);  // ❌ compile error (incompatible dimension)
+/// // let _value: i32 = value!(distance_i32, s, i32);  // ❌ compile error (incompatible dimension)
+/// # }
 /// ```
 #[macro_export]
 macro_rules! value {

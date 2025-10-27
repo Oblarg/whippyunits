@@ -369,31 +369,25 @@ fn test_custom_formatting() {
     assert_eq!(format!("{}", distance.fmt("ft")), "16404.199475065616 ft");
     assert_eq!(format!("{}", distance.fmt("mi")), "3.1068559611866697 mi");
 
-    println!("Mass conversions:");
     assert_eq!(format!("{}", mass.fmt("g")), "2500 g");
     assert_eq!(format!("{}", mass.fmt("kg")), "2.5 kg");
     assert_eq!(format!("{}", mass.fmt("oz")), "88.18490487395103 oz");
     assert_eq!(format!("{}", mass.fmt("lb")), "5.511556554621939 lb");
 
-    println!("Time conversions:");
     assert_eq!(format!("{}", time.fmt("s")), "90 s");
     assert_eq!(format!("{}", time.fmt("min")), "1.5 min");
     assert_eq!(format!("{}", time.fmt("h")), "0.025 h");
     // add tests for larger time units
 
-    println!("Precision formatting:");
     assert_eq!(format!("{:.2}", distance.fmt("km")), "5.00 km");
     assert_eq!(format!("{:.0}", distance.fmt("cm")), "500000 cm");
     assert_eq!(format!("{:.1}", mass.fmt("g")), "2500.0 g");
 
-    println!("Error cases:");
     assert!(distance.fmt("kg").to_string().contains("Error")); // Wrong dimension
     assert!(distance.fmt("unknown_unit").to_string().contains("Error")); // Unknown unit
 
     assert_eq!(format!("{}", distance.fmt("kilometer")), "5 kilometer");
     assert_eq!(format!("{}", mass.fmt("gram")), "2500 gram");
-
-    println!("Custom formatting tests passed!");
 }
 
 #[test]

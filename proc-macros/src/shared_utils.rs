@@ -104,9 +104,8 @@ pub fn get_declarator_type_for_exponents(
                 let is_base_unit = matching_dimension.units[0].name == unit.name;
                 
                 if is_base_unit {
-                    // For base units, use the pluralized name
-                    let unit_suffix = whippyunits_core::make_plural(unit.name);
-                    generate_scale_name("", &unit_suffix)
+                    // For base units, use the singular name for type generation
+                    generate_scale_name("", unit.name)
                 } else {
                     // For derived units, use the capitalized name
                     whippyunits_core::CapitalizedFmt(unit.name).to_string()
@@ -135,8 +134,7 @@ pub fn get_declarator_type_for_exponents(
             let scale_diff = scale_exponents.0[0] - base_unit.scale.0[0]; // Check p2 difference
             if let Some(prefix) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_diff) {
                 // Generate prefixed type name using same logic as default_declarators_macro
-                let unit_suffix = whippyunits_core::make_plural(base_unit.name);
-                let type_name = generate_scale_name(prefix.name(), &unit_suffix);
+                let type_name = generate_scale_name(prefix.name(), base_unit.name);
                 
                 let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
                 return Some(quote::quote! {

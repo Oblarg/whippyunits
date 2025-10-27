@@ -281,7 +281,7 @@ impl DefineBaseUnitsInput {
             let mut scale_definitions = Vec::new();
 
             // First, generate the base unit (no prefix)
-            let base_scale_name = generate_scale_name("", &unit_suffix);
+            let base_scale_name = generate_scale_name("", base_unit_name);
             let base_fn_name = unit_suffix.to_string();
 
             let base_scale_name_ident = syn::parse_str::<Ident>(&base_scale_name).unwrap();
@@ -294,7 +294,7 @@ impl DefineBaseUnitsInput {
             // Then generate all the prefixed units
             for prefix in si_prefixes {
                 // Generate the correct naming convention using the source of truth
-                let scale_name = generate_scale_name(prefix.name(), &unit_suffix);
+                let scale_name = generate_scale_name(prefix.name(), base_unit_name);
                 let fn_name = format!("{}{}", prefix.name(), unit_suffix);
 
                 let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();

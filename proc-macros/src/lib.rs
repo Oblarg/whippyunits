@@ -67,7 +67,8 @@ fn get_all_unit_symbols_for_literals() -> Vec<String> {
                     // as they are stored internally in SI units and don't need prefixed types
                     if !unit.has_conversion() {
                         for symbol in unit.symbols {
-                            symbols.push(format!("{}{}", prefix.symbol(), symbol));
+                            let prefixed_symbol = format!("{}{}", prefix.symbol(), symbol);
+                            symbols.push(prefixed_symbol);
                         }
                     }
                 }
