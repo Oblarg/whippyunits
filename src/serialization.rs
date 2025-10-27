@@ -280,7 +280,7 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 ///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
 ///            - An exponentiation of an atomic unit:
 ///                - `m2`, `m^2`
-///            - A multiplication of two or more exponentiated atomic units:
+///            - A multiplication of two or more (possibly exponentiated) atomic units:
 ///                - `kg.m2`, `kg * m2`
 ///            - A division of two such product expressions:
 ///                - `kg.m2/s2`, `kg * m2 / s^2`
@@ -295,7 +295,6 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 /// # use whippyunits::from_json;
 /// # use whippyunits::value;
 /// # use whippyunits::unit;
-///
 /// # fn main() {
 /// let length: unit!(m) = from_json!(r#"{"value": 5.0, "unit": "m"}"#, m).unwrap();
 /// assert_eq!(value!(length, m), 5.0);
@@ -385,7 +384,7 @@ macro_rules! from_json {
 /// ```
 /// 
 /// where
-///  - `string_literal`: A string literal containing, separated by a space:
+///  - `string_literal`: A string literal containing:
 ///     - A numeric value (integer or floating point)
 ///     - A unit literal expression
 ///        - A "unit literal expression" is either:
@@ -393,7 +392,7 @@ macro_rules! from_json {
 ///                - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
 ///            - An exponentiation of an atomic unit:
 ///                - `m2`, `m^2`
-///            - A multiplication of two or more exponentiated atomic units:
+///            - A multiplication of two or more (possibly exponentiated) atomic units:
 ///                - `kg.m2`, `kg * m2`
 ///            - A division of two such product expressions:
 ///                - `kg.m2/s2`, `kg * m2 / s^2`
@@ -402,19 +401,20 @@ macro_rules! from_json {
 ///  - `target_unit`: A unit literal expression
 ///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
 /// 
-/// # Examples
+/// ## Examples
 ///
 /// ```rust
 /// # use whippyunits::from_string;
 /// # use whippyunits::value;
 /// # use whippyunits::unit;
-///
 /// # fn main() {
 /// let length: unit!(m) = from_string!("5.0 m", m).unwrap();
 /// assert_eq!(value!(length, m), 5.0);
 /// let length: unit!(km) = from_string!("5.0 m", km).unwrap();
 /// assert_eq!(value!(length, km), 0.005);
-/// let error = from_string!("5.0 m", kg);
+/// let acceleration: unit!(m/s2) = from_string!("9.81 m/s2", m/s2).unwrap();
+/// assert_eq!(value!(acceleration, m/s2), 9.81);
+/// let error = from_string!("5.0 m/s2", m/s);
 /// assert!(error.is_err());
 /// # }
 /// ```

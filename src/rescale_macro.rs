@@ -20,7 +20,7 @@
 ///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
 ///         - An exponentiation of an atomic unit:
 ///             - `m2`, `m^2`
-///         - A multiplication of two or more exponentiated atomic units:
+///         - A multiplication of two or more (possibly exponentiated) atomic units:
 ///             - `kg.m2`, `kg * m2`
 ///         - A division of two such product expressions:
 ///             - `kg.m2/s2`, `kg * m2 / s^2`
