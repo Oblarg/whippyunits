@@ -226,22 +226,23 @@ pub fn lookup_unit_literal_by_scale_factors(
     ]);
 
     if let Some(dimension) = Dimension::find_dimension_by_exponents(dyn_exponents) {
-        // First, try to find a base unit (identity scale) that matches the dimension
-        // This is the preferred approach - use base units when possible
-        if let Some(base_unit) = dimension.units
-            .iter()
-            .find(|unit| {
-                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
-            }) {
-            return Some(if long_name { base_unit.name } else { base_unit.symbols[0] });
-        }
-        
-        // If no base unit found, look for units that match the exact scale factors
-        dimension
+        // First, try to find a unit that matches the exact scale factors
+        // This is the preferred approach - use exact matches when possible
+        if let Some(exact_unit) = dimension
             .units
             .iter()
             .find(|unit| {
                 unit.scale == scale_factors && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
+            }) {
+            return Some(if long_name { exact_unit.name } else { exact_unit.symbols[0] });
+        }
+        
+        // If no exact match found, fall back to base unit (identity scale)
+        dimension
+            .units
+            .iter()
+            .find(|unit| {
+                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
             })
             .map(|unit| {
                 if long_name {
