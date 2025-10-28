@@ -105,7 +105,7 @@ fn generate_literal_macros_module(
     is_local_mode: bool,
     scale_params: Option<(syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident)>,
     for_namespace: bool,
-    namespace_ident: Option<syn::Ident>,
+    namespace_ident: syn::Ident,
 ) -> proc_macro2::TokenStream {
     // Get all unit symbols using the shared function
     let unit_symbols = get_all_unit_symbols_for_literals();
@@ -123,66 +123,90 @@ fn generate_literal_macros_module(
     let mut float_macros = Vec::new();
     let mut integer_macros = Vec::new();
 
-    // Generate literal macros for each unit symbol with both float and integer variants
+    // Generate all literal macros for each unit symbol in a single iteration
     for unit_symbol in &unit_symbols {
         let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::mixed_site());
         
-        // Generate documentation based on mode
-        let doc_string = if is_local_mode {
-            if let Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)) = &scale_params {
-                let local_context = crate::lift_trace::LocalContext {
-                    mass_scale: mass_scale.clone(),
-                    length_scale: length_scale.clone(),
-                    time_scale: time_scale.clone(),
-                    current_scale: current_scale.clone(),
-                    temperature_scale: temperature_scale.clone(),
-                    amount_scale: amount_scale.clone(),
-                    luminosity_scale: luminosity_scale.clone(),
-                    angle_scale: angle_scale.clone(),
-                };
-                let transformation_details = local_context.get_transformation_details_for_identifier(unit_symbol);
-                // Use the EXACT SAME logic as local_unit_macro
-                let lines: Vec<&str> = transformation_details.details.lines().collect();
+        // Helper function to generate docstring with optional storage type parameter
+        let generate_doc_string = |storage_type: Option<&str>| {
+            if is_local_mode {
                 let mut formatted_details = String::new();
-                for (j, line) in lines.iter().enumerate() {
-                    formatted_details.push_str(line);
-                    if j < lines.len() - 1 {
-                        formatted_details.push_str("<br>");
+                let equivalent_text = if let Some(storage_type) = storage_type {
+                    format!("equivalent to: `{}::quantity!(value, {}, {})`<br><hr><br>", namespace_ident.to_string(), unit_symbol, storage_type)
+                } else {
+                    format!("equivalent to: `{}::quantity!(value, {})`<br><hr><br>", namespace_ident.to_string(), unit_symbol)
+                };
+                formatted_details.push_str(&equivalent_text);
+                if let Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)) = &scale_params {
+                    let local_context = crate::lift_trace::LocalContext {
+                        mass_scale: mass_scale.clone(),
+                        length_scale: length_scale.clone(),
+                        time_scale: time_scale.clone(),
+                        current_scale: current_scale.clone(),
+                        temperature_scale: temperature_scale.clone(),
+                        amount_scale: amount_scale.clone(),
+                        luminosity_scale: luminosity_scale.clone(),
+                        angle_scale: angle_scale.clone(),
+                    };
+                    let transformation_details = local_context.get_transformation_details_for_identifier(unit_symbol);
+                    let lines: Vec<&str> = transformation_details.details.lines().collect();
+                    for (j, line) in lines.iter().enumerate() {
+                        formatted_details.push_str(line);
+                        if j < lines.len() - 1 {
+                            formatted_details.push_str("<br>");
+                        }
                     }
-                }
+                } 
                 formatted_details
             } else {
-                format!("/// Local unit literal for `{}`", unit_symbol)
+                if let Some(storage_type) = storage_type {
+                    format!("equivalent to: `default_declarators::quantity!(value, {}, {})`<br>", unit_symbol, storage_type)
+                } else {
+                    format!("equivalent to: `default_declarators::quantity!(value, {})`<br>", unit_symbol)
+                }
             }
-        } else {
-            format!("/// Unit literal for `{}`", unit_symbol)
         };
+
+        // Generate base documentation for shortname macros (without storage type)
+        let base_doc_string = generate_doc_string(None);
+        
+        // Generate documentation for suffixed literals (with storage type parameter)
+        let doc_string_f64 = generate_doc_string(Some("f64"));
+        let doc_string_f32 = generate_doc_string(Some("f32"));
+        let doc_string_i32 = generate_doc_string(Some("i32"));
+        let doc_string_i64 = generate_doc_string(Some("i64"));
+        let doc_string_u32 = generate_doc_string(Some("u32"));
+        let doc_string_u64 = generate_doc_string(Some("u64"));
 
         // Generate unique inner names for each macro to avoid conflicts
         // For local mode, prefix with the namespace identifier to disambiguate between different local scales
         let inner_prefix = if is_local_mode {
-            if let Some(namespace) = &namespace_ident {
-                format!("{}_{}", namespace, unit_symbol)
-            } else {
-                unit_symbol.clone()
-            }
+            format!("{}_{}", namespace_ident, unit_symbol)
         } else {
             unit_symbol.clone()
         };
         
+        // Generate all inner macro identifiers
         let inner_f64 = syn::Ident::new(&format!("{}_f64", inner_prefix), proc_macro2::Span::mixed_site());
         let inner_f32 = syn::Ident::new(&format!("{}_f32", inner_prefix), proc_macro2::Span::mixed_site());
         let inner_i32 = syn::Ident::new(&format!("{}_i32", inner_prefix), proc_macro2::Span::mixed_site());
         let inner_i64 = syn::Ident::new(&format!("{}_i64", inner_prefix), proc_macro2::Span::mixed_site());
         let inner_u32 = syn::Ident::new(&format!("{}_u32", inner_prefix), proc_macro2::Span::mixed_site());
         let inner_u64 = syn::Ident::new(&format!("{}_u64", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_short_float = syn::Ident::new(&format!("{}_float", inner_prefix), proc_macro2::Span::mixed_site());
+        let inner_short_int = syn::Ident::new(&format!("{}_int", inner_prefix), proc_macro2::Span::mixed_site());
 
-        // Generate float variants
+        // Generate all outer macro identifiers
         let unit_f64 = syn::Ident::new(&format!("{}_f64", unit_symbol), proc_macro2::Span::mixed_site());
         let unit_f32 = syn::Ident::new(&format!("{}_f32", unit_symbol), proc_macro2::Span::mixed_site());
-        
+        let unit_i32 = syn::Ident::new(&format!("{}_i32", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_i64 = syn::Ident::new(&format!("{}_i64", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_u32 = syn::Ident::new(&format!("{}_u32", unit_symbol), proc_macro2::Span::mixed_site());
+        let unit_u64 = syn::Ident::new(&format!("{}_u64", unit_symbol), proc_macro2::Span::mixed_site());
+
+        // Generate typed float macros
         float_macros.push(quote! {
-            #[doc = #doc_string]
+            #[doc = #doc_string_f64]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_f64 {
@@ -192,7 +216,7 @@ fn generate_literal_macros_module(
             }
             pub use #inner_f64 as #unit_f64;
             
-            #[doc = #doc_string]
+            #[doc = #doc_string_f32]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_f32 {
@@ -203,14 +227,9 @@ fn generate_literal_macros_module(
             pub use #inner_f32 as #unit_f32;
         });
         
-        // Generate integer variants
-        let unit_i32 = syn::Ident::new(&format!("{}_i32", unit_symbol), proc_macro2::Span::mixed_site());
-        let unit_i64 = syn::Ident::new(&format!("{}_i64", unit_symbol), proc_macro2::Span::mixed_site());
-        let unit_u32 = syn::Ident::new(&format!("{}_u32", unit_symbol), proc_macro2::Span::mixed_site());
-        let unit_u64 = syn::Ident::new(&format!("{}_u64", unit_symbol), proc_macro2::Span::mixed_site());
-        
+        // Generate typed integer macros
         integer_macros.push(quote! {
-            #[doc = #doc_string]
+            #[doc = #doc_string_i32]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_i32 {
@@ -220,7 +239,7 @@ fn generate_literal_macros_module(
             }
             pub use #inner_i32 as #unit_i32;
             
-            #[doc = #doc_string]
+            #[doc = #doc_string_i64]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_i64 {
@@ -230,7 +249,7 @@ fn generate_literal_macros_module(
             }
             pub use #inner_i64 as #unit_i64;
             
-            #[doc = #doc_string]
+            #[doc = #doc_string_u32]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_u32 {
@@ -240,7 +259,7 @@ fn generate_literal_macros_module(
             }
             pub use #inner_u32 as #unit_u32;
             
-            #[doc = #doc_string]
+            #[doc = #doc_string_u64]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_u64 {
@@ -250,61 +269,10 @@ fn generate_literal_macros_module(
             }
             pub use #inner_u64 as #unit_u64;
         });
-    }
-
-    // Generate shortname macros for all units (like the culit_macro does)
-    for unit_symbol in &unit_symbols {
-        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::mixed_site());
-
-        // Generate documentation based on mode
-        let doc_string = if is_local_mode {
-            if let Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)) = &scale_params {
-                let local_context = crate::lift_trace::LocalContext {
-                    mass_scale: mass_scale.clone(),
-                    length_scale: length_scale.clone(),
-                    time_scale: time_scale.clone(),
-                    current_scale: current_scale.clone(),
-                    temperature_scale: temperature_scale.clone(),
-                    amount_scale: amount_scale.clone(),
-                    luminosity_scale: luminosity_scale.clone(),
-                    angle_scale: angle_scale.clone(),
-                };
-                let transformation_details = local_context.get_transformation_details_for_identifier(unit_symbol);
-                // Use the EXACT SAME logic as local_unit_macro
-                let lines: Vec<&str> = transformation_details.details.lines().collect();
-                let mut formatted_details = String::new();
-                for (j, line) in lines.iter().enumerate() {
-                    formatted_details.push_str(line);
-                    if j < lines.len() - 1 {
-                        formatted_details.push_str("<br>");
-                    }
-                }
-                formatted_details
-            } else {
-                format!("/// Local unit literal for `{}`", unit_symbol)
-            }
-        } else {
-            format!("/// Unit literal for `{}`", unit_symbol)
-        };
-
-        // Generate unique inner names for shortname macros to avoid conflicts
-        // For local mode, prefix with the namespace identifier to disambiguate between different local scales
-        let inner_prefix = if is_local_mode {
-            if let Some(namespace) = &namespace_ident {
-                format!("{}_{}", namespace, unit_symbol)
-            } else {
-                unit_symbol.clone()
-            }
-        } else {
-            unit_symbol.clone()
-        };
-        
-        let inner_short_float = syn::Ident::new(&format!("{}_float", inner_prefix), proc_macro2::Span::mixed_site());
-        let inner_short_int = syn::Ident::new(&format!("{}_int", inner_prefix), proc_macro2::Span::mixed_site());
 
         // Create shortname macro for float module using #quantity_path macro directly
         float_macros.push(quote! {
-            #[doc = #doc_string]
+            #[doc = #base_doc_string]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_short_float {
@@ -317,7 +285,7 @@ fn generate_literal_macros_module(
 
         // Create shortname macro for int module using #quantity_path macro directly
         integer_macros.push(quote! {
-            #[doc = #doc_string]
+            #[doc = #doc_string_i32]
             #[macro_export]
             #[doc(hidden)]
             macro_rules! #inner_short_int {
@@ -613,7 +581,7 @@ pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_literals_module(_input: TokenStream) -> TokenStream {
-    let literals_module = generate_literal_macros_module("literals", false, None, false, None);
+    let literals_module = generate_literal_macros_module("literals", false, None, false, syn::Ident::new("default_declarators", proc_macro2::Span::mixed_site()));
     literals_module.into()
 }
 

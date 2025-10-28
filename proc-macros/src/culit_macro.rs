@@ -21,7 +21,6 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
 
             match *type_suffix {
                 "f64" | "f32" => {
-                    // Float literals: ($value:literal) - simplified contract for culit 0.4
                     float_macros.push(quote! {
                         #[macro_export]
                         macro_rules! #macro_name_ident {
@@ -33,7 +32,6 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
                     });
                 }
                 "i32" | "i64" | "u32" | "u64" => {
-                    // Integer literals: ($value:literal) - simplified contract for culit 0.4
                     int_macros.push(quote! {
                         #[macro_export]
                         macro_rules! #macro_name_ident {
@@ -57,7 +55,6 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
 
         // Create shortname macro for float module using quantity! macro directly
         float_macros.push(quote! {
-            /// TEST!!
             macro_rules! #macro_name_ident {
                 ($value:literal) => {{
                     whippyunits::quantity!($value as f64, #unit_ident, f64)
@@ -78,7 +75,7 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
     }
 
     // Use the single generic function in default mode (no lift trace)
-    crate::generate_literal_macros_module(module_name, false, None, false, None).into()
+    crate::generate_literal_macros_module(module_name, false, None, false, syn::Ident::new(module_name, proc_macro2::Span::mixed_site())).into()
 }
 
 

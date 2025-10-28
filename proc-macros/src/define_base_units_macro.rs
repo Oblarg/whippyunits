@@ -99,7 +99,6 @@ impl DefineBaseUnitsInput {
 
         // Generate base units documentation string
         let base_units_docstring = Self::generate_base_units_docstring(
-            &namespace,
             &mass_scale,
             &length_scale,
             &time_scale,
@@ -246,11 +245,11 @@ impl DefineBaseUnitsInput {
                         rescaled as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64)
                     }
                 };
-                ($value:expr, $unit:expr, $storage_type:ty) => {
+                ($value:expr, $unit:expr, f32) => {
                     {
-                        let declared_quantity = <whippyunits::unit!($unit, $storage_type)>::new($value);
-                        let rescaled = whippyunits::rescale(declared_quantity);
-                        rescaled as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, $storage_type)
+                        let declared_quantity = <whippyunits::unit!($unit, f32)>::new($value);
+                        let rescaled = whippyunits::rescale_f32(declared_quantity);
+                        rescaled as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f32)
                     }
                 };
             }
@@ -468,7 +467,7 @@ impl DefineBaseUnitsInput {
             luminosity_scale.clone(),
             angle_scale.clone(),
         );
-        super::generate_literal_macros_module("literals", true, Some(scale_params), true, Some(namespace.clone()))
+        super::generate_literal_macros_module("literals", true, Some(scale_params), true, namespace.clone())
     }
 
     /// Generate documentation structs for scale identifiers
@@ -509,7 +508,6 @@ impl DefineBaseUnitsInput {
 
     /// Generate documentation string showing the defined base units
     fn generate_base_units_docstring(
-        namespace: &Ident,
         mass_scale: &Ident,
         length_scale: &Ident,
         time_scale: &Ident,
@@ -520,9 +518,8 @@ impl DefineBaseUnitsInput {
         angle_scale: &Ident,
     ) -> String {
         format!(
-            "Name: **{}** <br>\
-            Base units: **{}, {}, {}, {}, {}, {}, {}, {}** <br>",
-            namespace, mass_scale, length_scale, time_scale, current_scale, 
+            "Base units: **{}, {}, {}, {}, {}, {}, {}, {}** <br>",
+            mass_scale, length_scale, time_scale, current_scale, 
             temperature_scale, amount_scale, luminosity_scale, angle_scale
         )
     }

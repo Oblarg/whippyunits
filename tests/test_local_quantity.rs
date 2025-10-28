@@ -1,6 +1,5 @@
 use whippyunits::define_base_units;
 
-// Set up scoped preferences with different units
 define_base_units!(
     Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, test_scale
 );
@@ -8,18 +7,13 @@ define_base_units!(
 #[culit::culit(test_scale::literals)]
 #[test]
 fn test_local_unit_literals() {
-    // Test compound unit literals with local scale preferences
     let energy_f64 = 1.0J; // 1 joule
     let energy_i32 = 1J; // 1 joule (integer)
-
-    // Test other compound units
     let power_f64 = 2.0W; // 2 watts
     let force_f64 = 10.0N; // 10 newtons
     let pressure_f64 = 100.0Pa; // 100 pascals
-
-    // Test prefixed compound units
     let kilojoule_f64 = 1.5kJ; // 1.5 kilojoules
-    let milliwatt_f64 = 100.0mW; // 100 milliwatts
+    let milliwatt_f32 = 100.0mW_f32; // 100 milliwatts
 
     println!("Energy (f64): {}", energy_f64);
     println!("Energy (i32): {}", energy_i32);
@@ -27,7 +21,7 @@ fn test_local_unit_literals() {
     println!("Force (f64): {}", force_f64);
     println!("Pressure (f64): {}", pressure_f64);
     println!("Kilojoule (f64): {}", kilojoule_f64);
-    println!("Milliwatt (f64): {}", milliwatt_f64);
+    println!("Milliwatt (f32): {}", milliwatt_f32);
 
     println!("Compound unit literals with local scale preferences test passed!");
 }
@@ -36,19 +30,15 @@ fn test_local_unit_literals() {
 fn test_local_quantity_macro() {
     use test_scale::*;
     
-    // Test with f64 (default)
     let energy_f64 = quantity!(100.0, J);
     println!("Energy (f64): {:?}", energy_f64);
 
-    // Test with i32
     let energy_i32 = quantity!(100, J, i32);
     println!("Energy (i32): {:?}", energy_i32);
 
-    // Test with i64
     let energy_i64 = quantity!(100, J, i64);
     println!("Energy (i64): value = {}", energy_i64.unsafe_value);
 
-    // Test with other compound units using different storage types
     let force_f64 = quantity!(50.0, N);
     println!("Force (f64): {:?}", force_f64);
 
@@ -61,8 +51,6 @@ fn test_local_quantity_macro() {
     let power_i64 = quantity!(25, W, i64);
     println!("Power (i64): value = {}", power_i64.unsafe_value);
 
-    // Test LocalMass trait with different storage types
-    // Note: grams() converts to the local mass scale (Kilogram), so 1000 grams = 1 kilogram
     let mass_f64 = 1000.0.grams();
     assert_eq!(mass_f64.unsafe_value, 1.0); // 1000 grams = 1 kilogram
 
