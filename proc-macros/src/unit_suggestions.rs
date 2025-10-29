@@ -5,20 +5,20 @@ use whippyunits_core::{Dimension, SiPrefix};
 /// Returns suggestions with similarity scores above the threshold
 pub fn find_similar_units(unknown_unit: &str, threshold: f64) -> Vec<(String, f64)> {
     let mut suggestions = Vec::new();
-    
+
     // Get all available unit symbols and names
     let all_units = get_all_available_units();
-    
+
     for unit_name in all_units {
         let similarity = calculate_similarity(unknown_unit, &unit_name);
         if similarity >= threshold {
             suggestions.push((unit_name, similarity));
         }
     }
-    
+
     // Sort by similarity score (highest first)
     suggestions.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    
+
     // Limit to top 3 suggestions
     suggestions.truncate(3);
     suggestions
@@ -28,7 +28,7 @@ pub fn find_similar_units(unknown_unit: &str, threshold: f64) -> Vec<(String, f6
 fn calculate_similarity(s1: &str, s2: &str) -> f64 {
     let distance = damerau_levenshtein(&s1.to_lowercase(), &s2.to_lowercase());
     let max_len = s1.len().max(s2.len()) as f64;
-    
+
     if max_len == 0.0 {
         1.0
     } else {
@@ -39,7 +39,7 @@ fn calculate_similarity(s1: &str, s2: &str) -> f64 {
 /// Get all available unit symbols and names from the whippyunits-core data
 fn get_all_available_units() -> Vec<String> {
     let mut units = Vec::new();
-    
+
     // Get all units from all dimensions
     for dimension in Dimension::ALL {
         // Add unit symbols and names
@@ -52,7 +52,7 @@ fn get_all_available_units() -> Vec<String> {
             units.push(unit.name.to_string());
         }
     }
-    
+
     // Add prefixed units ONLY for base units (first unit in each dimension)
     for prefix in SiPrefix::ALL {
         for dimension in Dimension::ALL {
@@ -63,17 +63,16 @@ fn get_all_available_units() -> Vec<String> {
                     let prefixed_symbol = format!("{}{}", prefix.symbol(), first_symbol);
                     units.push(prefixed_symbol);
                 }
-                
+
                 // Add prefixed names
                 let prefixed_name = format!("{}{}", prefix.name(), base_unit.name);
                 units.push(prefixed_name);
             }
         }
     }
-    
+
     // Remove duplicates and sort
     units.sort();
     units.dedup();
     units
 }
-

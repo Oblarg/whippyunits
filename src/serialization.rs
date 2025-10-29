@@ -10,8 +10,8 @@ use crate::print::prettyprint::UnitFormat;
 use crate::quantity_type::Quantity;
 use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
 use whippyunits_core::{
-    SiPrefix, Unit, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
-    UnitExpr, UnitEvaluationResult,
+    SiPrefix, Unit, UnitEvaluationResult, UnitExpr, dimension_exponents::DynDimensionExponents,
+    scale_exponents::ScaleExponents,
 };
 
 /// Represents the dimension and scale exponents for a unit using proper whippyunits-core types
@@ -205,16 +205,14 @@ pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
     }
 
     // Convert the string to a TokenStream for parsing
-    let token_stream: TokenStream = parse_str(ucum_string)
-        .map_err(|_| UcumError::UnknownDimension(
-            DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0])
-        ))?;
+    let token_stream: TokenStream = parse_str(ucum_string).map_err(|_| {
+        UcumError::UnknownDimension(DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]))
+    })?;
 
     // Parse the TokenStream into a UnitExpr
-    let unit_expr: UnitExpr = syn::parse2(token_stream)
-        .map_err(|_| UcumError::UnknownDimension(
-            DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0])
-        ))?;
+    let unit_expr: UnitExpr = syn::parse2(token_stream).map_err(|_| {
+        UcumError::UnknownDimension(DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]))
+    })?;
 
     // Evaluate the unit expression to get dimensions and scales
     let result: UnitEvaluationResult = unit_expr.evaluate();
@@ -259,7 +257,7 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 
 /// Deserializes a quantity from JSON representation.
 ///
-/// Parses a JSON object in the format `{"value": number, "unit": "unit_string"}` 
+/// Parses a JSON object in the format `{"value": number, "unit": "unit_string"}`
 /// (e.g., `{"value": 5.0, "unit": "m"}`, `{"value": 2.5, "unit": "kg"}`)
 /// and returns a `Quantity` with the specified unit type. It performs dimension
 /// validation and automatic unit conversion.
@@ -270,7 +268,7 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 /// from_json!(json_string, target_unit)
 /// from_json!(json_string, target_unit, storage_type)
 /// ```
-/// 
+///
 /// where
 ///  - `json_string`: A JSON string containing:
 ///     - `"value"`: A numeric value (integer or floating point)
@@ -304,7 +302,7 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
 /// assert!(error.is_err());
 /// # }
 /// ```
-/// 
+///
 /// # Error Handling
 ///
 /// The macro returns a `Result<Quantity, SerializationError>`:
@@ -319,9 +317,12 @@ macro_rules! from_json {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
-                    whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const UNIT_INFO: (
+                    whippyunits_core::dimension_exponents::DynDimensionExponents,
+                    whippyunits_core::scale_exponents::ScaleExponents,
+                ) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents =
+                    UNIT_INFO.0;
                 const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { DIMENSIONS.0[0] },
@@ -337,7 +338,11 @@ macro_rules! from_json {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     f64,
-                >(value, &unit_str) as Result<whippyunits::unit!($unit, f64), $crate::serialization::SerializationError>
+                >(value, &unit_str)
+                    as Result<
+                        whippyunits::unit!($unit, f64),
+                        $crate::serialization::SerializationError,
+                    >
             }
             Err(e) => Err(e),
         }
@@ -345,9 +350,12 @@ macro_rules! from_json {
     ($json:expr, $unit:expr, $storage_type:ty) => {{
         match $crate::serialization::parse_json_input($json) {
             Ok((value, unit_str)) => {
-                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
-                    whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const UNIT_INFO: (
+                    whippyunits_core::dimension_exponents::DynDimensionExponents,
+                    whippyunits_core::scale_exponents::ScaleExponents,
+                ) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents =
+                    UNIT_INFO.0;
                 const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { DIMENSIONS.0[0] },
@@ -363,7 +371,11 @@ macro_rules! from_json {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     $storage_type,
-                >(value, &unit_str) as Result<whippyunits::unit!($unit, $storage_type), $crate::serialization::SerializationError>
+                >(value, &unit_str)
+                    as Result<
+                        whippyunits::unit!($unit, $storage_type),
+                        $crate::serialization::SerializationError,
+                    >
             }
             Err(e) => Err(e),
         }
@@ -382,7 +394,7 @@ macro_rules! from_json {
 /// from_string!(string_literal, target_unit)
 /// from_string!(string_literal, target_unit, storage_type)
 /// ```
-/// 
+///
 /// where
 ///  - `string_literal`: A string literal containing:
 ///     - A numeric value (integer or floating point)
@@ -400,7 +412,7 @@ macro_rules! from_json {
 ///                - All terms trailing the division symbol are considered to be in the denominator
 ///  - `target_unit`: A unit literal expression
 ///  - `storage_type`: (optional) The storage type for the quantity (defaults to f64)
-/// 
+///
 /// ## Examples
 ///
 /// ```rust
@@ -418,7 +430,7 @@ macro_rules! from_json {
 /// assert!(error.is_err());
 /// # }
 /// ```
-/// 
+///
 /// # Error Handling
 ///
 /// The macro returns a `Result<Quantity, SerializationError>`:
@@ -433,9 +445,12 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
-                    whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const UNIT_INFO: (
+                    whippyunits_core::dimension_exponents::DynDimensionExponents,
+                    whippyunits_core::scale_exponents::ScaleExponents,
+                ) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents =
+                    UNIT_INFO.0;
                 const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { DIMENSIONS.0[0] },
@@ -451,7 +466,11 @@ macro_rules! from_string {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     f64,
-                >(value, &unit_str) as Result<whippyunits::unit!($unit, f64), $crate::serialization::SerializationError>
+                >(value, &unit_str)
+                    as Result<
+                        whippyunits::unit!($unit, f64),
+                        $crate::serialization::SerializationError,
+                    >
             }
             Err(e) => Err(e),
         }
@@ -461,9 +480,12 @@ macro_rules! from_string {
             Ok((value, unit_str)) => {
                 // Use deserialize_core_quantity to handle dimension checking and rescaling
                 // Returns Quantity directly - no need for quantity! macro
-                const UNIT_INFO: (whippyunits_core::dimension_exponents::DynDimensionExponents, whippyunits_core::scale_exponents::ScaleExponents) =
-                    whippyunits_proc_macros::compute_unit_dimensions!($unit);
-                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents = UNIT_INFO.0;
+                const UNIT_INFO: (
+                    whippyunits_core::dimension_exponents::DynDimensionExponents,
+                    whippyunits_core::scale_exponents::ScaleExponents,
+                ) = whippyunits_proc_macros::compute_unit_dimensions!($unit);
+                const DIMENSIONS: whippyunits_core::dimension_exponents::DynDimensionExponents =
+                    UNIT_INFO.0;
                 const SCALES: whippyunits_core::scale_exponents::ScaleExponents = UNIT_INFO.1;
                 $crate::serialization::deserialize_core_quantity::<
                     { DIMENSIONS.0[0] },
@@ -479,7 +501,11 @@ macro_rules! from_string {
                     { SCALES.0[2] },
                     { SCALES.0[3] },
                     $storage_type,
-                >(value, &unit_str) as Result<whippyunits::unit!($unit, $storage_type), $crate::serialization::SerializationError>
+                >(value, &unit_str)
+                    as Result<
+                        whippyunits::unit!($unit, $storage_type),
+                        $crate::serialization::SerializationError,
+                    >
             }
             Err(e) => Err(e),
         }

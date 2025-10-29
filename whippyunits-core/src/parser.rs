@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use syn::parse::{Parse, ParseStream, Result};
-use syn::token::{Caret, Slash, Star, Dot};
+use syn::token::{Caret, Dot, Slash, Star};
 use syn::{Ident, LitInt};
 
 #[cfg(not(test))]
@@ -13,9 +13,9 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use crate::{
+    Dimension, SiPrefix, Unit,
     dimension_exponents::{DimensionExponents, DynDimensionExponents},
     scale_exponents::ScaleExponents,
-    Dimension, SiPrefix, Unit,
 };
 
 /// Represents a unit with optional exponent
@@ -120,13 +120,13 @@ impl UnitExpr {
             // Handle numeric literals like "1" in "1 / m" or "10" in "10^4 m"
             let lit: syn::LitInt = input.parse()?;
             let base_value: i32 = lit.base10_parse()?;
-            
+
             // Check if this is followed by a caret (^) for power notation
             if input.peek(Caret) {
                 let _caret: Caret = input.parse()?;
                 let exponent_lit: LitInt = input.parse()?;
                 let exponent: i32 = exponent_lit.base10_parse()?;
-                
+
                 // Handle power-of-10 expressions like "10^4"
                 if base_value == 10 {
                     // This is a power-of-10 scale factor
@@ -164,7 +164,7 @@ impl UnitExpr {
             }
         } else {
             let ident: Ident = input.parse()?;
-            
+
             // Check for implicit exponent notation (UCUM format like "s2" instead of "s^2")
             let ident_str = ident.to_string();
             if let Some(pos) = ident_str.chars().position(|c| c.is_ascii_digit()) {
@@ -205,7 +205,7 @@ impl UnitExpr {
                         scale_exponents: ScaleExponents::_10(unit.exponent),
                     };
                 }
-                
+
                 if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
                     // Get the dimension exponents and scale exponents from the unit
                     let mut dimension_exponents = unit_info.exponents.value();
@@ -321,7 +321,12 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
                 // Check if the base unit exists and is a base unit (first unit in its dimension)
                 if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(base) {
                     // Check if this is the first unit in its dimension (base unit)
-                    if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                    if dimension
+                        .units
+                        .first()
+                        .map(|first_unit| first_unit.name == unit.name)
+                        .unwrap_or(false)
+                    {
                         // Only allow prefixing if the base unit is a metric unit (not imperial)
                         if unit.system == crate::System::Metric {
                             return Some(unit);
@@ -335,7 +340,12 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
                 // Check if the base unit exists by name and is a base unit
                 if let Some((unit, dimension)) = Dimension::find_unit_by_name(base) {
                     // Check if this is the first unit in its dimension (base unit)
-                    if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                    if dimension
+                        .units
+                        .first()
+                        .map(|first_unit| first_unit.name == unit.name)
+                        .unwrap_or(false)
+                    {
                         // Only allow prefixing if the base unit is a metric unit (not imperial)
                         if unit.system == crate::System::Metric {
                             return Some(unit);
@@ -349,4 +359,3 @@ pub fn get_unit_info(unit_name: &str) -> Option<&'static Unit> {
     // If not found, return None
     None
 }
-

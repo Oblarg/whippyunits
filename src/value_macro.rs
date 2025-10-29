@@ -36,7 +36,7 @@ define_value_macro!(value_u128, rescale_u128, u128);
 /// # use whippyunits::default_declarators::*;
 /// # use whippyunits::value;
 /// # use whippyunits::quantity;
-/// 
+///
 /// let distance_f64 = quantity!(1.0, m);
 /// let val_f64: f64 = value!(distance_f64, m);   // 1.0
 /// let val_f64: f64 = value!(distance_f64, mm);  // 1000.0

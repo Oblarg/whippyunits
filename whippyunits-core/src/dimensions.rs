@@ -175,7 +175,8 @@ impl Dimension {
 
                 if let Some((unit, dimension)) = Self::find_unit_by_name(literal_singular) {
                     return Some((unit, dimension, None));
-                } else if let Some((unit, dimension)) = Self::find_unit_by_symbol(literal_singular) {
+                } else if let Some((unit, dimension)) = Self::find_unit_by_symbol(literal_singular)
+                {
                     return Some((unit, dimension, None));
                 }
             }
@@ -271,7 +272,17 @@ impl Dimension<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
     pub const MASS: Self = __dim!(Self {
         name: "Mass",
         symbol: "M",
-        units: &[Unit::GRAM, Unit::GRAIN, Unit::CARAT, Unit::OUNCE, Unit::TROY_OUNCE, Unit::TROY_POUND, Unit::POUND, Unit::STONE, Unit::TON],
+        units: &[
+            Unit::GRAM,
+            Unit::GRAIN,
+            Unit::CARAT,
+            Unit::OUNCE,
+            Unit::TROY_OUNCE,
+            Unit::TROY_POUND,
+            Unit::POUND,
+            Unit::STONE,
+            Unit::TON
+        ],
     });
 }
 
@@ -279,7 +290,17 @@ impl Dimension<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
     pub const LENGTH: Self = __dim!(Self {
         name: "Length",
         symbol: "L",
-        units: &[Unit::METER, Unit::INCH, Unit::FOOT, Unit::YARD, Unit::MILE, Unit::NAUTICAL_MILE, Unit::ASTRONOMICAL_UNIT, Unit::LIGHT_YEAR, Unit::PARSEC],
+        units: &[
+            Unit::METER,
+            Unit::INCH,
+            Unit::FOOT,
+            Unit::YARD,
+            Unit::MILE,
+            Unit::NAUTICAL_MILE,
+            Unit::ASTRONOMICAL_UNIT,
+            Unit::LIGHT_YEAR,
+            Unit::PARSEC
+        ],
     });
 }
 
@@ -287,7 +308,15 @@ impl Dimension<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
     pub const TIME: Self = __dim!(Self {
         name: "Time",
         symbol: "T",
-        units: &[Unit::SECOND, Unit::MINUTE, Unit::HOUR, Unit::DAY, Unit::WEEK, Unit::MONTH, Unit::YEAR],
+        units: &[
+            Unit::SECOND,
+            Unit::MINUTE,
+            Unit::HOUR,
+            Unit::DAY,
+            Unit::WEEK,
+            Unit::MONTH,
+            Unit::YEAR
+        ],
     });
 }
 
@@ -342,10 +371,7 @@ impl Dimension<crate::dimension_exponents!([0, 2, 0, 0, 0, 0, 0, 0])> {
     pub const AREA: Self = __dim!(Self {
         name: "Area",
         symbol: "L²",
-        units: &[
-            Unit::HECTARE,
-            Unit::ACRE,
-        ],
+        units: &[Unit::HECTARE, Unit::ACRE,],
     });
 }
 
@@ -397,7 +423,16 @@ impl Dimension<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
     pub const ENERGY: Self = __dim!(Self {
         name: "Energy",
         symbol: "ML²T⁻²",
-        units: &[Unit::JOULE, Unit::ELECTRONVOLT, Unit::ERG, Unit::NEWTON_METER, Unit::CALORIE, Unit::FOOT_POUND, Unit::KILOWATT_HOUR, Unit::THERM],
+        units: &[
+            Unit::JOULE,
+            Unit::ELECTRONVOLT,
+            Unit::ERG,
+            Unit::NEWTON_METER,
+            Unit::CALORIE,
+            Unit::FOOT_POUND,
+            Unit::KILOWATT_HOUR,
+            Unit::THERM
+        ],
     });
 }
 
@@ -413,7 +448,13 @@ impl Dimension<crate::dimension_exponents!([1, -1, -2, 0, 0, 0, 0, 0])> {
     pub const PRESSURE: Self = __dim!(Self {
         name: "Pressure",
         symbol: "ML⁻¹T⁻²",
-        units: &[Unit::PASCAL, Unit::TORR, Unit::PSI, Unit::BAR, Unit::ATMOSPHERE],
+        units: &[
+            Unit::PASCAL,
+            Unit::TORR,
+            Unit::PSI,
+            Unit::BAR,
+            Unit::ATMOSPHERE
+        ],
     });
 }
 

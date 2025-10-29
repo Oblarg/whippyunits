@@ -29,7 +29,7 @@ fn test_local_unit_literals() {
 #[test]
 fn test_local_quantity_macro() {
     use test_scale::*;
-    
+
     let energy_f64 = quantity!(100.0, J);
     println!("Energy (f64): {:?}", energy_f64);
 

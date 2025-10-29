@@ -3,8 +3,8 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
-use crate::shared_utils::generate_scale_name;
 use crate::scale_suggestions::find_similar_scales;
+use crate::shared_utils::generate_scale_name;
 
 /// Input for the define_base_units macro
 /// Usage: define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale)
@@ -132,9 +132,9 @@ impl DefineBaseUnitsInput {
             ///
             /// Declarator module for local base units.  This shadows the entire [default_declarators](crate::default_declarators) module,
             /// but automatically converts all declared units to the local base units before storing the value.
-            /// 
-            /// ## Example 
-            /// 
+            ///
+            /// ## Example
+            ///
             /// ```rust
             /// define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale);
             /// #[culit::culit(local_scale::literals)]
@@ -145,7 +145,7 @@ impl DefineBaseUnitsInput {
             ///     let distance = 1.0m; // automatically converted to 1000.0 millimeters
             /// }
             /// ```
-            /// 
+            ///
             /// Literal declarators are also available in the inner `literals` module, for use with
             /// the [culit](https://crates.io/crates/culit) crate.
             pub mod #namespace {
@@ -153,17 +153,17 @@ impl DefineBaseUnitsInput {
                 use whippyunits::rescale_i32;
                 use whippyunits::rescale_i64;
                 use whippyunits::local_unit_type;
-                
+
                 // Generate the trait definitions and implementations for each dimension
                 #(#trait_definitions)*
 
                 #[doc = #base_units_docstring]
-                /// 
+                ///
                 /// Custom literal declarator sugar for the local base units, for use with
                 /// the [culit](https://crates.io/crates/culit) crate.  This sugars the local version of the
                 /// quantity! macro, which automatically converts all declared units to the local base units
                 /// before storing the value.
-                /// 
+                ///
                 /// ## Example
                 ///
                 /// ```rust
@@ -176,7 +176,7 @@ impl DefineBaseUnitsInput {
                 ///     assert_eq!(energy.unsafe_value, 1000.0 * 1000.0);
                 /// }
                 /// ```
-                /// 
+                ///
                 /// Hovering on the literal declarators will provide documentation of the auto-conversion, showing both the
                 /// declared unit and the unit to which it is converted, along with a detailed trace of the conversion chain.
                 pub mod literals {
@@ -311,11 +311,14 @@ impl DefineBaseUnitsInput {
             // Get the base unit name from the dimension programmatically
             let base_unit_name = base_unit.name;
             let unit_suffix = whippyunits_core::make_plural(base_unit_name);
-            
+
             // Generate trait name from dimension name, converting spaces to underscores
             let sanitized_name = dimension.name.replace(" ", "");
-            let trait_name = format!("Local{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string());
-            
+            let trait_name = format!(
+                "Local{}",
+                whippyunits_core::CapitalizedFmt(&sanitized_name).to_string()
+            );
+
             // Determine scale identifier based on dimension
             let scale_ident = match dimension.name {
                 "Mass" => mass_scale,
@@ -374,26 +377,26 @@ impl DefineBaseUnitsInput {
                 if let Some((scale_name_str, fn_name_str)) = Self::parse_scale_tuple(&scale_str) {
                     let scale_name_ident = syn::parse_str::<Ident>(&scale_name_str).unwrap();
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name_str).unwrap();
-                    
+
                     // Generate trait method - return the local scale type (the actual default declarator type)
                     trait_methods.push(quote! {
                         fn #fn_name_ident(self) -> whippyunits::default_declarators::#scale_ident<T>;
                     });
-                    
+
                     // Generate f64 implementation - convert from default declarator to local scale
                     impl_f64_methods.push(quote! {
                         fn #fn_name_ident(self) -> whippyunits::default_declarators::#scale_ident<f64> {
                             whippyunits::rescale_f64(whippyunits::default_declarators::#scale_name_ident::new(self))
                         }
                     });
-                    
+
                     // Generate i32 implementation
                     impl_i32_methods.push(quote! {
                         fn #fn_name_ident(self) -> whippyunits::default_declarators::#scale_ident<i32> {
                             whippyunits::rescale_i32(whippyunits::default_declarators::#scale_name_ident::new(self))
                         }
                     });
-                    
+
                     // Generate i64 implementation
                     impl_i64_methods.push(quote! {
                         fn #fn_name_ident(self) -> whippyunits::default_declarators::#scale_ident<i64> {
@@ -434,7 +437,7 @@ impl DefineBaseUnitsInput {
         // Remove parentheses and split by comma
         let trimmed = scale_str.trim_start_matches('(').trim_end_matches(')');
         let parts: Vec<&str> = trimmed.split(',').collect();
-        
+
         if parts.len() == 2 {
             let scale_name = parts[0].trim().to_string();
             let fn_name = parts[1].trim().to_string();
@@ -467,7 +470,13 @@ impl DefineBaseUnitsInput {
             luminosity_scale.clone(),
             angle_scale.clone(),
         );
-        super::generate_literal_macros_module("literals", true, Some(scale_params), true, namespace.clone())
+        super::generate_literal_macros_module(
+            "literals",
+            true,
+            Some(scale_params),
+            true,
+            namespace.clone(),
+        )
     }
 
     /// Generate documentation structs for scale identifiers
@@ -519,15 +528,21 @@ impl DefineBaseUnitsInput {
     ) -> String {
         format!(
             "Base units: **{}, {}, {}, {}, {}, {}, {}, {}** <br>",
-            mass_scale, length_scale, time_scale, current_scale, 
-            temperature_scale, amount_scale, luminosity_scale, angle_scale
+            mass_scale,
+            length_scale,
+            time_scale,
+            current_scale,
+            temperature_scale,
+            amount_scale,
+            luminosity_scale,
+            angle_scale
         )
     }
 
     /// Generate documentation for a single scale identifier
     fn generate_single_scale_doc(identifier: &Ident, dimension_name: &str) -> Option<TokenStream> {
         let scale_name = identifier.to_string();
-        
+
         // Check if the scale is valid first
         if !Self::is_valid_scale(&scale_name) {
             let error_message = Self::generate_scale_error_message(&scale_name);
@@ -537,7 +552,7 @@ impl DefineBaseUnitsInput {
                 };
             });
         }
-        
+
         let doc_comment = Self::generate_scale_doc_comment(&scale_name, dimension_name);
 
         // Create a new identifier with the same span as the original
@@ -591,7 +606,7 @@ impl DefineBaseUnitsInput {
                 .map(|(suggestion, _)| format!("'{}'", suggestion))
                 .collect::<Vec<_>>()
                 .join(", ");
-            
+
             format!(
                 "Unknown scale identifier '{}'. Did you mean: {}?",
                 scale_name, suggestion_list
@@ -603,7 +618,7 @@ impl DefineBaseUnitsInput {
     fn get_declarator_type_for_scale(scale_name: &str) -> Option<TokenStream> {
         // For scale identifiers, we need to check if they correspond to actual default declarator types
         // Scale identifiers are typically the capitalized names of base units
-        
+
         // Check if it's a base unit name (like "Second", "Kilogram", "Meter", etc.)
         let atomic_dimensions = whippyunits_core::Dimension::BASIS;
         for dimension in atomic_dimensions {
@@ -618,15 +633,17 @@ impl DefineBaseUnitsInput {
                 }
             }
         }
-        
+
         // Check if it's a prefixed unit name (like "Kilogram", "Millimeter", etc.)
         for prefix in whippyunits_core::SiPrefix::ALL {
             for dimension in atomic_dimensions {
                 if let Some(base_unit) = dimension.units.first() {
                     // Use the same logic as generate_scale_name to ensure consistency
-                    let type_name = crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
+                    let type_name =
+                        crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
                     if type_name == scale_name {
-                        let type_ident = syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
+                        let type_ident =
+                            syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
                         return Some(quote! {
                             whippyunits::default_declarators::#type_ident
                         });
@@ -634,7 +651,7 @@ impl DefineBaseUnitsInput {
                 }
             }
         }
-        
+
         None
     }
 }

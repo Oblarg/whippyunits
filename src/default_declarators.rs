@@ -6,7 +6,7 @@
 //!
 //! Declarator methods are technically non-const, since const traits are not yet generally available.
 //! If const declaration is required, use the [quantity!](crate::quantity!) macro.
-//! 
+//!
 //! [Literal declarators](crate::default_declarators::literals) exist that sugar the `quantity!` macro
 //! for all units with a unique unit symbol.  Bespoke algebraic combinations must use the `quantity!` macro.
 //!

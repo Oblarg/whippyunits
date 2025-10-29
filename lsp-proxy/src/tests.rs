@@ -199,7 +199,7 @@ fn test_hover_tooltip_processing_i32() {
 
     println!("Input hover: {}", response_str);
     println!("Processed hover: {}", processed);
-    
+
     // Should contain pretty-printed type with i32, not f64
     assert!(processed.contains("Quantity<") && processed.contains("i32"));
     assert!(!processed.contains("f64"));

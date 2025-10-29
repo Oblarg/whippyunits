@@ -19,7 +19,7 @@ impl System {
         match self {
             System::Metric => "Metric",
             System::Imperial => "Imperial",
-            System::Astronomical => "Astronomical"
+            System::Astronomical => "Astronomical",
         }
     }
 }
@@ -29,19 +29,19 @@ impl System {
 /// Each unit is assigned a "storage unit". The storage unit is the unit
 /// of a value stored with this unit. Storage units are always a well defined
 /// multiple of an SI base unit.
-/// 
+///
 /// The logarithmic scale encoding in the type system uses only powers of
 /// 2, 3, 5, and pi.  This means that the storage unit must be a multiple of
 /// an SI base unit and a product of powers of 2, 3, 5, and pi.  For example,
-/// 
+///
 /// - "kilometer" has a scale factor of 10^3 = 2^3 * 5^3
 /// - "degree" has a scale factor of π/180 = 2^-2 * 3^-2 * 5^-1 * pi^1
-/// 
+///
 /// Units that differ from identity in their `conversion_factor` are "non-storage"
 /// units.  Non-storage units are not stored in their native scale; upon declaration
 /// they are converted to their "nearest neighbor" power-of-10 multiple of a SI
 /// base unit.  For example
-/// 
+///
 /// - "inch" is multiplied by 2.54 and stored as "centimeters"
 /// - "yard" is multiplied by 0.9144 and stored as "meters"
 /// - "mile" is multiplied by 1.609344 and stored as "kilometers"
@@ -51,10 +51,10 @@ pub struct Unit<ExponentsType = DynDimensionExponents> {
     pub name: &'static str,
 
     /// Symbols associated with the unit.
-    /// 
+    ///
     /// Symbols are also used for lookup, so they must be unique within
     /// the unit system.
-    /// 
+    ///
     /// Because SI has a systematic prefixing semantics, symbols must be kept
     /// from colliding not just with the SI base symbols, but with any legal
     /// prefixing thereof.  "SI base symbols" are defined as the first symbol
@@ -72,23 +72,23 @@ pub struct Unit<ExponentsType = DynDimensionExponents> {
     pub scale: ScaleExponents,
 
     /// Storage unit per this unit.
-    /// 
+    ///
     /// Difference from identity canonically identifies a unit as a
     /// "non-storage" unit.  Non-storage units are not stored in their
-    /// native scale, as arbitrary float scaling factors are not part 
+    /// native scale, as arbitrary float scaling factors are not part
     /// of the logarithmic scale encoding in the type system.
     ///
     /// To convert from a value in this unit to a storage unit value,
     /// multiply it by `conversion_factor`.
-    /// 
-    /// For example, the "inch" unit has a `conversion_factor` of `2.54`, 
-    /// which means that a value of `1` in inches is stored as `2.54` 
+    ///
+    /// For example, the "inch" unit has a `conversion_factor` of `2.54`,
+    /// which means that a value of `1` in inches is stored as `2.54`
     /// (accordingly, the `scale` is `10^-2`).
-    /// 
+    ///
     /// Non-storage units are always given a storage scale of their
     /// "nearest neighbor" power-of-10 multiple of a SI base unit.
     /// For example,
-    /// 
+    ///
     /// - "inch" is multiplied by 2.54 and stored as "centimeters"
     /// - "yard" is multiplied by 0.9144 and stored as "meters"
     /// - "mile" is multiplied by 1.609344 and stored as "kilometers"
@@ -96,16 +96,16 @@ pub struct Unit<ExponentsType = DynDimensionExponents> {
 
     /// The "zero point offset" of this unit's measurement scale from
     /// the numerical zero of the storage unit.
-    /// 
-    /// To convert from a value in the unit to the storage unit, add 
+    ///
+    /// To convert from a value in the unit to the storage unit, add
     /// the affine offset to the value.
-    /// 
+    ///
     /// For example, the "celsius" unit has an affine offset of `273.15`,
-    /// which means that a value of `0` in celsius is stored as `273.15` 
+    /// which means that a value of `0` in celsius is stored as `273.15`
     /// in kelvin.
     pub affine_offset: f64,
 
-    /// Dimensional exponent vector of the [dimension](crate::dimension_exponents::DimensionBasis) 
+    /// Dimensional exponent vector of the [dimension](crate::dimension_exponents::DimensionBasis)
     /// this unit belongs to.
     pub exponents: ExponentsType,
 
@@ -267,7 +267,7 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
     };
-    
+
     pub const POUND: Self = Self {
         name: "pound",
         symbols: &["lb"],
@@ -471,27 +471,29 @@ impl Unit<crate::dimension_exponents!([0, 0, 1, 0, 0, 0, 0, 0])> {
         name: "week",
         symbols: &["wk"],
         scale: ScaleExponents::_10(3)
-        .mul(ScaleExponents::_6(3))
-        .mul(ScaleExponents::_2(2)),
+            .mul(ScaleExponents::_6(3))
+            .mul(ScaleExponents::_2(2)),
         conversion_factor: 0.7,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Metric,
     };
 
-    pub const MONTH: Self = Self { // 30 days
+    pub const MONTH: Self = Self {
+        // 30 days
         name: "month",
         symbols: &["mo"],
         scale: ScaleExponents::_10(3)
-        .mul(ScaleExponents::_6(4))
-        .mul(ScaleExponents::_2(1)),
+            .mul(ScaleExponents::_6(4))
+            .mul(ScaleExponents::_2(1)),
         conversion_factor: IDENTITY,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Metric,
     };
 
-    pub const YEAR: Self = Self { // solar year, not calendar year
+    pub const YEAR: Self = Self {
+        // solar year, not calendar year
         name: "year",
         symbols: &["yr"],
         scale: ScaleExponents::_10(7),
@@ -715,7 +717,7 @@ impl Unit<crate::dimension_exponents!([1, 2, -2, 0, 0, 0, 0, 0])> {
     pub const FOOT_POUND: Self = Self {
         name: "foot_pound",
         symbols: &["ft_lb"],
-        scale: ScaleExponents::_10( 1),
+        scale: ScaleExponents::_10(1),
         conversion_factor: 1.3558179483314004,
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),

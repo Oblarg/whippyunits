@@ -1,6 +1,6 @@
+use proc_macro2::TokenStream;
 /// Shared utilities for proc macros
 use syn::Ident;
-use proc_macro2::TokenStream;
 
 /// Check if a unit name can be parsed as a valid Rust identifier
 /// This filters out units with unicode characters or other invalid identifier characters
@@ -80,8 +80,8 @@ pub fn get_declarator_type_for_exponents(
     dimension_exponents: whippyunits_core::dimension_exponents::DynDimensionExponents,
     scale_exponents: whippyunits_core::scale_exponents::ScaleExponents,
 ) -> Option<TokenStream> {
-    use whippyunits_core::{Dimension, System, SiPrefix};
     use whippyunits_core::dimension_exponents::DynDimensionExponents;
+    use whippyunits_core::{Dimension, SiPrefix, System};
 
     // Skip dimensionless units - they don't have corresponding default declarator types
     if dimension_exponents == DynDimensionExponents::ZERO {
@@ -102,7 +102,7 @@ pub fn get_declarator_type_for_exponents(
                 // For metric units, use the same logic as default_declarators_macro
                 // Check if this is a base unit (first unit in the dimension)
                 let is_base_unit = matching_dimension.units[0].name == unit.name;
-                
+
                 if is_base_unit {
                     // For base units, use the singular name for type generation
                     generate_scale_name("", unit.name)
@@ -129,13 +129,16 @@ pub fn get_declarator_type_for_exponents(
             // Check if this could be a prefixed version of the base unit
             // The base unit is the first unit in the dimension
             let base_unit = &matching_dimension.units[0];
-            
+
             // Check if the scale difference corresponds to a known prefix
             let scale_diff = scale_exponents.0[0] - base_unit.scale.0[0]; // Check p2 difference
-            if let Some(prefix) = SiPrefix::ALL.iter().find(|p| p.factor_log10() == scale_diff) {
+            if let Some(prefix) = SiPrefix::ALL
+                .iter()
+                .find(|p| p.factor_log10() == scale_diff)
+            {
                 // Generate prefixed type name using same logic as default_declarators_macro
                 let type_name = generate_scale_name(prefix.name(), base_unit.name);
-                
+
                 let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());
                 return Some(quote::quote! {
                     whippyunits::default_declarators::#type_ident
@@ -149,7 +152,9 @@ pub fn get_declarator_type_for_exponents(
 
 /// Parse a unit name to extract prefix and base unit
 /// Returns (prefix_option, base_unit_name)
-fn parse_unit_with_prefix_core(unit_name: &str) -> (Option<&'static whippyunits_core::SiPrefix>, String) {
+fn parse_unit_with_prefix_core(
+    unit_name: &str,
+) -> (Option<&'static whippyunits_core::SiPrefix>, String) {
     // Try to strip any prefix from the unit name
     if let Some((prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_symbol(unit_name) {
         // Check if the base unit exists
@@ -170,17 +175,18 @@ fn parse_unit_with_prefix_core(unit_name: &str) -> (Option<&'static whippyunits_
 }
 
 /// Look up unit literal information directly
-fn lookup_unit_literal_direct(unit_name: &str) -> Option<(&whippyunits_core::Dimension, &whippyunits_core::Unit)> {
+fn lookup_unit_literal_direct(
+    unit_name: &str,
+) -> Option<(&whippyunits_core::Dimension, &whippyunits_core::Unit)> {
     // Check all dimensions for this unit
     for dimension in whippyunits_core::Dimension::ALL {
-        if let Some(unit) = dimension.units.iter().find(|u| {
-            u.symbols.contains(&unit_name) || u.name == unit_name
-        }) {
+        if let Some(unit) = dimension
+            .units
+            .iter()
+            .find(|u| u.symbols.contains(&unit_name) || u.name == unit_name)
+        {
             return Some((dimension, unit));
         }
     }
     None
 }
-
-
-

@@ -1,4 +1,7 @@
-use crate::{Dimension, SiPrefix, scale_exponents::ScaleExponents, dimension_exponents::DynDimensionExponents};
+use crate::{
+    Dimension, SiPrefix, dimension_exponents::DynDimensionExponents,
+    scale_exponents::ScaleExponents,
+};
 
 #[cfg(not(test))]
 extern crate alloc;
@@ -110,7 +113,7 @@ pub fn get_storage_unit_name(
             prefer_si_units: true,
         },
     );
-    
+
     // If we got a unit literal, use it; otherwise fall back to systematic generation
     if !unit_literal.is_empty() {
         unit_literal
@@ -152,11 +155,7 @@ pub fn generate_systematic_unit_name_with_scale_factors(
 
 /// Generate systematic unit name
 pub fn generate_systematic_unit_name(exponents: Vec<i16>, long_name: bool) -> String {
-    generate_systematic_unit_name_with_format(
-        exponents,
-        long_name,
-        UnitFormat::Unicode,
-    )
+    generate_systematic_unit_name_with_format(exponents, long_name, UnitFormat::Unicode)
 }
 
 /// Unit format enum
@@ -176,15 +175,21 @@ pub fn generate_systematic_unit_name_with_format(
     if exponents.len() != 8 {
         return "?".to_string();
     }
-    
+
     let dimension_exponents = DynDimensionExponents([
-        exponents[0], exponents[1], exponents[2], exponents[3],
-        exponents[4], exponents[5], exponents[6], exponents[7],
+        exponents[0],
+        exponents[1],
+        exponents[2],
+        exponents[3],
+        exponents[4],
+        exponents[5],
+        exponents[6],
+        exponents[7],
     ]);
-    
+
     // Use the centralized logic from whippyunits-core
     let base_result = generate_systematic_composite_unit_name(dimension_exponents, long_name);
-    
+
     // Apply format-specific transformations
     match format {
         UnitFormat::Unicode => base_result,
@@ -228,22 +233,21 @@ pub fn lookup_unit_literal_by_scale_factors(
     if let Some(dimension) = Dimension::find_dimension_by_exponents(dyn_exponents) {
         // First, try to find a unit that matches the exact scale factors
         // This is the preferred approach - use exact matches when possible
-        if let Some(exact_unit) = dimension
-            .units
-            .iter()
-            .find(|unit| {
-                unit.scale == scale_factors && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
-            }) {
-            return Some(if long_name { exact_unit.name } else { exact_unit.symbols[0] });
+        if let Some(exact_unit) = dimension.units.iter().find(|unit| {
+            unit.scale == scale_factors && unit.conversion_factor == 1.0 // Only consider pure SI units, not imperial units
+        }) {
+            return Some(if long_name {
+                exact_unit.name
+            } else {
+                exact_unit.symbols[0]
+            });
         }
-        
+
         // If no exact match found, fall back to base unit (identity scale)
         dimension
             .units
             .iter()
-            .find(|unit| {
-                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
-            })
+            .find(|unit| unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0)
             .map(|unit| {
                 if long_name {
                     unit.name
@@ -286,36 +290,28 @@ pub fn lookup_dimension_name(exponents: Vec<i16>) -> Option<DimensionNames> {
         // For pure atomic dimensions (like area = length²), prefer systematic generation
         // over predefined units when we have exact matches of atomic unit exponents
         let is_pure_atomic = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
-        
+
         if is_pure_atomic {
             // For pure atomic dimensions, check if we have an exact match with identity scale factors
-            let has_exact_match = dim_info
-                .units
-                .iter()
-                .any(|unit| {
-                    unit.scale == ScaleExponents::IDENTITY
-                    && unit.conversion_factor == 1.0
-                });
-            
+            let has_exact_match = dim_info.units.iter().any(|unit| {
+                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
+            });
+
             if !has_exact_match {
                 // No exact match found, return None to force systematic generation
                 return None;
             }
         }
-        
+
         // Prioritize exact matches of atomic unit exponents (scale factors of [0, 0, 0, 0])
         // over the first unit in the lexical list
         let preferred_unit = dim_info
             .units
             .iter()
-            .find(|unit| {
-                unit.scale == ScaleExponents::IDENTITY
-                && unit.conversion_factor == 1.0
-            })
+            .find(|unit| unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0)
             .or_else(|| dim_info.units.first()); // Fall back to first unit if no exact match
 
-        let unit_symbol = preferred_unit
-            .and_then(|unit| unit.symbols.first().copied());
+        let unit_symbol = preferred_unit.and_then(|unit| unit.symbols.first().copied());
         let unit_long_name = preferred_unit.map(|unit| unit.name);
 
         Some(DimensionNames {
@@ -364,7 +360,9 @@ pub fn generate_prefixed_systematic_unit(
 
     if let Some(prefix) = get_si_prefix(effective_scale_p10, long_name) {
         // For pure powers of base units, add disambiguating parentheses
-        if !base_unit.contains("·") && (base_unit.contains("^") || base_unit.contains("²") || base_unit.contains("³")) {
+        if !base_unit.contains("·")
+            && (base_unit.contains("^") || base_unit.contains("²") || base_unit.contains("³"))
+        {
             format!("{}({})", prefix, base_unit)
         } else {
             format!("{}{}", prefix, base_unit)
@@ -405,30 +403,31 @@ pub fn generate_prefixed_si_unit(
         scale_factors.0[2],
         scale_factors.0[3],
     );
-    
+
     // Apply base scale offset for mass units (same logic as generate_prefixed_systematic_unit)
-    let effective_scale_p10 = if let Some((_unit, _dimension)) =
-        Dimension::find_unit_by_symbol(base_si_unit)
-    {
-        // Get the base scale offset from the unit's scale (systematic approach)
-        let base_scale_offset = _unit.scale.log10().unwrap_or(0);
-        total_scale_p10 - base_scale_offset
-    } else {
-        // Fallback: try to find by name if symbol lookup fails
-        if let Some((_unit, _dimension)) =
-            Dimension::find_unit_by_name(base_si_unit)
-        {
+    let effective_scale_p10 =
+        if let Some((_unit, _dimension)) = Dimension::find_unit_by_symbol(base_si_unit) {
+            // Get the base scale offset from the unit's scale (systematic approach)
             let base_scale_offset = _unit.scale.log10().unwrap_or(0);
             total_scale_p10 - base_scale_offset
         } else {
-            // No base scale offset found, use total scale as-is
-            total_scale_p10
-        }
-    };
+            // Fallback: try to find by name if symbol lookup fails
+            if let Some((_unit, _dimension)) = Dimension::find_unit_by_name(base_si_unit) {
+                let base_scale_offset = _unit.scale.log10().unwrap_or(0);
+                total_scale_p10 - base_scale_offset
+            } else {
+                // No base scale offset found, use total scale as-is
+                total_scale_p10
+            }
+        };
 
     if let Some(prefix) = get_si_prefix(effective_scale_p10, long_name) {
         // For pure powers of base units, add disambiguating parentheses
-        if !base_si_unit.contains("·") && (base_si_unit.contains("^") || base_si_unit.contains("²") || base_si_unit.contains("³")) {
+        if !base_si_unit.contains("·")
+            && (base_si_unit.contains("^")
+                || base_si_unit.contains("²")
+                || base_si_unit.contains("³"))
+        {
             format!("{}({})", prefix, base_si_unit)
         } else {
             format!("{}{}", prefix, base_si_unit)
@@ -472,11 +471,7 @@ fn generate_si_unit_with_scale(
     if total_scale_p10 == 0 {
         base_si_unit.to_string()
     } else {
-        format!(
-            "10^{} {}",
-            total_scale_p10,
-            base_si_unit
-        )
+        format!("10^{} {}", total_scale_p10, base_si_unit)
     }
 }
 
@@ -484,7 +479,7 @@ fn generate_si_unit_with_scale(
 fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
     let scale_exponents = ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
     let total_scale_p10 = scale_exponents.log10().unwrap_or(0);
-    
+
     if total_scale_p10 == 0 {
         String::new()
     } else {
@@ -497,9 +492,14 @@ fn get_si_prefix(power_of_10: i16, long_name: bool) -> Option<&'static str> {
     SiPrefix::ALL
         .iter()
         .find(|prefix| prefix.factor_log10() == power_of_10)
-        .map(|prefix| if long_name { prefix.name() } else { prefix.symbol() })
+        .map(|prefix| {
+            if long_name {
+                prefix.name()
+            } else {
+                prefix.symbol()
+            }
+        })
 }
-
 
 /// Generate systematic unit name for composite dimensions
 /// This is a public function that can be used by the main crate's prettyprint module
@@ -508,70 +508,76 @@ pub fn generate_systematic_composite_unit_name(
     long_name: bool,
 ) -> String {
     let exponents = dimension_exponents.0;
-    
+
     // Check if all exponents are unknown
     if exponents.iter().all(|&exp| exp == i16::MIN) {
         return "?".to_string();
     }
-    
+
     // Check if this is a pure dimension (only one non-zero exponent)
     let is_pure = exponents.iter().filter(|&exp| *exp != 0).count() == 1;
-    
+
     // Generate unit parts for each dimension using simple string concatenation
     let mut result = String::new();
     let mut first = true;
-    
+
     for (index, &exp) in exponents.iter().enumerate() {
         if exp == 0 {
             continue;
         }
-        
+
         // Get unit configuration from Dimension::BASIS
-        let (unit_name, unit_symbol, base_scale_offset) = if let Some(dimension) = Dimension::BASIS.get(index) {
-            if let Some(unit) = dimension.units.first() {
-                let base_scale_offset = unit.scale.log10().unwrap_or(0);
-                (unit.name, unit.symbols[0], base_scale_offset)
+        let (unit_name, unit_symbol, base_scale_offset) =
+            if let Some(dimension) = Dimension::BASIS.get(index) {
+                if let Some(unit) = dimension.units.first() {
+                    let base_scale_offset = unit.scale.log10().unwrap_or(0);
+                    (unit.name, unit.symbols[0], base_scale_offset)
+                } else {
+                    ("?", "?", 0)
+                }
             } else {
                 ("?", "?", 0)
-            }
-        } else {
-            ("?", "?", 0)
-        };
-        
+            };
+
         // For compound units, convert g to kg for mass terms
         let is_compound_unit = exponents.iter().filter(|&&exp| exp != 0).count() > 1;
-        let (adjusted_unit_name, adjusted_unit_symbol) = if is_compound_unit && base_scale_offset != 0 && index == 0 {
-            // This is a compound unit with mass dimension (index 0) that has a scale offset
-            if long_name {
-                match unit_name {
-                    "gram" => ("kilogram", unit_symbol),
-                    _ => (unit_name, unit_symbol),
+        let (adjusted_unit_name, adjusted_unit_symbol) =
+            if is_compound_unit && base_scale_offset != 0 && index == 0 {
+                // This is a compound unit with mass dimension (index 0) that has a scale offset
+                if long_name {
+                    match unit_name {
+                        "gram" => ("kilogram", unit_symbol),
+                        _ => (unit_name, unit_symbol),
+                    }
+                } else {
+                    match unit_symbol {
+                        "g" => (unit_name, "kg"),
+                        _ => (unit_name, unit_symbol),
+                    }
                 }
             } else {
-                match unit_symbol {
-                    "g" => (unit_name, "kg"),
-                    _ => (unit_name, unit_symbol),
-                }
-            }
-        } else {
-            (unit_name, unit_symbol)
-        };
-        
+                (unit_name, unit_symbol)
+            };
+
         // Generate the unit part with exponent
-        let base_name = if long_name { adjusted_unit_name } else { adjusted_unit_symbol };
+        let base_name = if long_name {
+            adjusted_unit_name
+        } else {
+            adjusted_unit_symbol
+        };
         let unit_part = if exp == 1 {
             base_name.to_string()
         } else {
             format!("{}^{}", base_name, exp)
         };
-        
+
         if !first {
             result.push_str("·");
         }
         result.push_str(&unit_part);
         first = false;
     }
-    
+
     if is_pure {
         result
     } else {
@@ -598,6 +604,6 @@ pub fn get_storage_unit_name_by_dimension_name(
         "Angle" => DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 1]),
         _ => return "unknown".to_string(),
     };
-    
+
     get_storage_unit_name(scale_factors, dimension_exponents, long_name)
 }

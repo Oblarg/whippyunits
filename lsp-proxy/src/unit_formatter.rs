@@ -502,7 +502,7 @@ impl UnitFormatter {
         // We need to find a comma that separates the Dimension struct from the type parameter
         // Try both ", " and "," patterns to be more robust
         let comma_patterns = [", ", ","];
-        
+
         for comma_pattern in &comma_patterns {
             if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
                 // Found a comma, check if what follows looks like a numeric type parameter
@@ -531,12 +531,12 @@ impl UnitFormatter {
     fn extract_explicit_type_parameter(&self, after_dimension_start: &str) -> String {
         // Try both ", " and "," patterns to be more robust
         let comma_patterns = [", ", ","];
-        
+
         for comma_pattern in &comma_patterns {
             if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
                 let potential_type = &after_dimension_start[comma_pos + comma_pattern.len()..];
                 let type_param = potential_type.trim().trim_end_matches('>').trim();
-                
+
                 // Verify this is a valid numeric type before returning it
                 if self.is_numeric_type(type_param) {
                     return type_param.to_string();

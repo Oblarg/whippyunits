@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
-use syn::token::{Caret, Comma, Slash, Star, Dot};
+use syn::token::{Caret, Comma, Dot, Slash, Star};
 use syn::{Ident, LitInt, Token};
 use whippyunits_core::Dimension;
 
@@ -67,7 +67,7 @@ impl DimensionExpr {
             content.parse()
         } else {
             let ident: Ident = input.parse()?;
-            
+
             // Check for implicit exponent notation (UCUM format like "L2" instead of "L^2")
             let ident_str = ident.to_string();
             if let Some(pos) = ident_str.chars().position(|c| c.is_ascii_digit()) {
@@ -78,7 +78,7 @@ impl DimensionExpr {
                     let base_ident = syn::Ident::new(base_name, ident.span());
                     Ok(DimensionExpr::Pow(
                         Box::new(DimensionExpr::Dimension(base_ident)),
-                        syn::LitInt::new(&exp.to_string(), ident.span())
+                        syn::LitInt::new(&exp.to_string(), ident.span()),
                     ))
                 } else {
                     // Not a valid exponent, treat as regular dimension
@@ -196,7 +196,16 @@ impl DefineGenericDimensionInput {
             .iter()
             .map(|expr| {
                 // Try to evaluate the expression, but handle errors gracefully
-                let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = expr.evaluate_safe();
+                let (
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temp_exp,
+                    amount_exp,
+                    lum_exp,
+                    angle_exp,
+                ) = expr.evaluate_safe();
                 self.generate_impl(
                     mass_exp,
                     length_exp,
@@ -220,7 +229,6 @@ impl DefineGenericDimensionInput {
             #(#impl_blocks)*
         }
     }
-
 
     fn generate_impl(
         &self,
@@ -299,7 +307,7 @@ impl DefineGenericDimensionInput {
     /// Generate documentation for a single dimension identifier
     fn generate_single_dimension_doc(identifier: &Ident) -> Option<TokenStream> {
         let dimension_name = identifier.to_string();
-        
+
         // Check if the dimension is valid first
         if !Self::is_valid_dimension(&dimension_name) {
             let error_message = Self::generate_dimension_error_message(&dimension_name);
@@ -309,7 +317,7 @@ impl DefineGenericDimensionInput {
                 };
             });
         }
-        
+
         let doc_comment = Self::generate_dimension_doc_comment(&dimension_name);
 
         // Create a new identifier with the same span as the original
@@ -352,7 +360,6 @@ impl DefineGenericDimensionInput {
             "Amount" => "Atomic dimension: Amount (N) - The fundamental dimension of amount of substance in the SI system".to_string(),
             "Luminosity" => "Atomic dimension: Luminosity (J) - The fundamental dimension of luminous intensity in the SI system".to_string(),
             "Angle" => "Atomic dimension: Angle (A) - The fundamental dimension of plane angle in the SI system".to_string(),
-            
             // Atomic dimensions - symbols
             "M" => "Atomic dimension: Mass (M) - The fundamental dimension of mass in the SI system".to_string(),
             "L" => "Atomic dimension: Length (L) - The fundamental dimension of length in the SI system".to_string(),
@@ -362,7 +369,6 @@ impl DefineGenericDimensionInput {
             "N" => "Atomic dimension: Amount (N) - The fundamental dimension of amount of substance in the SI system".to_string(),
             "J" => "Atomic dimension: Luminosity (J) - The fundamental dimension of luminous intensity in the SI system".to_string(),
             "A" => "Atomic dimension: Angle (A) - The fundamental dimension of plane angle in the SI system".to_string(),
-            
             _ => format!("Dimension: {} - Custom dimension expression", dimension_name),
         }
     }
@@ -405,11 +411,10 @@ impl DefineGenericDimensionInput {
     fn generate_dimension_error_message(dimension_name: &str) -> String {
         let suggestions = find_similar_dimensions(dimension_name, 0.7);
         if suggestions.is_empty() {
-            let supported_names: Vec<&str> =
-                Dimension::ALL.iter().map(|dim| dim.name).collect();
+            let supported_names: Vec<&str> = Dimension::ALL.iter().map(|dim| dim.name).collect();
             let supported_symbols: Vec<&str> =
                 Dimension::ALL.iter().map(|dim| dim.symbol).collect();
-            
+
             format!(
                 "Unknown dimension '{}'. Supported dimension names: {}. Supported dimension symbols: {}", 
                 dimension_name,
@@ -422,7 +427,7 @@ impl DefineGenericDimensionInput {
                 .map(|(suggestion, _)| format!("'{}'", suggestion))
                 .collect::<Vec<_>>()
                 .join(", ");
-            
+
             format!(
                 "Unknown dimension '{}'. Did you mean: {}?",
                 dimension_name, suggestion_list

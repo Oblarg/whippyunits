@@ -3,7 +3,7 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
-use crate::shared_utils::{is_valid_identifier, generate_scale_name};
+use crate::shared_utils::{generate_scale_name, is_valid_identifier};
 
 /// Unit type classification
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,17 +36,19 @@ impl DefaultDeclaratorsInput {
 
         // Generate the literals module using the new approach
         let literals_module = self.generate_literals_module();
-        
+
         quote! {
             #(#expansions)*
-            
+
             // Automatically generate literals module for culit integration
             #literals_module
         }
     }
 
     /// Extract dimension exponents from a dimension
-    fn extract_dimension_exponents(dimension: &whippyunits_core::Dimension) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
+    fn extract_dimension_exponents(
+        dimension: &whippyunits_core::Dimension,
+    ) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         (
             dimension.exponents.0[0], // mass
             dimension.exponents.0[1], // length
@@ -72,13 +74,23 @@ impl DefaultDeclaratorsInput {
     /// Generate trait name for metric units
     fn generate_metric_trait_name(dimension_name: &str) -> String {
         let sanitized_name = dimension_name.replace(" ", "");
-        format!("Metric{}", whippyunits_core::CapitalizedFmt(&sanitized_name).to_string())
+        format!(
+            "Metric{}",
+            whippyunits_core::CapitalizedFmt(&sanitized_name).to_string()
+        )
     }
 
     /// Generate trait name for system units (Imperial, Astronomical, etc.)
-    fn generate_system_trait_name(system: &whippyunits_core::System, dimension_name: &str) -> String {
+    fn generate_system_trait_name(
+        system: &whippyunits_core::System,
+        dimension_name: &str,
+    ) -> String {
         let system_name = system.as_str();
-        format!("{}{}", system_name, whippyunits_core::CapitalizedFmt(dimension_name).to_string())
+        format!(
+            "{}{}",
+            system_name,
+            whippyunits_core::CapitalizedFmt(dimension_name).to_string()
+        )
     }
 
     /// Generate trait name for affine units
@@ -106,8 +118,6 @@ impl DefaultDeclaratorsInput {
         }
     }
 
-
-
     /// Process units of a specific type and generate the appropriate trait
     fn process_units_by_type(
         &self,
@@ -117,8 +127,16 @@ impl DefaultDeclaratorsInput {
         dimension: &whippyunits_core::Dimension,
         base_trait_name: &str,
     ) {
-        let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
-            Self::extract_dimension_exponents(dimension);
+        let (
+            mass_exp,
+            length_exp,
+            time_exp,
+            current_exp,
+            temperature_exp,
+            amount_exp,
+            luminosity_exp,
+            angle_exp,
+        ) = Self::extract_dimension_exponents(dimension);
 
         // Filter units by type
         let filtered_units: Vec<_> = units
@@ -139,7 +157,7 @@ impl DefaultDeclaratorsInput {
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
                     let scale_name = generate_scale_name("", unit.name);
                     let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();
-                    
+
                     scale_definitions.push(quote! {
                         (#scale_name_ident, #fn_name_ident, #p2, #p3, #p5, #pi)
                     });
@@ -147,7 +165,14 @@ impl DefaultDeclaratorsInput {
 
                 let trait_ident = syn::parse_str::<Ident>(base_trait_name).unwrap();
                 let expansion = self.generate_storage_quantity_expansion(
-                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temperature_exp,
+                    amount_exp,
+                    luminosity_exp,
+                    angle_exp,
                     &trait_ident,
                     &scale_definitions,
                 );
@@ -160,7 +185,7 @@ impl DefaultDeclaratorsInput {
                     let fn_name = whippyunits_core::make_plural(unit.name);
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
                     let conversion_factor = unit.conversion_factor;
-                    
+
                     scale_definitions.push(quote! {
                         (#fn_name_ident, #conversion_factor, #p2, #p3, #p5, #pi)
                     });
@@ -169,7 +194,14 @@ impl DefaultDeclaratorsInput {
                 let trait_name = Self::generate_nonstorage_trait_name(base_trait_name);
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
                 let expansion = self.generate_nonstorage_quantity_expansion(
-                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temperature_exp,
+                    amount_exp,
+                    luminosity_exp,
+                    angle_exp,
                     &trait_ident,
                     &scale_definitions,
                 );
@@ -183,7 +215,7 @@ impl DefaultDeclaratorsInput {
                     let scale_name = generate_scale_name("", unit.name);
                     let scale_name_ident = syn::parse_str::<Ident>(&scale_name).unwrap();
                     let affine_offset = unit.affine_offset;
-                    
+
                     scale_definitions.push(quote! {
                         (#scale_name_ident, #fn_name_ident, #affine_offset)
                     });
@@ -193,9 +225,16 @@ impl DefaultDeclaratorsInput {
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
                 let storage_scale_name = self.get_storage_scale_name_for_dimension(&dimension.name);
                 let storage_scale_ident = syn::parse_str::<Ident>(&storage_scale_name).unwrap();
-                
+
                 let expansion = self.generate_storage_affine_quantity_expansion(
-                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temperature_exp,
+                    amount_exp,
+                    luminosity_exp,
+                    angle_exp,
                     &trait_ident,
                     &storage_scale_ident,
                     &scale_definitions,
@@ -210,7 +249,7 @@ impl DefaultDeclaratorsInput {
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
                     let conversion_factor = unit.conversion_factor;
                     let affine_offset = unit.affine_offset;
-                    
+
                     scale_definitions.push(quote! {
                         (#fn_name_ident, #conversion_factor, #affine_offset, #p2, #p3, #p5, #pi)
                     });
@@ -219,7 +258,14 @@ impl DefaultDeclaratorsInput {
                 let trait_name = Self::generate_nonstorage_affine_trait_name(base_trait_name);
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
                 let expansion = self.generate_nonstorage_affine_quantity_expansion(
-                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temperature_exp,
+                    amount_exp,
+                    luminosity_exp,
+                    angle_exp,
                     &trait_ident,
                     &scale_definitions,
                 );
@@ -234,7 +280,8 @@ impl DefaultDeclaratorsInput {
 
         for dimension in Dimension::ALL {
             // Get all metric units for this dimension
-            let metric_units: Vec<_> = dimension.units
+            let metric_units: Vec<_> = dimension
+                .units
                 .iter()
                 .filter(|unit| unit.system == System::Metric)
                 .collect();
@@ -257,8 +304,16 @@ impl DefaultDeclaratorsInput {
     ) {
         use whippyunits_core::SiPrefix;
 
-        let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
-            Self::extract_dimension_exponents(dimension);
+        let (
+            mass_exp,
+            length_exp,
+            time_exp,
+            current_exp,
+            temperature_exp,
+            amount_exp,
+            luminosity_exp,
+            angle_exp,
+        ) = Self::extract_dimension_exponents(dimension);
 
         // Generate trait name from dimension name
         let trait_name = Self::generate_metric_trait_name(&dimension.name);
@@ -379,7 +434,14 @@ impl DefaultDeclaratorsInput {
         // Generate the main trait for storage units (conversion_factor == 1.0)
         if !scale_definitions.is_empty() {
             let expansion = self.generate_storage_quantity_expansion(
-                mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                mass_exp,
+                length_exp,
+                time_exp,
+                current_exp,
+                temperature_exp,
+                amount_exp,
+                luminosity_exp,
+                angle_exp,
                 &trait_ident,
                 &scale_definitions,
             );
@@ -387,11 +449,28 @@ impl DefaultDeclaratorsInput {
         }
 
         // Process other unit types using the unified system
-        self.process_units_by_type(expansions, metric_units, UnitType::NonStorage, dimension, &trait_name);
-        self.process_units_by_type(expansions, metric_units, UnitType::StorageAffine, dimension, &trait_name);
-        self.process_units_by_type(expansions, metric_units, UnitType::NonStorageAffine, dimension, &trait_name);
+        self.process_units_by_type(
+            expansions,
+            metric_units,
+            UnitType::NonStorage,
+            dimension,
+            &trait_name,
+        );
+        self.process_units_by_type(
+            expansions,
+            metric_units,
+            UnitType::StorageAffine,
+            dimension,
+            &trait_name,
+        );
+        self.process_units_by_type(
+            expansions,
+            metric_units,
+            UnitType::NonStorageAffine,
+            dimension,
+            &trait_name,
+        );
     }
-
 
     /// Generate non-metric declarators for all systems
     fn generate_nonmetric_declarators(&self, expansions: &mut Vec<TokenStream>) {
@@ -407,7 +486,11 @@ impl DefaultDeclaratorsInput {
     }
 
     /// Generate declarators for a specific system (Imperial, Astronomical, etc.)
-    fn generate_system_declarators(&self, expansions: &mut Vec<TokenStream>, system: whippyunits_core::System) {
+    fn generate_system_declarators(
+        &self,
+        expansions: &mut Vec<TokenStream>,
+        system: whippyunits_core::System,
+    ) {
         use whippyunits_core::Dimension;
 
         // Collect all units from the specified system
@@ -439,23 +522,35 @@ impl DefaultDeclaratorsInput {
         for (dimension_name, units) in grouped_units {
             // Get dimension exponents from the first unit (all units in a dimension have same exponents)
             let dimension = &units[0].0;
-            let (mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp) = 
-                Self::extract_dimension_exponents(dimension);
-
-
+            let (
+                mass_exp,
+                length_exp,
+                time_exp,
+                current_exp,
+                temperature_exp,
+                amount_exp,
+                luminosity_exp,
+                angle_exp,
+            ) = Self::extract_dimension_exponents(dimension);
 
             // Convert units to the format expected by process_units_by_type
-            let units_refs: Vec<&whippyunits_core::Unit> = units.iter().map(|(_dim, unit)| *unit).collect();
+            let units_refs: Vec<&whippyunits_core::Unit> =
+                units.iter().map(|(_dim, unit)| *unit).collect();
             let base_trait_name = Self::generate_system_trait_name(&system, dimension_name);
 
             // Check if we need the special non-storage trait with docs
-            let has_nonstorage_units = units.iter().any(|(_dimension, unit)| unit.conversion_factor != 1.0 && unit.affine_offset == 0.0);
-            
+            let has_nonstorage_units = units.iter().any(|(_dimension, unit)| {
+                unit.conversion_factor != 1.0 && unit.affine_offset == 0.0
+            });
+
             if has_nonstorage_units {
                 // Special case: use the detailed non-storage trait with docs
                 let mut unit_definitions = Vec::new();
                 for (_dimension, unit) in &units {
-                    if !is_valid_identifier(unit.name) || unit.conversion_factor == 1.0 || unit.affine_offset != 0.0 {
+                    if !is_valid_identifier(unit.name)
+                        || unit.conversion_factor == 1.0
+                        || unit.affine_offset != 0.0
+                    {
                         continue;
                     }
 
@@ -463,26 +558,72 @@ impl DefaultDeclaratorsInput {
                     let fn_name_ident = syn::parse_str::<Ident>(&fn_name).unwrap();
                     let conversion_factor = unit.conversion_factor;
                     let (p2, p3, p5, pi) = Self::extract_scale_factors(unit);
-                    let storage_unit_name = self.get_storage_unit_name(p2, p3, p5, pi, mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp);
-                    
-                    unit_definitions.push((fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name));
+                    let storage_unit_name = self.get_storage_unit_name(
+                        p2,
+                        p3,
+                        p5,
+                        pi,
+                        mass_exp,
+                        length_exp,
+                        time_exp,
+                        current_exp,
+                        temperature_exp,
+                        amount_exp,
+                        luminosity_exp,
+                        angle_exp,
+                    );
+
+                    unit_definitions.push((
+                        fn_name_ident,
+                        conversion_factor,
+                        p2,
+                        p3,
+                        p5,
+                        pi,
+                        storage_unit_name,
+                    ));
                 }
 
                 let trait_ident = syn::parse_str::<Ident>(&base_trait_name).unwrap();
                 let expansion = self.generate_nonstorage_trait_with_docs(
-                    mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp,
+                    mass_exp,
+                    length_exp,
+                    time_exp,
+                    current_exp,
+                    temperature_exp,
+                    amount_exp,
+                    luminosity_exp,
+                    angle_exp,
                     &trait_ident,
                     &unit_definitions,
                 );
                 expansions.push(expansion);
             } else {
                 // Use the unified system for storage units
-                self.process_units_by_type(expansions, &units_refs, UnitType::Storage, dimension, &base_trait_name);
+                self.process_units_by_type(
+                    expansions,
+                    &units_refs,
+                    UnitType::Storage,
+                    dimension,
+                    &base_trait_name,
+                );
             }
 
             // Process other unit types using the unified system
-            self.process_units_by_type(expansions, &units_refs, UnitType::StorageAffine, dimension, &base_trait_name);
-            self.process_units_by_type(expansions, &units_refs, UnitType::NonStorageAffine, dimension, &base_trait_name);
+            self.process_units_by_type(
+                expansions,
+                &units_refs,
+                UnitType::StorageAffine,
+                dimension,
+                &base_trait_name,
+            );
+            self.process_units_by_type(
+                expansions,
+                &units_refs,
+                UnitType::NonStorageAffine,
+                dimension,
+                &base_trait_name,
+            );
         }
     }
 
@@ -496,19 +637,42 @@ impl DefaultDeclaratorsInput {
 
     /// Get the storage unit name from scale exponents and dimension exponents
     /// This uses the exact same logic as the prettyprint to ensure consistency
-    fn get_storage_unit_name(&self, p2: i16, p3: i16, p5: i16, pi: i16, mass_exp: i16, length_exp: i16, time_exp: i16, current_exp: i16, temperature_exp: i16, amount_exp: i16, luminosity_exp: i16, angle_exp: i16) -> String {
+    fn get_storage_unit_name(
+        &self,
+        p2: i16,
+        p3: i16,
+        p5: i16,
+        pi: i16,
+        mass_exp: i16,
+        length_exp: i16,
+        time_exp: i16,
+        current_exp: i16,
+        temperature_exp: i16,
+        amount_exp: i16,
+        luminosity_exp: i16,
+        angle_exp: i16,
+    ) -> String {
         use whippyunits_core::{
-            scale_exponents::ScaleExponents, 
             dimension_exponents::DynDimensionExponents,
-            storage_unit::{UnitLiteralConfig, generate_unit_literal}
+            scale_exponents::ScaleExponents,
+            storage_unit::{generate_unit_literal, UnitLiteralConfig},
         };
-        
+
         // Create scale exponents from the parameters
         let scale_factors = ScaleExponents([p2, p3, p5, pi]);
-        
+
         // Create dimension exponents from the parameters
-        let dimension_exponents = DynDimensionExponents([mass_exp, length_exp, time_exp, current_exp, temperature_exp, amount_exp, luminosity_exp, angle_exp]);
-        
+        let dimension_exponents = DynDimensionExponents([
+            mass_exp,
+            length_exp,
+            time_exp,
+            current_exp,
+            temperature_exp,
+            amount_exp,
+            luminosity_exp,
+            angle_exp,
+        ]);
+
         // Use the exact same logic as prettyprint by calling the same functions from core
         // This ensures the proc macro generates the same storage unit names as the inlay hints
         let unit_literal = generate_unit_literal(
@@ -519,7 +683,7 @@ impl DefaultDeclaratorsInput {
                 prefer_si_units: true,
             },
         );
-        
+
         // If we got a unit literal, use it; otherwise fall back to systematic generation
         if !unit_literal.is_empty() {
             unit_literal
@@ -534,13 +698,13 @@ impl DefaultDeclaratorsInput {
     /// Get the storage scale name for a given dimension using the canonical core function
     fn get_storage_scale_name_for_dimension(&self, dimension_name: &str) -> String {
         use whippyunits_core::{
-            scale_exponents::ScaleExponents,
-            storage_unit::get_storage_unit_name_by_dimension_name
+            scale_exponents::ScaleExponents, storage_unit::get_storage_unit_name_by_dimension_name,
         };
-        
+
         // Use identity scale factors to get the base storage unit name
         let scale_factors = ScaleExponents::IDENTITY;
-        let unit_name = get_storage_unit_name_by_dimension_name(scale_factors, dimension_name, true);
+        let unit_name =
+            get_storage_unit_name_by_dimension_name(scale_factors, dimension_name, true);
         whippyunits_core::CapitalizedFmt(&unit_name).to_string()
     }
 
@@ -690,7 +854,9 @@ impl DefaultDeclaratorsInput {
         let mut impl_i32_methods = Vec::new();
         let mut impl_i64_methods = Vec::new();
 
-        for (fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name) in unit_definitions {
+        for (fn_name_ident, conversion_factor, p2, p3, p5, pi, storage_unit_name) in
+            unit_definitions
+        {
             let doc_string = format!(
                 "Storage unit: **{}**<br>Conversion factor: **{}**",
                 storage_unit_name, conversion_factor

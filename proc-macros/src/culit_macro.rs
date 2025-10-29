@@ -75,7 +75,12 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
     }
 
     // Use the single generic function in default mode (no lift trace)
-    crate::generate_literal_macros_module(module_name, false, None, false, syn::Ident::new(module_name, proc_macro2::Span::mixed_site())).into()
+    crate::generate_literal_macros_module(
+        module_name,
+        false,
+        None,
+        false,
+        syn::Ident::new(module_name, proc_macro2::Span::mixed_site()),
+    )
+    .into()
 }
-
-

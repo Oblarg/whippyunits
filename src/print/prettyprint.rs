@@ -296,7 +296,6 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
     }
 }
 
-
 pub fn generate_prefixed_systematic_unit(
     exponents: DynDimensionExponents,
     scale_factors: ScaleExponents,
@@ -348,35 +347,40 @@ pub fn generate_prefixed_systematic_unit(
                     if let Some(factored_prefix) = get_si_prefix(factored_scale, long_name) {
                         // Get the base unit name without any scale or exponent
                         // Use the first unit in declaration order (like everywhere else)
-                        let base_unit_name = whippyunits_core::Dimension::find_unit_by_name(base_unit)
-                            .map(|(_unit, _dimension)| {
-                                // Use the first unit in the dimension (declaration order)
-                                let base_unit_info = _dimension.units.first().unwrap();
-                                let full_name = if long_name {
-                                    base_unit_info.name.to_string()
-                                } else {
-                                    base_unit_info.symbols[0].to_string()
-                                };
-                                
-                                // Strip any existing prefix to get the true base unit name
-                                if let Some((_prefix, base)) = whippyunits_core::SiPrefix::strip_any_prefix_name(&full_name) {
-                                    base.to_string()
-                                } else {
-                                    full_name
-                                }
-                            })
-                            .unwrap_or_else(|| {
-                                // Fallback to systematic generation if unit not found
-                                generate_systematic_unit_name(
-                                    exponents
-                                        .0
-                                        .iter()
-                                        .enumerate()
-                                        .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
-                                        .collect(),
-                                    long_name,
-                                )
-                            });
+                        let base_unit_name =
+                            whippyunits_core::Dimension::find_unit_by_name(base_unit)
+                                .map(|(_unit, _dimension)| {
+                                    // Use the first unit in the dimension (declaration order)
+                                    let base_unit_info = _dimension.units.first().unwrap();
+                                    let full_name = if long_name {
+                                        base_unit_info.name.to_string()
+                                    } else {
+                                        base_unit_info.symbols[0].to_string()
+                                    };
+
+                                    // Strip any existing prefix to get the true base unit name
+                                    if let Some((_prefix, base)) =
+                                        whippyunits_core::SiPrefix::strip_any_prefix_name(
+                                            &full_name,
+                                        )
+                                    {
+                                        base.to_string()
+                                    } else {
+                                        full_name
+                                    }
+                                })
+                                .unwrap_or_else(|| {
+                                    // Fallback to systematic generation if unit not found
+                                    generate_systematic_unit_name(
+                                        exponents
+                                            .0
+                                            .iter()
+                                            .enumerate()
+                                            .map(|(i, _)| if i == dimension_index { 1 } else { 0 })
+                                            .collect(),
+                                        long_name,
+                                    )
+                                });
 
                         // Apply the factored prefix to the base unit name, then add the exponent
                         let result = format!(

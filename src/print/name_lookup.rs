@@ -1,11 +1,10 @@
 use whippyunits_core::{
-     scale_exponents::ScaleExponents,
+    scale_exponents::ScaleExponents,
     storage_unit::{
-        generate_systematic_composite_unit_name,
+        DimensionNames as CoreDimensionNames, generate_systematic_composite_unit_name,
         generate_systematic_unit_name as core_generate_systematic_unit_name,
         generate_systematic_unit_name_with_scale_factors as core_generate_systematic_unit_name_with_scale_factors,
         lookup_dimension_name as core_lookup_dimension_name,
-        DimensionNames as CoreDimensionNames,
     },
 };
 
@@ -34,15 +33,21 @@ pub fn generate_systematic_unit_name_with_format(
     if exponents.len() != 8 {
         return "?".to_string();
     }
-    
+
     let dimension_exponents = whippyunits_core::dimension_exponents::DynDimensionExponents([
-        exponents[0], exponents[1], exponents[2], exponents[3],
-        exponents[4], exponents[5], exponents[6], exponents[7],
+        exponents[0],
+        exponents[1],
+        exponents[2],
+        exponents[3],
+        exponents[4],
+        exponents[5],
+        exponents[6],
+        exponents[7],
     ]);
-    
+
     // Use the centralized logic from whippyunits-core
     let base_result = generate_systematic_composite_unit_name(dimension_exponents, long_name);
-    
+
     // Apply format-specific transformations
     match format {
         crate::print::prettyprint::UnitFormat::Unicode => base_result,

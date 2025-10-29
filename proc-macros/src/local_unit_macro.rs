@@ -791,12 +791,9 @@ impl LocalQuantityMacroInput {
     }
 
     /// Generate error for unknown unit with suggestions
-    fn generate_unknown_unit_error(
-        &self,
-        unit_name: &str
-    ) -> TokenStream {
+    fn generate_unknown_unit_error(&self, unit_name: &str) -> TokenStream {
         use crate::unit_suggestions::find_similar_units;
-        
+
         let suggestions = find_similar_units(unit_name, 0.7);
         let error_message = if suggestions.is_empty() {
             format!("Unknown unit '{}'. No similar units found.", unit_name)
@@ -806,24 +803,23 @@ impl LocalQuantityMacroInput {
                 .map(|(suggestion, _)| format!("'{}'", suggestion))
                 .collect::<Vec<_>>()
                 .join(", ");
-            
+
             format!(
                 "Unknown unit '{}'. Did you mean: {}?",
-                unit_name,
-                suggestion_list
+                unit_name, suggestion_list
             )
         };
 
         // Generate a doc shadow that shows the error
         let doc_ident_name = format!("Local{}", unit_name.to_uppercase());
         let doc_ident = syn::Ident::new(&doc_ident_name, proc_macro2::Span::call_site());
-        
+
         quote! {
             const _: () = {
                 #[doc = #error_message]
                 #[allow(dead_code, non_camel_case_types)]
                 type #doc_ident = ();
-                
+
                 compile_error!(#error_message);
             };
         }
@@ -906,13 +902,17 @@ impl LocalQuantityMacroInput {
         } else {
             // Unit not found by symbol, try to find declarator type using dimension and scale exponents
             let (dimensions, scales) = self.evaluate_dimensions();
-            
+
             // First try the new exponent-based approach
-            if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_exponents(dimensions, scales) {
+            if let Some(declarator_type) =
+                crate::shared_utils::get_declarator_type_for_exponents(dimensions, scales)
+            {
                 declarator_type
             } else {
                 // Fall back to the old unit name-based approach
-                if let Some(declarator_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
+                if let Some(declarator_type) =
+                    crate::shared_utils::get_declarator_type_for_unit(unit_name)
+                {
                     // This is a prefixed unit, we need to calculate the scale factor difference
                     // and find the appropriate transformed type
                     let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
@@ -993,7 +993,7 @@ impl LocalQuantityMacroInput {
         &self,
         dimensions: DynDimensionExponents,
     ) -> Option<String> {
-        use whippyunits_core::{SiPrefix};
+        use whippyunits_core::SiPrefix;
 
         // Use the existing infrastructure to find units with these dimensions
         let matching_units = get_units_by_exponents(dimensions);

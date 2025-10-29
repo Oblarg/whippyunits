@@ -2,12 +2,10 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::Comma;
-use syn::{Type, Ident};
-use whippyunits_core::{
-    UnitExpr, Dimension, SiPrefix,
-};
+use syn::{Ident, Type};
+use whippyunits_core::{Dimension, SiPrefix, UnitExpr};
 
-use crate::shared_utils::{get_declarator_type_for_unit};
+use crate::shared_utils::get_declarator_type_for_unit;
 
 /// Input for the unit macro
 pub struct UnitMacroInput {
@@ -62,8 +60,18 @@ impl UnitMacroInput {
         // Generate documentation structs for unit identifiers in const expression
         let doc_structs = Self::generate_unit_documentation_for_expr(
             &self.unit_expr,
-            mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp,
-            p2, p3, p5, pi
+            mass_exp,
+            length_exp,
+            time_exp,
+            current_exp,
+            temp_exp,
+            amount_exp,
+            lum_exp,
+            angle_exp,
+            p2,
+            p3,
+            p5,
+            pi,
         );
 
         // Generate the actual quantity type
@@ -103,32 +111,35 @@ impl UnitMacroInput {
         // Extract identifiers from the unit expression
         let mut identifiers = Vec::new();
         Self::collect_identifiers_from_expr(unit_expr, &mut identifiers);
-        
+
         // Generate documentation for each identifier
-        let doc_structs: Vec<TokenStream> = identifiers.into_iter().map(|ident: Ident| {
-            let doc_comment = Self::generate_unit_doc_comment(&ident.to_string());
-            let unit_name = ident.to_string();
-            
-            // Get the proper declarator type for this unit
-            if let Some(declarator_type) = get_declarator_type_for_unit(&unit_name) {
-                quote! {
-                    const _: () = {
-                        #doc_comment
-                        #[allow(non_camel_case_types)]
-                        type #ident = #declarator_type;
-                    };
+        let doc_structs: Vec<TokenStream> = identifiers
+            .into_iter()
+            .map(|ident: Ident| {
+                let doc_comment = Self::generate_unit_doc_comment(&ident.to_string());
+                let unit_name = ident.to_string();
+
+                // Get the proper declarator type for this unit
+                if let Some(declarator_type) = get_declarator_type_for_unit(&unit_name) {
+                    quote! {
+                        const _: () = {
+                            #doc_comment
+                            #[allow(non_camel_case_types)]
+                            type #ident = #declarator_type;
+                        };
+                    }
+                } else {
+                    // Fallback for units without declarator types
+                    quote! {
+                        const _: () = {
+                            #doc_comment
+                            #[allow(non_camel_case_types)]
+                            type #ident = ();
+                        };
+                    }
                 }
-            } else {
-                // Fallback for units without declarator types
-                quote! {
-                    const _: () = {
-                        #doc_comment
-                        #[allow(non_camel_case_types)]
-                        type #ident = ();
-                    };
-                }
-            }
-        }).collect();
+            })
+            .collect();
 
         quote! {
             #(#doc_structs)*
@@ -181,7 +192,7 @@ impl UnitMacroInput {
             let symbol = unit.symbols.first().unwrap_or(&unit_name);
             return Some(format!("{} ({})", unit.name, symbol));
         }
-        
+
         if let Some((unit, _dimension)) = Dimension::find_unit_by_name(unit_name) {
             // Use the first symbol from unit.symbols as the abbreviation
             let symbol = unit.symbols.first().unwrap_or(&unit_name);
@@ -190,27 +201,38 @@ impl UnitMacroInput {
 
         // Only if no exact match found, check if it's a prefixed unit
         if let Some((prefix_symbol, _base_symbol)) = Self::parse_prefixed_unit(unit_name) {
-            use whippyunits_core::{SiPrefix, to_unicode_superscript, Dimension};
+            use whippyunits_core::{to_unicode_superscript, Dimension, SiPrefix};
             if let Some(prefix_info) = SiPrefix::from_symbol(&prefix_symbol) {
                 // PARSE: Get the abstract representation (prefix + base unit)
-                let (base_unit_name, base_unit_symbol) = if let Some((base_unit, _)) = Dimension::find_unit_by_symbol(&_base_symbol) {
-                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
+                let (base_unit_name, base_unit_symbol) = if let Some((base_unit, _)) =
+                    Dimension::find_unit_by_symbol(&_base_symbol)
+                {
+                    (
+                        base_unit.name,
+                        base_unit.symbols.first().unwrap_or(&base_unit.name),
+                    )
                 } else if let Some((base_unit, _)) = Dimension::find_unit_by_name(&_base_symbol) {
-                    (base_unit.name, base_unit.symbols.first().unwrap_or(&base_unit.name))
+                    (
+                        base_unit.name,
+                        base_unit.symbols.first().unwrap_or(&base_unit.name),
+                    )
                 } else {
                     (_base_symbol.as_str(), &_base_symbol.as_str())
                 };
-                
+
                 // TRANSFORM: Convert abstract representation to normalized display format
                 let scale_text = if prefix_info.factor_log10() == 0 {
                     "10⁰".to_string()
                 } else {
-                    format!("10{}", to_unicode_superscript(prefix_info.factor_log10(), false))
+                    format!(
+                        "10{}",
+                        to_unicode_superscript(prefix_info.factor_log10(), false)
+                    )
                 };
-                
+
                 let prefixed_unit_name = format!("{}{}", prefix_info.name(), base_unit_name);
                 let prefixed_symbol = format!("{}{}", prefix_info.symbol(), base_unit_symbol);
-                
+
                 return Some(format!(
                     "{} ({}) - Prefix: {} ({}), Base: {}",
                     prefixed_unit_name,
@@ -235,7 +257,12 @@ impl UnitMacroInput {
             // Check if the base unit exists and is a base unit (first unit in its dimension)
             if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(base) {
                 // Check if this is the first unit in its dimension (base unit)
-                if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                if dimension
+                    .units
+                    .first()
+                    .map(|first_unit| first_unit.name == unit.name)
+                    .unwrap_or(false)
+                {
                     // Only allow prefixing if the base unit is a metric unit (not imperial)
                     if unit.system == whippyunits_core::System::Metric {
                         return Some((prefix.symbol().to_string(), base.to_string()));
@@ -249,7 +276,12 @@ impl UnitMacroInput {
             // Check if the base unit exists by name and is a base unit
             if let Some((unit, dimension)) = Dimension::find_unit_by_name(base) {
                 // Check if this is the first unit in its dimension (base unit)
-                if dimension.units.first().map(|first_unit| first_unit.name == unit.name).unwrap_or(false) {
+                if dimension
+                    .units
+                    .first()
+                    .map(|first_unit| first_unit.name == unit.name)
+                    .unwrap_or(false)
+                {
                     // Only allow prefixing if the base unit is a metric unit (not imperial)
                     if unit.system == whippyunits_core::System::Metric {
                         return Some((prefix.symbol().to_string(), base.to_string()));
