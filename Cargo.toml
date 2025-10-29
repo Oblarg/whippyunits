@@ -24,7 +24,6 @@ libm = "0.2"
 whippyunits-proc-macros = { path = "./proc-macros" }
 whippyunits-core = { path = "./whippyunits-core" }
 num-traits = "0.2"
-ndarray = "0.16.1"
 culit = "0.6.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
