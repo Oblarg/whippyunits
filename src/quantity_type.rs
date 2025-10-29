@@ -142,7 +142,7 @@ pub struct Dimension<
 /// unless all possible runtime dimensionalities of the quantity are each given their own statically-declared
 /// code branch.
 #[derive(Clone, PartialEq)]
-pub struct Quantity<Scale, Dimension, T = f64> {
+pub struct Quantity<Scale, Dimension, T = f64, Brand = ()> {
     /// The raw numeric value of this quantity.
     ///
     /// **⚠️ WARNING: This property is NOT unit-safe!**
@@ -180,14 +180,15 @@ pub struct Quantity<Scale, Dimension, T = f64> {
     /// # }
     /// ```
     pub unsafe_value: T,
-    _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension)>,
+    _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension, Brand)>,
 }
 
-impl<Scale, Dimension, T> Copy for Quantity<Scale, Dimension, T>
+impl<Scale, Dimension, T, Brand> Copy for Quantity<Scale, Dimension, T, Brand>
 where
     Scale: Clone,
     Dimension: Clone,
     T: Copy,
+    Brand: Clone,
 {
 }
 
@@ -295,6 +296,7 @@ impl<
     const SCALE_P5: i16,
     const SCALE_PI: i16,
     T,
+    Brand,
 >
     Quantity<
         Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
@@ -309,6 +311,7 @@ impl<
             _A<ANGLE_EXPONENT>,
         >,
         T,
+        Brand,
     >
 {
     pub const fn new(unsafe_value: T) -> Self {
@@ -572,6 +575,7 @@ macro_rules! define_from_dimensionless_cross_type {
                         0,
                         SCALE_PI,
                         0,
+                        (),
                     >(f64_quantity)
                     .unsafe_value) as $target_type
                 }
@@ -640,6 +644,7 @@ macro_rules! define_from_dimensionless {
                         0,
                         SCALE_PI,
                         0,
+                        (),
                     >(other)
                     .unsafe_value
                 }
@@ -728,6 +733,7 @@ macro_rules! define_from_for_radians_with_scale_cross_type {
                         0,
                         SCALE_PI,
                         0,
+                        (),
                     >(f64_quantity)
                     .unsafe_value) as $target_type
                 }
@@ -801,6 +807,7 @@ macro_rules! define_from_for_radians_with_scale {
                         0,
                         SCALE_PI,
                         0,
+                        (),
                     >(other)
                     .unsafe_value
                 }
@@ -885,14 +892,16 @@ macro_rules! quantity_type {
         Quantity<
             Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
             Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
-            T
+            T,
+            Brand
         >
     };
     ($T:ty) => {
         Quantity<
             Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
             Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
-            $T
+            $T,
+            Brand
         >
     };
 }

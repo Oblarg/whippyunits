@@ -79,12 +79,14 @@ macro_rules! define_float_rescale {
                 const SCALE_P3_FROM: i16, const SCALE_P3_TO: i16,
                 const SCALE_P5_FROM: i16, const SCALE_P5_TO: i16,
                 const SCALE_PI_FROM: i16, const SCALE_PI_TO: i16,
+                Brand,
             ),
             (
                 Quantity<
                     Scale<_2<SCALE_P2_FROM>, _3<SCALE_P3_FROM>, _5<SCALE_P5_FROM>, _Pi<SCALE_PI_FROM>>,
                     Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
                     $T,
+                    Brand,
                 >
             ),
             (
@@ -92,6 +94,7 @@ macro_rules! define_float_rescale {
                     Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>,
                     Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
                     $T,
+                    Brand,
                 >
             ),
             (
@@ -120,12 +123,14 @@ macro_rules! define_int_rescale {
                 const SCALE_P3_FROM: i16, const SCALE_P3_TO: i16,
                 const SCALE_P5_FROM: i16, const SCALE_P5_TO: i16,
                 const SCALE_PI_FROM: i16, const SCALE_PI_TO: i16,
+                Brand
             ),
             (
                 Quantity<
                     Scale<_2<SCALE_P2_FROM>, _3<SCALE_P3_FROM>, _5<SCALE_P5_FROM>, _Pi<SCALE_PI_FROM>>,
                     Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
                     $T,
+                    Brand,
                 >
             ),
             (
@@ -133,6 +138,7 @@ macro_rules! define_int_rescale {
                     Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>,
                     Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
                     $T,
+                    Brand,
                 >
             ),
             (
@@ -181,6 +187,7 @@ macro_rules! define_arithmetic_signed {
             const SCALE_P3: i16,
             const SCALE_P5: i16,
             const SCALE_PI: i16,
+            Brand,
         ),
         // single dimension, multiple scales
         (
@@ -193,7 +200,8 @@ macro_rules! define_arithmetic_signed {
             const LUMINOSITY_EXPONENT: i16,
             const ANGLE_EXPONENT: i16,
             const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
         ),
 
         // multiple dimension, multiple scales
@@ -207,7 +215,8 @@ macro_rules! define_arithmetic_signed {
             const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
             const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
             const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
         ),
         // inversion where clauses
         (
@@ -286,6 +295,7 @@ macro_rules! define_arithmetic {
             const SCALE_P3: i16,
             const SCALE_P5: i16,
             const SCALE_PI: i16,
+            Brand,
         ),
         // single dimension, multiple scales
         (
@@ -298,7 +308,8 @@ macro_rules! define_arithmetic {
             const LUMINOSITY_EXPONENT: i16,
             const ANGLE_EXPONENT: i16,
             const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
         ),
 
         // multiple dimension, multiple scales
@@ -312,7 +323,8 @@ macro_rules! define_arithmetic {
             const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
             const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
             const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
         ),
         // inversion where clauses
         (
