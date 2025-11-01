@@ -20,6 +20,7 @@ macro_rules! define_display_traits {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let value_f64 = <f64 as num_traits::NumCast>::from(self.unsafe_value)
                     .expect("unable to convert numeric value to f64 for display");
+                let brand_name = std::any::type_name::<Brand>();
                 let pretty = pretty_print_quantity_value(
                     value_f64,
                     whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
@@ -27,6 +28,7 @@ macro_rules! define_display_traits {
                     std::any::type_name::<T>(),
                     false, // Non-verbose mode for Display
                     true, // Show type in brackets for Display (now unified)
+                    Some(brand_name),
                 );
                 write!(f, "{}", pretty)
             }
@@ -50,6 +52,7 @@ macro_rules! define_display_traits {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let value_f64 = <f64 as num_traits::NumCast>::from(self.unsafe_value)
                     .expect("unable to convert numeric value to f64 for debug");
+                let brand_name = std::any::type_name::<Brand>();
                 let pretty = pretty_print_quantity_value(
                     value_f64,
                     whippyunits_core::dimension_exponents::DynDimensionExponents([$($dimension_args)*]),
@@ -57,6 +60,7 @@ macro_rules! define_display_traits {
                     std::any::type_name::<T>(),
                     true, // Verbose mode for Debug
                     true, // Show type in brackets for Debug (now unified)
+                    Some(brand_name),
                 );
                 write!(f, "{}", pretty)
             }

@@ -113,8 +113,8 @@ fn test_branded_defaults() {
     println!("Energy (i64): {:?}", energy_i64);
 
     // all exactly equal due to lack of implicit rescale
-    assert_eq!(value!(power_f64, uW, f64, Brand), 1000.0);
-    assert_eq!(value!(power_f32, uW, f32, Brand), 1000.0f32);
-    assert_eq!(value!(energy_i32, uJ, i32, Brand), 1000);
-    assert_eq!(value!(energy_i64, uJ, i64, Brand), 1000_i64);
+    assert_eq!(value!(power_f64, mW, f64, Brand), 1.0);
+    assert_eq!(value!(power_f32, mW, f32, Brand), 1.0f32);
+    assert_eq!(value!(energy_i32, mJ, i32, Brand), 1);
+    assert_eq!(value!(energy_i64, mJ, i64, Brand), 1_i64);
 }

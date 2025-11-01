@@ -35,7 +35,7 @@ impl Parse for DefineBaseUnitsInput {
             });
         }
         // Count identifiers
-        let mut peek = fork;
+        let peek = fork;
         while !peek.is_empty() {
             if peek.parse::<Ident>().is_ok() {
                 total_params += 1;

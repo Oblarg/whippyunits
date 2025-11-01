@@ -182,6 +182,7 @@ impl WhippyUnitsTypeConverter {
                     &params.generic_type,
                     true, // verbose
                     true, // show_type_in_brackets for rustc output
+                    None, // Brand not available in rustc error messages
                 )
             } else {
                 caps[0].to_string()
@@ -257,6 +258,7 @@ impl WhippyUnitsTypeConverter {
                         &params.generic_type,
                         false, // not verbose
                         false, // don't show type in brackets for clean mode
+                        None, // Brand not available in rustc error messages
                     )
                 }
             } else {

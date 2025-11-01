@@ -468,7 +468,7 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
     formatted
 }
 
-/// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type>`
+/// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type, brand>`
 pub fn pretty_print_quantity(
     value: Option<f64>,
     dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents,
@@ -476,6 +476,7 @@ pub fn pretty_print_quantity(
     type_name: &str,
     verbose: bool,
     _show_type_in_brackets: bool,
+    brand_name: Option<&str>,
 ) -> String {
     let value_prefix = if let Some(val) = value {
         let formatted_val = format_float_with_sig_figs(val, 5);
@@ -548,11 +549,14 @@ pub fn pretty_print_quantity(
     };
 
     // Always add the type parameter at the end
-    let type_suffix = if verbose {
-        format!(", {}", type_name)
-    } else {
-        format!(", {}", type_name)
-    };
+    let mut type_suffix = format!(", {}", type_name);
+    
+    // Add Brand parameter if it's not the default () type
+    if let Some(brand) = brand_name {
+        if brand != "()" {
+            type_suffix.push_str(&format!(", {}", brand));
+        }
+    }
 
     format!(
         "{}Quantity<{}{}{}{}>",
@@ -567,6 +571,7 @@ pub fn pretty_print_quantity_type(
     type_name: &str,
     verbose: bool,
     show_type_in_brackets: bool,
+    brand_name: Option<&str>,
 ) -> String {
     pretty_print_quantity(
         None,
@@ -575,6 +580,7 @@ pub fn pretty_print_quantity_type(
         type_name,
         verbose,
         show_type_in_brackets,
+        brand_name,
     )
 }
 
@@ -586,6 +592,7 @@ pub fn pretty_print_quantity_value(
     type_name: &str,
     verbose: bool,
     show_type_in_brackets: bool,
+    brand_name: Option<&str>,
 ) -> String {
     pretty_print_quantity(
         Some(value),
@@ -594,5 +601,6 @@ pub fn pretty_print_quantity_value(
         type_name,
         verbose,
         show_type_in_brackets,
+        brand_name,
     )
 }

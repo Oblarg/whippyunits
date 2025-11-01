@@ -223,24 +223,18 @@ impl UnitFormatter {
             let all_dimensions_unresolved = params.dimensions.0.iter().all(|&exp| exp == i16::MIN);
             let all_scales_unresolved = params.scale.0.iter().all(|&exp| exp == i16::MIN);
 
-            // Helper function to append Brand to a Quantity type string
-            let append_brand = |type_str: String| -> String {
-                if let Some(brand) = &params.brand {
-                    // Replace the closing > with , Brand>
-                    if let Some(last_gt) = type_str.rfind('>') {
-                        format!("{}, {}>", &type_str[..last_gt], brand)
-                    } else {
-                        // Shouldn't happen, but fallback
-                        format!("{}, {}>", type_str, brand)
-                    }
-                } else {
-                    type_str
-                }
-            };
+            // Get Brand name for passing to prettyprint function
+            let brand_name = params.brand.as_deref();
 
             if all_dimensions_unresolved && all_scales_unresolved {
                 // Format as wholly unresolved type
-                return append_brand(format!("Quantity<?, {}>", params.generic_type));
+                let mut result = format!("Quantity<?, {}>", params.generic_type);
+                if let Some(brand) = brand_name {
+                    if brand != "()" {
+                        result = format!("{}, {}>", &result[..result.len() - 1], brand);
+                    }
+                }
+                return result;
             }
 
             // Check if this is a dimensionless quantity (all dimensions are zero)
@@ -248,7 +242,13 @@ impl UnitFormatter {
                 && params.scale == ScaleExponents::IDENTITY
             {
                 // Format as dimensionless quantity
-                return append_brand(format!("Quantity<1, {}>", params.generic_type));
+                let mut result = format!("Quantity<1, {}>", params.generic_type);
+                if let Some(brand) = brand_name {
+                    if brand != "()" {
+                        result = format!("{}, {}>", &result[..result.len() - 1], brand);
+                    }
+                }
+                return result;
             }
             if is_inlay_hint {
                 // Use the main pretty print function with verbose=false to get the unit literal
@@ -258,15 +258,21 @@ impl UnitFormatter {
                     &params.generic_type,
                     false, // Non-verbose mode for inlay hints
                     false, // Don't show type in brackets
+                    brand_name,
                 );
 
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if full_output == "?" {
-                    return append_brand(format!("Quantity<?, {}>", params.generic_type));
+                    let mut result = format!("Quantity<?, {}>", params.generic_type);
+                    if let Some(brand) = brand_name {
+                        if brand != "()" {
+                            result = format!("{}, {}>", &result[..result.len() - 1], brand);
+                        }
+                    }
+                    return result;
                 }
 
-                // Append Brand if present
-                append_brand(full_output)
+                full_output
             } else {
                 // Use the prettyprint API with configurable parameters
                 let result = pretty_print_quantity_type(
@@ -275,15 +281,21 @@ impl UnitFormatter {
                     &params.generic_type,
                     verbose,
                     false, // show_type_in_brackets = false for pretty printer
+                    brand_name,
                 );
 
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if result == "?" {
-                    return append_brand(format!("Quantity<?, {}>", params.generic_type));
+                    let mut formatted = format!("Quantity<?, {}>", params.generic_type);
+                    if let Some(brand) = brand_name {
+                        if brand != "()" {
+                            formatted = format!("{}, {}>", &formatted[..formatted.len() - 1], brand);
+                        }
+                    }
+                    return formatted;
                 }
 
-                // Append Brand if present
-                append_brand(result)
+                result
             }
         } else {
             // If parsing fails, return the original
