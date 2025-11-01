@@ -141,6 +141,7 @@ pub struct LocalQuantityMacroInput {
     pub luminosity_scale: Ident,
     pub angle_scale: Ident,
     pub storage_type: Option<Type>,
+    pub brand_type: Option<Type>,
 }
 
 impl Parse for LocalQuantityMacroInput {
@@ -175,6 +176,14 @@ impl Parse for LocalQuantityMacroInput {
         } else {
             None
         };
+        
+        // Check if there's another comma followed by a brand type parameter
+        let brand_type = if input.peek(Comma) {
+            let _comma: Comma = input.parse()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
 
         Ok(LocalQuantityMacroInput {
             unit_expr,
@@ -187,6 +196,7 @@ impl Parse for LocalQuantityMacroInput {
             luminosity_scale,
             angle_scale,
             storage_type,
+            brand_type,
         })
     }
 }
@@ -203,6 +213,12 @@ impl LocalQuantityMacroInput {
             .storage_type
             .clone()
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
+        
+        // Use the specified brand type or default to ()
+        let brand_type = self
+            .brand_type
+            .clone()
+            .unwrap_or_else(|| syn::parse_str::<Type>("()").unwrap());
 
         // Generate lift trace doc shadows for each unit identifier in the expression
         let lift_trace_doc_shadows =
@@ -211,10 +227,10 @@ impl LocalQuantityMacroInput {
         // Check if this is a single unit (not an algebraic expression)
         if let UnitExpr::Unit(unit) = &self.unit_expr {
             let unit_name = unit.name.to_string();
-            self.handle_single_unit(&unit_name, &storage_type, &lift_trace_doc_shadows)
+            self.handle_single_unit(&unit_name, &storage_type, &brand_type, &lift_trace_doc_shadows)
         } else {
             // It's an algebraic expression (like J/s, m*s, etc.)
-            self.handle_algebraic_expression(&storage_type, &lift_trace_doc_shadows)
+            self.handle_algebraic_expression(&storage_type, &brand_type, &lift_trace_doc_shadows)
         }
     }
 
@@ -614,9 +630,10 @@ impl LocalQuantityMacroInput {
         &self,
         scale_ident: &Ident,
         storage_type: &Type,
+        brand_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
-        let generator = QuoteGenerator::new(storage_type, lift_trace_doc_shadows);
+        let generator = QuoteGenerator::new(storage_type, brand_type, lift_trace_doc_shadows);
         generator.generate_for_simple_base_unit(scale_ident)
     }
 
@@ -625,9 +642,10 @@ impl LocalQuantityMacroInput {
         &self,
         unit_expr_parsed: &syn::Expr,
         storage_type: &Type,
+        brand_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
-        let generator = QuoteGenerator::new(storage_type, lift_trace_doc_shadows);
+        let generator = QuoteGenerator::new(storage_type, brand_type, lift_trace_doc_shadows);
         generator.generate_for_compound_unit(unit_expr_parsed)
     }
 
@@ -689,6 +707,7 @@ impl LocalQuantityMacroInput {
         &self,
         unit_name: &str,
         storage_type: &Type,
+        brand_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> Option<TokenStream> {
         if let Some((base_symbol, _prefix)) = is_prefixed_compound_unit(unit_name) {
@@ -700,6 +719,7 @@ impl LocalQuantityMacroInput {
                 return Some(self.generate_compound_unit_quote(
                     &unit_expr_parsed,
                     storage_type,
+                    brand_type,
                     lift_trace_doc_shadows,
                 ));
             }
@@ -712,11 +732,12 @@ impl LocalQuantityMacroInput {
         &self,
         unit_name: &str,
         storage_type: &Type,
+        brand_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
         // First try to handle as prefixed compound unit
         if let Some(quote_result) =
-            self.handle_prefixed_compound_unit(unit_name, storage_type, lift_trace_doc_shadows)
+            self.handle_prefixed_compound_unit(unit_name, storage_type, brand_type, lift_trace_doc_shadows)
         {
             return quote_result;
         }
@@ -750,7 +771,7 @@ impl LocalQuantityMacroInput {
 
         // Check if it's a simple base unit
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-            self.generate_simple_base_unit_quote(&scale_ident, storage_type, lift_trace_doc_shadows)
+            self.generate_simple_base_unit_quote(&scale_ident, storage_type, brand_type, lift_trace_doc_shadows)
         } else {
             // It's a compound unit - generate the unit expression
             let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
@@ -759,6 +780,7 @@ impl LocalQuantityMacroInput {
             self.generate_compound_unit_quote(
                 &unit_expr_parsed,
                 storage_type,
+                brand_type,
                 lift_trace_doc_shadows,
             )
         }
@@ -768,13 +790,14 @@ impl LocalQuantityMacroInput {
     fn handle_algebraic_expression(
         &self,
         storage_type: &Type,
+        brand_type: &Type,
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
         let (dimensions, _scales) = self.evaluate_dimensions();
 
         // Check if it's a simple base unit (single dimension = 1, others = 0)
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-            self.generate_simple_base_unit_quote(&scale_ident, storage_type, lift_trace_doc_shadows)
+            self.generate_simple_base_unit_quote(&scale_ident, storage_type, brand_type, lift_trace_doc_shadows)
         } else {
             // It's a compound unit - generate the unit expression using local base units
             let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
@@ -785,6 +808,7 @@ impl LocalQuantityMacroInput {
             self.generate_compound_unit_quote(
                 &unit_expr_parsed,
                 storage_type,
+                brand_type,
                 lift_trace_doc_shadows,
             )
         }

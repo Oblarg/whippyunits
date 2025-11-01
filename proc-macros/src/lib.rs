@@ -120,8 +120,12 @@ fn generate_literal_macros_module(
 
     // Determine the correct quantity! path based on mode
     let quantity_path = if is_local_mode {
-        // Local mode: use the local quantity! macro (no prefix, picks up from scope)
-        quote! { quantity! }
+        // Local mode: use the prefixed macro name from parent namespace module
+        let prefixed_macro_name = syn::Ident::new(
+            &format!("{}_quantity", namespace_ident.to_string()),
+            namespace_ident.span(),
+        );
+        quote! { #prefixed_macro_name! }
     } else {
         // Default mode: always use whippyunits::quantity!
         quote! { whippyunits::quantity! }
@@ -742,7 +746,7 @@ pub fn define_local_quantity(_input: TokenStream) -> TokenStream {
 /// Hovering on unit identifiers or literals will provide documentation on the auto-conversion, showing both the
 /// declared unit and the unit to which it is converted, along with a detailed trace of the conversion chain.
 #[proc_macro]
-pub fn define_base_units(input: TokenStream) -> TokenStream {
+pub fn define_unit_declarators(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as define_base_units_macro::DefineBaseUnitsInput);
     input.expand().into()
 }

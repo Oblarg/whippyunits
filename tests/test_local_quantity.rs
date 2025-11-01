@@ -1,7 +1,15 @@
-use whippyunits::define_base_units;
+use whippyunits::define_unit_declarators;
 
-define_base_units!(
-    Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, test_scale
+define_unit_declarators!(
+    test_scale,
+    Kilogram,
+    Millimeter,
+    Second,
+    Ampere,
+    Kelvin,
+    Mole,
+    Candela,
+    Radian
 );
 
 #[culit::culit(test_scale::literals)]
@@ -65,6 +73,49 @@ fn test_local_quantity_macro() {
 
 #[test]
 fn test_compound_unit_literal_detection() {
+    use test_scale::*;
     let test = quantity!(1.0, kW * h);
     println!("Test: {:?}", test);
+}
+
+define_unit_declarators!(
+    branded_scale,
+    Brand,
+    Kilogram,
+    Millimeter,
+    Second,
+    Ampere,
+    Kelvin,
+    Mole,
+    Candela,
+    Radian
+);
+
+#[culit::culit(branded_scale::literals)]
+#[test]
+fn test_branded_quantity() {
+    let energy_f64 = 1.0J; // 1 joule
+    let energy_i32 = 1J; // 1 joule (integer)
+    let power_f64 = 2.0W; // 2 watts
+    let force_f64 = 10.0N; // 10 newtons
+    let pressure_f64 = 100.0Pa; // 100 pascals
+    let kilojoule_f64 = 1.5kJ; // 1.5 kilojoules
+    let milliwatt_f32 = 100.0mW_f32; // 100 milliwatts
+}
+
+define_unit_declarators!(
+    branded_defaults,
+    Brand
+);
+
+#[culit::culit(branded_defaults::literals)]
+#[test]
+fn test_branded_defaults() {
+    let energy_f64 = 1.0J; // 1 joule
+    let energy_i32 = 1J; // 1 joule (integer)
+    let power_f64 = 2.0W; // 2 watts
+    let force_f64 = 10.0N; // 10 newtons
+    let pressure_f64 = 100.0Pa; // 100 pascals
+    let kilojoule_f64 = 1.5kJ; // 1.5 kilojoules
+    let milliwatt_f32 = 100.0mW_f32; // 100 milliwatts
 }

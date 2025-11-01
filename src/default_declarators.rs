@@ -296,7 +296,7 @@ macro_rules! quantity {
     ($value:expr, $unit:expr) => {
         <$crate::unit!($unit)>::new($value)
     };
-    ($value:expr, $unit:expr, $storage_type:ty) => {
-        <$crate::unit!($unit, $storage_type)>::new($value)
+    ($value:expr, $unit:expr, $storage_type:ty $(, $brand:ty)?) => {
+        <$crate::unit!($unit, $storage_type $(, $brand)?)>::new($value)
     };
 }

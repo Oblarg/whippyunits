@@ -37,7 +37,7 @@ fn lookup_si_prefix(prefix_symbol: &str) -> Option<&'static SiPrefix> {
 }
 
 /// Convert a scale type name to the actual unit symbol
-fn scale_type_to_actual_unit_symbol(scale_type: &str) -> Option<String> {
+pub fn scale_type_to_actual_unit_symbol(scale_type: &str) -> Option<String> {
     // Handle the mapping from capitalized scale type names to actual unit symbols
     match scale_type {
         "Kilogram" => Some("kg".to_string()),   // kilogram
@@ -188,33 +188,49 @@ impl DimensionProcessor {
 /// Generic quote generator for different unit types
 pub struct QuoteGenerator<'a> {
     pub storage_type: &'a Type,
+    pub brand_type: &'a Type,
     pub lift_trace_doc_shadows: &'a TokenStream,
 }
 
 impl<'a> QuoteGenerator<'a> {
-    pub fn new(storage_type: &'a Type, lift_trace_doc_shadows: &'a TokenStream) -> Self {
+    pub fn new(storage_type: &'a Type, brand_type: &'a Type, lift_trace_doc_shadows: &'a TokenStream) -> Self {
         Self {
             storage_type,
+            brand_type,
             lift_trace_doc_shadows,
         }
     }
 
     pub fn generate_for_simple_base_unit(&self, scale_ident: &Ident) -> TokenStream {
-        let _lift_trace_doc_shadows = self.lift_trace_doc_shadows;
+        // Convert scale identifier (e.g., "Millimeter") to unit symbol (e.g., "mm")
+        let scale_name = scale_ident.to_string();
+        let unit_symbol = scale_type_to_actual_unit_symbol(&scale_name)
+            .unwrap_or_else(|| scale_name.to_lowercase());
+        let unit_symbol_ident = syn::parse_str::<Ident>(&unit_symbol)
+            .unwrap_or_else(|_| scale_ident.clone());
+        
+        let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
         let storage_type = self.storage_type;
+        let brand_type = self.brand_type;
+        
+        // Construct the Quantity type directly using unit! macro with brand, same as compound units
         quote! {
-            whippyunits::default_declarators::#scale_ident<#storage_type>
+            <whippyunits::Helper<{
+                #lift_trace_doc_shadows
+                0
+            }, whippyunits::unit!(#unit_symbol_ident, #storage_type, #brand_type)> as whippyunits::GetSecondGeneric>::Type
         }
     }
 
     pub fn generate_for_compound_unit(&self, unit_expr_parsed: &syn::Expr) -> TokenStream {
         let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
         let storage_type = self.storage_type;
+        let brand_type = self.brand_type;
         quote! {
             <whippyunits::Helper<{
                 #lift_trace_doc_shadows
                 0
-            }, whippyunits::unit!(#unit_expr_parsed, #storage_type)> as whippyunits::GetSecondGeneric>::Type
+            }, whippyunits::unit!(#unit_expr_parsed, #storage_type, #brand_type)> as whippyunits::GetSecondGeneric>::Type
         }
     }
 }

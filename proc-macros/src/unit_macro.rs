@@ -11,6 +11,7 @@ use crate::shared_utils::get_declarator_type_for_unit;
 pub struct UnitMacroInput {
     pub unit_expr: UnitExpr,
     pub storage_type: Option<Type>,
+    pub brand_type: Option<Type>,
 }
 
 impl Parse for UnitMacroInput {
@@ -25,9 +26,18 @@ impl Parse for UnitMacroInput {
             None
         };
 
+        // Check if there's another comma followed by a brand type parameter
+        let brand_type = if input.peek(Comma) {
+            let _comma: Comma = input.parse()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
         Ok(UnitMacroInput {
             unit_expr,
             storage_type,
+            brand_type,
         })
     }
 }
@@ -57,6 +67,11 @@ impl UnitMacroInput {
             .storage_type
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
 
+        // Use the specified brand type or default to ()
+        let brand_type = self
+            .brand_type
+            .unwrap_or_else(|| syn::parse_str::<Type>("()").unwrap());
+
         // Generate documentation structs for unit identifiers in const expression
         let doc_structs = Self::generate_unit_documentation_for_expr(
             &self.unit_expr,
@@ -79,7 +94,8 @@ impl UnitMacroInput {
             whippyunits::quantity_type::Quantity<
                 whippyunits::quantity_type::Scale<whippyunits::quantity_type::_2<#p2>, whippyunits::quantity_type::_3<#p3>, whippyunits::quantity_type::_5<#p5>, whippyunits::quantity_type::_Pi<#pi>>,
                 whippyunits::quantity_type::Dimension<whippyunits::quantity_type::_M<#mass_exp>, whippyunits::quantity_type::_L<#length_exp>, whippyunits::quantity_type::_T<#time_exp>, whippyunits::quantity_type::_I<#current_exp>, whippyunits::quantity_type::_Θ<#temp_exp>, whippyunits::quantity_type::_N<#amount_exp>, whippyunits::quantity_type::_J<#lum_exp>, whippyunits::quantity_type::_A<#angle_exp>>,
-                #storage_type
+                #storage_type,
+                #brand_type
             >
         };
 

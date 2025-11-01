@@ -1,6 +1,7 @@
 use whippyunits_core::{
     dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
 };
+use syn::{parse_str, TypePath};
 
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
@@ -222,9 +223,24 @@ impl UnitFormatter {
             let all_dimensions_unresolved = params.dimensions.0.iter().all(|&exp| exp == i16::MIN);
             let all_scales_unresolved = params.scale.0.iter().all(|&exp| exp == i16::MIN);
 
+            // Helper function to append Brand to a Quantity type string
+            let append_brand = |type_str: String| -> String {
+                if let Some(brand) = &params.brand {
+                    // Replace the closing > with , Brand>
+                    if let Some(last_gt) = type_str.rfind('>') {
+                        format!("{}, {}>", &type_str[..last_gt], brand)
+                    } else {
+                        // Shouldn't happen, but fallback
+                        format!("{}, {}>", type_str, brand)
+                    }
+                } else {
+                    type_str
+                }
+            };
+
             if all_dimensions_unresolved && all_scales_unresolved {
                 // Format as wholly unresolved type
-                return format!("Quantity<?, {}>", params.generic_type);
+                return append_brand(format!("Quantity<?, {}>", params.generic_type));
             }
 
             // Check if this is a dimensionless quantity (all dimensions are zero)
@@ -232,7 +248,7 @@ impl UnitFormatter {
                 && params.scale == ScaleExponents::IDENTITY
             {
                 // Format as dimensionless quantity
-                return format!("Quantity<1, {}>", params.generic_type);
+                return append_brand(format!("Quantity<1, {}>", params.generic_type));
             }
             if is_inlay_hint {
                 // Use the main pretty print function with verbose=false to get the unit literal
@@ -246,12 +262,11 @@ impl UnitFormatter {
 
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if full_output == "?" {
-                    return format!("Quantity<?, {}>", params.generic_type);
+                    return append_brand(format!("Quantity<?, {}>", params.generic_type));
                 }
 
-                // The pretty_print_quantity_type already returns the correct format
-                // Just return it directly without double-formatting
-                full_output
+                // Append Brand if present
+                append_brand(full_output)
             } else {
                 // Use the prettyprint API with configurable parameters
                 let result = pretty_print_quantity_type(
@@ -264,10 +279,11 @@ impl UnitFormatter {
 
                 // Check if the pretty print function returned just "?" for wholly unresolved types
                 if result == "?" {
-                    return format!("Quantity<?, {}>", params.generic_type);
+                    return append_brand(format!("Quantity<?, {}>", params.generic_type));
                 }
 
-                result
+                // Append Brand if present
+                append_brand(result)
             }
         } else {
             // If parsing fails, return the original
@@ -312,13 +328,14 @@ impl UnitFormatter {
         // The prettyprint functions already have the correct base scale offset logic
         let adjusted_scale = scale;
 
-        // Extract the actual generic type parameter from the type string
-        let generic_type = self.extract_generic_type(quantity_type);
+        // Extract the actual generic type parameter and brand from the type string
+        let (generic_type, brand) = self.extract_generic_type_and_brand(quantity_type);
 
         Some(QuantityParams {
             dimensions,
             scale: adjusted_scale,
             generic_type,
+            brand,
         })
     }
 
@@ -473,100 +490,70 @@ impl UnitFormatter {
 
     /// Extract the generic type parameter from a Quantity type string
     fn extract_generic_type(&self, quantity_type: &str) -> String {
-        if let Some(dimension_start) = quantity_type.find("Dimension<") {
-            // Pre-screen: check if there's an explicit type parameter by looking for the pattern
-            // Dimension<...>, T> where T is a type parameter
-            let after_dimension_start = &quantity_type[dimension_start + 9..]; // Skip "Dimension<"
-
-            // Look for the pattern that indicates an explicit type parameter
-            if self.has_explicit_type_parameter(after_dimension_start) {
-                // Case 1: Explicit type parameter present (e.g., Dimension<_M, _L<1>>, i32>)
-                return self.extract_explicit_type_parameter(after_dimension_start);
-            } else {
-                // Case 2: No explicit type parameter (e.g., Dimension<_M, _L<1>>>)
-                // Type parameter defaults to f64
-                return "f64".to_string();
-            }
-        } else if let Some(dimension_start) = quantity_type.find("Dimension,") {
-            // Handle Dimension, T format (fully defaulted Dimension)
-            let after_dimension = &quantity_type[dimension_start + 9..]; // Skip "Dimension,"
-            return self.find_type_parameter(after_dimension);
-        }
-
-        "f64".to_string()
+        self.extract_generic_type_and_brand(quantity_type).0
     }
 
-    /// Check if there's an explicit type parameter by looking for the pattern ", T>" where T is a numeric type
-    fn has_explicit_type_parameter(&self, after_dimension_start: &str) -> bool {
-        // Look for the pattern: Dimension<...>, T> where T is the type parameter
-        // We need to find a comma that separates the Dimension struct from the type parameter
-        // Try both ", " and "," patterns to be more robust
-        let comma_patterns = [", ", ","];
-
-        for comma_pattern in &comma_patterns {
-            if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
-                // Found a comma, check if what follows looks like a numeric type parameter
-                let potential_type = &after_dimension_start[comma_pos + comma_pattern.len()..];
-                let type_param = potential_type.trim().trim_end_matches('>').trim();
-
-                // Check if this is a valid numeric type parameter
-                if self.is_numeric_type(type_param) {
-                    return true;
+    /// Extract both the generic type parameter and brand from a Quantity type string
+    /// Returns (generic_type, brand) where brand is Some(...) if present, None otherwise
+    fn extract_generic_type_and_brand(&self, quantity_type: &str) -> (String, Option<String>) {
+        // Parse as a Rust type using syn - it handles const generics reliably
+        if let Some(quantity_start) = quantity_type.find("Quantity<") {
+            let quantity_content = &quantity_type[quantity_start..];
+            
+            match parse_str::<TypePath>(quantity_content) {
+                Ok(type_path) => {
+                    // Extract generic arguments
+                    if let Some(segment) = type_path.path.segments.last() {
+                        if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                            let args_vec: Vec<_> = args.args.iter().collect();
+                            
+                            // We expect: [Scale, Dimension<...>, T, Brand?]
+                            // Scale is at index 0, Dimension at 1, type T at 2, Brand at 3 (if present)
+                            
+                            if args_vec.len() >= 3 {
+                                // Extract the type parameter (index 2)
+                                let type_arg = &args_vec[2];
+                                let generic_type = match type_arg {
+                                    syn::GenericArgument::Type(ty) => {
+                                        quote::quote!(#ty).to_string()
+                                    }
+                                    _ => {
+                                        quote::quote!(#type_arg).to_string()
+                                    }
+                                };
+                                
+                                // Extract Brand if present (index 3)
+                                let brand = if args_vec.len() >= 4 {
+                                    let brand_arg = &args_vec[3];
+                                    match brand_arg {
+                                        syn::GenericArgument::Type(ty) => {
+                                            Some(quote::quote!(#ty).to_string())
+                                        }
+                                        _ => Some(quote::quote!(#brand_arg).to_string()),
+                                    }
+                                } else {
+                                    None
+                                };
+                                
+                                return (generic_type.trim().to_string(), brand.map(|s| s.trim().to_string()));
+                            } else if args_vec.len() == 2 {
+                                // Only Scale and Dimension, type defaults to f64
+                                return ("f64".to_string(), None);
+                            }
+                        }
+                    }
+                }
+                Err(_) => {
+                    // syn parsing failed - this shouldn't happen for valid Rust types
+                    // but default to f64 if it does
                 }
             }
         }
-        false
+        
+        // Default fallback if parsing fails
+        ("f64".to_string(), None)
     }
 
-    /// Check if a string represents a valid numeric type
-    fn is_numeric_type(&self, type_name: &str) -> bool {
-        match type_name {
-            "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
-            | "u128" | "usize" | "f32" | "f64" => true,
-            _ => false,
-        }
-    }
-
-    /// Extract the explicit type parameter from a string that contains ", T>"
-    fn extract_explicit_type_parameter(&self, after_dimension_start: &str) -> String {
-        // Try both ", " and "," patterns to be more robust
-        let comma_patterns = [", ", ","];
-
-        for comma_pattern in &comma_patterns {
-            if let Some(comma_pos) = after_dimension_start.rfind(comma_pattern) {
-                let potential_type = &after_dimension_start[comma_pos + comma_pattern.len()..];
-                let type_param = potential_type.trim().trim_end_matches('>').trim();
-
-                // Verify this is a valid numeric type before returning it
-                if self.is_numeric_type(type_param) {
-                    return type_param.to_string();
-                }
-            }
-        }
-        "f64".to_string()
-    }
-
-    /// Find the type parameter in a string, skipping alignment and trait information
-    fn find_type_parameter(&self, content: &str) -> String {
-        let parts: Vec<&str> = content.split(',').collect();
-
-        for part in parts {
-            let cleaned = part.trim().trim_end_matches('>');
-            // Check if this looks like a type (not a number, not a keyword like "align", "no", "Drop")
-            if !cleaned.parse::<i16>().is_ok()
-                && !cleaned.starts_with("align")
-                && !cleaned.starts_with("no")
-                && !cleaned.starts_with("Drop")
-                && !cleaned.starts_with("size")
-                && !cleaned.starts_with("0x")
-                && !cleaned.is_empty()
-            {
-                return cleaned.to_string();
-            }
-        }
-
-        "f64".to_string()
-    }
 
     /// Parse a parameter that could be a number or underscore placeholder
     fn parse_parameter(&self, param: &str) -> i16 {
@@ -680,4 +667,5 @@ struct QuantityParams {
     dimensions: DynDimensionExponents,
     scale: ScaleExponents,
     generic_type: String,
+    brand: Option<String>,
 }

@@ -6,6 +6,9 @@ macro_rules! define_value_macro {
             ($quantity:expr, $unit:expr) => {
                 ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T)).unsafe_value
             };
+            ($quantity:expr, $unit:expr, $brand:ty) => {
+                ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T, $brand)).unsafe_value
+            };
         }
     };
 }
@@ -29,6 +32,10 @@ define_value_macro!(value_u128, rescale_u128, u128);
 /// Because value! explicitly specifies the target unit, this is considered a
 /// "unit-safe" operation - the type system will guarantee that the access is
 /// dimensionally coherent and the value is correctly scaled.
+/// 
+/// Quantities with any `Brand` other than the default `()` must specify their brand
+/// explicitly in the `value!` macro arguments; failure to do so will result in a 
+/// compile error.
 ///
 /// Examples:
 /// ```rust
@@ -55,51 +62,51 @@ macro_rules! value {
         $crate::value_f64!($quantity, $unit)
     };
     // f64 (explicit)
-    ($quantity:expr, $unit:expr, f64) => {
-        $crate::value_f64!($quantity, $unit)
+    ($quantity:expr, $unit:expr, f64 $(, $brand:ty)?) => {
+        $crate::value_f64!($quantity, $unit $(, $brand)?)
     };
     // f32
-    ($quantity:expr, $unit:expr, f32) => {
-        $crate::value_f32!($quantity, $unit)
+    ($quantity:expr, $unit:expr, f32 $(, $brand:ty)?) => {
+        $crate::value_f32!($quantity, $unit $(, $brand)?)
     };
     // i8
-    ($quantity:expr, $unit:expr, i8) => {
-        $crate::value_i8!($quantity, $unit)
+    ($quantity:expr, $unit:expr, i8 $(, $brand:ty)?) => {
+        $crate::value_i8!($quantity, $unit $(, $brand)?)
     };
     // i16
-    ($quantity:expr, $unit:expr, i16) => {
-        $crate::value_i16!($quantity, $unit)
+    ($quantity:expr, $unit:expr, i16 $(, $brand:ty)?) => {
+        $crate::value_i16!($quantity, $unit $(, $brand)?)
     };
     // i32
-    ($quantity:expr, $unit:expr, i32) => {
-        $crate::value_i32!($quantity, $unit)
+    ($quantity:expr, $unit:expr, i32 $(, $brand:ty)?) => {
+        $crate::value_i32!($quantity, $unit $(, $brand)?)
     };
     // i64
-    ($quantity:expr, $unit:expr, i64) => {
-        $crate::value_i64!($quantity, $unit)
+    ($quantity:expr, $unit:expr, i64 $(, $brand:ty)?) => {
+        $crate::value_i64!($quantity, $unit $(, $brand)?)
     };
     // i128
-    ($quantity:expr, $unit:expr, i128) => {
-        $crate::value_i128!($quantity, $unit)
+    ($quantity:expr, $unit:expr, i128 $(, $brand:ty)?) => {
+        $crate::value_i128!($quantity, $unit $(, $brand)?)
     };
     // u8
-    ($quantity:expr, $unit:expr, u8) => {
-        $crate::value_u8!($quantity, $unit)
+    ($quantity:expr, $unit:expr, u8 $(, $brand:ty)?) => {
+        $crate::value_u8!($quantity, $unit $(, $brand)?)
     };
     // u16
-    ($quantity:expr, $unit:expr, u16) => {
-        $crate::value_u16!($quantity, $unit)
+    ($quantity:expr, $unit:expr, u16 $(, $brand:ty)?) => {
+        $crate::value_u16!($quantity, $unit $(, $brand)?)
     };
     // u32
-    ($quantity:expr, $unit:expr, u32) => {
-        $crate::value_u32!($quantity, $unit)
+    ($quantity:expr, $unit:expr, u32 $(, $brand:ty)?) => {
+        $crate::value_u32!($quantity, $unit $(, $brand)?)
     };
     // u64
-    ($quantity:expr, $unit:expr, u64) => {
-        $crate::value_u64!($quantity, $unit)
+    ($quantity:expr, $unit:expr, u64 $(, $brand:ty)?) => {
+        $crate::value_u64!($quantity, $unit $(, $brand)?)
     };
     // u128
-    ($quantity:expr, $unit:expr, u128) => {
-        $crate::value_u128!($quantity, $unit)
+    ($quantity:expr, $unit:expr, u128 $(, $brand:ty)?) => {
+        $crate::value_u128!($quantity, $unit $(, $brand)?)
     };
 }
