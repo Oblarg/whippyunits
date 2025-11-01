@@ -78,8 +78,8 @@ fn test_branded_quantity() {
     let power_f64 = 1.0mW;
     let power_f32 = 1.0mW_f32;
 
-    let energy_i32 = 1mJ;
-    let energy_i64 = 1mJ_i64;
+    let energy_i32 = quantity!(1, mJ, i32);
+    let energy_i64 = quantity!(1, mJ, i64);
 
     println!("Power (f64): {:?}", power_f64);
     println!("Power (f32): {:?}", power_f32);
@@ -104,8 +104,8 @@ fn test_branded_defaults() {
     let power_f64 = 1.0mW;
     let power_f32 = 1.0mW_f32;
 
-    let energy_i32 = 1mJ;
-    let energy_i64 = 1mJ_i64;
+    let energy_i32 = quantity!(1, mJ, i32);
+    let energy_i64 = quantity!(1, mJ, i64);
 
     println!("Power (f64): {:?}", power_f64);
     println!("Power (f32): {:?}", power_f32);

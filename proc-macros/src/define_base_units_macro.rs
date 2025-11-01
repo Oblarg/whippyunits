@@ -214,6 +214,18 @@ impl DefineBaseUnitsInput {
             &angle_scale,
         );
 
+        // Generate brand note for documentation (only if brand is present)
+        let brand_note_doc_if_present: Vec<String> = if let Some(ref brand) = brand_ident {
+            vec![format!(
+                "\n\n\
+                All quantities in this module are branded with the **{}** type parameter.",
+                brand
+            )]
+        } else {
+            vec![]
+        };
+        let brand_note_doc_for_macro: Vec<String> = brand_note_doc_if_present.clone();
+
         // Generate literals module
         let literals_module = Self::generate_literals_module_static(
             &mass_scale,
@@ -240,8 +252,10 @@ impl DefineBaseUnitsInput {
             };
 
             #[doc = #base_units_docstring]
+            #(#[doc = #brand_note_doc_if_present])*
             ///
-            /// Declarator module for local base units.  This shadows the entire [default_declarators](crate::default_declarators) module,
+            /// Declarator module for local base units.
+            /// This shadows the entire [default_declarators](crate::default_declarators) module,
             /// but automatically converts all declared units to the local base units before storing the value.
             ///
             /// ## Example
@@ -298,6 +312,7 @@ impl DefineBaseUnitsInput {
                 }
 
                 /// Define a local quantity with the specified value and storage type, scaled to the local base units.
+                #(#[doc = #brand_note_doc_for_macro])*
                 ///
                 /// This is a *local shadow* of the [quantity!](crate::quantity!) macro - if you are surprised by this,
                 /// look for an invocation of [define_unit_declarators!](crate::define_unit_declarators!) in the scope.  This macro will always
@@ -848,16 +863,65 @@ impl DefineBaseUnitsInput {
             namespace.span(),
         );
         
+        // Generate brand-specific documentation
+        let brand_doc = if let Some(ref brand) = brand_ident {
+            format!(
+                "Branded declarator module with brand type **{}**.\n\n\
+                This module provides a thin wrapper around [default_declarators](crate::default_declarators) \
+                that adds the `{}` brand type parameter to all quantities. Unlike rescaling declarators, \
+                this module does not perform any unit conversion - quantities are stored exactly as declared.",
+                brand, brand
+            )
+        } else {
+            "Declarator module delegating to [default_declarators](crate::default_declarators).".to_string()
+        };
+        
+        let quantity_doc = if let Some(ref brand) = brand_ident {
+            format!(
+                "Define a branded quantity with the specified value and storage type.\n\n\
+                This is a *thin wrapper* around [quantity!](crate::quantity!) that adds the `{}` brand type. \
+                Unlike rescaling declarators, this macro does not perform any unit conversion - the quantity \
+                is stored exactly as declared, with the brand type applied.\n\n\
+                ## Syntax\n\n\
+                ```rust\n\
+                use {}::quantity;\n\n\
+                // Basic quantities with brand\n\
+                let distance = quantity!(5.0, m);\n\
+                let mass = quantity!(2.5, kg);\n\n\
+                // With explicit storage type\n\
+                let distance_f32 = quantity!(5.0, m, f32);\n\
+                let mass_i32 = quantity!(2, kg, i32);\n\
+                ```",
+                brand, namespace
+            )
+        } else {
+            "Define a quantity with the specified value and storage type.\n\n\
+            This macro delegates to [quantity!](crate::quantity!) without modification.\n\n\
+            ## Syntax\n\n\
+            ```rust\n\
+            use {}::quantity;\n\n\
+            // Basic quantities\n\
+            let distance = quantity!(5.0, m);\n\
+            let mass = quantity!(2.5, kg);\n\n\
+            // With explicit storage type\n\
+            let distance_f32 = quantity!(5.0, m, f32);\n\
+            let mass_i32 = quantity!(2, kg, i32);\n\
+            ```".replace("{}", &namespace.to_string())
+        };
+
         quote! {
+            #[doc = #brand_doc]
             pub mod #namespace {
                 #brand_struct_def
                 
                 #(#expansions)*
                 
+                #[doc = "Custom literal declarator sugar for use with the [culit](https://crates.io/crates/culit) crate."]
                 pub mod literals {
                     #literals_module
                 }
                 
+                #[doc = #quantity_doc]
                 #[macro_export]
                 macro_rules! #prefixed_macro_name {
                     ($value:expr, $unit:expr) => {
