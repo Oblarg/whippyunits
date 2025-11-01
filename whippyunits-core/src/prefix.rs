@@ -30,6 +30,17 @@ impl SiPrefix {
         self.symbol
     }
 
+    /// Alternative symbols for this prefix.
+    ///
+    /// Returns a slice of alternative ASCII representations of the prefix symbol.
+    /// For example, the micro prefix (symbol "µ") has "u" as an alternative.
+    pub const fn alternative_symbols(&self) -> &'static [&'static str] {
+        match self.factor_log10 {
+            -6 => &["u"], // Micro: "µ" can be represented as "u"
+            _ => &[],
+        }
+    }
+
     /// List of all SI prefix definitions.
     pub const ALL: &[SiPrefix] = &Self::ALL_ARRAY;
 
@@ -66,8 +77,12 @@ impl SiPrefix {
     ];
 
     /// Look up SI prefix by symbol.
+    ///
+    /// Checks both primary symbols and alternative symbols.
     pub fn from_symbol(symbol: &str) -> Option<&'static Self> {
-        Self::ALL.iter().find(|prefix| prefix.symbol == symbol)
+        Self::ALL.iter().find(|prefix| {
+            prefix.symbol == symbol || prefix.alternative_symbols().contains(&symbol)
+        })
     }
 
     /// Strip the prefix name from a string.
@@ -95,20 +110,26 @@ impl SiPrefix {
     }
 
     /// Strip the prefix symbol from a string.
+    ///
+    /// Checks both the primary symbol and any alternative symbols.
     pub fn strip_prefix_symbol<'r>(&self, s: &'r str) -> Option<&'r str> {
-        // Bail out if the string isnt even long enough to have the prefix.
-        if s.len() < self.symbol.len() {
-            return None;
+        // Try the primary symbol first
+        if s.len() >= self.symbol.len() {
+            if &s.as_bytes()[..self.symbol.len()] == self.symbol.as_bytes() {
+                return Some(&s[self.symbol.len()..]);
+            }
         }
 
-        // We then check the rest of the prefix symbol to be lowercase.
-        if &s.as_bytes()[..self.symbol.len()] == self.symbol.as_bytes() {
-            // Since we now know that the multiple starts with a prefix symbol,
-            // we know that we can index directly after without a panic.
-            Some(&s[self.symbol.len()..])
-        } else {
-            None
+        // Try alternative symbols
+        for alt_symbol in self.alternative_symbols() {
+            if s.len() >= alt_symbol.len() {
+                if &s.as_bytes()[..alt_symbol.len()] == alt_symbol.as_bytes() {
+                    return Some(&s[alt_symbol.len()..]);
+                }
+            }
         }
+
+        None
     }
 
     /// Strip any prefix name from a string.
