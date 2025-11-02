@@ -5,7 +5,7 @@ use syn::token::Comma;
 use syn::{Ident, Type};
 use whippyunits_core::{Dimension, SiPrefix, UnitExpr};
 
-use crate::shared_utils::get_declarator_type_for_unit;
+use crate::utils::shared_utils::get_declarator_type_for_unit;
 
 /// Input for the unit macro
 pub struct UnitMacroInput {

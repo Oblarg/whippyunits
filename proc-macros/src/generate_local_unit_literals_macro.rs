@@ -60,7 +60,7 @@ impl LocalUnitLiteralsInput {
             self.luminosity_scale,
             self.angle_scale,
         );
-        crate::generate_literal_macros_module(
+        crate::utils::literal_macros::generate_literal_macros_module(
             "local_unit_literals",
             true,
             Some(scale_params),

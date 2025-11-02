@@ -3,7 +3,7 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::Ident;
 
-use crate::shared_utils::{generate_scale_name, is_valid_identifier};
+use crate::utils::shared_utils::{generate_scale_name, is_valid_identifier};
 
 /// Unit type classification
 #[derive(Debug, Clone, Copy, PartialEq)]

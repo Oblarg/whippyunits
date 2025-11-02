@@ -414,7 +414,7 @@ impl LocalContext {
                 let prefixed_unit_name = format!("{}{}", prefix_info.symbol(), base_unit_name);
 
                 if let Some(declarator_type) =
-                    crate::shared_utils::get_declarator_type_for_unit(&prefixed_unit_name)
+                    crate::utils::shared_utils::get_declarator_type_for_unit(&prefixed_unit_name)
                 {
                     return Some(declarator_type);
                 }

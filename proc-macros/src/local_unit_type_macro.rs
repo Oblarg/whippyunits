@@ -10,7 +10,7 @@ use whippyunits_core::scale_exponents::ScaleExponents;
 use whippyunits_core::{Dimension, Unit};
 
 // Import the helper functions from lift_trace
-use crate::lift_trace::{is_prefixed_base_unit, is_prefixed_compound_unit};
+use crate::utils::lift_trace::{is_prefixed_base_unit, is_prefixed_compound_unit};
 
 /// Convert a scale type name to the actual unit symbol
 /// This uses direct core APIs instead of api_helpers
@@ -125,7 +125,7 @@ fn dimension_exponents_to_unit_expression_with_base_units(
 }
 
 // Import the UnitExpr type from unit_macro
-use crate::lift_trace::{DimensionProcessor, LocalContext, QuoteGenerator, UnitExprFormatter};
+use crate::utils::lift_trace::{DimensionProcessor, LocalContext, QuoteGenerator, UnitExprFormatter};
 use whippyunits_core::UnitExpr;
 
 /// Input for the local quantity macro
@@ -816,7 +816,7 @@ impl LocalQuantityMacroInput {
 
     /// Generate error for unknown unit with suggestions
     fn generate_unknown_unit_error(&self, unit_name: &str) -> TokenStream {
-        use crate::unit_suggestions::find_similar_units;
+        use crate::utils::unit_suggestions::find_similar_units;
 
         let suggestions = find_similar_units(unit_name, 0.7);
         let error_message = if suggestions.is_empty() {
@@ -860,7 +860,7 @@ impl LocalQuantityMacroInput {
         }
 
         // First, try to use the shared helper for units that don't get transformed in local context
-        if let Some(shared_type) = crate::shared_utils::get_declarator_type_for_unit(unit_name) {
+        if let Some(shared_type) = crate::utils::shared_utils::get_declarator_type_for_unit(unit_name) {
             // Check if this unit gets transformed in the local context
             if !self.unit_gets_transformed_in_local_context(unit_name) {
                 // Unit doesn't get transformed, use the shared declarator type
@@ -910,14 +910,14 @@ impl LocalQuantityMacroInput {
                         prefixed_type
                     } else {
                         // Fall back to original if no prefixed type found
-                        match crate::shared_utils::get_declarator_type_for_unit(unit_name) {
+                        match crate::utils::shared_utils::get_declarator_type_for_unit(unit_name) {
                             Some(declarator_type) => declarator_type,
                             None => quote! { () },
                         }
                     }
                 } else {
                     // No scale factor difference, use the original type
-                    match crate::shared_utils::get_declarator_type_for_unit(unit_name) {
+                    match crate::utils::shared_utils::get_declarator_type_for_unit(unit_name) {
                         Some(declarator_type) => declarator_type,
                         None => quote! { () },
                     }
@@ -929,13 +929,13 @@ impl LocalQuantityMacroInput {
 
             // First try the new exponent-based approach
             if let Some(declarator_type) =
-                crate::shared_utils::get_declarator_type_for_exponents(dimensions, scales)
+                crate::utils::shared_utils::get_declarator_type_for_exponents(dimensions, scales)
             {
                 declarator_type
             } else {
                 // Fall back to the old unit name-based approach
                 if let Some(declarator_type) =
-                    crate::shared_utils::get_declarator_type_for_unit(unit_name)
+                    crate::utils::shared_utils::get_declarator_type_for_unit(unit_name)
                 {
                     // This is a prefixed unit, we need to calculate the scale factor difference
                     // and find the appropriate transformed type
@@ -983,7 +983,7 @@ impl LocalQuantityMacroInput {
     fn get_transformation_details_for_identifier(
         &self,
         unit_name: &str,
-    ) -> crate::lift_trace::TransformationDetails {
+    ) -> crate::utils::lift_trace::TransformationDetails {
         let local_context = self.get_local_context();
         local_context.get_transformation_details_for_identifier(unit_name)
     }

@@ -3,9 +3,9 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::{Ident, token::Comma};
 
-use crate::lift_trace::scale_type_to_actual_unit_symbol;
-use crate::scale_suggestions::find_similar_scales;
-use crate::shared_utils::generate_scale_name;
+use crate::utils::lift_trace::scale_type_to_actual_unit_symbol;
+use crate::utils::scale_suggestions::find_similar_scales;
+use crate::utils::shared_utils::generate_scale_name;
 
 /// Input for the define_unit_declarators macro
 /// Usage: define_unit_declarators!(local_scale, Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian)
@@ -277,7 +277,7 @@ impl DefineBaseUnitsInput {
                 use whippyunits::rescale_f64;
                 use whippyunits::rescale_i32;
                 use whippyunits::rescale_i64;
-                use whippyunits::local_unit_type;
+                use whippyunits::local_unit;
                 
                 // Define the brand type locally in this module
                 #brand_struct_def
@@ -349,31 +349,31 @@ impl DefineBaseUnitsInput {
                     ($value:expr, $unit:expr) => {
                         {
                             let declared_quantity = <whippyunits::unit!($unit, f64, #brand_type)>::new($value);
-                            whippyunits::rescale_f64(declared_quantity) as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
+                            whippyunits::rescale_f64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, f64) => {
                         {
                             let declared_quantity = <whippyunits::unit!($unit, f64, #brand_type)>::new($value);
-                            whippyunits::rescale_f64(declared_quantity) as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
+                            whippyunits::rescale_f64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, i32) => {
                         {
                             let declared_quantity = <whippyunits::unit!($unit, i32, #brand_type)>::new($value);
-                            whippyunits::rescale_i32(declared_quantity) as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type)
+                            whippyunits::rescale_i32(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, i64) => {
                         {
                             let declared_quantity = <whippyunits::unit!($unit, i64, #brand_type)>::new($value);
-                            whippyunits::rescale_i64(declared_quantity) as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type)
+                            whippyunits::rescale_i64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, f32) => {
                         {
                             let declared_quantity = <whippyunits::unit!($unit, f32, #brand_type)>::new($value);
-                            whippyunits::rescale_f32(declared_quantity) as whippyunits::local_unit_type!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f32, #brand_type)
+                            whippyunits::rescale_f32(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f32, #brand_type)
                         }
                     };
                 }
@@ -490,7 +490,7 @@ impl DefineBaseUnitsInput {
             }
 
             // Note: Additional units (like Celsius, Fahrenheit, etc.) are not included in the base dimensions
-            // They would need to be handled separately, just like in default_declarators_macro.rs
+            // They would need to be handled separately, just like in generate_default_declarators_macro.rs
 
             // Generate the trait definition and implementations
             let mut trait_methods = Vec::new();
@@ -517,25 +517,25 @@ impl DefineBaseUnitsInput {
                         quote! { () }
                     };
                     
-                    // Generate trait method - construct the type directly using Helper pattern (same as local_unit_type!)
+                    // Generate trait method - construct the type directly using Helper pattern (same as local_unit!)
                     trait_methods.push(quote! {
                         fn #fn_name_ident(self) -> <whippyunits::Helper<{
                             0
-                        }, whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, T, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type;
+                        }, whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, T, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type;
                     });
 
                     // Generate f64 implementation
                     impl_f64_methods.push(quote! {
                         fn #fn_name_ident(self) -> <whippyunits::Helper<{
                             0
-                        }, whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
+                        }, whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
                             let q = whippyunits::default_declarators::#scale_name_ident::new(self);
-                            // Use type annotation to let rescale infer the target scale parameters (local_unit_type uses base unit scales)
+                            // Use type annotation to let rescale infer the target scale parameters (local_unit uses base unit scales)
                             // Note: rescale returns a quantity with brand (), so we need to convert the brand
-                            type TargetQuantityUnbranded = whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64);
+                            type TargetQuantityUnbranded = whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64);
                             let rescaled: TargetQuantityUnbranded = whippyunits::rescale(q);
                             // Convert brand from () to #brand_type_tokens by reconstructing with new brand
-                            <whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type_tokens)>::new(rescaled.unsafe_value)
+                            <whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type_tokens)>::new(rescaled.unsafe_value)
                         }
                     });
 
@@ -543,14 +543,14 @@ impl DefineBaseUnitsInput {
                     impl_i32_methods.push(quote! {
                         fn #fn_name_ident(self) -> <whippyunits::Helper<{
                             0
-                        }, whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
+                        }, whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
                             let q = whippyunits::default_declarators::#scale_name_ident::new(self);
-                            // Use type annotation to let rescale_i32 infer the target scale parameters (local_unit_type uses base unit scales)
+                            // Use type annotation to let rescale_i32 infer the target scale parameters (local_unit uses base unit scales)
                             // Note: rescale_i32 returns a quantity with brand (), so we need to convert the brand
-                            type TargetQuantityUnbranded = whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32);
+                            type TargetQuantityUnbranded = whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32);
                             let rescaled: TargetQuantityUnbranded = whippyunits::rescale_i32(q);
                             // Convert brand from () to #brand_type_tokens by reconstructing with new brand
-                            <whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type_tokens)>::new(rescaled.unsafe_value)
+                            <whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type_tokens)>::new(rescaled.unsafe_value)
                         }
                     });
 
@@ -558,14 +558,14 @@ impl DefineBaseUnitsInput {
                     impl_i64_methods.push(quote! {
                         fn #fn_name_ident(self) -> <whippyunits::Helper<{
                             0
-                        }, whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
+                        }, whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
                             let q = whippyunits::default_declarators::#scale_name_ident::new(self);
-                            // Use type annotation to let rescale_i64 infer the target scale parameters (local_unit_type uses base unit scales)
+                            // Use type annotation to let rescale_i64 infer the target scale parameters (local_unit uses base unit scales)
                             // Note: rescale_i64 returns a quantity with brand (), so we need to convert the brand
-                            type TargetQuantityUnbranded = whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64);
+                            type TargetQuantityUnbranded = whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64);
                             let rescaled: TargetQuantityUnbranded = whippyunits::rescale_i64(q);
                             // Convert brand from () to #brand_type_tokens by reconstructing with new brand
-                            <whippyunits::local_unit_type!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)>::new(rescaled.unsafe_value)
+                            <whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)>::new(rescaled.unsafe_value)
                         }
                     });
                 }
@@ -635,7 +635,7 @@ impl DefineBaseUnitsInput {
             luminosity_scale.clone(),
             angle_scale.clone(),
         );
-        super::generate_literal_macros_module(
+        crate::utils::literal_macros::generate_literal_macros_module(
             "literals",
             true,
             Some(scale_params),
@@ -805,7 +805,7 @@ impl DefineBaseUnitsInput {
                 if let Some(base_unit) = dimension.units.first() {
                     // Use the same logic as generate_scale_name to ensure consistency
                     let type_name =
-                        crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
+                        crate::utils::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
                     if type_name == scale_name {
                         let type_ident =
                             syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
@@ -943,7 +943,7 @@ impl DefineBaseUnitsInput {
         brand_ident: &Option<Ident>,
     ) {
         use whippyunits_core::{Dimension, System};
-        use crate::shared_utils::{generate_scale_name, is_valid_identifier};
+        use crate::utils::shared_utils::{generate_scale_name, is_valid_identifier};
         
         let brand_type_tokens = if let Some(ref ident) = brand_ident {
             quote! { #ident }

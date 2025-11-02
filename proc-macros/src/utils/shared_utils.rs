@@ -8,7 +8,7 @@ pub fn is_valid_identifier(name: &str) -> bool {
     syn::parse_str::<Ident>(name).is_ok()
 }
 
-/// Generate scale name using the same logic as default_declarators_macro
+/// Generate scale name using the same logic as generate_default_declarators_macro
 /// This ensures consistency between define_base_units and default_declarators macros
 pub fn generate_scale_name(prefix_name: &str, unit_name: &str) -> String {
     // Systematically generate the correct naming convention
@@ -19,7 +19,7 @@ pub fn generate_scale_name(prefix_name: &str, unit_name: &str) -> String {
         format!("{}{}", prefix_name, unit_name)
     };
 
-    // Use the same capitalization logic as default_declarators_macro
+    // Use the same capitalization logic as generate_default_declarators_macro
     whippyunits_core::CapitalizedFmt(&combined_name).to_string()
 }
 
@@ -99,7 +99,7 @@ pub fn get_declarator_type_for_exponents(
         if unit.scale == scale_exponents {
             // Found a matching unit - generate type name using same logic as default declarators
             let type_name = if unit.system == System::Metric {
-                // For metric units, use the same logic as default_declarators_macro
+                // For metric units, use the same logic as generate_default_declarators_macro
                 // Check if this is a base unit (first unit in the dimension)
                 let is_base_unit = matching_dimension.units[0].name == unit.name;
 
@@ -136,7 +136,7 @@ pub fn get_declarator_type_for_exponents(
                 .iter()
                 .find(|p| p.factor_log10() == scale_diff)
             {
-                // Generate prefixed type name using same logic as default_declarators_macro
+                // Generate prefixed type name using same logic as generate_default_declarators_macro
                 let type_name = generate_scale_name(prefix.name(), base_unit.name);
 
                 let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());

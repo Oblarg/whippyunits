@@ -6,7 +6,7 @@ use syn::token::{Caret, Comma, Dot, Slash, Star};
 use syn::{Ident, LitInt, Token};
 use whippyunits_core::Dimension;
 
-use crate::dimension_suggestions::find_similar_dimensions;
+use crate::utils::dimension_suggestions::find_similar_dimensions;
 
 // Parse dimension expressions like "Length / Time", "L / T", or "Mass * Length^2 / Time^2", "M * L^2 / T^2"
 pub enum DimensionExpr {

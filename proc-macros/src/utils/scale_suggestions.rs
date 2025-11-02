@@ -55,7 +55,7 @@ fn get_all_available_scales() -> Vec<String> {
             if let Some(base_unit) = dimension.units.first() {
                 // Use the same logic as generate_scale_name to ensure consistency
                 let capitalized_name =
-                    crate::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
+                    crate::utils::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
                 scales.push(capitalized_name);
             }
         }

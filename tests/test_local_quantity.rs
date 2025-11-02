@@ -36,7 +36,6 @@ fn test_local_unit_literals() {
     assert_eq!(value!(energy_i64, uJ, i64), 1000_i64);
 }
 
-
 #[test]
 fn test_local_quantity_macro() {
     use test_scale::*;

@@ -2,448 +2,29 @@
 #![allow(mixed_script_confusables)]
 
 use proc_macro::TokenStream;
-use quote::quote;
 use syn::parse_macro_input;
 
-mod culit_macro;
-mod default_declarators_macro;
-mod define_base_units_macro;
-mod define_generic_dimension;
-mod dimension_suggestions;
-mod lift_trace;
-mod local_unit_literals_macro;
-mod local_unit_macro;
+mod compute_unit_dimensions_macro;
+mod define_generic_dimension_macro;
+mod define_literals_macro;
+mod define_local_quantity_macro;
+mod define_unit_declarators_macro;
+mod generate_all_radian_erasures_macro;
+mod generate_default_declarators_macro;
+mod generate_literals_module_macro;
+mod generate_local_unit_literals_macro;
+mod local_unit_type_macro;
 mod pow_lookup_macro;
-mod radian_erasure_macro;
-mod scale_suggestions;
-mod shared_utils;
 mod unit_macro;
-mod unit_suggestions;
 
-/// Get all unit symbols that should have literal macros
-/// This is the single source of truth for what units should have custom literals
-/// Used by both the regular define_literals!() and local unit literals
-fn get_all_unit_symbols_for_literals() -> Vec<String> {
-    use whippyunits_core::{Dimension, SiPrefix, Unit};
-    let mut symbols = Vec::new();
-
-    // Add base units from the canonical data
-    for unit in Unit::BASES.iter() {
-        if unit.name != "dimensionless" {
-            for symbol in unit.symbols {
-                symbols.push(symbol.to_string());
-            }
-        }
-    }
-
-    // Add all units from the unified dimensions data (including compound units and unit literals)
-    for dimension in Dimension::ALL {
-        for unit in dimension.units {
-            for symbol in unit.symbols {
-                symbols.push(symbol.to_string());
-            }
-        }
-    }
-
-    // Add prefixed units from the canonical data (base units)
-    for prefix in SiPrefix::ALL {
-        for unit in Unit::BASES.iter() {
-            if unit.name != "dimensionless" {
-                for symbol in unit.symbols {
-                    symbols.push(format!("{}{}", prefix.symbol(), symbol));
-                }
-            }
-        }
-    }
-
-    // Add prefixed compound units and derived units (kJ, mW, kN, mHz, etc.)
-    for prefix in SiPrefix::ALL {
-        for dimension in Dimension::ALL {
-            // Anything that's not atomic is composite (compound or derived)
-            if !Dimension::BASIS.contains(dimension) {
-                for unit in dimension.units {
-                    // Skip prefixed versions for units with conversion factors (imperial units)
-                    // as they are stored internally in SI units and don't need prefixed types
-                    if !unit.has_conversion() {
-                        for symbol in unit.symbols {
-                            let prefixed_symbol = format!("{}{}", prefix.symbol(), symbol);
-                            symbols.push(prefixed_symbol);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    symbols.sort();
-    symbols.dedup();
-
-    // Filter out Rust keywords
-    let rust_keywords = [
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn",
-    ];
-
-    symbols.retain(|symbol| !rust_keywords.contains(&symbol.as_str()));
-
-    symbols
-}
-
-/// Generate literal macros module - generic function that works for both default and local modes
-///
-/// # Parameters
-/// - `module_name`: Name of the module to generate (e.g., "custom_literal" or "local_unit_literals")
-/// - `is_local_mode`: If true, uses local quantity! macro (no prefix); if false, uses whippyunits::quantity!
-/// - `scale_params`: Optional scale parameters for lift trace (only used if is_local_mode is true)
-/// - `for_namespace`: If true, generates just the float/integer submodules without outer wrapper
-/// - `namespace_ident`: Optional namespace identifier for disambiguating local macros
-fn generate_literal_macros_module(
-    module_name: &str,
-    is_local_mode: bool,
-    scale_params: Option<(
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-        syn::Ident,
-    )>,
-    for_namespace: bool,
-    namespace_ident: syn::Ident,
-) -> proc_macro2::TokenStream {
-    // Get all unit symbols using the shared function
-    let unit_symbols = get_all_unit_symbols_for_literals();
-
-    // Determine the correct quantity! path based on mode
-    let quantity_path = if is_local_mode {
-        // Local mode: use the prefixed macro name from parent namespace module
-        let prefixed_macro_name = syn::Ident::new(
-            &format!("{}_quantity", namespace_ident.to_string()),
-            namespace_ident.span(),
-        );
-        quote! { #prefixed_macro_name! }
-    } else {
-        // Default mode: always use whippyunits::quantity!
-        quote! { whippyunits::quantity! }
-    };
-
-    let mut float_macros = Vec::new();
-    let mut integer_macros = Vec::new();
-
-    // Generate all literal macros for each unit symbol in a single iteration
-    for unit_symbol in &unit_symbols {
-        let unit_ident = syn::Ident::new(unit_symbol, proc_macro2::Span::mixed_site());
-
-        // Helper function to generate docstring with optional storage type parameter
-        let generate_doc_string = |storage_type: Option<&str>| {
-            if is_local_mode {
-                let mut formatted_details = String::new();
-                let equivalent_text = if let Some(storage_type) = storage_type {
-                    format!(
-                        "equivalent to: `{}::quantity!(value, {}, {})`<br><hr><br>",
-                        namespace_ident.to_string(),
-                        unit_symbol,
-                        storage_type
-                    )
-                } else {
-                    format!(
-                        "equivalent to: `{}::quantity!(value, {})`<br><hr><br>",
-                        namespace_ident.to_string(),
-                        unit_symbol
-                    )
-                };
-                formatted_details.push_str(&equivalent_text);
-                if let Some((
-                    mass_scale,
-                    length_scale,
-                    time_scale,
-                    current_scale,
-                    temperature_scale,
-                    amount_scale,
-                    luminosity_scale,
-                    angle_scale,
-                )) = &scale_params
-                {
-                    let local_context = crate::lift_trace::LocalContext {
-                        mass_scale: mass_scale.clone(),
-                        length_scale: length_scale.clone(),
-                        time_scale: time_scale.clone(),
-                        current_scale: current_scale.clone(),
-                        temperature_scale: temperature_scale.clone(),
-                        amount_scale: amount_scale.clone(),
-                        luminosity_scale: luminosity_scale.clone(),
-                        angle_scale: angle_scale.clone(),
-                    };
-                    let transformation_details =
-                        local_context.get_transformation_details_for_identifier(unit_symbol);
-                    let lines: Vec<&str> = transformation_details.details.lines().collect();
-                    for (j, line) in lines.iter().enumerate() {
-                        formatted_details.push_str(line);
-                        if j < lines.len() - 1 {
-                            formatted_details.push_str("<br>");
-                        }
-                    }
-                }
-                formatted_details
-            } else {
-                if let Some(storage_type) = storage_type {
-                    format!(
-                        "equivalent to: `default_declarators::quantity!(value, {}, {})`<br>",
-                        unit_symbol, storage_type
-                    )
-                } else {
-                    format!(
-                        "equivalent to: `default_declarators::quantity!(value, {})`<br>",
-                        unit_symbol
-                    )
-                }
-            }
-        };
-
-        // Generate base documentation for shortname macros (without storage type)
-        let base_doc_string = generate_doc_string(None);
-
-        // Generate documentation for suffixed literals (with storage type parameter)
-        let doc_string_f64 = generate_doc_string(Some("f64"));
-        let doc_string_f32 = generate_doc_string(Some("f32"));
-        let doc_string_i32 = generate_doc_string(Some("i32"));
-        let doc_string_i64 = generate_doc_string(Some("i64"));
-        let doc_string_u32 = generate_doc_string(Some("u32"));
-        let doc_string_u64 = generate_doc_string(Some("u64"));
-
-        // Generate unique inner names for each macro to avoid conflicts
-        // For local mode, prefix with the namespace identifier to disambiguate between different local scales
-        let inner_prefix = if is_local_mode {
-            format!("{}_{}", namespace_ident, unit_symbol)
-        } else {
-            unit_symbol.clone()
-        };
-
-        // Generate all inner macro identifiers
-        let inner_f64 = syn::Ident::new(
-            &format!("{}_f64", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_f32 = syn::Ident::new(
-            &format!("{}_f32", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_i32 = syn::Ident::new(
-            &format!("{}_i32", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_i64 = syn::Ident::new(
-            &format!("{}_i64", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_u32 = syn::Ident::new(
-            &format!("{}_u32", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_u64 = syn::Ident::new(
-            &format!("{}_u64", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_short_float = syn::Ident::new(
-            &format!("{}_float", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-        let inner_short_int = syn::Ident::new(
-            &format!("{}_int", inner_prefix),
-            proc_macro2::Span::mixed_site(),
-        );
-
-        // Generate all outer macro identifiers
-        let unit_f64 = syn::Ident::new(
-            &format!("{}_f64", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-        let unit_f32 = syn::Ident::new(
-            &format!("{}_f32", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-        let unit_i32 = syn::Ident::new(
-            &format!("{}_i32", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-        let unit_i64 = syn::Ident::new(
-            &format!("{}_i64", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-        let unit_u32 = syn::Ident::new(
-            &format!("{}_u32", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-        let unit_u64 = syn::Ident::new(
-            &format!("{}_u64", unit_symbol),
-            proc_macro2::Span::mixed_site(),
-        );
-
-        // Generate typed float macros
-        float_macros.push(quote! {
-            #[doc = #doc_string_f64]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_f64 {
-                ($value:literal) => {{
-                    #quantity_path($value as f64, #unit_ident, f64)
-                }};
-            }
-            pub use #inner_f64 as #unit_f64;
-
-            #[doc = #doc_string_f32]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_f32 {
-                ($value:literal) => {{
-                    #quantity_path($value as f32, #unit_ident, f32)
-                }};
-            }
-            pub use #inner_f32 as #unit_f32;
-        });
-
-        // Generate typed integer macros
-        integer_macros.push(quote! {
-            #[doc = #doc_string_i32]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_i32 {
-                ($value:literal) => {{
-                    #quantity_path($value as i32, #unit_ident, i32)
-                }};
-            }
-            pub use #inner_i32 as #unit_i32;
-
-            #[doc = #doc_string_i64]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_i64 {
-                ($value:literal) => {{
-                    #quantity_path($value as i64, #unit_ident, i64)
-                }};
-            }
-            pub use #inner_i64 as #unit_i64;
-
-            #[doc = #doc_string_u32]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_u32 {
-                ($value:literal) => {{
-                    #quantity_path($value as u32, #unit_ident, u32)
-                }};
-            }
-            pub use #inner_u32 as #unit_u32;
-
-            #[doc = #doc_string_u64]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_u64 {
-                ($value:literal) => {{
-                    #quantity_path($value as u64, #unit_ident, u64)
-                }};
-            }
-            pub use #inner_u64 as #unit_u64;
-        });
-
-        // Create shortname macro for float module using #quantity_path macro directly
-        float_macros.push(quote! {
-            #[doc = #base_doc_string]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_short_float {
-                ($value:literal) => {{
-                    #quantity_path($value as f64, #unit_ident, f64)
-                }};
-            }
-            pub use #inner_short_float as #unit_ident;
-        });
-
-        // Create shortname macro for int module using #quantity_path macro directly
-        integer_macros.push(quote! {
-            #[doc = #doc_string_i32]
-            #[macro_export]
-            #[doc(hidden)]
-            macro_rules! #inner_short_int {
-                ($value:literal) => {{
-                    #quantity_path($value as i32, #unit_ident, i32)
-                }};
-            }
-            pub use #inner_short_int as #unit_ident;
-        });
-    }
-
-    if for_namespace {
-        // For namespace use, generate just the float and integer submodules without outer wrapper
-        quote! {
-            #[allow(unused_macros)]
-            pub mod float {
-                #(#float_macros)*
-            }
-
-            #[allow(unused_macros)]
-            pub mod integer {
-                #(#integer_macros)*
-            }
-        }
-    } else {
-        // For regular use, generate the full module structure
-        let module_ident = syn::Ident::new(module_name, proc_macro2::Span::mixed_site());
-
-        quote! {
-            #[allow(unused_macros)]
-            /// Custom literal declarator sugar for the [quantity!](crate::quantity!) macro, for use with
-            /// the [culit](https://crates.io/crates/culit) crate.
-            ///
-            /// ```rust
-            /// #[culit::culit(whippyunits::default_declarators::literals)]
-            /// fn main() {
-            ///     let distance = 1.0m;
-            /// }
-            /// ```
-            ///
-            /// Literal declarators are effectively macro sugar for the [quantity!](crate::quantity!) macro.  The following
-            /// are equivalent:
-            ///
-            /// ```rust
-            /// # #[culit::culit(whippyunits::default_declarators::literals)]
-            /// # fn main() {
-            /// let distance = 1.0m;
-            /// let distance = whippyunits::default_declarators::literals::float::m!(1.0);
-            /// let distance = whippyunits::quantity!(1.0, m);
-            /// # }
-            /// ```
-            ///
-            /// Backing numeric types are inferred from the type of the literal, but can be overridden by suffixing the literal:
-            ///
-            /// ```rust
-            /// # #[culit::culit(whippyunits::default_declarators::literals)]
-            /// # fn main() {
-            /// let distance = 1.0m; // f64 (default for float literals)
-            /// let energy = 1.0J_f32; // f32
-            /// let time = 5ms; // i32 (default for integer literals)
-            /// # }
-            /// ```
-            ///
-            /// Because literal syntax is somewhat restrictive, we do not support the full set of algebraically-possible
-            /// unit expressions in literal position; derived units without an established unit symbol (e.g. `m/s`) are
-            /// not supported.  For arbitrary algebraic expressions, use the [quantity!](crate::quantity!) macro instead.
-            pub mod #module_ident {
-                #[allow(unused_macros)]
-                pub mod float {
-                    #(#float_macros)*
-                }
-
-                #[allow(unused_macros)]
-                pub mod integer {
-                    #(#integer_macros)*
-                }
-            }
-        }
-    }
+mod utils {
+    pub mod culit;
+    pub mod dimension_suggestions;
+    pub mod lift_trace;
+    pub mod literal_macros;
+    pub mod scale_suggestions;
+    pub mod shared_utils;
+    pub mod unit_suggestions;
 }
 
 /// Computes unit dimensions for a unit expression.
@@ -453,171 +34,46 @@ fn generate_literal_macros_module(
 #[proc_macro]
 #[doc(hidden)]
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
-    let unit_expr: whippyunits_core::UnitExpr =
-        syn::parse(input).expect("Expected unit expression");
-
-    let result = unit_expr.evaluate();
-
-    // Extract individual values for the quote
-    let (d0, d1, d2, d3, d4, d5, d6, d7) = (
-        result.dimension_exponents.0[0],
-        result.dimension_exponents.0[1],
-        result.dimension_exponents.0[2],
-        result.dimension_exponents.0[3],
-        result.dimension_exponents.0[4],
-        result.dimension_exponents.0[5],
-        result.dimension_exponents.0[6],
-        result.dimension_exponents.0[7],
-    );
-    let (d8, d9, d10, d11) = (
-        result.scale_exponents.0[0],
-        result.scale_exponents.0[1],
-        result.scale_exponents.0[2],
-        result.scale_exponents.0[3],
-    );
-
-    quote! {
-        (
-            whippyunits_core::dimension_exponents::DynDimensionExponents([#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7]),
-            whippyunits_core::scale_exponents::ScaleExponents([#d8, #d9, #d10, #d11])
-        )
-    }
-    .into()
+    compute_unit_dimensions_macro::compute_unit_dimensions(input)
 }
 
 /// Defines a trait representing a scale-generic dimension (like Length, Area, Energy).
 ///
-/// Generic dimensions can be used to write arithmetic operations that are generic over a dimensional structure
-/// or disjunction of dimensional structures.
-///
-/// ## Syntax
-///
-/// ```rust
-/// define_generic_dimension!(TraitName, DimensionExpression);
-/// ```
-///
-/// Where:
-/// - `TraitName`: The name of the trait to create
-/// - `DimensionExpression`: A comma-separated list of "dimension literal expressions".
-///     - A "dimension literal expression" is either:
-///         - An atomic dimension:
-///             - `Length`, `Time`, `Mass`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`
-///             - Also accepts single-character symbols: `L`, `T`, `M`, `I`, `Θ`, `N`, `J`, `A`
-///         - A multiplication of two or more atomic dimensions:
-///             - `M * L` or `M.L` (UCUM style)
-///         - A division of two or more atomic dimensions:
-///             - `L / T`
-///         - An exponentiation of an atomic dimension:
-///             - `L^2`, `T^-1` or `L2`, `T^-1` (UCUM implicit exponent notation)
-///         - A combination of the above: `M * L^2 / T^2` or `M.L2/T^2` (UCUM style)
-///
-/// ## Examples
-///
-/// ```rust
-/// use whippyunits::{define_generic_dimension, quantity};
-/// use core::ops::Mul;
-///
-/// // Define a generic Area trait using UCUM syntax
-/// define_generic_dimension!(Area, L2);
-///
-/// // Define a generic Energy trait using UCUM syntax
-/// define_generic_dimension!(Energy, M.L2/T^2);
-///
-/// // Define a velocity that may be *either* linear or angular
-/// define_generic_dimension!(Velocity, L/T, A/T);
-///
-/// // Now you can write generic functions
-/// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> impl Area
-/// where
-///     D1: Mul<D2>,
-/// {
-///     d1 * d2
-/// }
-///
-/// // This works with any length units
-/// let area1: impl Area = calculate_area(1.0.meters(), 2.0.meters());
-/// let area2: impl Area = calculate_area(100.0.centimeters(), 200.0.centimeters());
-/// let area3: impl Area = calculate_area(1.0.meters(), 200.0.centimeters());
-/// ```
+/// See [`define_generic_dimension!`](whippyunits::define_generic_dimension) for full documentation.
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as define_generic_dimension::DefineGenericDimensionInput);
+    let input = parse_macro_input!(input as define_generic_dimension_macro::DefineGenericDimensionInput);
     input.expand().into()
 }
 
 /// Creates a concrete Quantity type from a unit expression.
 ///
-/// This is particularly useful for constraining the result of potentially-type-ambiguous operations,
-/// such as multiplication of two quantities with different dimensions.  If you want to construct a
-/// quantity with a known value, use the `#quantity_path` macro instead.
-///
-/// ## Syntax
-///
-/// ```rust
-/// proc_unit!(unit_expr);
-/// proc_unit!(unit_expr, storage_type);
-/// ```
-///
-/// Where:
-/// - `unit_expr`: A "unit literal expression"
-///     - A "unit literal expression" is either:
-///         - An atomic unit (may include prefix):
-///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
-///         - An exponentiation of an atomic unit:
-///             - `m2`, `m^2`
-///         - A multiplication of two or more (possibly exponentiated) atomic units:
-///             - `kg.m2`, `kg * m2`
-///         - A division of two such product expressions:
-///             - `kg.m2/s2`, `kg * m2 / s^2`
-///             - There may be at most one division expression in a unit literal expression
-///             - All terms trailing the division symbol are considered to be in the denominator
-/// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
-///
-/// ## Examples
-///
-/// ```rust
-/// use whippyunits::unit;
-///
-/// // Constrain a multiplication to compile error if the units are wrong:
-/// let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
-/// let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
-/// let area: unit!(m^2) = 5.0m * 5.0m; // ✅ Correct, will compile only if the units are correct
-/// let area: unit!(m^2) = 5.0m * 5.0s; // Compile error, as expected
-///
-/// // Specify the target dimension of a rescale operation:
-/// let area: unit!(mm) = rescale(5.0m); // 5000.0 mm
-/// ```
+/// See [`unit!`](whippyunits::unit) for full documentation.
 #[proc_macro]
 pub fn proc_unit(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as unit_macro::UnitMacroInput);
     input.expand().into()
 }
 
+/// Creates a concrete Quantity type from a unit expression with local scale preferences.
+///
+/// See [`local_unit!`](whippyunits::local_unit) for full documentation.
+#[proc_macro]
+pub fn local_unit(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as local_unit_type_macro::LocalQuantityMacroInput);
+    input.expand().into()
+}
+
 #[proc_macro]
 #[doc(hidden)]
 pub fn local_unit_type(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as local_unit_macro::LocalQuantityMacroInput);
+    let input = parse_macro_input!(input as local_unit_type_macro::LocalQuantityMacroInput);
     input.expand().into()
 }
 
 #[proc_macro]
 pub fn define_literals(input: TokenStream) -> TokenStream {
-    // Parse the input to see if a module name is provided
-    let module_name = if input.is_empty() {
-        "custom_literal".to_string()
-    } else {
-        // Parse as an identifier for the module name
-        match syn::parse::<syn::Ident>(input) {
-            Ok(ident) => ident.to_string(),
-            Err(_) => {
-                // If parsing fails, use default
-                "custom_literal".to_string()
-            }
-        }
-    };
-
-    let custom_literal_module = culit_macro::generate_custom_literal_module_with_name(&module_name);
-    TokenStream::from(custom_literal_module)
+    define_literals_macro::define_literals(input)
 }
 
 /// Generate exponentiation lookup tables with parametric range
@@ -643,7 +99,7 @@ pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as radian_erasure_macro::AllRadianErasuresInput);
+    let input = parse_macro_input!(input as generate_all_radian_erasures_macro::AllRadianErasuresInput);
     input.expand().into()
 }
 
@@ -652,7 +108,7 @@ pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as default_declarators_macro::DefaultDeclaratorsInput);
+    let input = parse_macro_input!(input as generate_default_declarators_macro::DefaultDeclaratorsInput);
     input.expand().into()
 }
 
@@ -660,94 +116,34 @@ pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
 /// Usage: generate_literals_module!()
 #[proc_macro]
 #[doc(hidden)]
-pub fn generate_literals_module(_input: TokenStream) -> TokenStream {
-    let literals_module = generate_literal_macros_module(
-        "literals",
-        false,
-        None,
-        false,
-        syn::Ident::new("default_declarators", proc_macro2::Span::mixed_site()),
-    );
-    literals_module.into()
+pub fn generate_literals_module(input: TokenStream) -> TokenStream {
+    generate_literals_module_macro::generate_literals_module(input)
 }
 
 /// Generate local unit literals namespace with lift trace documentation
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_local_unit_literals(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as local_unit_literals_macro::LocalUnitLiteralsInput);
+    let input = parse_macro_input!(input as generate_local_unit_literals_macro::LocalUnitLiteralsInput);
     input.expand().into()
 }
 
 /// Define a local quantity trait and implementations for a given scale and set of units.
 ///
-/// This is an internal macro used by define_base_units! to generate the trait definitions.
+/// This is an internal macro used by define_unit_declarators! to generate the trait definitions.
 /// Based on the original scoped_preferences.rs implementation.
 #[proc_macro]
 #[doc(hidden)]
-pub fn define_local_quantity(_input: TokenStream) -> TokenStream {
-    // This macro should be called from within the define_base_units macro
-    // It generates the trait and implementations based on the original pattern
-    quote! {
-        // This will be expanded by the define_base_units macro
-        // The actual implementation is in the define_base_units_macro.rs file
-    }
-    .into()
+pub fn define_local_quantity(input: TokenStream) -> TokenStream {
+    define_local_quantity_macro::define_local_quantity(input)
 }
 
 /// Define a set of declarators that auto-convert to a given set of base units.
 ///
-/// ## Syntax
-///
-/// ```rust
-/// define_base_units!(
-///     $mass_scale:ident,
-///     $length_scale:ident,
-///     $time_scale:ident,
-///     $current_scale:ident,
-///     $temperature_scale:ident,
-///     $amount_scale:ident,
-///     $luminosity_scale:ident,
-///     $angle_scale:ident,
-///     $namespace:ident
-/// );
-/// ```
-///
-/// where:
-/// - $mass_scale: The scale for mass units (full unit name, e.g. "Kilogram")
-/// - $length_scale: The scale for length units (full unit name, e.g. "Kilometer")
-/// - $time_scale: The scale for time units (full unit name, e.g. "Second")
-/// - $current_scale: The scale for current units (full unit name, e.g. "Ampere")
-/// - $temperature_scale: The scale for temperature units (full unit name, e.g. "Kelvin")
-/// - $amount_scale: The scale for amount units (full unit name, e.g. "Mole")
-/// - $luminosity_scale: The scale for luminosity units (full unit name, e.g. "Candela")
-/// - $angle_scale: The scale for angle units (full unit name, e.g. "Radian")
-/// - $namespace: The name for the declarator module
-///
-/// ## Usage
-///
-/// ```rust
-/// define_base_units!(Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale);
-///
-/// // autoconverting literals are available in the inner "literals" module
-/// #[culit::culit(local_scale::literals)]
-/// fn example() {
-///     // trait declarators and the quantity! macro are available in the module
-///     use local_scale::*;
-///     let distance = 1.0.meters(); // automatically stores as 1000.0 millimeters
-///     let distance = quantity!(1.0, m); // so does this
-///     let distance = 1.0m; // and so does this!
-///
-///     // compound/derived units are "lifted" to the provided scale preferences
-///     let energy = 1.0J; // kg * mm^2 / s^2 yields microJoules, so this stores as 1000.0 * 1000.0 microJoules
-/// }
-/// ```
-///
-/// Hovering on unit identifiers or literals will provide documentation on the auto-conversion, showing both the
-/// declared unit and the unit to which it is converted, along with a detailed trace of the conversion chain.
+/// See [`define_unit_declarators!`](whippyunits::define_unit_declarators) for full documentation.
 #[proc_macro]
 pub fn define_unit_declarators(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as define_base_units_macro::DefineBaseUnitsInput);
+    let input = parse_macro_input!(input as define_unit_declarators_macro::DefineBaseUnitsInput);
     input.expand().into()
 }
 
@@ -759,7 +155,7 @@ mod tests {
     fn test_parse_input() {
         // Test that the macro can parse valid input
         let input = "LengthOrMass, Length, Mass";
-        let parsed = syn::parse_str::<define_generic_dimension::DefineGenericDimensionInput>(input);
+        let parsed = syn::parse_str::<define_generic_dimension_macro::DefineGenericDimensionInput>(input);
         assert!(parsed.is_ok());
 
         let parsed = parsed.unwrap();
@@ -770,7 +166,7 @@ mod tests {
     #[test]
     fn test_expand_macro() {
         // Test that the macro expands without panicking
-        let input = syn::parse_str::<define_generic_dimension::DefineGenericDimensionInput>(
+        let input = syn::parse_str::<define_generic_dimension_macro::DefineGenericDimensionInput>(
             "LengthOrMass, Length, Mass",
         )
         .unwrap();

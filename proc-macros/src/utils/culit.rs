@@ -4,7 +4,7 @@ use quote::quote;
 /// This uses only the canonical data from whippyunits-core
 pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro2::TokenStream {
     // Get all unit symbols from the canonical data (filtered to exclude Rust keywords)
-    let unit_symbols = crate::get_all_unit_symbols_for_literals();
+    let unit_symbols = crate::utils::literal_macros::get_all_unit_symbols_for_literals();
     let type_suffixes = vec!["f64", "f32", "i32", "i64", "u32", "u64"];
 
     let mut float_macros = Vec::new();
@@ -75,7 +75,7 @@ pub fn generate_custom_literal_module_with_name(module_name: &str) -> proc_macro
     }
 
     // Use the single generic function in default mode (no lift trace)
-    crate::generate_literal_macros_module(
+    crate::utils::literal_macros::generate_literal_macros_module(
         module_name,
         false,
         None,
