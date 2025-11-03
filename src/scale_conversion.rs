@@ -124,7 +124,7 @@ macro_rules! _define_float_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::api::rescale;
+        /// # use whippyunits::rescale;
         /// # use whippyunits::unit;
         /// let distance: unit!(mm) = rescale(1.0m); // ✅ 1000.0 Quantity<mm, f64>
         /// let distance: unit!(m) = rescale(1000.0mm); // ✅ 1.0 Quantity<m, f64>
@@ -143,26 +143,15 @@ macro_rules! _define_float_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::api::rescale;
+        /// # use whippyunits::rescale;
         /// let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
         /// let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
         /// // let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
         /// # }
         /// ```
         ///
-        /// Types other than `f64` are supported, but must use nominally-separate suffixed rescale functions
-        /// to avoid type inference issues:
-        ///
-        /// ```rust
-        /// # #[culit::culit(whippyunits::default_declarators::literals)]
-        /// # fn main() {
-        /// # use whippyunits::api::rescale_i32;
-        /// # use whippyunits::unit;
-        /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
-        /// // let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
-        /// // let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
-        /// # }
-        /// ```
+        /// Rust cannot evaluate generic primitive casts (like `as T`) in const functions.
+        /// We value constness, so we provide a specialization for each storage type.
         pub const fn $fn<
             $($float_rescale_const_params)*
         > (
@@ -195,6 +184,11 @@ macro_rules! _define_int_rescale {
     ) => {
         /// Rescale a quantity to a different unit of the same dimension.
         ///
+        /// This function uses pure integer math - conversion factors are computed as rational numbers
+        /// (numerator/denominator) and reduced via GCD (π is approximated as 355/113). To avoid overflow,
+        /// the calculation order is chosen heuristically: if `value * num` would overflow, we compute
+        /// `(value / den) * num`; otherwise `(value * num) / den`.
+        ///
         /// Rescale works robustly with type inference, and it is not necessary to explicitly specify the
         /// const generic parameters (of which there are many).  Instead, specify the target type with
         /// the [unit!](crate::unit!) macro:
@@ -202,14 +196,17 @@ macro_rules! _define_int_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::api::rescale;
+        /// # use whippyunits::rescale_i32;
         /// # use whippyunits::unit;
-        /// let distance: unit!(mm) = rescale(1.0m); // ✅ 1000.0 Quantity<mm, f64>
-        /// let distance: unit!(m) = rescale(1000.0mm); // ✅ 1.0 Quantity<m, f64>
-        /// // let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error (dimension mismatch)
-        /// // let _distance = rescale(1.0m); // ❌ Compile error (ambiguous target type)
+        /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
+        /// let distance: unit!(m, i32) = rescale_i32(1000mm); // ✅ 1 Quantity<m, i32>
+        /// // let _distance: unit!(s, i32) = rescale_i32(1m); // ❌ Compile error (dimension mismatch)
+        /// // let _distance = rescale_i32(1m); // ❌ Compile error (ambiguous target type)
         /// # }
         /// ```
+        ///
+        /// If you are in an inline context where it is not easy to specify the target type, you can use the
+        /// [rescale!](crate::rescale!) macro with an explicit type: `rescale!(quantity, unit, i32)`.
         ///
         /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
         /// have the same scale.  Accordingly, to add or subtract quantities with different scales, you
@@ -218,26 +215,15 @@ macro_rules! _define_int_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::api::rescale;
-        /// let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
-        /// let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
-        /// // let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
-        /// # }
-        /// ```
-        ///
-        /// Types other than `f64` are supported, but must use nominally-separate suffixed rescale functions
-        /// to avoid type inference issues:
-        ///
-        /// ```rust
-        /// # #[culit::culit(whippyunits::default_declarators::literals)]
-        /// # fn main() {
-        /// # use whippyunits::api::rescale_i32;
+        /// # use whippyunits::rescale_i32;
         /// # use whippyunits::unit;
-        /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
-        /// // let _distance: unit!(mm, i32) = rescale(1.0m) // ❌ Compile error (storage type mismatch)
-        /// // let _distance: unit!(mm, i32) = rescale_i32(1.0m); // ❌ Compile error (storage type mismatch)
+        /// let distance: unit!(mm, i32) = rescale_i32(1m) + 1000mm; // ✅ 2000 Quantity<mm, i32>
+        /// // let _distance = 1m + 1000mm; // ❌ Compile error (scale mismatch)
         /// # }
         /// ```
+        ///
+        /// Rust cannot evaluate generic primitive casts (like `as T`) in const functions. We value constness,
+        /// so we provide a specialization for each storage type.
         pub const fn $fn<
             $($int_rescale_const_params)*
         > (

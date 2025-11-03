@@ -1,7 +1,47 @@
 //! API for whippyunits quantities.
 //!
 //! This module provides the API implementations for most operations on the
-//! whippyunits [Quantity] type.
+//! whippyunits [`Quantity`](crate::quantity_type::Quantity) type.
+//!
+//! The functions in this module are generated via macros to provide type-safe implementations
+//! for all combinations of storage types (f32, f64, i8-i128, u8-u128) and quantity dimensions.
+//!
+//! ## Rescale Functions
+//!
+//! The primary public API consists of rescale functions that convert quantities between different
+//! units of the same dimension:
+//!
+//! - [`rescale`]: Default function for `f64` quantities (most common use case)
+//! - `rescale_f32`, `rescale_f64`: Explicit floating-point rescale functions
+//! - `rescale_i8` through `rescale_i128`: Signed integer rescale functions
+//! - `rescale_u8` through `rescale_u128`: Unsigned integer rescale functions
+//!
+//! All rescale functions work with type inference - specify the target type using the [`unit!`](crate::unit!) macro:
+//!
+//! ```rust
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! # use whippyunits::rescale;
+//! # use whippyunits::unit;
+//! let distance: unit!(mm) = rescale(1.0m); // Converts meters to millimeters
+//! let distance: unit!(m) = rescale(1000.0mm); // Converts millimeters to meters
+//! // let _distance: unit!(s) = rescale(1.0m); // ❌ Compile error: dimension mismatch
+//! # }
+//! ```
+//!
+//! ## Arithmetic Operations
+//!
+//! Arithmetic operations (Add, Sub, Mul, Div, Neg) are automatically implemented for all quantity types
+//! with appropriate dimension and scale constraints:
+//!
+//! - **Add/Sub**: Requires both operands to have identical dimensions and scales
+//! - **Mul/Div**: Automatically computes resulting dimensions and appropriate scale conversions
+//! - All operations preserve type safety and compile-time dimensional checking
+//!
+//! ## Display Traits
+//!
+//! The [`Display`](std::fmt::Display) and [`Debug`](std::fmt::Debug) traits are implemented for
+//! all quantity types, providing human-readable output with proper unit formatting.
 
 use crate::IsI16;
 use crate::define_aggregate_scale_factor_float;
@@ -149,19 +189,24 @@ macro_rules! define_int_rescale {
         );
     };
 }
-// Float rescale functions
+// Rescale functions: convert quantities between different units of the same dimension.
+// All rescale functions use compile-time type inference - specify the target unit
+// type using the `unit!` macro. The conversion factors are computed at compile time
+// using lossless log-scale arithmetic.
+
+// Float rescale functions - support f32 and f64 storage types
 define_float_rescale!(rescale, f64);
 define_float_rescale!(rescale_f64, f64);
 define_float_rescale!(rescale_f32, f32);
 
-// Integer rescale functions
+// Signed integer rescale functions - support i8, i16, i32, i64, i128
 define_int_rescale!(rescale_i8, i8);
 define_int_rescale!(rescale_i16, i16);
 define_int_rescale!(rescale_i32, i32);
 define_int_rescale!(rescale_i64, i64);
 define_int_rescale!(rescale_i128, i128);
 
-// Unsigned integer rescale functions
+// Unsigned integer rescale functions - support u8, u16, u32, u64, u128
 define_int_rescale!(rescale_u8, u8);
 define_int_rescale!(rescale_u16, u16);
 define_int_rescale!(rescale_u32, u32);
@@ -399,23 +444,35 @@ macro_rules! define_arithmetic {
         );
     }
 }
-// Float arithmetic implementations
+// Arithmetic trait implementations (Add, Sub, Mul, Div, Neg) are automatically
+// generated for all quantity types. These implementations enforce dimensional
+// correctness at compile time:
+//
+// - Addition/Subtraction: Requires identical dimensions and scales
+// - Multiplication/Division: Automatically computes resulting dimensions
+// - Scale conversions are handled automatically when necessary
+
+// Float arithmetic implementations - signed numeric types (support negation)
 define_arithmetic_signed!(f32, rescale_f32);
 define_arithmetic_signed!(f64, rescale_f64);
 
-// Integer arithmetic implementations
+// Signed integer arithmetic implementations (support negation)
 define_arithmetic_signed!(i8, rescale_i8);
 define_arithmetic_signed!(i16, rescale_i16);
 define_arithmetic_signed!(i32, rescale_i32);
 define_arithmetic_signed!(i64, rescale_i64);
 define_arithmetic_signed!(i128, rescale_i128);
 
-// Unsigned integer arithmetic implementations
+// Unsigned integer arithmetic implementations (no negation)
 define_arithmetic!(u8, rescale_u8);
 define_arithmetic!(u16, rescale_u16);
 define_arithmetic!(u32, rescale_u32);
 define_arithmetic!(u64, rescale_u64);
 define_arithmetic!(u128, rescale_u128);
+
+// Display and Debug trait implementations for human-readable quantity output.
+// These implementations format quantities with their unit symbols and dimensions
+// in a readable format.
 
 // Display traits for all supported types
 define_display_traits!(
