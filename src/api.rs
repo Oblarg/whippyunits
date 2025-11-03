@@ -67,6 +67,7 @@
 //! ```rust
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
+//! # use whippyunits::unit;
 //! let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
 //! let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
 //! let area: unit!(m^2) = 5.0m * 5.0m; // ✅ Correct, will compile only if the units are correct

@@ -21,7 +21,7 @@
 //! 
 //! When writing functions that work with any scale, you need to add a `where` clause to check that
 //! the two operands are valid for the arithmetic used in the function body.  Scale genericity does *not*
-//! introduce any auto-rescaling semantics; addition is still a scale-safe operation, even if the scale
+//! introduce any auto-rescaling semantics; addition is still a scale-strict operation, even if the scale
 //! is generic:
 //! 
 //! ```rust

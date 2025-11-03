@@ -1,6 +1,5 @@
 //! Test the new format method for quantities
 
-use whippyunits::default_declarators::*;
 use whippyunits::*;
 
 whippyunits_proc_macros::define_literals!();
