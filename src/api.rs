@@ -1,20 +1,26 @@
 //! API for whippyunits quantities.
 //!
 //! This module provides the API implementations for most operations on the
-//! whippyunits [`Quantity`](crate::quantity_type::Quantity) type.
+//! whippyunits [`Quantity`] type.
 //!
 //! The functions in this module are generated via macros to provide type-safe implementations
 //! for all combinations of storage types (f32, f64, i8-i128, u8-u128) and quantity dimensions.
 //!
 //! ## Rescale Functions
 //!
-//! The primary public API consists of rescale functions that convert quantities between different
-//! units of the same dimension:
-//!
-//! - [`rescale`]: Default function for `f64` quantities (most common use case)
-//! - `rescale_f32`, `rescale_f64`: Explicit floating-point rescale functions
-//! - `rescale_i8` through `rescale_i128`: Signed integer rescale functions
-//! - `rescale_u8` through `rescale_u128`: Unsigned integer rescale functions
+//! - [`rescale`](crate::rescale()): default function aliases `rescale_f64`
+//! - [`rescale_f32`]
+//! - [`rescale_f64`]
+//! - [`rescale_i8`]
+//! - [`rescale_i16`]
+//! - [`rescale_i32`]
+//! - [`rescale_i64`]
+//! - [`rescale_i128`]
+//! - [`rescale_u8`]
+//! - [`rescale_u16`]
+//! - [`rescale_u32`]
+//! - [`rescale_u64`]
+//! - [`rescale_u128`]
 //!
 //! All rescale functions work with type inference - specify the target type using the [`unit!`](crate::unit!) macro:
 //!
@@ -31,12 +37,68 @@
 //!
 //! ## Arithmetic Operations
 //!
-//! Arithmetic operations (Add, Sub, Mul, Div, Neg) are automatically implemented for all quantity types
-//! with appropriate dimension and scale constraints:
-//!
-//! - **Add/Sub**: Requires both operands to have identical dimensions and scales
-//! - **Mul/Div**: Automatically computes resulting dimensions and appropriate scale conversions
-//! - All operations preserve type safety and compile-time dimensional checking
+//! Arithmetic operations are zero-cost unit-safe wrappers around the underlying numeric type operations:
+//! they either compile directly to the underlying numeric type's operation, or else generate a compile error.
+//! 
+//! ### Addition and Subtraction
+//! 
+//! Addition and subtraction require both operands to have the same scale. To add or subtract quantities
+//! with different scales, use [`rescale`](crate::rescale()) to convert one to match the other:
+//! 
+//! ```rust
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! # use whippyunits::rescale;
+//! let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
+//! let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
+//! // let _distance = 1.0m + 1.0mm; // 🚫 Compile error (scale mismatch)
+//! // let _distance = 1.0m + 1.0s; // 🚫 Compile error (dimension mismatch)
+//! # }
+//! ```
+//! 
+//! The result has the same dimensions and scale as the operands.
+//! 
+//! ### Multiplication and Division
+//! 
+//! Without an explicit type annotation, multiplication and division won't catch dimensional errors
+//! at compile time because the compiler doesn't know what dimension you expect to get back. Use
+//! [`unit!`](crate::unit!) to specify the expected result type and enable compile-time checking:
+//! 
+//! ```rust
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
+//! let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
+//! let area: unit!(m^2) = 5.0m * 5.0m; // ✅ Correct, will compile only if the units are correct
+//! // let area: unit!(m^2) = 5.0m * 5.0s; // 🚫 Compile error, as expected
+//! # }
+//! ```
+//! 
+//! If you want to check the dimensionality without constraining the scale, use
+//! [`define_generic_dimension!`](crate::define_generic_dimension) to create a dimension trait:
+//! 
+//! ```rust
+//! # #![feature(impl_trait_in_bindings)]
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! # use whippyunits::define_generic_dimension;
+//! define_generic_dimension!(Area, L2);
+//! 
+//! // Works with any scale - meters, millimeters, etc.
+//! let area1: impl Area = 5.0m * 5.0m; // ✅
+//! let area2: impl Area = 5.0mm * 5.0mm; // ✅
+//! // let _area: impl Area = 5.0m * 5.0s; // 🚫 Compile error (wrong dimension)
+//! # }
+//! ```
+//! 
+//! Multiplication and division combine both dimensions and scales. The result type is *constrained by*
+//! the types of the operands, but does not uniquely determine them.
+//! 
+//! For example, `m * mm` produces `m(m²)`, but so do:
+//!  - `mm * m`
+//!  - `cm * dm`
+//!  - `(m.s) * (mm/s)`
+//!  - etc.
 //!
 //! ## Display Traits
 //!
@@ -189,10 +251,6 @@ macro_rules! define_int_rescale {
         );
     };
 }
-// Rescale functions: convert quantities between different units of the same dimension.
-// All rescale functions use compile-time type inference - specify the target unit
-// type using the `unit!` macro. The conversion factors are computed at compile time
-// using lossless log-scale arithmetic.
 
 // Float rescale functions - support f32 and f64 storage types
 define_float_rescale!(rescale, f64);
@@ -444,13 +502,6 @@ macro_rules! define_arithmetic {
         );
     }
 }
-// Arithmetic trait implementations (Add, Sub, Mul, Div, Neg) are automatically
-// generated for all quantity types. These implementations enforce dimensional
-// correctness at compile time:
-//
-// - Addition/Subtraction: Requires identical dimensions and scales
-// - Multiplication/Division: Automatically computes resulting dimensions
-// - Scale conversions are handled automatically when necessary
 
 // Float arithmetic implementations - signed numeric types (support negation)
 define_arithmetic_signed!(f32, rescale_f32);
@@ -469,10 +520,6 @@ define_arithmetic!(u16, rescale_u16);
 define_arithmetic!(u32, rescale_u32);
 define_arithmetic!(u64, rescale_u64);
 define_arithmetic!(u128, rescale_u128);
-
-// Display and Debug trait implementations for human-readable quantity output.
-// These implementations format quantities with their unit symbols and dimensions
-// in a readable format.
 
 // Display traits for all supported types
 define_display_traits!(

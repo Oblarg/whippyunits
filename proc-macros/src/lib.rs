@@ -27,19 +27,12 @@ mod utils {
     pub mod unit_suggestions;
 }
 
-/// Computes unit dimensions for a unit expression.
-///
-/// Usage: `compute_unit_dimensions!(unit_expr)`
-/// Returns a tuple of 12 i16 values representing the dimensions
 #[proc_macro]
 #[doc(hidden)]
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     compute_unit_dimensions_macro::compute_unit_dimensions(input)
 }
 
-/// Defines a trait representing a scale-generic dimension (like Length, Area, Energy).
-///
-/// See [`define_generic_dimension!`](whippyunits::define_generic_dimension) for full documentation.
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
     let input =
@@ -47,21 +40,9 @@ pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
     input.expand().into()
 }
 
-/// Creates a concrete Quantity type from a unit expression.
-///
-/// See [`unit!`](whippyunits::unit) for full documentation.
 #[proc_macro]
 pub fn proc_unit(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as unit_macro::UnitMacroInput);
-    input.expand().into()
-}
-
-/// Creates a concrete Quantity type from a unit expression with local scale preferences.
-///
-/// See [`local_unit!`](whippyunits::local_unit) for full documentation.
-#[proc_macro]
-pub fn local_unit(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as local_unit_type_macro::LocalQuantityMacroInput);
     input.expand().into()
 }
 
@@ -144,7 +125,7 @@ pub fn define_local_quantity(input: TokenStream) -> TokenStream {
 
 /// Define a set of declarators that auto-convert to a given set of base units.
 ///
-/// See [`define_unit_declarators!`](whippyunits::define_unit_declarators) for full documentation.
+/// See [`define_unit_declarators`] for full documentation.
 #[proc_macro]
 pub fn define_unit_declarators(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as define_unit_declarators_macro::DefineBaseUnitsInput);
