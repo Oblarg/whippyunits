@@ -550,7 +550,7 @@ pub fn pretty_print_quantity(
 
     // Always add the type parameter at the end
     let mut type_suffix = format!(", {}", type_name);
-    
+
     // Add Brand parameter if it's not the default () type
     if let Some(brand) = brand_name {
         if brand != "()" {

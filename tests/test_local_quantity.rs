@@ -5,15 +5,7 @@ use whippyunits::value;
 mod utils;
 
 define_unit_declarators!(
-    test_scale,
-    Kilogram,
-    Millimeter,
-    Second,
-    Ampere,
-    Kelvin,
-    Mole,
-    Candela,
-    Radian
+    test_scale, Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian
 );
 
 #[culit::culit(test_scale::literals)]
@@ -91,10 +83,7 @@ fn test_branded_quantity() {
     assert_eq!(value!(energy_i64, uJ, i64, Brand), 1000_i64);
 }
 
-define_unit_declarators!(
-    branded_defaults,
-    Brand
-);
+define_unit_declarators!(branded_defaults, Brand);
 
 #[culit::culit(branded_defaults::literals)]
 #[test]

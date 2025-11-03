@@ -46,7 +46,7 @@ pub mod value_macro;
 
 /// Define a set of "local declarators" that shadow the default declarators,
 /// and either:
-/// 
+///
 ///  - Apply a brand type to the quantity, or
 ///  - Auto-rescale to a given "base unit scale" for storage
 ///
@@ -58,7 +58,7 @@ pub mod value_macro;
 ///     $namespace:ident,
 ///     $brand:ident
 /// );
-/// 
+///
 /// // Rescaling declarators; auto-rescale to the given base unit scale for storage
 /// define_unit_declarators!(
 ///     $namespace:ident,
@@ -71,7 +71,7 @@ pub mod value_macro;
 ///     $luminosity_scale:ident,
 ///     $angle_scale:ident
 /// );
-/// 
+///
 /// // Branded rescaling declarators
 /// define_unit_declarators!(
 ///     $namespace:ident,
@@ -88,7 +88,7 @@ pub mod value_macro;
 /// ```
 ///
 /// where:
-/// 
+///
 /// - $namespace: The name for the declarator module
 /// - $brand: The name of the brand type to apply to the quantity (omit for unbranded declarators)
 /// - $mass_scale: The scale for mass units (full unit name, e.g. "Kilogram")

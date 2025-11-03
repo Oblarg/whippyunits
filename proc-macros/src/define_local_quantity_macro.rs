@@ -14,4 +14,3 @@ pub fn define_local_quantity(_input: TokenStream) -> TokenStream {
     }
     .into()
 }
-

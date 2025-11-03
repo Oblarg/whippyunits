@@ -84,16 +84,7 @@ pub fn get_all_unit_symbols_for_literals() -> Vec<String> {
 pub fn generate_literal_macros_module(
     module_name: &str,
     is_local_mode: bool,
-    scale_params: Option<(
-        Ident,
-        Ident,
-        Ident,
-        Ident,
-        Ident,
-        Ident,
-        Ident,
-        Ident,
-    )>,
+    scale_params: Option<(Ident, Ident, Ident, Ident, Ident, Ident, Ident, Ident)>,
     for_namespace: bool,
     namespace_ident: Ident,
 ) -> TokenStream2 {
@@ -427,4 +418,3 @@ pub fn generate_literal_macros_module(
         }
     }
 }
-

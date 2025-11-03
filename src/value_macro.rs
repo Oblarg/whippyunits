@@ -7,7 +7,8 @@ macro_rules! define_value_macro {
                 ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T)).unsafe_value
             };
             ($quantity:expr, $unit:expr, $brand:ty) => {
-                ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T, $brand)).unsafe_value
+                ($crate::api::$rescale_fn($quantity) as $crate::unit!($unit, $T, $brand))
+                    .unsafe_value
             };
         }
     };
@@ -32,9 +33,9 @@ define_value_macro!(value_u128, rescale_u128, u128);
 /// Because value! explicitly specifies the target unit, this is considered a
 /// "unit-safe" operation - the type system will guarantee that the access is
 /// dimensionally coherent and the value is correctly scaled.
-/// 
+///
 /// Quantities with any `Brand` other than the default `()` must specify their brand
-/// explicitly in the `value!` macro arguments; failure to do so will result in a 
+/// explicitly in the `value!` macro arguments; failure to do so will result in a
 /// compile error.
 ///
 /// Examples:

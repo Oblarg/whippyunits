@@ -193,7 +193,11 @@ pub struct QuoteGenerator<'a> {
 }
 
 impl<'a> QuoteGenerator<'a> {
-    pub fn new(storage_type: &'a Type, brand_type: &'a Type, lift_trace_doc_shadows: &'a TokenStream) -> Self {
+    pub fn new(
+        storage_type: &'a Type,
+        brand_type: &'a Type,
+        lift_trace_doc_shadows: &'a TokenStream,
+    ) -> Self {
         Self {
             storage_type,
             brand_type,
@@ -206,13 +210,13 @@ impl<'a> QuoteGenerator<'a> {
         let scale_name = scale_ident.to_string();
         let unit_symbol = scale_type_to_actual_unit_symbol(&scale_name)
             .unwrap_or_else(|| scale_name.to_lowercase());
-        let unit_symbol_ident = syn::parse_str::<Ident>(&unit_symbol)
-            .unwrap_or_else(|_| scale_ident.clone());
-        
+        let unit_symbol_ident =
+            syn::parse_str::<Ident>(&unit_symbol).unwrap_or_else(|_| scale_ident.clone());
+
         let lift_trace_doc_shadows = self.lift_trace_doc_shadows;
         let storage_type = self.storage_type;
         let brand_type = self.brand_type;
-        
+
         // Construct the Quantity type directly using unit! macro with brand, same as compound units
         quote! {
             <whippyunits::Helper<{

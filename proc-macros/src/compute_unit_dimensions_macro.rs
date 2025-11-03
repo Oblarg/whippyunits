@@ -7,8 +7,7 @@ use syn::parse;
 /// Usage: `compute_unit_dimensions!(unit_expr)`
 /// Returns a tuple of 12 i16 values representing the dimensions
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
-    let unit_expr: whippyunits_core::UnitExpr =
-        parse(input).expect("Expected unit expression");
+    let unit_expr: whippyunits_core::UnitExpr = parse(input).expect("Expected unit expression");
 
     let result = unit_expr.evaluate();
 
@@ -38,4 +37,3 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     }
     .into()
 }
-

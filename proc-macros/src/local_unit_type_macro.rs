@@ -125,7 +125,9 @@ fn dimension_exponents_to_unit_expression_with_base_units(
 }
 
 // Import the UnitExpr type from unit_macro
-use crate::utils::lift_trace::{DimensionProcessor, LocalContext, QuoteGenerator, UnitExprFormatter};
+use crate::utils::lift_trace::{
+    DimensionProcessor, LocalContext, QuoteGenerator, UnitExprFormatter,
+};
 use whippyunits_core::UnitExpr;
 
 /// Input for the local quantity macro
@@ -176,7 +178,7 @@ impl Parse for LocalQuantityMacroInput {
         } else {
             None
         };
-        
+
         // Check if there's another comma followed by a brand type parameter
         let brand_type = if input.peek(Comma) {
             let _comma: Comma = input.parse()?;
@@ -213,7 +215,7 @@ impl LocalQuantityMacroInput {
             .storage_type
             .clone()
             .unwrap_or_else(|| syn::parse_str::<Type>("f64").unwrap());
-        
+
         // Use the specified brand type or default to ()
         let brand_type = self
             .brand_type
@@ -227,7 +229,12 @@ impl LocalQuantityMacroInput {
         // Check if this is a single unit (not an algebraic expression)
         if let UnitExpr::Unit(unit) = &self.unit_expr {
             let unit_name = unit.name.to_string();
-            self.handle_single_unit(&unit_name, &storage_type, &brand_type, &lift_trace_doc_shadows)
+            self.handle_single_unit(
+                &unit_name,
+                &storage_type,
+                &brand_type,
+                &lift_trace_doc_shadows,
+            )
         } else {
             // It's an algebraic expression (like J/s, m*s, etc.)
             self.handle_algebraic_expression(&storage_type, &brand_type, &lift_trace_doc_shadows)
@@ -736,9 +743,12 @@ impl LocalQuantityMacroInput {
         lift_trace_doc_shadows: &TokenStream,
     ) -> TokenStream {
         // First try to handle as prefixed compound unit
-        if let Some(quote_result) =
-            self.handle_prefixed_compound_unit(unit_name, storage_type, brand_type, lift_trace_doc_shadows)
-        {
+        if let Some(quote_result) = self.handle_prefixed_compound_unit(
+            unit_name,
+            storage_type,
+            brand_type,
+            lift_trace_doc_shadows,
+        ) {
             return quote_result;
         }
 
@@ -771,7 +781,12 @@ impl LocalQuantityMacroInput {
 
         // Check if it's a simple base unit
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-            self.generate_simple_base_unit_quote(&scale_ident, storage_type, brand_type, lift_trace_doc_shadows)
+            self.generate_simple_base_unit_quote(
+                &scale_ident,
+                storage_type,
+                brand_type,
+                lift_trace_doc_shadows,
+            )
         } else {
             // It's a compound unit - generate the unit expression
             let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
@@ -797,7 +812,12 @@ impl LocalQuantityMacroInput {
 
         // Check if it's a simple base unit (single dimension = 1, others = 0)
         if let Some(scale_ident) = self.get_scale_for_dimensions(dimensions) {
-            self.generate_simple_base_unit_quote(&scale_ident, storage_type, brand_type, lift_trace_doc_shadows)
+            self.generate_simple_base_unit_quote(
+                &scale_ident,
+                storage_type,
+                brand_type,
+                lift_trace_doc_shadows,
+            )
         } else {
             // It's a compound unit - generate the unit expression using local base units
             let unit_expr = self.generate_unit_expression_from_dimensions(dimensions);
@@ -860,7 +880,9 @@ impl LocalQuantityMacroInput {
         }
 
         // First, try to use the shared helper for units that don't get transformed in local context
-        if let Some(shared_type) = crate::utils::shared_utils::get_declarator_type_for_unit(unit_name) {
+        if let Some(shared_type) =
+            crate::utils::shared_utils::get_declarator_type_for_unit(unit_name)
+        {
             // Check if this unit gets transformed in the local context
             if !self.unit_gets_transformed_in_local_context(unit_name) {
                 // Unit doesn't get transformed, use the shared declarator type

@@ -12,4 +12,3 @@ pub fn generate_literals_module(_input: TokenStream) -> TokenStream {
     );
     literals_module.into()
 }
-

@@ -141,7 +141,7 @@ pub struct Dimension<
 /// on values whose dimensionality is only known at runtime, e.g. as deserialized from a JSON string,
 /// unless all possible runtime dimensionalities of the quantity are each given their own statically-declared
 /// code branch.
-/// 
+///
 /// The `Brand` type parameter allows for finer granularity of unit safety guarantees; quantities can only
 /// participate in arithmetic operations with other quantities of the same brand.  This is useful for, e.g.,
 /// distinguishing between quantities in different coordinate systems or with different physical meanings,

@@ -42,7 +42,8 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
 /// See [`define_generic_dimension!`](whippyunits::define_generic_dimension) for full documentation.
 #[proc_macro]
 pub fn define_generic_dimension(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as define_generic_dimension_macro::DefineGenericDimensionInput);
+    let input =
+        parse_macro_input!(input as define_generic_dimension_macro::DefineGenericDimensionInput);
     input.expand().into()
 }
 
@@ -99,7 +100,8 @@ pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as generate_all_radian_erasures_macro::AllRadianErasuresInput);
+    let input =
+        parse_macro_input!(input as generate_all_radian_erasures_macro::AllRadianErasuresInput);
     input.expand().into()
 }
 
@@ -108,7 +110,8 @@ pub fn generate_all_radian_erasures(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_default_declarators(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as generate_default_declarators_macro::DefaultDeclaratorsInput);
+    let input =
+        parse_macro_input!(input as generate_default_declarators_macro::DefaultDeclaratorsInput);
     input.expand().into()
 }
 
@@ -124,7 +127,8 @@ pub fn generate_literals_module(input: TokenStream) -> TokenStream {
 #[proc_macro]
 #[doc(hidden)]
 pub fn generate_local_unit_literals(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as generate_local_unit_literals_macro::LocalUnitLiteralsInput);
+    let input =
+        parse_macro_input!(input as generate_local_unit_literals_macro::LocalUnitLiteralsInput);
     input.expand().into()
 }
 
@@ -155,7 +159,8 @@ mod tests {
     fn test_parse_input() {
         // Test that the macro can parse valid input
         let input = "LengthOrMass, Length, Mass";
-        let parsed = syn::parse_str::<define_generic_dimension_macro::DefineGenericDimensionInput>(input);
+        let parsed =
+            syn::parse_str::<define_generic_dimension_macro::DefineGenericDimensionInput>(input);
         assert!(parsed.is_ok());
 
         let parsed = parsed.unwrap();

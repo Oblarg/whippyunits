@@ -16,7 +16,7 @@ pub fn define_literals(input: TokenStream) -> TokenStream {
         }
     };
 
-    let custom_literal_module = crate::utils::culit::generate_custom_literal_module_with_name(&module_name);
+    let custom_literal_module =
+        crate::utils::culit::generate_custom_literal_module_with_name(&module_name);
     TokenStream::from(custom_literal_module)
 }
-

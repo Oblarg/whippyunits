@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
-use syn::{Ident, token::Comma};
+use syn::{token::Comma, Ident};
 
 use crate::utils::lift_trace::scale_type_to_actual_unit_symbol;
 use crate::utils::scale_suggestions::find_similar_scales;
@@ -21,7 +21,7 @@ impl Parse for DefineBaseUnitsInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // Parse namespace first
         let namespace: Ident = input.parse()?;
-        
+
         // Count total number of comma-separated identifiers remaining
         let fork = input.fork();
         let mut total_params = 0;
@@ -50,12 +50,12 @@ impl Parse for DefineBaseUnitsInput {
                 break; // Not an identifier, stop counting
             }
         }
-        
+
         // Map parameter count to behavior (excluding namespace):
         // 1 param => branded default shadow: define_unit_declarators!(namespace, Brand)
         // 8 params => unbranded rescaling shadow: define_unit_declarators!(namespace, Kilogram, Millimeter, ...)
         // 9 params => branded rescaling shadow: define_unit_declarators!(namespace, Brand, Kilogram, Millimeter, ...)
-        
+
         if total_params == 0 {
             // Just namespace - no brand, no base units (probably an error, but handle gracefully)
             return Ok(DefineBaseUnitsInput {
@@ -95,7 +95,16 @@ impl Parse for DefineBaseUnitsInput {
             return Ok(DefineBaseUnitsInput {
                 namespace,
                 brand: None,
-                base_units: Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)),
+                base_units: Some((
+                    mass_scale,
+                    length_scale,
+                    time_scale,
+                    current_scale,
+                    temperature_scale,
+                    amount_scale,
+                    luminosity_scale,
+                    angle_scale,
+                )),
             });
         } else if total_params == 9 {
             // namespace, brand, 8 base units => branded rescaling shadow
@@ -120,12 +129,24 @@ impl Parse for DefineBaseUnitsInput {
             return Ok(DefineBaseUnitsInput {
                 namespace,
                 brand: Some(brand_ident),
-                base_units: Some((mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale)),
+                base_units: Some((
+                    mass_scale,
+                    length_scale,
+                    time_scale,
+                    current_scale,
+                    temperature_scale,
+                    amount_scale,
+                    luminosity_scale,
+                    angle_scale,
+                )),
             });
         } else {
             return Err(syn::Error::new(
                 input.span(),
-                format!("Expected 1, 8, or 9 parameters after namespace, found {}", total_params)
+                format!(
+                    "Expected 1, 8, or 9 parameters after namespace, found {}",
+                    total_params
+                ),
             ));
         }
     }
@@ -137,7 +158,7 @@ impl DefineBaseUnitsInput {
         if self.base_units.is_none() {
             return self.expand_brand_only();
         }
-        
+
         // Get the SI prefixes from whippyunits-core crate
         let si_prefixes = whippyunits_core::SiPrefix::ALL;
 
@@ -152,11 +173,11 @@ impl DefineBaseUnitsInput {
         let luminosity_scale = base_units_tuple.6.clone();
         let angle_scale = base_units_tuple.7.clone();
         let namespace = self.namespace;
-        
+
         // Get the brand identifier - we'll use it directly in the generated code
         // The type will be created from the identifier in the outer scope where Brand is defined
         let brand_ident = self.brand.clone();
-        
+
         // Create a token stream for the brand type - use the namespace-qualified identifier if present, otherwise ()
         // Since the macro is exported, it needs to reference the brand type with the full module path
         let brand_type = if let Some(ref ident) = brand_ident {
@@ -164,7 +185,7 @@ impl DefineBaseUnitsInput {
         } else {
             quote! { () }
         };
-        
+
         // Create the brand struct definition token stream if brand is present
         let brand_struct_def = if let Some(ref ident) = brand_ident {
             quote! {
@@ -278,7 +299,7 @@ impl DefineBaseUnitsInput {
                 use whippyunits::rescale_i32;
                 use whippyunits::rescale_i64;
                 use whippyunits::local_unit;
-                
+
                 // Define the brand type locally in this module
                 #brand_struct_def
 
@@ -377,7 +398,7 @@ impl DefineBaseUnitsInput {
                         }
                     };
                 }
-                
+
                 // Re-export the prefixed macro as quantity! for convenience
                 pub use #prefixed_macro_name as quantity;
             }
@@ -507,16 +528,22 @@ impl DefineBaseUnitsInput {
 
                     // Convert scale identifier (e.g., "Millimeter", "Kilogram") to unit symbol (e.g., "mm", "kg")
                     let unit_symbol = scale_type_to_actual_unit_symbol(&scale_name_str)
-                        .unwrap_or_else(|| base_unit.symbols.first().map(|s| s.to_string()).unwrap_or_else(|| "m".to_string()));
+                        .unwrap_or_else(|| {
+                            base_unit
+                                .symbols
+                                .first()
+                                .map(|s| s.to_string())
+                                .unwrap_or_else(|| "m".to_string())
+                        });
                     let unit_symbol_ident = syn::parse_str::<Ident>(&unit_symbol).unwrap();
-                    
+
                     // Get the brand type token stream
                     let brand_type_tokens = if let Some(ref ident) = brand_ident {
                         quote! { #ident }
                     } else {
                         quote! { () }
                     };
-                    
+
                     // Generate trait method - construct the type directly using Helper pattern (same as local_unit!)
                     trait_methods.push(quote! {
                         fn #fn_name_ident(self) -> <whippyunits::Helper<{
@@ -804,8 +831,10 @@ impl DefineBaseUnitsInput {
             for dimension in atomic_dimensions {
                 if let Some(base_unit) = dimension.units.first() {
                     // Use the same logic as generate_scale_name to ensure consistency
-                    let type_name =
-                        crate::utils::shared_utils::generate_scale_name(prefix.name(), base_unit.name);
+                    let type_name = crate::utils::shared_utils::generate_scale_name(
+                        prefix.name(),
+                        base_unit.name,
+                    );
                     if type_name == scale_name {
                         let type_ident =
                             syn::Ident::new(&scale_name, proc_macro2::Span::call_site());
@@ -819,19 +848,19 @@ impl DefineBaseUnitsInput {
 
         None
     }
-    
+
     /// Expand when no base units are specified - generate exact shadow of default_declarators with brand
     fn expand_brand_only(self) -> TokenStream {
         let namespace = self.namespace;
         let brand_ident = self.brand.clone();
-        
+
         // Create brand type tokens
         let brand_type = if let Some(ref ident) = brand_ident {
             quote! { #namespace::#ident }
         } else {
             quote! { () }
         };
-        
+
         let brand_struct_def = if let Some(ref ident) = brand_ident {
             quote! {
                 pub struct #ident;
@@ -839,11 +868,11 @@ impl DefineBaseUnitsInput {
         } else {
             quote! {}
         };
-        
+
         // Generate trait wrappers that delegate to default_declarators
         let mut expansions = Vec::new();
         Self::generate_branded_trait_wrappers(&mut expansions, &brand_ident);
-        
+
         // Generate literals module
         let literals_module = Self::generate_literals_module_static(
             &syn::Ident::new("Meter", proc_macro2::Span::call_site()),
@@ -856,13 +885,13 @@ impl DefineBaseUnitsInput {
             &syn::Ident::new("Radian", proc_macro2::Span::call_site()),
             &namespace,
         );
-        
+
         // Create prefixed macro name
         let prefixed_macro_name = syn::Ident::new(
             &format!("{}_quantity", namespace.to_string()),
             namespace.span(),
         );
-        
+
         // Generate brand-specific documentation
         let brand_doc = if let Some(ref brand) = brand_ident {
             format!(
@@ -873,9 +902,10 @@ impl DefineBaseUnitsInput {
                 brand, brand
             )
         } else {
-            "Declarator module delegating to [default_declarators](crate::default_declarators).".to_string()
+            "Declarator module delegating to [default_declarators](crate::default_declarators)."
+                .to_string()
         };
-        
+
         let quantity_doc = if let Some(ref brand) = brand_ident {
             format!(
                 "Define a branded quantity with the specified value and storage type.\n\n\
@@ -906,21 +936,22 @@ impl DefineBaseUnitsInput {
             // With explicit storage type\n\
             let distance_f32 = quantity!(5.0, m, f32);\n\
             let mass_i32 = quantity!(2, kg, i32);\n\
-            ```".replace("{}", &namespace.to_string())
+            ```"
+            .replace("{}", &namespace.to_string())
         };
 
         quote! {
             #[doc = #brand_doc]
             pub mod #namespace {
                 #brand_struct_def
-                
+
                 #(#expansions)*
-                
+
                 #[doc = "Custom literal declarator sugar for use with the [culit](https://crates.io/crates/culit) crate."]
                 pub mod literals {
                     #literals_module
                 }
-                
+
                 #[doc = #quantity_doc]
                 #[macro_export]
                 macro_rules! #prefixed_macro_name {
@@ -931,26 +962,26 @@ impl DefineBaseUnitsInput {
                         <whippyunits::unit!($unit, $storage_type, #brand_type)>::new($value)
                     };
                 }
-                
+
                 pub use #prefixed_macro_name as quantity;
             }
         }
     }
-    
+
     /// Generate thin trait wrappers that delegate to default_declarators and convert brand
     fn generate_branded_trait_wrappers(
         expansions: &mut Vec<TokenStream>,
         brand_ident: &Option<Ident>,
     ) {
-        use whippyunits_core::{Dimension, System};
         use crate::utils::shared_utils::{generate_scale_name, is_valid_identifier};
-        
+        use whippyunits_core::{Dimension, System};
+
         let brand_type_tokens = if let Some(ref ident) = brand_ident {
             quote! { #ident }
         } else {
             quote! { () }
         };
-        
+
         // Iterate over all dimensions like default_declarators does
         for dimension in Dimension::ALL {
             let metric_units: Vec<_> = dimension
@@ -958,29 +989,32 @@ impl DefineBaseUnitsInput {
                 .iter()
                 .filter(|unit| unit.system == System::Metric)
                 .collect();
-            
+
             if metric_units.is_empty() {
                 continue;
             }
-            
+
             // Generate trait name matching default_declarators
             let trait_name = format!("Local{}", dimension.name);
             let trait_ident = match syn::parse_str::<Ident>(&trait_name) {
                 Ok(ident) => ident,
                 Err(_) => continue, // Skip if we can't parse the trait name
             };
-            
+
             let mut trait_methods = Vec::new();
             let mut impl_f64_methods = Vec::new();
             let mut impl_i32_methods = Vec::new();
             let mut impl_i64_methods = Vec::new();
-            
+
             // For each storage unit (conversion_factor == 1.0, no affine)
             for unit in &metric_units {
-                if !is_valid_identifier(unit.name) || unit.conversion_factor != 1.0 || unit.affine_offset != 0.0 {
+                if !is_valid_identifier(unit.name)
+                    || unit.conversion_factor != 1.0
+                    || unit.affine_offset != 0.0
+                {
                     continue;
                 }
-                
+
                 let scale_name = generate_scale_name("", unit.name);
                 let scale_name_ident = match syn::parse_str::<Ident>(&scale_name) {
                     Ok(ident) => ident,
@@ -991,21 +1025,25 @@ impl DefineBaseUnitsInput {
                     Ok(ident) => ident,
                     Err(_) => continue, // Skip if we can't parse the function name
                 };
-                
+
                 // Get unit symbol for the return type
-                let unit_symbol = unit.symbols.first().map(|s| s.to_string()).unwrap_or_else(|| "m".to_string());
+                let unit_symbol = unit
+                    .symbols
+                    .first()
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "m".to_string());
                 let unit_symbol_ident = match syn::parse_str::<Ident>(&unit_symbol) {
                     Ok(ident) => ident,
                     Err(_) => continue, // Skip if we can't parse the unit symbol
                 };
-                
+
                 // Generate trait method signature
                 trait_methods.push(quote! {
                     fn #fn_name_ident(self) -> <whippyunits::Helper<{
                         0
                     }, whippyunits::unit!(#unit_symbol_ident, T, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type;
                 });
-                
+
                 // Generate impls that delegate to default_declarators and convert brand
                 impl_f64_methods.push(quote! {
                     fn #fn_name_ident(self) -> <whippyunits::Helper<{
@@ -1015,7 +1053,7 @@ impl DefineBaseUnitsInput {
                         <whippyunits::unit!(#unit_symbol_ident, f64, #brand_type_tokens)>::new(q.unsafe_value)
                     }
                 });
-                
+
                 impl_i32_methods.push(quote! {
                     fn #fn_name_ident(self) -> <whippyunits::Helper<{
                         0
@@ -1024,7 +1062,7 @@ impl DefineBaseUnitsInput {
                         <whippyunits::unit!(#unit_symbol_ident, i32, #brand_type_tokens)>::new(q.unsafe_value)
                     }
                 });
-                
+
                 impl_i64_methods.push(quote! {
                     fn #fn_name_ident(self) -> <whippyunits::Helper<{
                         0
@@ -1034,22 +1072,22 @@ impl DefineBaseUnitsInput {
                     }
                 });
             }
-            
+
             // Generate trait with all methods
             if !trait_methods.is_empty() {
                 expansions.push(quote! {
                     pub trait #trait_ident<T = f64> {
                         #(#trait_methods)*
                     }
-                    
+
                     impl #trait_ident<f64> for f64 {
                         #(#impl_f64_methods)*
                     }
-                    
+
                     impl #trait_ident<i32> for i32 {
                         #(#impl_i32_methods)*
                     }
-                    
+
                     impl #trait_ident<i64> for i64 {
                         #(#impl_i64_methods)*
                     }

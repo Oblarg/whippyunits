@@ -164,7 +164,9 @@ impl InlayHintProcessor {
                 let full_type = format!("Quantity{}", generic_params);
 
                 // For inlay hints, use the full Quantity<unit, type> format
-                let pretty_type = self.formatter.format_types_inlay_hint(&full_type, &self.display_config);
+                let pretty_type = self
+                    .formatter
+                    .format_types_inlay_hint(&full_type, &self.display_config);
 
                 // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
                 let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
