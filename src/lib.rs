@@ -285,8 +285,8 @@ pub use whippyunits_proc_macros::local_unit_type as local_unit;
 /// ```rust
 /// # #[culit::culit(whippyunits::default_declarators::literals)]
 /// # fn main() {
-/// # use whippyunits::{unit, rescale};
-/// # use whippyunits::value;
+/// # use whippyunits::rescale;
+/// # use whippyunits::unit;
 /// // Constrain a multiplication to compile error if the units are wrong:
 /// let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
 /// let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
