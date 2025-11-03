@@ -140,7 +140,7 @@ pub use quantity_type::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimens
 ///
 /// ## Syntax
 ///
-/// ```rust,ignoreq
+/// ```rust,ignore
 /// define_generic_dimension!(TraitName, DimensionExpression);
 /// ```
 ///
@@ -163,9 +163,13 @@ pub use quantity_type::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimens
 /// ## Examples
 ///
 /// ```rust
-/// use whippyunits::{define_generic_dimension, quantity};
-/// use core::ops::Mul;
-///
+/// # #![feature(impl_trait_in_bindings)]
+/// # #[culit::culit(whippyunits::default_declarators::literals)]
+/// # fn main() {
+/// # use whippyunits::value;
+/// # use whippyunits::{define_generic_dimension, quantity};
+/// # use whippyunits::dimension_traits::Length;
+/// # use core::ops::Mul;
 /// // Define a generic Area trait using UCUM syntax
 /// define_generic_dimension!(Area, L2);
 ///
@@ -176,7 +180,7 @@ pub use quantity_type::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimens
 /// define_generic_dimension!(Velocity, L/T, A/T);
 ///
 /// // Now you can write generic functions
-/// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> impl Area
+/// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> <D1 as Mul<D2>>::Output
 /// where
 ///     D1: Mul<D2>,
 /// {
@@ -184,9 +188,16 @@ pub use quantity_type::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimens
 /// }
 ///
 /// // This works with any length units
-/// let area1: impl Area = calculate_area(1.0.meters(), 2.0.meters());
-/// let area2: impl Area = calculate_area(100.0.centimeters(), 200.0.centimeters());
-/// let area3: impl Area = calculate_area(1.0.meters(), 200.0.centimeters());
+/// let area1: impl Area = calculate_area(1.0m, 2.0m);
+/// assert_eq!(value!(area1, m^2), 2.0);
+/// assert_eq!(area1.unsafe_value, 2.0); // resulting type is meters^2
+/// let area2: impl Area = calculate_area(100.0mm, 200.0mm);
+/// assert_eq!(value!(area2, mm^2), 20000.0);
+/// assert_eq!(area2.unsafe_value, 20000.0); // resulting type is millimeters^2
+/// let area3: impl Area = calculate_area(1.0m, 200.0mm);
+/// assert_eq!(value!(area3, m^2), 0.2);
+/// assert_eq!(area3.unsafe_value, 200.0); // resulting type is milli(meters^2)
+/// # }
 /// ```
 #[doc(inline)]
 pub use whippyunits_proc_macros::define_generic_dimension;
@@ -277,16 +288,20 @@ pub use whippyunits_proc_macros::local_unit_type as local_unit;
 /// ## Examples
 ///
 /// ```rust
-/// use whippyunits::{unit, rescale};
-///
+/// # #[culit::culit(whippyunits::default_declarators::literals)]
+/// # fn main() {
+/// # use whippyunits::{unit, rescale};
+/// # use whippyunits::value;
 /// // Constrain a multiplication to compile error if the units are wrong:
 /// let area = 5.0m * 5.0m; // ⚠️ Correct, but unchecked; will compile regardless of the units
 /// let area = 5.0m * 5.0s; // ❌ BUG: compiles fine, but is not an area
 /// let area: unit!(m^2) = 5.0m * 5.0m; // ✅ Correct, will compile only if the units are correct
-/// let area: unit!(m^2) = 5.0m * 5.0s; // Compile error, as expected
+/// // let area: unit!(m^2) = 5.0m * 5.0s; // ✅ Compile error, as expected
 ///
 /// // Specify the target dimension of a rescale operation:
-/// let area: unit!(mm) = rescale(5.0m); // 5000.0 mm
+/// let area: unit!(mm) = rescale(5.0m);
+/// assert_eq!(area.unsafe_value, 5000.0);
+/// # }
 /// ```
 #[doc(inline)]
 pub use whippyunits_proc_macros::proc_unit as unit;

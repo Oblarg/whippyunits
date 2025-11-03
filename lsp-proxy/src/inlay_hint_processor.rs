@@ -43,7 +43,7 @@ impl InlayHintProcessor {
             // Handle both array (inlay hint requests) and object (resolve responses)
             if let Some(results_array) = result.as_array_mut() {
                 // Process each inlay hint in the results array
-                for (i, hint) in results_array.iter_mut().enumerate() {
+                for (_i, hint) in results_array.iter_mut().enumerate() {
                     self.process_single_hint(hint)?;
                 }
             } else if let Some(single_hint) = result.as_object_mut() {
@@ -62,34 +62,10 @@ impl InlayHintProcessor {
         // Get the label array
         if let Some(label) = hint.get_mut("label") {
             if let Some(label_array) = label.as_array_mut() {
-                // Log the original label content
-                let original_label: Vec<String> = label_array
-                    .iter()
-                    .filter_map(|part| {
-                        part.get("value")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string())
-                    })
-                    .collect();
-
-                // Check if this hint contains a whippyunits type
                 if self.contains_whippyunits_type(label_array) {
                     self.convert_whippyunits_hint(label_array)?;
-
-                    // Log the converted label content
-                    let converted_label: Vec<String> = label_array
-                        .iter()
-                        .filter_map(|part| {
-                            part.get("value")
-                                .and_then(|v| v.as_str())
-                                .map(|s| s.to_string())
-                        })
-                        .collect();
-                } else {
                 }
-            } else {
             }
-        } else {
         }
         Ok(())
     }
@@ -188,7 +164,7 @@ impl InlayHintProcessor {
                 let full_type = format!("Quantity{}", generic_params);
 
                 // For inlay hints, use the full Quantity<unit, type> format
-                let pretty_type = self.formatter.format_types_inlay_hint(&full_type);
+                let pretty_type = self.formatter.format_types_inlay_hint(&full_type, &self.display_config);
 
                 // For inlay hints specifically, prune ^1 exponents while keeping meaningful ones
                 let pretty_type = self.prune_inlay_hint_exponents(&pretty_type);
@@ -245,26 +221,6 @@ impl InlayHintProcessor {
         }
 
         Ok(())
-    }
-
-    /// Check if this is an unresolved type that could benefit from a seeded unit macro
-    fn is_unresolved_type(&self, hint_obj: &serde_json::Map<String, Value>) -> bool {
-        // Look for unresolved types in the label
-        if let Some(label) = hint_obj.get("label") {
-            if let Some(label_array) = label.as_array() {
-                for part in label_array {
-                    if let Some(value) = part.get("value") {
-                        if let Some(text) = value.as_str() {
-                            // Check for unresolved patterns
-                            if text.contains("9223372036854775807") || text.contains("_") {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        false
     }
 
     /// Add a unit! macro text edit to the hint
@@ -461,23 +417,5 @@ impl InlayHintProcessor {
         result = result.replace("PLACEHOLDER_MINUS_ONE", "⁻¹");
 
         result
-    }
-
-    /// Convert unresolved type to unit! macro format
-    fn convert_to_unit_macro_format(&self, unresolved_type: &str) -> String {
-        // This is a simplified conversion - could be enhanced with more sophisticated parsing
-        if unresolved_type.contains("9223372036854775807") {
-            // Replace unresolved parts with placeholders
-            unresolved_type
-                .replace("9223372036854775807", "?")
-                .replace("Quantity<", "")
-                .replace(">", "")
-                .replace(", ", " * ")
-                .replace(" * 0", "") // Remove zero exponents
-                .replace(" * 1", "") // Remove unit exponents
-                .replace(" * ?", "?") // Clean up unresolved placeholders
-        } else {
-            unresolved_type.to_string()
-        }
     }
 }

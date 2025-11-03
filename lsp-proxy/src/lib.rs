@@ -14,7 +14,6 @@ mod tests;
 use hover_processor::HoverProcessor;
 use inlay_hint_processor::InlayHintProcessor;
 use lsp_structures::LspMessage;
-use unit_formatter::UnitFormatter;
 
 // Re-export for public API
 pub use unit_formatter::DisplayConfig;
@@ -22,8 +21,6 @@ pub use unit_formatter::DisplayConfig;
 /// LSP Proxy that intercepts and modifies hover responses
 #[derive(Clone)]
 pub struct LspProxy {
-    unit_formatter: UnitFormatter,
-    display_config: DisplayConfig,
     hover_processor: HoverProcessor,
     inlay_hint_processor: InlayHintProcessor,
 }
@@ -38,8 +35,6 @@ impl LspProxy {
             include_raw: false,
         };
         Self {
-            unit_formatter: UnitFormatter::new(),
-            display_config: display_config.clone(),
             hover_processor: HoverProcessor::new(display_config),
             inlay_hint_processor: InlayHintProcessor::with_config(inlay_hint_config),
         }
@@ -53,8 +48,6 @@ impl LspProxy {
             include_raw: false,
         };
         Self {
-            unit_formatter: UnitFormatter::new(),
-            display_config: display_config.clone(),
             hover_processor: HoverProcessor::new(display_config),
             inlay_hint_processor: InlayHintProcessor::with_config(inlay_hint_config),
         }
@@ -221,24 +214,6 @@ impl LspProxy {
         }
 
         false
-    }
-
-    /// Check if this is a refresh notification
-    fn is_refresh_notification(&self, lsp_msg: &LspMessage) -> bool {
-        if let Some(method) = &lsp_msg.method {
-            method == "workspace/inlayHint/refresh"
-        } else {
-            false
-        }
-    }
-
-    /// Check if this is a resolve request
-    fn is_resolve_request(&self, lsp_msg: &LspMessage) -> bool {
-        if let Some(method) = &lsp_msg.method {
-            method == "inlayHint/resolve"
-        } else {
-            false
-        }
     }
 
     /// Check if a result contains whippyunits types

@@ -425,7 +425,7 @@ fn test_wholly_unresolved_type_formatting() {
     assert!(!result.contains("const"));
 
     // Test with inlay hint formatting
-    let inlay_result = converter.format_types_inlay_hint(input);
+    let inlay_result = converter.format_types_inlay_hint(input, &crate::DisplayConfig::default());
     println!("Inlay hint result: {}", inlay_result);
     assert!(inlay_result.contains("Quantity<?, f64>"));
 }

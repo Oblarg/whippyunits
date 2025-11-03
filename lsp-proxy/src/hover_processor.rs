@@ -211,9 +211,6 @@ impl HoverProcessor {
                         (None, None, None) => search_text.len(),
                     };
 
-                // Extract the type after the trait
-                let trait_type = &text[trait_start + trait_pattern.len()..type_end];
-
                 // Create simplified signature - just show the trait name and a placeholder for the type
                 let simplified = format!("impl {} for Quantity<...>", trait_name);
 

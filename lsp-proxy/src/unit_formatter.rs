@@ -1,7 +1,7 @@
+use syn::{parse_str, TypePath};
 use whippyunits_core::{
     dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
 };
-use syn::{parse_str, TypePath};
 
 /// Display configuration for whippyunits type formatting
 #[derive(Debug, Clone)]
@@ -113,8 +113,8 @@ impl UnitFormatter {
     }
 
     /// Format whippyunits types for inlay hints (compact format)
-    pub fn format_types_inlay_hint(&self, text: &str) -> String {
-        self.format_quantity_types(text, false, true, true)
+    pub fn format_types_inlay_hint(&self, text: &str, config: &DisplayConfig) -> String {
+        self.format_quantity_types(text, config.verbose, config.unicode, true)
     }
 
     /// Core method to format Quantity types with configurable parameters
@@ -289,7 +289,8 @@ impl UnitFormatter {
                     let mut formatted = format!("Quantity<?, {}>", params.generic_type);
                     if let Some(brand) = brand_name {
                         if brand != "()" {
-                            formatted = format!("{}, {}>", &formatted[..formatted.len() - 1], brand);
+                            formatted =
+                                format!("{}, {}>", &formatted[..formatted.len() - 1], brand);
                         }
                     }
                     return formatted;
@@ -500,28 +501,23 @@ impl UnitFormatter {
         None
     }
 
-    /// Extract the generic type parameter from a Quantity type string
-    fn extract_generic_type(&self, quantity_type: &str) -> String {
-        self.extract_generic_type_and_brand(quantity_type).0
-    }
-
     /// Extract both the generic type parameter and brand from a Quantity type string
     /// Returns (generic_type, brand) where brand is Some(...) if present, None otherwise
     fn extract_generic_type_and_brand(&self, quantity_type: &str) -> (String, Option<String>) {
         // Parse as a Rust type using syn - it handles const generics reliably
         if let Some(quantity_start) = quantity_type.find("Quantity<") {
             let quantity_content = &quantity_type[quantity_start..];
-            
+
             match parse_str::<TypePath>(quantity_content) {
                 Ok(type_path) => {
                     // Extract generic arguments
                     if let Some(segment) = type_path.path.segments.last() {
                         if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
                             let args_vec: Vec<_> = args.args.iter().collect();
-                            
+
                             // We expect: [Scale, Dimension<...>, T, Brand?]
                             // Scale is at index 0, Dimension at 1, type T at 2, Brand at 3 (if present)
-                            
+
                             if args_vec.len() >= 3 {
                                 // Extract the type parameter (index 2)
                                 let type_arg = &args_vec[2];
@@ -529,11 +525,9 @@ impl UnitFormatter {
                                     syn::GenericArgument::Type(ty) => {
                                         quote::quote!(#ty).to_string()
                                     }
-                                    _ => {
-                                        quote::quote!(#type_arg).to_string()
-                                    }
+                                    _ => quote::quote!(#type_arg).to_string(),
                                 };
-                                
+
                                 // Extract Brand if present (index 3)
                                 let brand = if args_vec.len() >= 4 {
                                     let brand_arg = &args_vec[3];
@@ -546,8 +540,11 @@ impl UnitFormatter {
                                 } else {
                                     None
                                 };
-                                
-                                return (generic_type.trim().to_string(), brand.map(|s| s.trim().to_string()));
+
+                                return (
+                                    generic_type.trim().to_string(),
+                                    brand.map(|s| s.trim().to_string()),
+                                );
                             } else if args_vec.len() == 2 {
                                 // Only Scale and Dimension, type defaults to f64
                                 return ("f64".to_string(), None);
@@ -561,11 +558,10 @@ impl UnitFormatter {
                 }
             }
         }
-        
+
         // Default fallback if parsing fails
         ("f64".to_string(), None)
     }
-
 
     /// Parse a parameter that could be a number or underscore placeholder
     fn parse_parameter(&self, param: &str) -> i16 {
