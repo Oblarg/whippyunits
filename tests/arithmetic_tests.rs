@@ -4,7 +4,7 @@
 
 use whippyunits::api::rescale;
 use whippyunits::default_declarators::*;
-use whippyunits::define_generic_dimension;
+use whippyunits::dimension_traits::define_generic_dimension;
 use whippyunits::quantity;
 use whippyunits::unit;
 use whippyunits::value;

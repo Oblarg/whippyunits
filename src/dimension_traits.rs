@@ -14,7 +14,7 @@
 //! # }
 //! ```
 //! 
-//! For non-atomic dimensions, use the [define_generic_dimension](crate::define_generic_dimension)
+//! For non-atomic dimensions, use the [define_generic_dimension](Self::define_generic_dimension)
 //! macro.
 //! 
 //! ### Scale-generic arithmetic
@@ -101,3 +101,80 @@ define_atomic_dimension_trait!(0, 0, 0, 0, 1, 0, 0, 0, Temperature);
 define_atomic_dimension_trait!(0, 0, 0, 0, 0, 1, 0, 0, Amount);
 define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 1, 0, Luminosity);
 define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 0, 1, Angle);
+
+/// Defines a trait representing a scale-generic dimension (like Length, Area, Energy).
+///
+/// Generic dimensions can be used to write arithmetic operations that are generic over a dimensional structure
+/// or disjunction of dimensional structures.
+/// 
+/// For atomic dimensions, use one of the pre-defined atomic dimension traits:
+/// 
+/// - [`Mass`]
+/// - [`Length`]
+/// - [`Time`]
+/// - [`Current`]
+/// - [`Temperature`]
+/// - [`Amount`]
+/// - [`Luminosity`]
+/// - [`Angle`]
+///
+/// ## Syntax
+///
+/// ```rust,ignore
+/// define_generic_dimension!(TraitName, DimensionExpression);
+/// ```
+///
+/// Where:
+/// - `TraitName`: The name of the trait to create
+/// - `DimensionExpression`: A "dimension literal expression"
+///     - A "dimension literal expression" is either:
+///         - An atomic dimension:
+///             - `Length`, `Time`, `Mass`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`
+///             - Also accepts single-character symbols: `L`, `T`, `M`, `I`, `Θ`, `N`, `J`, `A`
+///         - An exponentiation of an atomic dimension:
+///             - `L^2`, `T^-1`
+///         - A multiplication of two or more (possibly exponentiated) atomic dimensions:
+///             - `M.L2`, `M * L2`
+///         - A division of two such product expressions:
+///             - `M.L2/T2`, `M * L2 / T2`
+///             - There may be at most one division expression in a dimension literal expression
+///             - All terms trailing the division symbol are considered to be in the denominator
+///
+/// ## Examples
+///
+/// ```rust
+/// # #![feature(impl_trait_in_bindings)]
+/// # #[culit::culit(whippyunits::default_declarators::literals)]
+/// # fn main() {
+/// # use whippyunits::value;
+/// # use whippyunits::dimension_traits::define_generic_dimension;
+/// # use whippyunits::dimension_traits::Length;
+/// # use core::ops::Mul;
+/// define_generic_dimension!(Area, L2);
+///
+/// define_generic_dimension!(Energy, M.L2/T^2);
+///
+/// define_generic_dimension!(Velocity, L/T, A/T);
+///
+/// // Now you can write generic functions
+/// fn calculate_area<D1: Length, D2: Length>(d1: D1, d2: D2) -> <D1 as Mul<D2>>::Output
+/// where
+///     D1: Mul<D2>,
+/// {
+///     d1 * d2
+/// }
+///
+/// let area: impl Area = calculate_area(1.0m, 2.0m);
+/// assert_eq!(value!(area, m^2), 2.0);
+/// assert_eq!(area.unsafe_value, 2.0); // resulting type is meters^2
+/// let area: impl Area = calculate_area(100.0mm, 200.0mm);
+/// assert_eq!(value!(area, mm^2), 20000.0);
+/// assert_eq!(area.unsafe_value, 20000.0); // resulting type is millimeters^2
+/// let area: impl Area = calculate_area(1.0m, 200.0mm);
+/// assert_eq!(value!(area, m^2), 0.2);
+/// assert_eq!(area.unsafe_value, 200.0); // resulting type is milli(meters^2)
+/// // let _area: impl Area = calculate_area(1.0m, 200.0ms); // 🚫 Compile error (dimension mismatch)
+/// # }
+/// ```
+#[doc(inline)]
+pub use whippyunits_proc_macros::define_generic_dimension;
