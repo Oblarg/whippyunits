@@ -1,8 +1,41 @@
-//! Serialize and deserialize whippyunits quantities.
-//!
-//! Whippyunits follows the [UCUM (Unified Code for Units of Measure) standard](https://ucum.org) for
-//! serialization and deserialization to ASCII strings.  Serialization is supported to and from both
-//! simple strings (e.g., "10.0 m") and JSON objects (e.g., `{"value": 10.0, "unit": "m"}`).
+//! Serialize and deserialize whippyunits quantities to and from strings and JSON objects:
+//! 
+//! [`from_json`]
+//! [`from_string`]
+//! 
+//! ## Format
+//! 
+//! ```rust,ignore
+//! "<value><unit expression>"
+//! "<value> <unit expression>"
+//! ```
+//! ```json
+//! {
+//!     "value": "<value>",
+//!     "unit": "<unit expression>"
+//! }
+//! ```
+//! 
+//! where:
+//! 
+//! - `<value>` is a numeric value (integer or floating point)
+//! - `<unit expression>` is a unit literal expression
+//!     - A "unit literal expression" is either:
+//!         - An atomic unit (may include prefix):
+//!             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+//!         - An exponentiation of an atomic unit:
+//!             - `m2`, `m^2`
+//!         - A multiplication of two or more (possibly exponentiated) atomic units:
+//!             - `kg.m2`, `kg * m2`
+//!         - A division of two such product expressions:
+//!             - `kg.m2/s2`, `kg * m2 / s^2`
+//!             - There may be at most one division expression in a unit literal expression
+//!             - All terms trailing the division symbol are considered to be in the denominator
+//! 
+//! Runtime parsing of unit literal expressions leverages the same parser as the [unit!](crate::unit!) macro; 
+//! using `from_string` or `from_json` means your binary will include the `syn` crate as a dependency.  
+//! This is technically no-std, but it is fairly heavyweight for a no-std library, and is not appropriate
+//! for sufficiently resource-constrained environments.
 
 use crate::api::aggregate_scale_factor_float;
 use crate::print::name_lookup::generate_systematic_unit_name_with_format;
@@ -21,12 +54,14 @@ pub type UnitDimensions = (
 );
 
 #[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+use alloc::{string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::{string::String, vec::Vec};
 
 use proc_macro2::TokenStream;
 use syn::parse_str;
+
+use serde::{Serialize, Serializer, Deserialize, Deserializer, de::Visitor};
 
 /// Convert a whippyunits quantity to UCUM unit string
 pub fn to_ucum_unit<
@@ -146,9 +181,350 @@ impl std::error::Error for SerializationError {}
 
 // parse_ucum_unit function removed - not compatible with compile-time only units library
 
-// Trait implementations removed - using pure functions instead
+// Serde trait implementations for Quantity
+//
+// The `Serialize` and `Deserialize` traits allow quantities to be serialized/deserialized
+// using any serde-compatible serializer (e.g., serde_json, serde_yaml, etc.).
+//
+// ## Examples
+//
+// ```rust
+// use serde::{Serialize, Deserialize};
+// use serde_json;
+// use whippyunits::quantity;
+// use whippyunits::unit;
+//
+// // Serialize to JSON string
+// let length = quantity!(5.0, m);
+// let json: String = serde_json::to_string(&length)?;
+// // json = r#"{"value":5.0,"unit":"m"}"#
+//
+// // Deserialize from JSON string
+// let json_str = r#"{"value": 5.0, "unit": "m"}"#;
+// let length: unit!(m) = serde_json::from_str(json_str)?;
+// ```
+//
+// Both serialization and deserialization are no-std compatible (require `alloc` feature).
+
+impl<
+    const MASS_EXPONENT: i16,
+    const LENGTH_EXPONENT: i16,
+    const TIME_EXPONENT: i16,
+    const CURRENT_EXPONENT: i16,
+    const TEMPERATURE_EXPONENT: i16,
+    const AMOUNT_EXPONENT: i16,
+    const LUMINOSITY_EXPONENT: i16,
+    const ANGLE_EXPONENT: i16,
+    const SCALE_P2: i16,
+    const SCALE_P3: i16,
+    const SCALE_P5: i16,
+    const SCALE_PI: i16,
+    T,
+    Brand,
+> Serialize for Quantity<
+    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+    Dimension<
+        _M<MASS_EXPONENT>,
+        _L<LENGTH_EXPONENT>,
+        _T<TIME_EXPONENT>,
+        _I<CURRENT_EXPONENT>,
+        _Θ<TEMPERATURE_EXPONENT>,
+        _N<AMOUNT_EXPONENT>,
+        _J<LUMINOSITY_EXPONENT>,
+        _A<ANGLE_EXPONENT>,
+    >,
+    T,
+    Brand,
+>
+where
+    T: Into<f64> + Copy,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeMap;
+        
+        let value = self.unsafe_value.into();
+        // Create a temporary quantity with Brand = () to pass to to_ucum_unit
+        // (Brand is a phantom type and doesn't affect unit calculation)
+        let temp_value = self.unsafe_value; // T: Copy from trait bounds
+        let quantity_for_unit = Quantity::<
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<
+                _M<MASS_EXPONENT>,
+                _L<LENGTH_EXPONENT>,
+                _T<TIME_EXPONENT>,
+                _I<CURRENT_EXPONENT>,
+                _Θ<TEMPERATURE_EXPONENT>,
+                _N<AMOUNT_EXPONENT>,
+                _J<LUMINOSITY_EXPONENT>,
+                _A<ANGLE_EXPONENT>,
+            >,
+            T,
+            (),
+        >::new(temp_value);
+        let unit = to_ucum_unit::<
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+            T,
+        >(&quantity_for_unit);
+        
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("value", &value)?;
+        map.serialize_entry("unit", &unit)?;
+        map.end()
+    }
+}
+
+/// Visitor for deserializing Quantity types
+struct QuantityVisitor<
+    const MASS_EXPONENT: i16,
+    const LENGTH_EXPONENT: i16,
+    const TIME_EXPONENT: i16,
+    const CURRENT_EXPONENT: i16,
+    const TEMPERATURE_EXPONENT: i16,
+    const AMOUNT_EXPONENT: i16,
+    const LUMINOSITY_EXPONENT: i16,
+    const ANGLE_EXPONENT: i16,
+    const SCALE_P2: i16,
+    const SCALE_P3: i16,
+    const SCALE_P5: i16,
+    const SCALE_PI: i16,
+    T,
+    Brand,
+> {
+    _phantom: core::marker::PhantomData<(
+        fn() -> Quantity<
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<
+                _M<MASS_EXPONENT>,
+                _L<LENGTH_EXPONENT>,
+                _T<TIME_EXPONENT>,
+                _I<CURRENT_EXPONENT>,
+                _Θ<TEMPERATURE_EXPONENT>,
+                _N<AMOUNT_EXPONENT>,
+                _J<LUMINOSITY_EXPONENT>,
+                _A<ANGLE_EXPONENT>,
+            >,
+            T,
+            Brand,
+        >,
+    )>,
+}
+
+impl<
+    const MASS_EXPONENT: i16,
+    const LENGTH_EXPONENT: i16,
+    const TIME_EXPONENT: i16,
+    const CURRENT_EXPONENT: i16,
+    const TEMPERATURE_EXPONENT: i16,
+    const AMOUNT_EXPONENT: i16,
+    const LUMINOSITY_EXPONENT: i16,
+    const ANGLE_EXPONENT: i16,
+    const SCALE_P2: i16,
+    const SCALE_P3: i16,
+    const SCALE_P5: i16,
+    const SCALE_PI: i16,
+    T,
+    Brand,
+> QuantityVisitor<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T, Brand>
+where
+    T: From<f64> + Copy,
+{
+    fn new() -> Self {
+        Self {
+            _phantom: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<
+    'de,
+    const MASS_EXPONENT: i16,
+    const LENGTH_EXPONENT: i16,
+    const TIME_EXPONENT: i16,
+    const CURRENT_EXPONENT: i16,
+    const TEMPERATURE_EXPONENT: i16,
+    const AMOUNT_EXPONENT: i16,
+    const LUMINOSITY_EXPONENT: i16,
+    const ANGLE_EXPONENT: i16,
+    const SCALE_P2: i16,
+    const SCALE_P3: i16,
+    const SCALE_P5: i16,
+    const SCALE_PI: i16,
+    T,
+    Brand,
+> Visitor<'de> for QuantityVisitor<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T, Brand>
+where
+    T: From<f64> + Copy,
+{
+    type Value = Quantity<
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<
+            _M<MASS_EXPONENT>,
+            _L<LENGTH_EXPONENT>,
+            _T<TIME_EXPONENT>,
+            _I<CURRENT_EXPONENT>,
+            _Θ<TEMPERATURE_EXPONENT>,
+            _N<AMOUNT_EXPONENT>,
+            _J<LUMINOSITY_EXPONENT>,
+            _A<ANGLE_EXPONENT>,
+        >,
+        T,
+        Brand,
+    >;
+
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+        formatter.write_str("a map with 'value' (number) and 'unit' (string) fields")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        use serde::de::Error;
+        
+        let mut value: Option<f64> = None;
+        let mut unit: Option<String> = None;
+
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
+                "value" => {
+                    if value.is_some() {
+                        return Err(Error::duplicate_field("value"));
+                    }
+                    value = Some(map.next_value()?);
+                }
+                "unit" => {
+                    if unit.is_some() {
+                        return Err(Error::duplicate_field("unit"));
+                    }
+                    unit = Some(map.next_value()?);
+                }
+                _ => {
+                    let _ = map.next_value::<serde::de::IgnoredAny>()?;
+                }
+            }
+        }
+
+        let value = value.ok_or_else(|| Error::missing_field("value"))?;
+        let unit_str = unit.ok_or_else(|| Error::missing_field("unit"))?;
+
+        // Use the existing deserialize_core_quantity function, then convert to the correct Brand
+        let quantity_no_brand = deserialize_core_quantity::<
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+            T,
+        >(value, &unit_str)
+        .map_err(|e| {
+            #[cfg(not(feature = "std"))]
+            use alloc::format;
+            #[cfg(feature = "std")]
+            use std::format;
+            Error::custom(format!("{}", e))
+        })?;
+
+        // Convert to the correct Brand type
+        Ok(Quantity::<
+            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+            Dimension<
+                _M<MASS_EXPONENT>,
+                _L<LENGTH_EXPONENT>,
+                _T<TIME_EXPONENT>,
+                _I<CURRENT_EXPONENT>,
+                _Θ<TEMPERATURE_EXPONENT>,
+                _N<AMOUNT_EXPONENT>,
+                _J<LUMINOSITY_EXPONENT>,
+                _A<ANGLE_EXPONENT>,
+            >,
+            T,
+            Brand,
+        >::new(quantity_no_brand.unsafe_value))
+    }
+}
+
+impl<
+    'de,
+    const MASS_EXPONENT: i16,
+    const LENGTH_EXPONENT: i16,
+    const TIME_EXPONENT: i16,
+    const CURRENT_EXPONENT: i16,
+    const TEMPERATURE_EXPONENT: i16,
+    const AMOUNT_EXPONENT: i16,
+    const LUMINOSITY_EXPONENT: i16,
+    const ANGLE_EXPONENT: i16,
+    const SCALE_P2: i16,
+    const SCALE_P3: i16,
+    const SCALE_P5: i16,
+    const SCALE_PI: i16,
+    T,
+    Brand,
+> Deserialize<'de> for Quantity<
+    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+    Dimension<
+        _M<MASS_EXPONENT>,
+        _L<LENGTH_EXPONENT>,
+        _T<TIME_EXPONENT>,
+        _I<CURRENT_EXPONENT>,
+        _Θ<TEMPERATURE_EXPONENT>,
+        _N<AMOUNT_EXPONENT>,
+        _J<LUMINOSITY_EXPONENT>,
+        _A<ANGLE_EXPONENT>,
+    >,
+    T,
+    Brand,
+>
+where
+    T: From<f64> + Copy,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(QuantityVisitor::<
+            MASS_EXPONENT,
+            LENGTH_EXPONENT,
+            TIME_EXPONENT,
+            CURRENT_EXPONENT,
+            TEMPERATURE_EXPONENT,
+            AMOUNT_EXPONENT,
+            LUMINOSITY_EXPONENT,
+            ANGLE_EXPONENT,
+            SCALE_P2,
+            SCALE_P3,
+            SCALE_P5,
+            SCALE_PI,
+            T,
+            Brand,
+        >::new())
+    }
+}
 
 /// Serialize a quantity to JSON using UCUM format
+/// 
+/// **Note**: This function requires the `std` feature. For no-std compatibility,
+/// use the `Serialize` trait implementation instead.
 #[cfg(feature = "std")]
 pub fn serialize_to_json<
     const MASS_EXPONENT: i16,
@@ -384,9 +760,9 @@ macro_rules! from_json {
 
 /// Deserializes a quantity from a string representation.
 ///
-/// Parses a string in the format "value unit" (e.g., "5.0 m", "2.5 kg")
+/// Parses a string in the format "value unit" or "valueunit" (e.g., "5.0 m", "5.0m", "2.5 kg", "2.5kg")
 /// and returns a `Quantity` with the specified unit type. It performs dimension
-/// validation and automatic unit conversion.
+/// validation and automatic unit conversion. The space between value and unit is optional.
 ///
 /// # Syntax
 ///
@@ -422,9 +798,13 @@ macro_rules! from_json {
 /// # fn main() {
 /// let length: unit!(m) = from_string!("5.0 m", m).unwrap();
 /// assert_eq!(value!(length, m), 5.0);
+/// let length: unit!(m) = from_string!("5.0m", m).unwrap(); // Space is optional
+/// assert_eq!(value!(length, m), 5.0);
 /// let length: unit!(km) = from_string!("5.0 m", km).unwrap();
 /// assert_eq!(value!(length, km), 0.005);
 /// let acceleration: unit!(m/s2) = from_string!("9.81 m/s2", m/s2).unwrap();
+/// assert_eq!(value!(acceleration, m/s2), 9.81);
+/// let acceleration: unit!(m/s2) = from_string!("9.81m/s2", m/s2).unwrap(); // Space is optional
 /// assert_eq!(value!(acceleration, m/s2), 9.81);
 /// let error = from_string!("5.0 m/s2", m/s);
 /// assert!(error.is_err());
@@ -533,22 +913,58 @@ pub fn parse_json_input(json: &str) -> Result<(f64, String), SerializationError>
 }
 
 /// Parse string to extract value and unit string
+/// Supports both formats: "5.0 m" (with space) and "5.0m" (without space)
 pub fn parse_string_input(string: &str) -> Result<(f64, String), SerializationError> {
     let trimmed = string.trim();
+    
+    // First, try parsing with whitespace separation (for backward compatibility)
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
-
-    if parts.len() < 2 {
+    
+    if parts.len() >= 2 {
+        // Space-separated format: "5.0 m"
+        let value: f64 = parts[0].parse().map_err(|e| {
+            SerializationError::ParseError(format!("Failed to parse value as f64: {}", e))
+        })?;
+        let unit_str = parts[1..].join(" "); // Join remaining parts in case unit has spaces
+        return Ok((value, unit_str));
+    }
+    
+    // No space found - try to parse by finding the boundary between number and unit
+    // Find the longest valid numeric prefix by trying all possible prefixes
+    let chars: Vec<char> = trimmed.chars().collect();
+    let mut end_of_number = 0;
+    
+    // Try all possible prefixes and find the longest one that parses as a valid f64
+    for i in 1..=chars.len() {
+        let candidate: String = chars[..i].iter().collect();
+        if candidate.parse::<f64>().is_ok() {
+            end_of_number = i;
+        }
+        // Continue trying longer prefixes even if this one fails
+        // (e.g., "5.0e" fails but "5.0e-3" succeeds)
+    }
+    
+    if end_of_number == 0 || end_of_number >= chars.len() {
         return Err(SerializationError::InvalidFormat(format!(
-            "Expected 'value unit', got '{}'",
+            "Could not parse value and unit from '{}'",
             trimmed
         )));
     }
-
-    let value: f64 = parts[0].parse().map_err(|e| {
+    
+    let value_str: String = chars[..end_of_number].iter().collect();
+    let unit_str: String = chars[end_of_number..].iter().collect();
+    
+    let value: f64 = value_str.parse().map_err(|e| {
         SerializationError::ParseError(format!("Failed to parse value as f64: {}", e))
     })?;
-    let unit_str = parts[1..].join(" "); // Join remaining parts in case unit has spaces
-
+    
+    if unit_str.trim().is_empty() {
+        return Err(SerializationError::InvalidFormat(format!(
+            "Missing unit in '{}'",
+            trimmed
+        )));
+    }
+    
     Ok((value, unit_str))
 }
 

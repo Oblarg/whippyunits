@@ -76,13 +76,13 @@
 //! ```
 //! 
 //! If you want to check the dimensionality without constraining the scale, use
-//! [`define_generic_dimension!`](crate::define_generic_dimension) to create a dimension trait:
+//! [`define_generic_dimension!`](crate::dimension_traits::define_generic_dimension) to create a dimension trait:
 //! 
 //! ```rust
 //! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
-//! # use whippyunits::define_generic_dimension;
+//! # use whippyunits::dimension_traits::define_generic_dimension;
 //! define_generic_dimension!(Area, L2);
 //! 
 //! // Works with any scale - meters, millimeters, etc.
