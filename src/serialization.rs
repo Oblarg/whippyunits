@@ -40,8 +40,8 @@
 use crate::api::aggregate_scale_factor_float;
 use crate::print::name_lookup::generate_systematic_unit_name_with_format;
 use crate::print::prettyprint::UnitFormat;
-use crate::quantity_type::Quantity;
-use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
+use crate::quantity::Quantity;
+use crate::quantity::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
 use whippyunits_core::{
     SiPrefix, Unit, UnitEvaluationResult, UnitExpr, dimension_exponents::DynDimensionExponents,
     scale_exponents::ScaleExponents,
@@ -1293,7 +1293,7 @@ fn lookup_unit_dimensions(unit_literal: &str) -> Option<UnitDimensions> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quantity_type::Quantity;
+    use crate::quantity::Quantity;
 
     #[cfg(feature = "std")]
     #[test]

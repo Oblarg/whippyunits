@@ -29,7 +29,7 @@
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
 //! # use whippyunits::dimension_traits::Length;
-//! # use whippyunits::rescale;
+//! # use whippyunits::api::rescale;
 //! # use core::ops::Add;
 //! fn add_lengths<D1: Length, D2: Length>(d1: D1, d2: D2) -> <D1 as Add<D2>>::Output
 //! where
@@ -51,8 +51,8 @@
 //! (`D1` and `D2`), and so must be done in the function. There is no way to assert on the trait itself
 //! that "this type can be added to any other type that also represents a length".
 
-use crate::quantity_type::Quantity;
-use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
+use crate::quantity::Quantity;
+use crate::quantity::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
 
 /// Expands to a trait and its implementation for a specific atomic dimension.
 /// It follows the same pattern as the default declarators but focuses only on the

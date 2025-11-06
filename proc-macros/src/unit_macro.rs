@@ -91,9 +91,9 @@ impl UnitMacroInput {
 
         // Generate the actual quantity type
         let quantity_type = quote! {
-            whippyunits::quantity_type::Quantity<
-                whippyunits::quantity_type::Scale<whippyunits::quantity_type::_2<#p2>, whippyunits::quantity_type::_3<#p3>, whippyunits::quantity_type::_5<#p5>, whippyunits::quantity_type::_Pi<#pi>>,
-                whippyunits::quantity_type::Dimension<whippyunits::quantity_type::_M<#mass_exp>, whippyunits::quantity_type::_L<#length_exp>, whippyunits::quantity_type::_T<#time_exp>, whippyunits::quantity_type::_I<#current_exp>, whippyunits::quantity_type::_Θ<#temp_exp>, whippyunits::quantity_type::_N<#amount_exp>, whippyunits::quantity_type::_J<#lum_exp>, whippyunits::quantity_type::_A<#angle_exp>>,
+            whippyunits::quantity::Quantity<
+                whippyunits::quantity::Scale<whippyunits::quantity::_2<#p2>, whippyunits::quantity::_3<#p3>, whippyunits::quantity::_5<#p5>, whippyunits::quantity::_Pi<#pi>>,
+                whippyunits::quantity::Dimension<whippyunits::quantity::_M<#mass_exp>, whippyunits::quantity::_L<#length_exp>, whippyunits::quantity::_T<#time_exp>, whippyunits::quantity::_I<#current_exp>, whippyunits::quantity::_Θ<#temp_exp>, whippyunits::quantity::_N<#amount_exp>, whippyunits::quantity::_J<#lum_exp>, whippyunits::quantity::_A<#angle_exp>>,
                 #storage_type,
                 #brand_type
             >

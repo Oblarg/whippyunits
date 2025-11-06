@@ -252,9 +252,9 @@ impl DefineGenericDimensionInput {
                 const SCALE_P5: i16,
                 const SCALE_PI: i16,
                 T
-            > #trait_name for whippyunits::quantity_type::Quantity<
-                whippyunits::quantity_type::Scale<whippyunits::quantity_type::_2<SCALE_P2>, whippyunits::quantity_type::_3<SCALE_P3>, whippyunits::quantity_type::_5<SCALE_P5>, whippyunits::quantity_type::_Pi<SCALE_PI>>,
-                whippyunits::quantity_type::Dimension<whippyunits::quantity_type::_M<#mass_exp>, whippyunits::quantity_type::_L<#length_exp>, whippyunits::quantity_type::_T<#time_exp>, whippyunits::quantity_type::_I<#current_exp>, whippyunits::quantity_type::_Θ<#temp_exp>, whippyunits::quantity_type::_N<#amount_exp>, whippyunits::quantity_type::_J<#lum_exp>, whippyunits::quantity_type::_A<#angle_exp>>,
+            > #trait_name for whippyunits::quantity::Quantity<
+                whippyunits::quantity::Scale<whippyunits::quantity::_2<SCALE_P2>, whippyunits::quantity::_3<SCALE_P3>, whippyunits::quantity::_5<SCALE_P5>, whippyunits::quantity::_Pi<SCALE_PI>>,
+                whippyunits::quantity::Dimension<whippyunits::quantity::_M<#mass_exp>, whippyunits::quantity::_L<#length_exp>, whippyunits::quantity::_T<#time_exp>, whippyunits::quantity::_I<#current_exp>, whippyunits::quantity::_Θ<#temp_exp>, whippyunits::quantity::_N<#amount_exp>, whippyunits::quantity::_J<#lum_exp>, whippyunits::quantity::_A<#angle_exp>>,
                 T
             > {
                 type Unit = Self;

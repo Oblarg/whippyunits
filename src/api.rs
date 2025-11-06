@@ -8,7 +8,7 @@
 //!
 //! ## Rescale Functions
 //!
-//! - [`rescale`](crate::rescale()): default function aliases `rescale_f64`
+//! - [`rescale`](crate::api::rescale()): default function aliases `rescale_f64`
 //! - [`rescale_f32`]
 //! - [`rescale_f64`]
 //! - [`rescale_i8`]
@@ -27,7 +27,7 @@
 //! ```rust
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
-//! # use whippyunits::rescale;
+//! # use whippyunits::api::rescale;
 //! # use whippyunits::unit;
 //! let distance: unit!(mm) = rescale(1.0m); // Converts meters to millimeters
 //! let distance: unit!(m) = rescale(1000.0mm); // Converts millimeters to meters
@@ -43,12 +43,12 @@
 //! ### Addition and Subtraction
 //! 
 //! Addition and subtraction require both operands to have the same scale. To add or subtract quantities
-//! with different scales, use [`rescale`](crate::rescale()) to convert one to match the other:
+//! with different scales, use [`rescale`](crate::api::rescale()) to convert one to match the other:
 //! 
 //! ```rust
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
-//! # use whippyunits::rescale;
+//! # use whippyunits::api::rescale;
 //! let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
 //! let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
 //! // let _distance = 1.0m + 1.0mm; // 🚫 Compile error (scale mismatch)
@@ -111,7 +111,7 @@ use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
 use crate::define_display_traits;
 use crate::print::prettyprint::*;
-use crate::quantity_type::*;
+use crate::quantity::*;
 use crate::scale_conversion::*;
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};

@@ -32,8 +32,8 @@
 //! # }
 //! ```
 
-use crate::quantity_type::Quantity;
-use crate::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
+use crate::quantity::Quantity;
+use crate::quantity::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
 use whippyunits_proc_macros::generate_default_declarators;
 
 #[doc(hidden)]

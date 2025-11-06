@@ -124,7 +124,7 @@ macro_rules! _define_float_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::rescale;
+        /// # use whippyunits::api::rescale;
         /// # use whippyunits::unit;
         /// let distance: unit!(mm) = rescale(1.0m); // ✅ 1000.0 Quantity<mm, f64>
         /// let distance: unit!(m) = rescale(1000.0mm); // ✅ 1.0 Quantity<m, f64>
@@ -134,7 +134,7 @@ macro_rules! _define_float_rescale {
         /// ```
         ///
         /// If you are in an inline context where it is not easy to specify the target type, you can use the
-        /// [rescale!](crate::rescale!) macro.
+        /// [rescale!](crate::rescale!) macro (which uses [`api::rescale`](crate::api::rescale)).
         ///
         /// Addition and subtraction in whippyunits are *scale-safe* - they require that both operands
         /// have the same scale.  Accordingly, to add or subtract quantities with different scales, you
@@ -143,7 +143,7 @@ macro_rules! _define_float_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::rescale;
+        /// # use whippyunits::api::rescale;
         /// let distance = rescale(1.0m) + 1.0mm; // ✅ 1001.0 Quantity<mm, f64>
         /// let distance = 1.0m + rescale(1.0mm); // ✅ 1.001 Quantity<m, f64>
         /// // let _distance = 1.0m + 1.0mm; // ❌ Compile error (scale mismatch)
@@ -196,7 +196,7 @@ macro_rules! _define_int_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::rescale_i32;
+        /// # use whippyunits::api::rescale_i32;
         /// # use whippyunits::unit;
         /// let distance: unit!(mm, i32) = rescale_i32(1m); // ✅ 1000 Quantity<mm, i32>
         /// let distance: unit!(m, i32) = rescale_i32(1000mm); // ✅ 1 Quantity<m, i32>
@@ -215,7 +215,7 @@ macro_rules! _define_int_rescale {
         /// ```rust
         /// # #[culit::culit(whippyunits::default_declarators::literals)]
         /// # fn main() {
-        /// # use whippyunits::rescale_i32;
+        /// # use whippyunits::api::rescale_i32;
         /// # use whippyunits::unit;
         /// let distance: unit!(mm, i32) = rescale_i32(1m) + 1000mm; // ✅ 2000 Quantity<mm, i32>
         /// // let _distance = 1m + 1000mm; // ❌ Compile error (scale mismatch)

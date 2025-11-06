@@ -1,6 +1,69 @@
-// No longer need api_helpers imports - this file doesn't use them
+//! The `Quantity` type represents a data value of a given scale, dimension, numeric type, and brand.
+//! 
+//! ```rust,ignore
+//! quantity<Scale, Dimension, T, Brand>
+//! ```
+//! 
+//! where:
+//! - [`Scale`] represents the scale of the quantity.
+//!     - In SI, this is typically represented by the unit prefix, e.g. "kilo" for 10^3.
+//! - [`Dimension`] represents the dimension of the quantity.
+//!     - In SI, this is typically represented by the unit or dimension symbol, e.g. "m" for meter, L for length.
+//! - `T` represents the numeric type of the quantity.
+//!     - Defaults to `f64`.
+//! - `Brand` represents the brand of the quantity.
+//!     - Defaults to `()`.
+//! 
+//! ## Scale
+//! 
+//! Quantity scale is represented by prime-factorized exponent vector of the form:
+//! 
+//! ```rust,ignore
+//! 2^p2 * 3^p3 * 5^p5 * π^pπ
+//! ```
+//! 
+//! This supports powers of 10 (SI standard prefixes), powers of 60 (time, angle), and
+//! powers of 2π (angular units) - as well as a few other special cases (e.g. rankine).
+//! 
+//! SI base scale is taken to be the identity scale (all exponents zero).  Note that the
+//! SI base unit of mass is the *kilo*gram, not the *gram*; accordingly, prefix values
+//! for mass values are offset by 3 from those of other dimensions.
+//! 
+//! ## Dimension
+//! 
+//! Quantity dimension is represented by prime-factorized exponent vector of the form:
+//! 
+//! ```rust,ignore
+//! mass^m * length^l * time^t * current^i * temperature^θ * amount^n * luminosity^j * angle^a
+//! ```
+//! 
+//! Angular units are represented as an "ordinary" dimension, except with a particular
+//! erasure behavior via `.into()`.
+//! 
+//! Dimensionless quantities (scalars) are represented by a dimension with all exponents zero.
+//! While dimensionless quantities do not have any *dimension*, they do have a *scale*, and are subject
+//! to the same rescaling rules as other quantities.  When a dimensionless quantity is "erased" via `.into()`,
+//! it is rescaled to unity-scale (all scale exponents zero).
+//! 
+//! ## Numeric Type
+//! 
+//! As a rule, floating point types use floating point arithmetic for rescaling, and integer types
+//! use rational arithmetic for rescaling.  All conversion ratios are computed from exponents via
+//! lookup table, by exponent, in the highest-precision (float or integer) type supported by the crate.
+//! 
+//! Integer rescaling has a simple overflow heuristic: if `value * num` would overflow, we compute
+//! `(value / den) * num`; otherwise `(value * num) / den`.
+//! 
+//! ## Brand
+//! 
+//! The `Brand` type parameter allows for finer granularity of unit safety guarantees; quantities can only
+//! participate in arithmetic operations with other quantities of the same brand.  This is useful for, e.g.,
+//! distinguishing between quantities in different coordinate systems or with different physical meanings,
+//! whose intermixture would be nonsensical even if dimensionally-coherent.  By default quantities *do* have
+//! a brand (of the unit type `()`), so custom-branded quantities will not interoperate with default-declared
+//! quantities unless explicitly converted.
 
-/// The base-2 scale exponent of a quantity.
+
 pub struct _2<const EXP: i16 = 0>;
 /// The base-3 scale exponent of a quantity.
 pub struct _3<const EXP: i16 = 0>;
