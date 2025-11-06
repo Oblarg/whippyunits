@@ -6,6 +6,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+#[doc(hidden)]
 pub trait IsI16<const S: i16> {}
 impl<const S: i16> IsI16<S> for () {}
 
