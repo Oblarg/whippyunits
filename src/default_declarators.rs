@@ -241,7 +241,7 @@ macro_rules! define_nonstorage_affine_quantity {
 // Generate all default declarators using the source of truth from default-dimensions
 generate_default_declarators!();
 
-/// Creates a Quantity instance with the specified value, units, and storage type.
+/// Creates a [Quantity] instance with the specified value, units, and storage type.
 ///
 /// ## Syntax
 ///

@@ -1,10 +1,10 @@
-//! Serialize and deserialize whippyunits quantities to and from strings and JSON objects:
-//! 
+//! Serialize and deserialize [Quantity] instances to and from strings and JSON objects.
+//!
 //! [`from_json`]
 //! [`from_string`]
-//! 
+//!
 //! ## Format
-//! 
+//!
 //! ```rust,ignore
 //! "<value><unit expression>"
 //! "<value> <unit expression>"
@@ -15,9 +15,9 @@
 //!     "unit": "<unit expression>"
 //! }
 //! ```
-//! 
+//!
 //! where:
-//! 
+//!
 //! - `<value>` is a numeric value (integer or floating point)
 //! - `<unit expression>` is a unit literal expression
 //!     - A "unit literal expression" is either:
@@ -31,8 +31,8 @@
 //!             - `kg.m2/s2`, `kg * m2 / s^2`
 //!             - There may be at most one division expression in a unit literal expression
 //!             - All terms trailing the division symbol are considered to be in the denominator
-//! 
-//! Runtime parsing of unit literal expressions leverages the same parser as the [unit!](crate::unit!) macro; 
+//!
+//! Runtime parsing of unit literal expressions leverages the same parser as the [unit!](crate::unit!) macro;
 //! using `from_string` or `from_json` means your binary will include the `syn` crate as a dependency.  
 //! This is technically no-std, but it is fairly heavyweight for a no-std library, and is not appropriate
 //! for sufficiently resource-constrained environments.
@@ -61,7 +61,7 @@ use std::{string::String, vec::Vec};
 use proc_macro2::TokenStream;
 use syn::parse_str;
 
-use serde::{Serialize, Serializer, Deserialize, Deserializer, de::Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 
 /// Convert a whippyunits quantity to UCUM unit string
 pub fn to_ucum_unit<
@@ -144,14 +144,25 @@ impl core::fmt::Display for UcumError {
     }
 }
 
+/// Convert UnitDimensions to a human-readable unit name
+fn format_unit_dimensions(dims: &UnitDimensions) -> String {
+    use crate::print::name_lookup::generate_systematic_unit_name_with_format;
+    use crate::print::prettyprint::UnitFormat;
+    
+    let exponents: Vec<i16> = dims.0.0.iter().copied().collect();
+    generate_systematic_unit_name_with_format(exponents, false, UnitFormat::Ucum)
+}
+
 impl core::fmt::Display for SerializationError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             SerializationError::DimensionMismatch { expected, actual } => {
+                let expected_unit = format_unit_dimensions(expected);
+                let actual_unit = format_unit_dimensions(actual);
                 write!(
                     f,
-                    "Dimension mismatch: expected {:?}, got {:?}",
-                    expected, actual
+                    "Dimension mismatch: expected {}, got {}",
+                    expected_unit, actual_unit
                 )
             }
             SerializationError::InvalidFormat(msg) => {
@@ -181,7 +192,7 @@ impl std::error::Error for SerializationError {}
 
 // parse_ucum_unit function removed - not compatible with compile-time only units library
 
-// Serde trait implementations for Quantity
+// Serde trait implementations for [Quantity]
 //
 // The `Serialize` and `Deserialize` traits allow quantities to be serialized/deserialized
 // using any serde-compatible serializer (e.g., serde_json, serde_yaml, etc.).
@@ -221,21 +232,22 @@ impl<
     const SCALE_PI: i16,
     T,
     Brand,
-> Serialize for Quantity<
-    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
-    Dimension<
-        _M<MASS_EXPONENT>,
-        _L<LENGTH_EXPONENT>,
-        _T<TIME_EXPONENT>,
-        _I<CURRENT_EXPONENT>,
-        _Θ<TEMPERATURE_EXPONENT>,
-        _N<AMOUNT_EXPONENT>,
-        _J<LUMINOSITY_EXPONENT>,
-        _A<ANGLE_EXPONENT>,
-    >,
-    T,
-    Brand,
->
+> Serialize
+    for Quantity<
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<
+            _M<MASS_EXPONENT>,
+            _L<LENGTH_EXPONENT>,
+            _T<TIME_EXPONENT>,
+            _I<CURRENT_EXPONENT>,
+            _Θ<TEMPERATURE_EXPONENT>,
+            _N<AMOUNT_EXPONENT>,
+            _J<LUMINOSITY_EXPONENT>,
+            _A<ANGLE_EXPONENT>,
+        >,
+        T,
+        Brand,
+    >
 where
     T: Into<f64> + Copy,
 {
@@ -244,7 +256,7 @@ where
         S: Serializer,
     {
         use serde::ser::SerializeMap;
-        
+
         let value = self.unsafe_value.into();
         // Create a temporary quantity with Brand = () to pass to to_ucum_unit
         // (Brand is a phantom type and doesn't affect unit calculation)
@@ -279,7 +291,7 @@ where
             SCALE_PI,
             T,
         >(&quantity_for_unit);
-        
+
         let mut map = serializer.serialize_map(Some(2))?;
         map.serialize_entry("value", &value)?;
         map.serialize_entry("unit", &unit)?;
@@ -338,7 +350,23 @@ impl<
     const SCALE_PI: i16,
     T,
     Brand,
-> QuantityVisitor<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T, Brand>
+>
+    QuantityVisitor<
+        MASS_EXPONENT,
+        LENGTH_EXPONENT,
+        TIME_EXPONENT,
+        CURRENT_EXPONENT,
+        TEMPERATURE_EXPONENT,
+        AMOUNT_EXPONENT,
+        LUMINOSITY_EXPONENT,
+        ANGLE_EXPONENT,
+        SCALE_P2,
+        SCALE_P3,
+        SCALE_P5,
+        SCALE_PI,
+        T,
+        Brand,
+    >
 where
     T: From<f64> + Copy,
 {
@@ -365,7 +393,23 @@ impl<
     const SCALE_PI: i16,
     T,
     Brand,
-> Visitor<'de> for QuantityVisitor<MASS_EXPONENT, LENGTH_EXPONENT, TIME_EXPONENT, CURRENT_EXPONENT, TEMPERATURE_EXPONENT, AMOUNT_EXPONENT, LUMINOSITY_EXPONENT, ANGLE_EXPONENT, SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI, T, Brand>
+> Visitor<'de>
+    for QuantityVisitor<
+        MASS_EXPONENT,
+        LENGTH_EXPONENT,
+        TIME_EXPONENT,
+        CURRENT_EXPONENT,
+        TEMPERATURE_EXPONENT,
+        AMOUNT_EXPONENT,
+        LUMINOSITY_EXPONENT,
+        ANGLE_EXPONENT,
+        SCALE_P2,
+        SCALE_P3,
+        SCALE_P5,
+        SCALE_PI,
+        T,
+        Brand,
+    >
 where
     T: From<f64> + Copy,
 {
@@ -394,7 +438,7 @@ where
         A: serde::de::MapAccess<'de>,
     {
         use serde::de::Error;
-        
+
         let mut value: Option<f64> = None;
         let mut unit: Option<String> = None;
 
@@ -480,21 +524,22 @@ impl<
     const SCALE_PI: i16,
     T,
     Brand,
-> Deserialize<'de> for Quantity<
-    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
-    Dimension<
-        _M<MASS_EXPONENT>,
-        _L<LENGTH_EXPONENT>,
-        _T<TIME_EXPONENT>,
-        _I<CURRENT_EXPONENT>,
-        _Θ<TEMPERATURE_EXPONENT>,
-        _N<AMOUNT_EXPONENT>,
-        _J<LUMINOSITY_EXPONENT>,
-        _A<ANGLE_EXPONENT>,
-    >,
-    T,
-    Brand,
->
+> Deserialize<'de>
+    for Quantity<
+        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
+        Dimension<
+            _M<MASS_EXPONENT>,
+            _L<LENGTH_EXPONENT>,
+            _T<TIME_EXPONENT>,
+            _I<CURRENT_EXPONENT>,
+            _Θ<TEMPERATURE_EXPONENT>,
+            _N<AMOUNT_EXPONENT>,
+            _J<LUMINOSITY_EXPONENT>,
+            _A<ANGLE_EXPONENT>,
+        >,
+        T,
+        Brand,
+    >
 where
     T: From<f64> + Copy,
 {
@@ -522,7 +567,7 @@ where
 }
 
 /// Serialize a quantity to JSON using UCUM format
-/// 
+///
 /// **Note**: This function requires the `std` feature. For no-std compatibility,
 /// use the `Serialize` trait implementation instead.
 #[cfg(feature = "std")]
@@ -631,7 +676,7 @@ pub fn calculate_conversion_factor(from_dims: &UnitDimensions, to_dims: &UnitDim
     )
 }
 
-/// Deserializes a quantity from JSON representation.
+/// Deserializes a [Quantity] from JSON representation.
 ///
 /// Parses a JSON object in the format `{"value": number, "unit": "unit_string"}`
 /// (e.g., `{"value": 5.0, "unit": "m"}`, `{"value": 2.5, "unit": "kg"}`)
@@ -758,7 +803,7 @@ macro_rules! from_json {
     }};
 }
 
-/// Deserializes a quantity from a string representation.
+/// Deserializes a [Quantity] from a string representation.
 ///
 /// Parses a string in the format "value unit" or "valueunit" (e.g., "5.0 m", "5.0m", "2.5 kg", "2.5kg")
 /// and returns a `Quantity` with the specified unit type. It performs dimension
@@ -916,10 +961,10 @@ pub fn parse_json_input(json: &str) -> Result<(f64, String), SerializationError>
 /// Supports both formats: "5.0 m" (with space) and "5.0m" (without space)
 pub fn parse_string_input(string: &str) -> Result<(f64, String), SerializationError> {
     let trimmed = string.trim();
-    
+
     // First, try parsing with whitespace separation (for backward compatibility)
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
-    
+
     if parts.len() >= 2 {
         // Space-separated format: "5.0 m"
         let value: f64 = parts[0].parse().map_err(|e| {
@@ -928,12 +973,12 @@ pub fn parse_string_input(string: &str) -> Result<(f64, String), SerializationEr
         let unit_str = parts[1..].join(" "); // Join remaining parts in case unit has spaces
         return Ok((value, unit_str));
     }
-    
+
     // No space found - try to parse by finding the boundary between number and unit
     // Find the longest valid numeric prefix by trying all possible prefixes
     let chars: Vec<char> = trimmed.chars().collect();
     let mut end_of_number = 0;
-    
+
     // Try all possible prefixes and find the longest one that parses as a valid f64
     for i in 1..=chars.len() {
         let candidate: String = chars[..i].iter().collect();
@@ -943,28 +988,28 @@ pub fn parse_string_input(string: &str) -> Result<(f64, String), SerializationEr
         // Continue trying longer prefixes even if this one fails
         // (e.g., "5.0e" fails but "5.0e-3" succeeds)
     }
-    
+
     if end_of_number == 0 || end_of_number >= chars.len() {
         return Err(SerializationError::InvalidFormat(format!(
             "Could not parse value and unit from '{}'",
             trimmed
         )));
     }
-    
+
     let value_str: String = chars[..end_of_number].iter().collect();
     let unit_str: String = chars[end_of_number..].iter().collect();
-    
+
     let value: f64 = value_str.parse().map_err(|e| {
         SerializationError::ParseError(format!("Failed to parse value as f64: {}", e))
     })?;
-    
+
     if unit_str.trim().is_empty() {
         return Err(SerializationError::InvalidFormat(format!(
             "Missing unit in '{}'",
             trimmed
         )));
     }
-    
+
     Ok((value, unit_str))
 }
 

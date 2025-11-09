@@ -11,6 +11,7 @@ use crate::utils::dimension_suggestions::find_similar_dimensions;
 // Parse dimension expressions like "Length / Time", "L / T", or "Mass * Length^2 / Time^2", "M * L^2 / T^2"
 pub enum DimensionExpr {
     Dimension(Ident),
+    Dimensionless, // Represents "1" - dimensionless quantity
     Mul(Box<DimensionExpr>, Box<DimensionExpr>),
     Div(Box<DimensionExpr>, Box<DimensionExpr>),
     Pow(Box<DimensionExpr>, LitInt),
@@ -65,6 +66,18 @@ impl DimensionExpr {
             let content;
             syn::parenthesized!(content in input);
             content.parse()
+        } else if input.peek(syn::LitInt) {
+            // Check for literal integer "1" representing dimensionless
+            let lit: syn::LitInt = input.parse()?;
+            let value: i64 = lit.base10_parse()?;
+            if value == 1 {
+                Ok(DimensionExpr::Dimensionless)
+            } else {
+                return Err(syn::Error::new(
+                    lit.span(),
+                    "Only the literal '1' is supported to represent dimensionless quantities",
+                ));
+            }
         } else {
             let ident: Ident = input.parse()?;
 
@@ -94,6 +107,10 @@ impl DimensionExpr {
     // Evaluate the expression to get dimension exponents (safe version that doesn't panic)
     fn evaluate_safe(&self) -> (i16, i16, i16, i16, i16, i16, i16, i16) {
         match self {
+            DimensionExpr::Dimensionless => {
+                // Dimensionless quantity - all exponents are zero
+                (0, 0, 0, 0, 0, 0, 0, 0)
+            }
             DimensionExpr::Dimension(ident) => {
                 let name_or_symbol = ident.to_string();
 
@@ -220,9 +237,7 @@ impl DefineGenericDimensionInput {
             .collect();
 
         quote! {
-            {
-                #doc_structs
-            }
+            #doc_structs
 
             #trait_def
 
@@ -284,6 +299,9 @@ impl DefineGenericDimensionInput {
         doc_structs: &mut Vec<TokenStream>,
     ) {
         match expr {
+            DimensionExpr::Dimensionless => {
+                // No documentation needed for dimensionless
+            }
             DimensionExpr::Dimension(ident) => {
                 // Generate documentation for this specific occurrence
                 if let Some(doc_struct) = Self::generate_single_dimension_doc(ident) {

@@ -1,4 +1,4 @@
-//! API for whippyunits quantities.
+//! Arithmetic, rescaling, and display traits for the [Quantity] type.
 //!
 //! This module provides the API implementations for most operations on the
 //! whippyunits [`Quantity`] type.
@@ -39,12 +39,12 @@
 //!
 //! Arithmetic operations are zero-cost unit-safe wrappers around the underlying numeric type operations:
 //! they either compile directly to the underlying numeric type's operation, or else generate a compile error.
-//! 
+//!
 //! ### Addition and Subtraction
-//! 
+//!
 //! Addition and subtraction require both operands to have the same scale. To add or subtract quantities
 //! with different scales, use [`rescale`](crate::api::rescale()) to convert one to match the other:
-//! 
+//!
 //! ```rust
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
@@ -55,15 +55,15 @@
 //! // let _distance = 1.0m + 1.0s; // 🚫 Compile error (dimension mismatch)
 //! # }
 //! ```
-//! 
+//!
 //! The result has the same dimensions and scale as the operands.
-//! 
+//!
 //! ### Multiplication and Division
-//! 
+//!
 //! Without an explicit type annotation, multiplication and division won't catch dimensional errors
 //! at compile time because the compiler doesn't know what dimension you expect to get back. Use
 //! [`unit!`](crate::unit!) to specify the expected result type and enable compile-time checking:
-//! 
+//!
 //! ```rust
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
@@ -74,32 +74,49 @@
 //! // let area: unit!(m^2) = 5.0m * 5.0s; // 🚫 Compile error, as expected
 //! # }
 //! ```
-//! 
+//!
 //! If you want to check the dimensionality without constraining the scale, use
 //! [`define_generic_dimension!`](crate::dimension_traits::define_generic_dimension) to create a dimension trait:
-//! 
+//!
 //! ```rust
 //! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
 //! # use whippyunits::dimension_traits::define_generic_dimension;
 //! define_generic_dimension!(Area, L2);
-//! 
+//!
 //! // Works with any scale - meters, millimeters, etc.
 //! let area1: impl Area = 5.0m * 5.0m; // ✅
 //! let area2: impl Area = 5.0mm * 5.0mm; // ✅
 //! // let _area: impl Area = 5.0m * 5.0s; // 🚫 Compile error (wrong dimension)
 //! # }
 //! ```
-//! 
+//!
 //! Multiplication and division combine both dimensions and scales. The result type is *constrained by*
 //! the types of the operands, but does not uniquely determine them.
-//! 
+//!
 //! For example, `m * mm` produces `m(m²)`, but so do:
 //!  - `mm * m`
 //!  - `cm * dm`
 //!  - `(m.s) * (mm/s)`
 //!  - etc.
+//!
+//! ### Comparison Operators
+//!
+//! Comparison operators (`<`, `<=`, `>`, `>=`) are scale-strict, just like addition and subtraction.
+//! Both operands must have the same scale. To compare quantities with different scales, use
+//! [`rescale`](crate::api::rescale()) to convert one to match the other:
+//!
+//! ```rust
+//! # #[culit::culit(whippyunits::default_declarators::literals)]
+//! # fn main() {
+//! # use whippyunits::api::rescale;
+//! assert!(rescale(1.0m) > 500.0mm); // ✅ 1000.0 mm > 500.0 mm
+//! assert!(1.0m > rescale(500.0mm)); // ✅ 1.0 m > 0.5 m
+//! // assert!(1.0m > 500.0mm); // 🚫 Compile error (scale mismatch)
+//! // assert!(1.0m > 1.0s); // 🚫 Compile error (dimension mismatch)
+//! # }
+//! ```
 //!
 //! ## Display Traits
 //!
@@ -114,7 +131,6 @@ use crate::print::prettyprint::*;
 use crate::quantity::*;
 use crate::scale_conversion::*;
 use std::fmt;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 define_aggregate_scale_factor_rational!(
     // params
@@ -293,21 +309,6 @@ macro_rules! define_arithmetic_signed {
             const SCALE_PI: i16,
             Brand,
         ),
-        // single dimension, multiple scales
-        (
-            const MASS_EXPONENT: i16,
-            const LENGTH_EXPONENT: i16,
-            const TIME_EXPONENT: i16,
-            const CURRENT_EXPONENT: i16,
-            const TEMPERATURE_EXPONENT: i16,
-            const AMOUNT_EXPONENT: i16,
-            const LUMINOSITY_EXPONENT: i16,
-            const ANGLE_EXPONENT: i16,
-            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
-            Brand,
-        ),
-
         // multiple dimension, multiple scales
         (
             const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
@@ -336,13 +337,6 @@ macro_rules! define_arithmetic_signed {
             (): IsI16<{ -SCALE_P3 }>,
             (): IsI16<{ -SCALE_P5 }>,
             (): IsI16<{ -SCALE_PI }>
-        ),
-        // add min scale where clauses
-        (
-            (): IsI16<{ SCALE_P2_1.min(SCALE_P2_2) }>,
-            (): IsI16<{ SCALE_P3_1.min(SCALE_P3_2) }>,
-            (): IsI16<{ SCALE_P5_1.min(SCALE_P5_2) }>,
-            (): IsI16<{ SCALE_PI_1.min(SCALE_PI_2) }>
         ),
         // mul output dimension where clauses
         (
@@ -401,21 +395,6 @@ macro_rules! define_arithmetic {
             const SCALE_PI: i16,
             Brand,
         ),
-        // single dimension, multiple scales
-        (
-            const MASS_EXPONENT: i16,
-            const LENGTH_EXPONENT: i16,
-            const TIME_EXPONENT: i16,
-            const CURRENT_EXPONENT: i16,
-            const TEMPERATURE_EXPONENT: i16,
-            const AMOUNT_EXPONENT: i16,
-            const LUMINOSITY_EXPONENT: i16,
-            const ANGLE_EXPONENT: i16,
-            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
-            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
-            Brand,
-        ),
-
         // multiple dimension, multiple scales
         (
             const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
@@ -444,29 +423,6 @@ macro_rules! define_arithmetic {
             (): IsI16<{ -SCALE_P3 }>,
             (): IsI16<{ -SCALE_P5 }>,
             (): IsI16<{ -SCALE_PI }>
-        ),
-        // add min scale where clauses
-        (
-            (): IsI16<{ min_scale(
-                2,
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
-            )}>,
-            (): IsI16<{ min_scale(
-                3,
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
-            )}>,
-            (): IsI16<{ min_scale(
-                5,
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
-            )}>,
-            (): IsI16<{ min_scale(
-                i16::Max,
-                SCALE_P2_1, SCALE_P3_1, SCALE_P5_1, SCALE_PI_1,
-                SCALE_P2_2, SCALE_P3_2, SCALE_P5_2, SCALE_PI_2,
-            )}>
         ),
         // mul output dimension where clauses
         (

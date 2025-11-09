@@ -2,13 +2,13 @@
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
+use whippyunits::api::rescale;
 use whippyunits::default_declarators::*;
 use whippyunits::dimension_traits::define_generic_dimension;
 use whippyunits::quantity;
 use whippyunits::unit;
 use whippyunits::value;
 use whippyunits_core::Unit;
-use whippyunits::api::rescale;
 
 #[test]
 fn test_legal_addition() {

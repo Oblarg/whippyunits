@@ -111,8 +111,8 @@ pub fn get_declarator_type_for_exponents(
                     whippyunits_core::CapitalizedFmt(unit.name).to_string()
                 }
             } else {
-                // For non-metric units, use the capitalized name
-                whippyunits_core::CapitalizedFmt(unit.name).to_string()
+                // For non-metric units, skip - they don't have types in default_declarators
+                continue;
             };
 
             let type_ident = syn::Ident::new(&type_name, proc_macro2::Span::call_site());

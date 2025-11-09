@@ -1,8 +1,5 @@
-//! This module contains scale-generic dimension traits for the atomic dimensions.
-//! 
-//! These traits can be used to write code that enforces dimensional coherence while
-//! leaving the scale unspecified:
-//! 
+//! Constrain [Quantity] types dimensionally while leaving the scale unspecified.
+//!
 //! ```rust
 //! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
@@ -13,17 +10,17 @@
 //! // let length: impl Length = 1.0s; // 🚫 Compile error (dimension mismatch)
 //! # }
 //! ```
-//! 
+//!
 //! For non-atomic dimensions, use the [define_generic_dimension](Self::define_generic_dimension)
 //! macro.
-//! 
+//!
 //! ### Scale-generic arithmetic
-//! 
+//!
 //! When writing functions that work with any scale, you need to add a `where` clause to check that
 //! the two operands are valid for the arithmetic used in the function body.  Scale genericity does *not*
 //! introduce any auto-rescaling semantics; addition is still a scale-strict operation, even if the scale
 //! is generic:
-//! 
+//!
 //! ```rust
 //! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
@@ -37,7 +34,7 @@
 //! {
 //!     d1 + d2
 //! }
-//! 
+//!
 //! let length: impl Length = add_lengths(1.0m, 1.0m); // ✅ 2.0 Quantity<m, f64>
 //! let length: impl Length = add_lengths(1.0mm, 1.0mm); // ✅ 2.0 Quantity<mm, f64>
 //! let length: impl Length = add_lengths(1.0m, rescale(1.0mm)); // ✅ 1.001 Quantity<m, f64>
@@ -45,9 +42,9 @@
 //! // let length: impl Length = add_lengths(1.0m, 1.0s); // 🚫 Compile error (dimension mismatch)
 //! # }
 //! ```
-//! 
+//!
 //! The `Length` trait can only tell you "this type represents a length", but it can't tell you whether two
-//! specific types can actually be added together (or multiplied, etc.). That check requires both types 
+//! specific types can actually be added together (or multiplied, etc.). That check requires both types
 //! (`D1` and `D2`), and so must be done in the function. There is no way to assert on the trait itself
 //! that "this type can be added to any other type that also represents a length".
 
@@ -106,9 +103,9 @@ define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 0, 1, Angle);
 ///
 /// Generic dimensions can be used to write arithmetic operations that are generic over a dimensional structure
 /// or disjunction of dimensional structures.
-/// 
+///
 /// For atomic dimensions, use one of the pre-defined atomic dimension traits:
-/// 
+///
 /// - [`Mass`]
 /// - [`Length`]
 /// - [`Time`]

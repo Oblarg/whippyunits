@@ -53,8 +53,8 @@ impl UnitFormatter {
         let contains_generic_definition =
             text.contains("T = f64") || original_text.contains("T = f64");
 
-        // If we don't need raw section or it's a generic definition, just format normally
-        if !config.include_raw || contains_generic_definition {
+        // If it's a generic definition, just format normally without raw
+        if contains_generic_definition {
             return self.format_quantity_types(text, config.verbose, config.unicode, false);
         }
 
@@ -69,8 +69,15 @@ impl UnitFormatter {
                 let formatted_content =
                     self.format_quantity_types(code_content, config.verbose, config.unicode, false);
 
-                // Extract raw type from the original code content
-                let raw_type = self.extract_raw_type_from_hover(code_content);
+                // Check if we actually transformed anything
+                let was_transformed = formatted_content != code_content;
+
+                // Extract raw type from the original code content if we transformed it
+                let raw_type = if was_transformed && config.include_raw {
+                    self.extract_raw_type_from_hover(code_content)
+                } else {
+                    String::new()
+                };
 
                 // Replace the content in the existing code block
                 let before_code = &original_text[..code_start + 7]; // Include "```rust"
@@ -127,32 +134,37 @@ impl UnitFormatter {
     ) -> String {
         // Handle the new format with Scale and Dimension structs (both full and truncated)
         if text.contains("Scale") && text.contains("Dimension") {
-            // Use a more sophisticated approach to find and replace each Quantity type
-            // We'll manually find the start and end of each Quantity type by counting brackets
-            let mut result = String::new();
+            // First pass: find all Quantity<Scale types and their positions
+            struct QuantityMatch {
+                start: usize,
+                end: usize,
+                formatted: String,
+            }
+            
+            let mut matches = Vec::new();
             let mut i = 0;
-
+            
             while i < text.len() {
-                if let Some(start) = text[i..].find("Quantity<Scale") {
-                    let start_pos = i + start;
-
-                    // Ensure start_pos is within bounds
-                    if start_pos >= text.len() {
-                        result.push_str(&text[i..]);
-                        break;
-                    }
-
-                    let mut bracket_count = 0;
+                // Search for "Quantity<Scale" starting from position i
+                if let Some(relative_start) = text[i..].find("Quantity<Scale") {
+                    let start_pos = i + relative_start;
+                    
+                    // Count brackets to find the matching end of this Quantity type
+                    // start_pos points to "Q" in "Quantity<Scale"
+                    // start_pos + 8 points to the '<' after "Quantity"
+                    let quantity_start = start_pos + 8; // Position of the '<'
+                    // Start bracket_count at 1 because we're already inside Quantity<
+                    // Start j after the '<' so we don't count it again
+                    let mut bracket_count = 1;
                     let mut found_end = false;
-
-                    // Count brackets to find the matching end
-                    // Start counting from the first '<' after "Quantity"
-                    let quantity_start = start_pos + 8; // Skip "Quantity"
-                    let mut j = quantity_start;
-                    while j < text.len() {
-                        match text.chars().nth(j) {
-                            Some('<') => bracket_count += 1,
-                            Some('>') => {
+                    // Use byte indices, not char indices, to match the string slicing
+                    let mut byte_pos = quantity_start + 1; // Start after the opening '<'
+                    let text_bytes = text.as_bytes();
+                    
+                    while byte_pos < text_bytes.len() {
+                        match text_bytes[byte_pos] {
+                            b'<' => bracket_count += 1,
+                            b'>' => {
                                 bracket_count -= 1;
                                 if bracket_count == 0 {
                                     found_end = true;
@@ -161,38 +173,52 @@ impl UnitFormatter {
                             }
                             _ => {}
                         }
-                        j += 1;
+                        byte_pos += 1;
                     }
-
-                    if found_end || (bracket_count == 1 && j >= text.len()) {
-                        // The bracket counting found the end of the Quantity type
-                        // or we've reached the end of the string with bracket_count = 1 (no generic type parameter)
-                        let actual_end = if found_end { j } else { text.len() };
-
-                        // Ensure we don't go beyond string bounds
-                        let end_pos = std::cmp::min(actual_end + 2, text.len());
-
-                        // Extract the quantity type including all the '>' characters
-                        let quantity_type = &text[start_pos..end_pos];
+                    
+                    if found_end {
+                        let actual_end = byte_pos + 1; // +1 to include the '>'
+                        // Ensure we don't go past the end of the string
+                        let actual_end = actual_end.min(text.len());
+                        let quantity_type = &text[start_pos..actual_end];
+                        
                         let formatted = self.format_new_quantity_type(
                             quantity_type,
                             verbose,
                             unicode,
                             is_inlay_hint,
                         );
-                        result.push_str(&text[i..start_pos]);
-                        result.push_str(&formatted);
-                        i = end_pos;
+                        
+                        matches.push(QuantityMatch {
+                            start: start_pos,
+                            end: actual_end,
+                            formatted,
+                        });
+                        
+                        // Continue searching from after this Quantity type
+                        i = actual_end;
                     } else {
-                        result.push_str(&text[i..]);
+                        // Bracket counting failed, stop searching
                         break;
                     }
                 } else {
-                    result.push_str(&text[i..]);
+                    // No more Quantity<Scale found
                     break;
                 }
             }
-
+            
+            // Second pass: replace all matches from end to start to preserve positions
+            if matches.is_empty() {
+                return text.to_string();
+            }
+            
+            
+            let mut result = text.to_string();
+            // Replace from end to start to preserve positions
+            for m in matches.iter().rev() {
+                result.replace_range(m.start..m.end, &m.formatted);
+            }
+            
             return result;
         }
 
@@ -573,88 +599,103 @@ impl UnitFormatter {
     }
 
     /// Extract just the raw type information from hover content
+    /// Looks for any type declaration pattern: let [mut] [var]: TypeName<...>
     pub fn extract_raw_type_from_hover(&self, hover_text: &str) -> String {
-        // Look for the pattern: let [mut] [var]: Quantity<...>
-        if let Some(start) = hover_text.find(": Quantity<") {
-            // Find the start of the variable declaration by looking backwards for 'let'
-            let mut var_start = start;
-            let mut found_let = false;
+        // Look for any type declaration pattern: ": TypeName<"
+        // Find the first occurrence of ": " followed by something that looks like a type with generics
+        if let Some(start) = hover_text.find(": ") {
+            let after_colon = &hover_text[start + 2..];
+            
+            // Find where the type name ends (either at '<' for generics, or at whitespace/newline)
+            let type_end = after_colon
+                .char_indices()
+                .find(|(_, ch)| *ch == '<' || *ch == '\n' || *ch == '\r')
+                .map(|(i, _)| i);
+            
+            if let Some(type_end) = type_end {
+                if after_colon.chars().nth(type_end) == Some('<') {
+                    // We found a generic type, extract the full declaration
+                    // Find the start of the variable declaration by looking backwards for 'let'
+                    let mut var_start = start;
+                    let mut found_let = false;
 
-            // Look backwards to find the start of the declaration
-            while var_start > 0 {
-                let char_before = hover_text[var_start - 1..var_start].chars().next().unwrap();
-                if char_before.is_whitespace() {
-                    // Check if we've found "let" or "let mut"
-                    let potential_start = var_start;
-                    let before_whitespace = &hover_text[..potential_start];
+                    // Look backwards to find the start of the declaration
+                    while var_start > 0 {
+                        let char_before = hover_text[var_start - 1..var_start].chars().next().unwrap();
+                        if char_before.is_whitespace() {
+                            // Check if we've found "let" or "let mut"
+                            let potential_start = var_start;
+                            let before_whitespace = &hover_text[..potential_start];
 
-                    // Look for "let" at the end of the string
-                    if before_whitespace.ends_with("let") {
-                        // Check if there's whitespace before "let" or if it's at the start
-                        let let_start = before_whitespace.len() - 3;
-                        if let_start == 0
-                            || hover_text[let_start - 1..let_start]
+                            // Look for "let" at the end of the string
+                            if before_whitespace.ends_with("let") {
+                                // Check if there's whitespace before "let" or if it's at the start
+                                let let_start = before_whitespace.len() - 3;
+                                if let_start == 0
+                                    || hover_text[let_start - 1..let_start]
+                                        .chars()
+                                        .next()
+                                        .unwrap()
+                                        .is_whitespace()
+                                {
+                                    var_start = let_start;
+                                    found_let = true;
+                                    break;
+                                }
+                            }
+                        }
+                        var_start -= 1;
+                    }
+
+                    if !found_let {
+                        // Fallback: find the start of the variable name
+                        while var_start > 0
+                            && !hover_text[var_start..var_start + 1]
                                 .chars()
                                 .next()
                                 .unwrap()
                                 .is_whitespace()
                         {
-                            var_start = let_start;
-                            found_let = true;
-                            break;
+                            var_start -= 1;
+                        }
+                        if var_start > 0
+                            && hover_text[var_start..var_start + 1]
+                                .chars()
+                                .next()
+                                .unwrap()
+                                .is_whitespace()
+                        {
+                            var_start += 1; // Skip the whitespace
                         }
                     }
-                }
-                var_start -= 1;
-            }
 
-            if !found_let {
-                // Fallback: find the start of the variable name
-                while var_start > 0
-                    && !hover_text[var_start..var_start + 1]
-                        .chars()
-                        .next()
-                        .unwrap()
-                        .is_whitespace()
-                {
-                    var_start -= 1;
-                }
-                if var_start > 0
-                    && hover_text[var_start..var_start + 1]
-                        .chars()
-                        .next()
-                        .unwrap()
-                        .is_whitespace()
-                {
-                    var_start += 1; // Skip the whitespace
-                }
-            }
+                    // Find the end of the type declaration by matching brackets
+                    let type_start = start + ": ".len();
+                    let after_type = &hover_text[type_start..];
 
-            // Find the end of the type declaration (before any size/align info)
-            let type_start = start + ": ".len();
-            let after_type = &hover_text[type_start..];
+                    // Find the end of the generic type by looking for the closing >
+                    let mut bracket_count = 0;
+                    let mut end_pos = 0;
 
-            // Find the end of the Quantity type by looking for the closing >
-            let mut bracket_count = 0;
-            let mut end_pos = 0;
-
-            for (i, ch) in after_type.char_indices() {
-                match ch {
-                    '<' => bracket_count += 1,
-                    '>' => {
-                        bracket_count -= 1;
-                        if bracket_count == 0 {
-                            end_pos = i + 1;
-                            break;
+                    for (i, ch) in after_type.char_indices() {
+                        match ch {
+                            '<' => bracket_count += 1,
+                            '>' => {
+                                bracket_count -= 1;
+                                if bracket_count == 0 {
+                                    end_pos = i + 1;
+                                    break;
+                                }
+                            }
+                            _ => {}
                         }
                     }
-                    _ => {}
-                }
-            }
 
-            if end_pos > 0 {
-                let full_declaration = &hover_text[var_start..start + ": ".len() + end_pos];
-                return full_declaration.to_string();
+                    if end_pos > 0 {
+                        let full_declaration = &hover_text[var_start..start + ": ".len() + end_pos];
+                        return full_declaration.to_string();
+                    }
+                }
             }
         }
 

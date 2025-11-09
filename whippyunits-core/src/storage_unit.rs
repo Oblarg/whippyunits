@@ -149,8 +149,14 @@ pub fn generate_systematic_unit_name_with_scale_factors(
         }
     }
 
-    // Fall back to the original logic
-    generate_systematic_unit_name(exponents, long_name)
+    // For compound units, pass scale factors to help match the correct units
+    // Fall back to the original logic but with scale factors
+    generate_systematic_unit_name_with_format_and_scale(
+        exponents,
+        Some(scale_factors),
+        long_name,
+        UnitFormat::Unicode,
+    )
 }
 
 /// Generate systematic unit name
@@ -171,6 +177,16 @@ pub fn generate_systematic_unit_name_with_format(
     long_name: bool,
     format: UnitFormat,
 ) -> String {
+    generate_systematic_unit_name_with_format_and_scale(exponents, None, long_name, format)
+}
+
+/// Generate systematic unit name with format and optional scale factors
+pub fn generate_systematic_unit_name_with_format_and_scale(
+    exponents: Vec<i16>,
+    scale_factors: Option<ScaleExponents>,
+    long_name: bool,
+    format: UnitFormat,
+) -> String {
     // Convert Vec<i16> to DynDimensionExponents for the core function
     if exponents.len() != 8 {
         return "?".to_string();
@@ -188,7 +204,11 @@ pub fn generate_systematic_unit_name_with_format(
     ]);
 
     // Use the centralized logic from whippyunits-core
-    let base_result = generate_systematic_composite_unit_name(dimension_exponents, long_name);
+    let base_result = generate_systematic_composite_unit_name_with_scale(
+        dimension_exponents,
+        scale_factors,
+        long_name,
+    );
 
     // Apply format-specific transformations
     match format {
@@ -507,6 +527,20 @@ pub fn generate_systematic_composite_unit_name(
     dimension_exponents: DynDimensionExponents,
     long_name: bool,
 ) -> String {
+    generate_systematic_composite_unit_name_with_scale(
+        dimension_exponents,
+        None,
+        long_name,
+    )
+}
+
+/// Generate systematic unit name for composite dimensions with optional scale factors
+/// When scale factors are provided, tries to match them to the correct unit for each dimension
+pub fn generate_systematic_composite_unit_name_with_scale(
+    dimension_exponents: DynDimensionExponents,
+    scale_factors: Option<ScaleExponents>,
+    long_name: bool,
+) -> String {
     let exponents = dimension_exponents.0;
 
     // Check if all exponents are unknown
@@ -527,9 +561,31 @@ pub fn generate_systematic_composite_unit_name(
         }
 
         // Get unit configuration from Dimension::BASIS
+        // Try to match scale factors if provided, otherwise use first unit
         let (unit_name, unit_symbol, base_scale_offset) =
             if let Some(dimension) = Dimension::BASIS.get(index) {
-                if let Some(unit) = dimension.units.first() {
+                // If scale factors are provided, try to find a matching unit
+                let matched_unit = if let Some(scale) = scale_factors {
+                    // For compound units, try to match the aggregate scale factors
+                    // This works when the scale factors come from a single dimension (e.g., deg/m where deg has the scale)
+                    dimension.units.iter().find(|unit| {
+                        unit.scale == scale && unit.conversion_factor == 1.0
+                    })
+                    // If no exact match, try identity scale (for cases like deg/m where meter has identity scale)
+                    .or_else(|| {
+                        if scale == ScaleExponents::IDENTITY {
+                            None // Already tried identity above
+                        } else {
+                            dimension.units.iter().find(|unit| {
+                                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
+                            })
+                        }
+                    })
+                } else {
+                    None
+                };
+
+                if let Some(unit) = matched_unit.or_else(|| dimension.units.first()) {
                     let base_scale_offset = unit.scale.log10().unwrap_or(0);
                     (unit.name, unit.symbols[0], base_scale_offset)
                 } else {

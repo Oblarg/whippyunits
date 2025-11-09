@@ -40,11 +40,9 @@ pub mod serialization;
 #[doc(hidden)]
 pub mod value_macro;
 
-/// Define a set of "local declarators" that shadow the default declarators,
-/// and either:
-///
-///  - Apply a brand type to the quantity, or
-///  - Auto-rescale to a given "base unit scale" for storage
+pub use quantity::Quantity;
+
+/// Creates a branded or auto-rescaling [Quantity] declarator module.
 ///
 /// ## Syntax
 ///
@@ -126,64 +124,10 @@ pub mod value_macro;
 #[doc(inline)]
 pub use whippyunits_proc_macros::define_unit_declarators;
 
-
-/// Creates a concrete Quantity type from a unit expression with local scale preferences.
-///
-/// This macro is similar to [`unit!`], but allows specifying scale preferences for each dimension,
-/// causing units to be automatically rescaled to match the specified base unit scales. This is useful
-/// when you want to ensure quantities are stored in specific units regardless of how they are constructed.
-///
-/// This macro is typically used internally by [`define_unit_declarators!`] to generate local declarators,
-/// but can also be used directly when you need explicit control over scale conversion for a specific type.
-///
-/// ## Syntax
-///
-/// ```rust,ignore
-/// local_unit!(unit_expr, mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale);
-/// local_unit!(unit_expr, mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale, storage_type);
-/// local_unit!(unit_expr, mass_scale, length_scale, time_scale, current_scale, temperature_scale, amount_scale, luminosity_scale, angle_scale, storage_type, brand_type);
-/// ```
-///
-/// Where:
-/// - `unit_expr`: A "unit literal expression" (same syntax as [`unit!`])
-/// - `mass_scale`: The scale identifier for mass units (e.g., `Kilogram`, `Gram`)
-/// - `length_scale`: The scale identifier for length units (e.g., `Meter`, `Millimeter`)
-/// - `time_scale`: The scale identifier for time units (e.g., `Second`, `Hour`)
-/// - `current_scale`: The scale identifier for current units (e.g., `Ampere`)
-/// - `temperature_scale`: The scale identifier for temperature units (e.g., `Kelvin`)
-/// - `amount_scale`: The scale identifier for amount units (e.g., `Mole`)
-/// - `luminosity_scale`: The scale identifier for luminosity units (e.g., `Candela`)
-/// - `angle_scale`: The scale identifier for angle units (e.g., `Radian`)
-/// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
-/// - `brand_type`: An optional brand type for the quantity. Defaults to `()`.
-///
-/// ## Examples
-///
-/// ```rust
-/// use whippyunits::local_unit;
-///
-/// // Create a type that stores all lengths in millimeters
-/// type LengthMm = local_unit!(m, Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);
-///
-/// // Compound units are automatically converted to match scale preferences
-/// type EnergyMicroJoule = local_unit!(J, Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian);
-/// // Hovering on the `J` term in the unit literal expression will show a "conversion trace":
-/// // J = kg^1 * m^2 * s^-2 (drop prefix: mJ → J)
-/// // ↓ (length: m → mm, factor: 10^-3)
-/// // ↓ (exponent: 2, total factor: 10^-6)
-/// // = kg^1 * mm^2 * s^-2
-/// // = µJ
-///
-/// // With explicit storage type
-/// type MassKg = local_unit!(kg, Kilogram, Meter, Second, Ampere, Kelvin, Mole, Candela, Radian, f32);
-///
-/// // With brand type
-/// struct MyBrand;
-/// type BrandedLength = local_unit!(m, Kilogram, Meter, Second, Ampere, Kelvin, Mole, Candela, Radian, f64, MyBrand);
-/// ```
-#[doc(inline)]
+#[doc(hidden)]
 pub use whippyunits_proc_macros::local_unit_type as local_unit;
-/// Creates a concrete Quantity type from a unit expression.
+
+/// Creates a concrete [Quantity] type from a unit expression.
 ///
 /// This is particularly useful for constraining the result of potentially-type-ambiguous operations,
 /// such as multiplication of two quantities with different dimensions.  If you want to construct a
@@ -231,6 +175,40 @@ pub use whippyunits_proc_macros::local_unit_type as local_unit;
 /// ```
 #[doc(inline)]
 pub use whippyunits_proc_macros::proc_unit as unit;
+
+/// Convert an arithmetic expression to associated type syntax (with ::Output).
+///
+/// This macro simplifies writing complex associated type expressions by allowing
+/// you to write arithmetic expressions instead of nested trait bound syntax.
+///
+/// ## Examples
+///
+/// ```rust
+/// use whippyunits::output;
+///
+/// // Simple division
+/// type Kp = output!(CO / PV);  // Expands to: <CO as Div<PV>>::Output
+///
+/// // Multiplication
+/// type Area = output!(Length * Width);  // Expands to: <Length as Mul<Width>>::Output
+///
+/// // Complex nested expression
+/// type Ki = output!(CO / (PV * T));  // Expands to: <CO as Div<<PV as Mul<T>>::Output>>::Output
+///
+/// // With parentheses
+/// type Kd = output!((CO * T) / PV);  // Expands to: <<CO as Mul<T>>::Output as Div<PV>>::Output
+/// ```
+///
+/// ## Supported Operations
+///
+/// - `*` (multiplication) → `Mul`
+/// - `/` (division) → `Div`
+/// - `+` (addition) → `Add`
+/// - `-` (subtraction) → `Sub`
+///
+/// Operations are evaluated left-to-right with standard precedence.
+#[doc(inline)]
+pub use whippyunits_proc_macros::output;
 
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs

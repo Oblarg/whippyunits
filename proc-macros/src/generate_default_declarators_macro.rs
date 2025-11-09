@@ -223,7 +223,13 @@ impl DefaultDeclaratorsInput {
 
                 let trait_name = Self::generate_affine_trait_name(base_trait_name);
                 let trait_ident = syn::parse_str::<Ident>(&trait_name).unwrap();
-                let storage_scale_name = self.get_storage_scale_name_for_dimension(&dimension.name);
+                // Find the storage scale by matching the scale of the first affine unit
+                // (all affine units in a filtered set should have the same scale)
+                let storage_scale_name = if let Some(first_unit) = filtered_units.first() {
+                    self.get_storage_scale_name_for_affine_unit(first_unit, dimension)
+                } else {
+                    self.get_storage_scale_name_for_dimension(&dimension.name)
+                };
                 let storage_scale_ident = syn::parse_str::<Ident>(&storage_scale_name).unwrap();
 
                 let expansion = self.generate_storage_affine_quantity_expansion(
@@ -706,6 +712,28 @@ impl DefaultDeclaratorsInput {
         let unit_name =
             get_storage_unit_name_by_dimension_name(scale_factors, dimension_name, true);
         whippyunits_core::CapitalizedFmt(&unit_name).to_string()
+    }
+
+    /// Get the storage scale name for an affine unit by finding a storage unit with matching scale
+    fn get_storage_scale_name_for_affine_unit(
+        &self,
+        affine_unit: &whippyunits_core::Unit,
+        dimension: &whippyunits_core::Dimension,
+    ) -> String {
+        // Find a storage unit (conversion_factor == 1.0, affine_offset == 0.0) with the same scale
+        let matching_storage_unit = dimension.units.iter().find(|unit| {
+            unit.scale == affine_unit.scale
+                && unit.conversion_factor == 1.0
+                && unit.affine_offset == 0.0
+        });
+
+        if let Some(storage_unit) = matching_storage_unit {
+            // Use the storage unit's name, capitalized
+            whippyunits_core::CapitalizedFmt(storage_unit.name).to_string()
+        } else {
+            // Fallback to the dimension-based lookup (this should rarely happen)
+            self.get_storage_scale_name_for_dimension(&dimension.name)
+        }
     }
 
     /// Generate a storage quantity trait expansion

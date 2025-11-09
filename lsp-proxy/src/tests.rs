@@ -451,3 +451,49 @@ fn test_partially_resolved_type_formatting() {
     // The result should contain some resolved parts (like length dimension) and question marks for unresolved parts
     // This tests that the partial resolution logic works correctly
 }
+
+#[test]
+fn test_pid_controller_nested_quantity_types() {
+    let converter = UnitFormatter::new();
+
+    // Test complex nested type with multiple Quantity types in PIDController
+    // This tests that the algorithm finds and transforms ALL Quantity types, not just the first one
+    let input = "let mut controller: PIDController<Quantity<Scale, Dimension<_M, _L<1>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>, Quantity<Scale<_2<-3>, _3, _5<-3>>, Dimension<_M, _L, _T<1>>>, Quantity<Scale, Dimension<_M<1>, _L<1>, _T<-3>, _I<-1>>>, Quantity<Scale<_2<3>, _3, _5<3>>, Dimension<_M<1>, _L<1>, _T<-4>, _I<-1>>>, Quantity<Scale<_2<-3>, _3, _5<-3>>, Dimension<_M<1>, _L<1>, _T<-2>, _I<-1>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>>";
+    
+    let result = converter.format_types(input, &crate::DisplayConfig::default());
+
+    println!("Input: {}", input);
+    println!("Result: {}", result);
+
+    // Verify that all Quantity types were transformed (not left as raw Scale/Dimension format)
+    // Count how many "Quantity<Scale" appear in the result - should be 0 (all transformed)
+    let raw_quantity_count = result.matches("Quantity<Scale").count();
+    if raw_quantity_count > 0 {
+        // Find where the untransformed types are
+        let mut positions = Vec::new();
+        let mut search_pos = 0;
+        while let Some(pos) = result[search_pos..].find("Quantity<Scale") {
+            positions.push(search_pos + pos);
+            search_pos += pos + 1;
+        }
+        panic!("Found {} untransformed Quantity<Scale types at positions {:?}. All should be transformed.\nResult: {}", raw_quantity_count, positions, result);
+    }
+
+    // Verify that we have formatted Quantity types (should contain "Quantity<" with formatted units)
+    assert!(result.contains("Quantity<"), "Result should contain formatted Quantity types");
+    
+    // Verify that the PIDController structure is preserved
+    assert!(result.contains("PIDController<"), "Result should preserve PIDController structure");
+    
+    // Count how many formatted Quantity types appear - should be 8 (one for each parameter)
+    let formatted_quantity_count = result.matches("Quantity<").count();
+    assert_eq!(formatted_quantity_count, 8, "Expected 8 formatted Quantity types, found {}", formatted_quantity_count);
+    
+    // Verify that unresolved types are formatted as "Quantity<?"
+    let unresolved_count = result.matches("Quantity<?").count();
+    assert_eq!(unresolved_count, 3, "Expected 3 unresolved Quantity types (the ones with _ placeholders), found {}", unresolved_count);
+    
+    // Verify that resolved types are formatted with actual units (not raw Scale/Dimension)
+    assert!(!result.contains("Scale<_2<"), "Result should not contain raw Scale parameters");
+    assert!(!result.contains("Dimension<_M<"), "Result should not contain raw Dimension parameters");
+}

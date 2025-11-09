@@ -43,6 +43,90 @@ left_hand_wins = []
 name = "whippyunits"
 path = "src/lib.rs"
 
+[[example]]
+name = "filter"
+path = "examples/generics/filter.rs"
+
+[[example]]
+name = "pid_controller"
+path = "examples/generics/pid_controller.rs"
+
+[[example]]
+name = "centripetal_acceleration"
+path = "examples/generics/centripetal_acceleration.rs"
+
+[[example]]
+name = "serialization"
+path = "examples/serialization/serialization.rs"
+
+[[example]]
+name = "deserialization"
+path = "examples/serialization/deserialization.rs"
+
+[[example]]
+name = "arithmetic"
+path = "examples/operations/arithmetic.rs"
+
+[[example]]
+name = "rescaling"
+path = "examples/operations/rescaling.rs"
+
+[[example]]
+name = "comparison"
+path = "examples/operations/comparison.rs"
+
+[[example]]
+name = "value_access"
+path = "examples/operations/value_access.rs"
+
+[[example]]
+name = "storage_types"
+path = "examples/getting_started/storage_types.rs"
+
+[[example]]
+name = "setup"
+path = "examples/getting_started/setup.rs"
+
+[[example]]
+name = "hello_world"
+path = "examples/getting_started/hello_world.rs"
+
+[[example]]
+name = "concepts"
+path = "examples/getting_started/concepts.rs"
+
+[[example]]
+name = "declarators"
+path = "examples/getting_started/declarators.rs"
+
+[[example]]
+name = "common_errors"
+path = "examples/getting_started/common_errors.rs"
+
+[[example]]
+name = "rescale_targeting"
+path = "examples/type_assertions/rescale_targeting.rs"
+
+[[example]]
+name = "safe_mult_div"
+path = "examples/type_assertions/safe_mult_div.rs"
+
+[[example]]
+name = "branded_declarators"
+path = "examples/custom_declarators/branded_declarators.rs"
+
+[[example]]
+name = "rescaling_declarators"
+path = "examples/custom_declarators/rescaling_declarators.rs"
+
+[[example]]
+name = "scalar_erasure"
+path = "examples/erasure/scalar_erasure.rs"
+
+[[example]]
+name = "angular_erasure"
+path = "examples/erasure/angular_erasure.rs"
+
 
 
 

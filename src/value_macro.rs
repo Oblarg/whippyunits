@@ -28,7 +28,7 @@ define_value_macro!(value_u32, rescale_u32, u32);
 define_value_macro!(value_u64, rescale_u64, u64);
 define_value_macro!(value_u128, rescale_u128, u128);
 
-/// Access the underlying numeric value of a quantity.
+/// Access the underlying numeric value of a [Quantity](crate::Quantity).
 ///
 /// Because value! explicitly specifies the target unit, this is considered a
 /// "unit-safe" operation - the type system will guarantee that the access is

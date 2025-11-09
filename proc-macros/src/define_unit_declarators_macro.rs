@@ -189,6 +189,7 @@ impl DefineBaseUnitsInput {
         // Create the brand struct definition token stream if brand is present
         let brand_struct_def = if let Some(ref ident) = brand_ident {
             quote! {
+                #[derive(Clone, Copy)]
                 pub struct #ident;
             }
         } else {
@@ -863,6 +864,7 @@ impl DefineBaseUnitsInput {
 
         let brand_struct_def = if let Some(ref ident) = brand_ident {
             quote! {
+                #[derive(Clone, Copy)]
                 pub struct #ident;
             }
         } else {

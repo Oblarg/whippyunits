@@ -1,61 +1,61 @@
-//! The `Quantity` type represents a data value of a given scale, dimension, numeric type, and brand.
-//! 
+//! Zero-cost unit-safe wrapper type for numeric data.
+//!
 //! ```rust,ignore
 //! quantity<Scale, Dimension, T, Brand>
 //! ```
-//! 
+//!
 //! where:
-//! - [`Scale`] represents the scale of the quantity.
+//! - [`Scale`] is the scale of the quantity.
 //!     - In SI, this is typically represented by the unit prefix, e.g. "kilo" for 10^3.
-//! - [`Dimension`] represents the dimension of the quantity.
+//! - [`Dimension`] is the dimension of the quantity.
 //!     - In SI, this is typically represented by the unit or dimension symbol, e.g. "m" for meter, L for length.
-//! - `T` represents the numeric type of the quantity.
+//! - `T` is the numeric type of the quantity.
 //!     - Defaults to `f64`.
-//! - `Brand` represents the brand of the quantity.
+//! - `Brand` is the brand of the quantity.
 //!     - Defaults to `()`.
-//! 
+//!
 //! ## Scale
-//! 
+//!
 //! Quantity scale is represented by prime-factorized exponent vector of the form:
-//! 
+//!
 //! ```rust,ignore
 //! 2^p2 * 3^p3 * 5^p5 * π^pπ
 //! ```
-//! 
+//!
 //! This supports powers of 10 (SI standard prefixes), powers of 60 (time, angle), and
 //! powers of 2π (angular units) - as well as a few other special cases (e.g. rankine).
-//! 
+//!
 //! SI base scale is taken to be the identity scale (all exponents zero).  Note that the
 //! SI base unit of mass is the *kilo*gram, not the *gram*; accordingly, prefix values
 //! for mass values are offset by 3 from those of other dimensions.
-//! 
+//!
 //! ## Dimension
-//! 
+//!
 //! Quantity dimension is represented by prime-factorized exponent vector of the form:
-//! 
+//!
 //! ```rust,ignore
 //! mass^m * length^l * time^t * current^i * temperature^θ * amount^n * luminosity^j * angle^a
 //! ```
-//! 
+//!
 //! Angular units are represented as an "ordinary" dimension, except with a particular
 //! erasure behavior via `.into()`.
-//! 
+//!
 //! Dimensionless quantities (scalars) are represented by a dimension with all exponents zero.
 //! While dimensionless quantities do not have any *dimension*, they do have a *scale*, and are subject
 //! to the same rescaling rules as other quantities.  When a dimensionless quantity is "erased" via `.into()`,
 //! it is rescaled to unity-scale (all scale exponents zero).
-//! 
+//!
 //! ## Numeric Type
-//! 
+//!
 //! As a rule, floating point types use floating point arithmetic for rescaling, and integer types
 //! use rational arithmetic for rescaling.  All conversion ratios are computed from exponents via
 //! lookup table, by exponent, in the highest-precision (float or integer) type supported by the crate.
-//! 
+//!
 //! Integer rescaling has a simple overflow heuristic: if `value * num` would overflow, we compute
 //! `(value / den) * num`; otherwise `(value * num) / den`.
-//! 
+//!
 //! ## Brand
-//! 
+//!
 //! The `Brand` type parameter allows for finer granularity of unit safety guarantees; quantities can only
 //! participate in arithmetic operations with other quantities of the same brand.  This is useful for, e.g.,
 //! distinguishing between quantities in different coordinate systems or with different physical meanings,
@@ -63,30 +63,41 @@
 //! a brand (of the unit type `()`), so custom-branded quantities will not interoperate with default-declared
 //! quantities unless explicitly converted.
 
-
+#[derive(PartialEq)]
 pub struct _2<const EXP: i16 = 0>;
 /// The base-3 scale exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _3<const EXP: i16 = 0>;
 /// The base-5 scale exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _5<const EXP: i16 = 0>;
 /// The base-π scale exponent of a quantity - used for angular units.
+#[derive(PartialEq)]
 pub struct _Pi<const EXP: i16 = 0>;
 
 /// The mass dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _M<const EXP: i16 = 0>;
 /// The length dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _L<const EXP: i16 = 0>;
 /// The time dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _T<const EXP: i16 = 0>;
 /// The current dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _I<const EXP: i16 = 0>;
 /// The temperature dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _Θ<const EXP: i16 = 0>;
 /// The amount dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _N<const EXP: i16 = 0>;
 /// The luminosity dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _J<const EXP: i16 = 0>;
 /// The angle dimension exponent of a quantity.
+#[derive(PartialEq)]
 pub struct _A<const EXP: i16 = 0>;
 
 /// The scale of a quantity
@@ -108,6 +119,7 @@ pub struct _A<const EXP: i16 = 0>;
 ///  - degree: `π/180 = _2<-2>, _3<-2>, _5<-1>, _Pi<1>`
 ///  - arcminute: `π/10800 = _2<-4>, _3<-2>, _5<-2>, _Pi<1>`
 #[allow(dead_code)]
+#[derive(PartialEq)]
 pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
     _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
 }
@@ -135,6 +147,7 @@ pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
 ///  - pressure: `_M<1>, _L<-1>, _T<-2>`
 ///  - frequency: `_T<-1>`
 #[allow(dead_code)]
+#[derive(PartialEq)]
 pub struct Dimension<
     MASS = _M<0>,
     LENGTH = _L<0>,
@@ -385,7 +398,7 @@ impl<
     >
 {
     /// Create a new Quantity instance with the given value.
-    /// 
+    ///
     /// Due to the large number of const generic parameters, it is typically more convenient to use a
     /// declarator from the [default declarators](crate::default_declarators) module, or from a declarator
     /// module generated by the [define_unit_declarators](crate::define_unit_declarators) macro.
@@ -399,38 +412,74 @@ impl<
     /// Format this quantity in the specified unit
     ///
     /// Returns a formatter that implements Display, allowing use with println! macros:
-    /// ```rust
-    /// # fn main() {
-    /// # use whippyunits::default_declarators::*;
-    /// let value = 1000.0.feet();
-    /// println!("{}", value.fmt("ft")); // "1000.0 ft"
-    /// # }
+    ///
+    /// # Syntax
+    ///
+    /// ```rust,ignore
+    /// quantity.fmt("<unit literal expression>")
     /// ```
     ///
-    /// Dimensionally-incompatible units will print an error message, but will *not* panic:
+    /// where `<unit literal expression>` is either:
     ///
+    /// - An atomic unit (may include prefix):
+    ///     - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+    ///     - `km`, `cm`, `g`, `ms` (prefixed units)
+    /// - An exponentiation of an atomic unit:
+    ///     - `m2`, `m^2`
+    /// - A multiplication of two or more (possibly exponentiated) atomic units:
+    ///     - `kg.m2`, `kg * m2`
+    /// - A division of two such product expressions:
+    ///     - `kg.m2/s2`, `kg * m2 / s^2`
+    ///     - There may be at most one division expression in a unit literal expression
+    ///     - All terms trailing the division symbol are considered to be in the denominator
+    ///
+    /// ## Examples
+    /// 
     /// ```rust
     /// # fn main() {
     /// # use whippyunits::default_declarators::*;
-    /// let value = 1000.0.feet();
+    /// let value = 1000.0.meters();
+    /// println!("{}", value.fmt("m")); // "1000.0 m"
+    /// println!("{}", value.fmt("km")); // "1.0 km"
+    /// # }
+    /// ```
+    /// 
+    /// Dimensionally-incompatible units will print an error message, but will *not* panic:
+    /// 
+    /// ```rust
+    /// # fn main() {
+    /// # use whippyunits::default_declarators::*;
+    /// let value = 1000.0.meters();
     /// println!("{}", value.fmt("kg")); // "Error: Dimension mismatch: cannot convert from m to kg"
     /// # }
     /// ```
     ///
-    /// if a panic is desired, use a type assertion instead.
+    /// If a panic is desired, use a type assertion instead.
     pub fn fmt(&self, unit: &str) -> impl std::fmt::Display + '_
     where
         T: Copy + Into<f64>,
     {
-        use crate::api::aggregate_scale_factor_float;
+        use crate::serialization::{calculate_conversion_factor, dimensions_match, parse_ucum_unit};
         use whippyunits_core::{
-            Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
+            dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
         };
 
-        // Look up the target unit (handles prefixed units like "km")
-        if let Some((target_unit, target_dimension, prefix)) = Dimension::find_by_literal(unit) {
-            // Check if dimensions match
-            let source_dimensions = DynDimensionExponents([
+        // Parse the target unit string using syn (same as deserialization)
+        let target_dims = match parse_ucum_unit(unit) {
+            Ok(dims) => dims,
+            Err(_) => {
+                // Parse error - return error formatter
+                return QuantityFormatter {
+                    value: 0.0,
+                    unit: format!("Error: Failed to parse unit: {}", unit),
+                    is_error: true,
+                };
+            }
+        };
+
+        // Get source dimensions and scales from const generics
+        let source_dims = (
+            DynDimensionExponents([
                 MASS_EXPONENT,
                 LENGTH_EXPONENT,
                 TIME_EXPONENT,
@@ -439,71 +488,33 @@ impl<
                 AMOUNT_EXPONENT,
                 LUMINOSITY_EXPONENT,
                 ANGLE_EXPONENT,
-            ]);
+            ]),
+            ScaleExponents([SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI]),
+        );
 
-            if source_dimensions == target_dimension.exponents {
-                // Dimensions match, calculate conversion factor
-                let source_scales = ScaleExponents([SCALE_P2, SCALE_P3, SCALE_P5, SCALE_PI]);
-
-                // Calculate target scales: base unit scales + prefix scales
-                let mut target_scales = target_unit.scale;
-                if let Some(prefix) = prefix {
-                    let prefix_scale = prefix.factor_log10();
-                    // For SI prefixes, add the scale to both p2 and p5 (since 10^n = 2^n * 5^n)
-                    target_scales = ScaleExponents([
-                        target_scales.0[0] + prefix_scale, // p2
-                        target_scales.0[1],                // p3
-                        target_scales.0[2] + prefix_scale, // p5
-                        target_scales.0[3],                // pi
-                    ]);
-                }
-
-                let conversion_factor = aggregate_scale_factor_float(
-                    source_scales.0[0],
-                    source_scales.0[1],
-                    source_scales.0[2],
-                    source_scales.0[3],
-                    target_scales.0[0],
-                    target_scales.0[1],
-                    target_scales.0[2],
-                    target_scales.0[3],
-                );
-
-                // Apply unit conversion factor (inverted for imperial units)
-                let unit_conversion_factor = if target_unit.conversion_factor != 1.0 {
-                    1.0 / target_unit.conversion_factor
-                } else {
-                    1.0
-                };
-
-                let converted_value: f64 =
-                    self.unsafe_value.into() * conversion_factor * unit_conversion_factor;
-
-                // Return a formatter that displays the converted value with the unit
-                QuantityFormatter {
-                    value: converted_value,
-                    unit: unit.to_string(),
-                    is_error: false,
-                }
-            } else {
-                // Dimension mismatch - return error formatter
-                QuantityFormatter {
-                    value: 0.0,
-                    unit: format!(
-                        "Error: Dimension mismatch: cannot convert from {} to {}",
-                        self.get_source_unit_symbol(),
-                        unit
-                    ),
-                    is_error: true,
-                }
-            }
-        } else {
-            // Unit not found - return error formatter
-            QuantityFormatter {
+        // Check if dimensions match
+        if !dimensions_match(&source_dims, &target_dims) {
+            // Dimension mismatch - return error formatter
+            return QuantityFormatter {
                 value: 0.0,
-                unit: format!("Error: Unknown unit: {}", unit),
+                unit: format!(
+                    "Error: Dimension mismatch: cannot convert from {} to {}",
+                    self.get_source_unit_symbol(),
+                    unit
+                ),
                 is_error: true,
-            }
+            };
+        }
+
+        // Calculate conversion factor (same logic as deserialization)
+        let conversion_factor = calculate_conversion_factor(&source_dims, &target_dims);
+        let converted_value: f64 = self.unsafe_value.into() * conversion_factor;
+
+        // Return a formatter that displays the converted value with the unit
+        QuantityFormatter {
+            value: converted_value,
+            unit: unit.to_string(),
+            is_error: false,
         }
     }
 

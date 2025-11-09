@@ -5,7 +5,7 @@ macro_rules! scalar_quantity_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            Mul<$crate::quantity_type!($T)> for $T
+            std::ops::Mul<$crate::quantity_type!($T)> for $T
         {
             type Output = $crate::quantity_type!($T);
 
@@ -18,7 +18,7 @@ macro_rules! scalar_quantity_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            Div<$crate::quantity_type!($T)> for $T
+            std::ops::Div<$crate::quantity_type!($T)> for $T
             where
                 $($inversion_where_clauses)*
         {
@@ -39,7 +39,7 @@ macro_rules! quantity_scalar_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            $trait<$T> for $crate::quantity_type!($T)
+            std::ops::$trait<$T> for $crate::quantity_type!($T)
         {
             type Output = Self;
 
@@ -57,7 +57,7 @@ macro_rules! quantity_scalar_mul_div_assign_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            $trait<$T> for $crate::quantity_type!($T)
+            std::ops::$trait<$T> for $crate::quantity_type!($T)
         {
             fn $fn(&mut self, other: $T) {
                 self.unsafe_value $op other;
@@ -69,16 +69,15 @@ macro_rules! quantity_scalar_mul_div_assign_interface {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! quantity_quantity_add_sub_interface {
-    // Strict interface (measurement scales must match) (only one set of scale parameters)
+    // Scale-strict interface (measurement scales must match)
     (
-        ($($single_dimension_single_scale_params:tt)*), ($($single_dimension_multiple_scale_params:tt)*),
-        ($($output_scale_where_clauses:tt)*),
+        ($($single_dimension_single_scale_params:tt)*),
         $op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            $trait<$crate::quantity_type!($T)>
+            std::ops::$trait<$crate::quantity_type!($T)>
             for $crate::quantity_type!($T)
         {
             type Output = Self;
@@ -93,19 +92,19 @@ macro_rules! quantity_quantity_add_sub_interface {
     };
 }
 
-// AddAssign/SubAssign must return the same type as the left-hand side, so it only supports strict or left-hand-wins rescale semantics
+// AddAssign/SubAssign are scale-strict
 #[macro_export]
 #[doc(hidden)]
 macro_rules! quantity_quantity_add_sub_assign_interface {
-    // Strict interface (measurement scales must match) (only one set of scale parameters)
+    // Scale-strict interface (measurement scales must match)
     (
-        ($($single_dimension_single_scale_params:tt)*), ($($single_dimension_multiple_scale_params:tt)*),
+        ($($single_dimension_single_scale_params:tt)*),
         $op:tt, $fn:ident, $trait:ident, $T:ty, $rescale_fn:ident
     ) => {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            $trait<
+            std::ops::$trait<
                 $crate::quantity_type!($T),
             > for $crate::quantity_type!($T)
         {
@@ -128,7 +127,7 @@ macro_rules! quantity_quantity_mul_div_interface {
         impl<
             $($multiple_dimension_multiple_scale_params)*
         >
-            $trait<
+            std::ops::$trait<
                 $crate::multiplication_input!(RightHand, $T),
             >
             for $crate::multiplication_input!(LeftHand, $T)
@@ -154,7 +153,7 @@ macro_rules! quantity_neg_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            Neg for $crate::quantity_type!($T)
+            std::ops::Neg for $crate::quantity_type!($T)
         where
             $T: std::ops::Neg<Output = $T>
         {
@@ -169,12 +168,34 @@ macro_rules! quantity_neg_interface {
 
 #[macro_export]
 #[doc(hidden)]
+macro_rules! quantity_quantity_partial_ord_interface {
+    // Scale-strict comparison interface (measurement scales must match)
+    (
+        ($($single_dimension_single_scale_params:tt)*),
+        $T:ty, $rescale_fn:ident
+    ) => {
+        impl<
+            $($single_dimension_single_scale_params)*
+        >
+            std::cmp::PartialOrd<$crate::quantity_type!($T)>
+            for $crate::quantity_type!($T)
+        where
+            $T: PartialOrd,
+            Brand: PartialEq,
+        {
+            fn partial_cmp(&self, other: &$crate::quantity_type!($T)) -> Option<::std::cmp::Ordering> {
+                self.unsafe_value.partial_cmp(&other.unsafe_value)
+            }
+        }
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
 macro_rules! _define_arithmetic_signed {
     (($($single_dimension_single_scale_params:tt)*),
-     ($($single_dimension_multiple_scale_params:tt)*),
      ($($multiple_dimension_multiple_scale_params:tt)*),
      ($($inversion_where_clauses:tt)*),
-     ($($add_min_scale_where_clauses:tt)*),
      ($($mul_output_dimension_where_clauses:tt)*),
      ($($div_output_dimension_where_clauses:tt)*),
      $T:ty, $rescale_fn:ident) => {
@@ -192,20 +213,20 @@ macro_rules! _define_arithmetic_signed {
 
         // quantity-quantity arithmetic operations
         $crate::quantity_quantity_add_sub_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
-            ($($add_min_scale_where_clauses)*), +, add, Add, $T, $rescale_fn
+            ($($single_dimension_single_scale_params)*),
+            +, add, Add, $T, $rescale_fn
         );
         $crate::quantity_quantity_add_sub_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
-            ($($add_min_scale_where_clauses)*), -, sub, Sub, $T, $rescale_fn
+            ($($single_dimension_single_scale_params)*),
+            -, sub, Sub, $T, $rescale_fn
         );
 
         $crate::quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
+            ($($single_dimension_single_scale_params)*),
             +=, add_assign, AddAssign, $T, $rescale_fn
         );
         $crate::quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
+            ($($single_dimension_single_scale_params)*),
             -=, sub_assign, SubAssign, $T, $rescale_fn
         );
 
@@ -219,6 +240,12 @@ macro_rules! _define_arithmetic_signed {
             ($($div_output_dimension_where_clauses)*),
             /, -, div, Div, $T, $rescale_fn
         );
+
+        // quantity-quantity comparison operations (scale-strict)
+        $crate::quantity_quantity_partial_ord_interface!(
+            ($($single_dimension_single_scale_params)*),
+            $T, $rescale_fn
+        );
     };
 }
 
@@ -226,10 +253,8 @@ macro_rules! _define_arithmetic_signed {
 #[doc(hidden)]
 macro_rules! _define_arithmetic {
     (($($single_dimension_single_scale_params:tt)*),
-     ($($single_dimension_multiple_scale_params:tt)*),
      ($($multiple_dimension_multiple_scale_params:tt)*),
      ($($inversion_where_clauses:tt)*),
-     ($($add_min_scale_where_clauses:tt)*),
      ($($mul_output_dimension_where_clauses:tt)*),
      ($($div_output_dimension_where_clauses:tt)*),
      $T:ty, $rescale_fn:ident) => {
@@ -244,20 +269,20 @@ macro_rules! _define_arithmetic {
 
         // quantity-quantity arithmetic operations
         $crate::quantity_quantity_add_sub_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
-            ($($add_min_scale_where_clauses)*), +, add, Add, $T, $rescale_fn
+            ($($single_dimension_single_scale_params)*),
+            +, add, Add, $T, $rescale_fn
         );
         $crate::quantity_quantity_add_sub_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
-            ($($add_min_scale_where_clauses)*), -, sub, Sub, $T, $rescale_fn
+            ($($single_dimension_single_scale_params)*),
+            -, sub, Sub, $T, $rescale_fn
         );
 
         $crate::quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
+            ($($single_dimension_single_scale_params)*),
             +=, add_assign, AddAssign, $T, $rescale_fn
         );
         $crate::quantity_quantity_add_sub_assign_interface!(
-            ($($single_dimension_single_scale_params)*), ($($single_dimension_multiple_scale_params)*),
+            ($($single_dimension_single_scale_params)*),
             -=, sub_assign, SubAssign, $T, $rescale_fn
         );
 
@@ -270,6 +295,12 @@ macro_rules! _define_arithmetic {
             ($($multiple_dimension_multiple_scale_params)*),
             ($($div_output_dimension_where_clauses)*),
             /, -, div, Div, $T, $rescale_fn
+        );
+
+        // quantity-quantity comparison operations (scale-strict)
+        $crate::quantity_quantity_partial_ord_interface!(
+            ($($single_dimension_single_scale_params)*),
+            $T, $rescale_fn
         );
     };
 }

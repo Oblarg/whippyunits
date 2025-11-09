@@ -1,4 +1,4 @@
-/// Rescale a quantity to a different unit of the same dimension.
+/// Rescale a [Quantity](crate::Quantity) to a different unit of the same dimension.
 ///
 /// This macro provides a convenient way to rescale quantities in inline contexts where
 /// there is no easy place to insert a target type assertion via `unit!`.  Defaults to
