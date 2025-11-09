@@ -74,8 +74,22 @@ Unit-generic programming patterns using generic traits and trait bounds:
 
 Working with JSON and string formats:
 
-- **`from_json.rs`** - Parsing quantities from JSON
-- **`from_string.rs`** - Parsing quantities from strings
+- **`serialization.rs`** - Serializing quantities to JSON
+- **`deserialization.rs`** - Parsing quantities from JSON and strings
+
+### Foreign Units (`foreign_units/`)
+
+Working with units that require conversion factors or affine offsets:
+
+- **`nonstorage_units.rs`** - Units with conversion factors (imperial units, etc.)
+  - Automatic conversion to nearest power-of-10 SI unit for storage
+  - Examples: inches, pounds, gallons, horsepower, PSI
+  - Understanding conversion factors and storage units
+
+- **`affine_units.rs`** - Units with zero-point offsets (temperature scales)
+  - Automatic conversion to storage unit (Kelvin) with offset handling
+  - Examples: Celsius, Fahrenheit, Rankine
+  - Temperature differences and arithmetic with affine units
 
 ## By Experience Level
 

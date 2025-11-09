@@ -9,6 +9,14 @@ pub fn get_all_unit_symbols_for_literals() -> Vec<String> {
     use whippyunits_core::{Dimension, SiPrefix, Unit};
     let mut symbols = Vec::new();
 
+    // Rust keywords that cannot be used as unit identifiers
+    const RUST_KEYWORDS: &[&str] = &[
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while", "async", "await", "dyn",
+    ];
+
     // Add base units from the canonical data
     for unit in Unit::BASES.iter() {
         if unit.name != "dimensionless" {
@@ -21,8 +29,19 @@ pub fn get_all_unit_symbols_for_literals() -> Vec<String> {
     // Add all units from the unified dimensions data (including compound units and unit literals)
     for dimension in Dimension::ALL {
         for unit in dimension.units {
+            // Add all symbols for the unit
             for symbol in unit.symbols {
                 symbols.push(symbol.to_string());
+            }
+            // For nonstorage and affine units, also add the unit name as a valid identifier
+            // since quantity! macro supports unit names (e.g., "inch", "pound", "celsius")
+            if unit.has_conversion() || unit.has_affine_offset() {
+                // Use the unit name as an identifier (e.g., "inch", "pound", "celsius")
+                // Only add if it's a valid identifier (no spaces, special chars, etc.)
+                // Rust keywords will be filtered out at the end
+                if unit.name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    symbols.push(unit.name.to_string());
+                }
             }
         }
     }
@@ -60,15 +79,8 @@ pub fn get_all_unit_symbols_for_literals() -> Vec<String> {
     symbols.sort();
     symbols.dedup();
 
-    // Filter out Rust keywords
-    let rust_keywords = [
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn",
-    ];
-
-    symbols.retain(|symbol| !rust_keywords.contains(&symbol.as_str()));
+    // Filter out Rust keywords from symbols (unit names were already filtered above)
+    symbols.retain(|symbol| !RUST_KEYWORDS.contains(&symbol.as_str()));
 
     symbols
 }

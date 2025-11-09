@@ -37,8 +37,6 @@ pub mod rescale_macro;
 #[doc(hidden)]
 pub mod scale_conversion;
 pub mod serialization;
-#[doc(hidden)]
-pub mod value_macro;
 
 pub use quantity::Quantity;
 
@@ -237,6 +235,7 @@ pub use whippyunits_proc_macros::proc_unit as unit;
 /// ```
 #[doc(inline)]
 pub use whippyunits_proc_macros::proc_quantity as quantity;
+pub use whippyunits_proc_macros::proc_value as value;
 
 /// Convert an arithmetic expression to associated type syntax (with ::Output).
 ///
@@ -274,5 +273,5 @@ pub use whippyunits_proc_macros::output;
 
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs
-// value! macro is exported via #[macro_export] in value_macro.rs
+// value! macro is exported as a proc macro re-export
 // rescale! macro is exported via #[macro_export] in rescale_macro.rs

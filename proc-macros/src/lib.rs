@@ -17,6 +17,7 @@ mod local_unit_type_macro;
 mod pow_lookup_macro;
 mod quantity_macro;
 mod unit_macro;
+mod value_macro;
 
 mod utils {
     pub mod culit;
@@ -155,6 +156,40 @@ pub fn proc_unit(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn proc_quantity(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as quantity_macro::QuantityMacroInput);
+    input.expand().into()
+}
+
+/// Access the underlying numeric value of a [Quantity](crate::Quantity).
+///
+/// Because value! explicitly specifies the target unit, this is considered a
+/// "unit-safe" operation - the type system will guarantee that the access is
+/// dimensionally coherent and the value is correctly scaled.
+///
+/// Quantities with any `Brand` other than the default `()` must specify their brand
+/// explicitly in the `value!` macro arguments; failure to do so will result in a
+/// compile error.
+///
+/// Examples:
+/// ```rust
+/// # fn main() {
+/// # use whippyunits::default_declarators::*;
+/// # use whippyunits::value;
+/// # use whippyunits::quantity;
+///
+/// let distance_f64 = quantity!(1.0, m);
+/// let val_f64: f64 = value!(distance_f64, m);   // 1.0
+/// let val_f64: f64 = value!(distance_f64, mm);  // 1000.0
+/// // let _value: f64 = value!(distance_f64, s);  // ❌ compile error (incompatible dimension)
+///
+/// let distance_i32 = quantity!(1, m, i32);
+/// let val_i32: i32 = value!(distance_i32, m, i32);   // 1
+/// let val_i32: i32 = value!(distance_i32, mm, i32);  // 1000
+/// // let _value: i32 = value!(distance_i32, s, i32);  // ❌ compile error (incompatible dimension)
+/// # }
+/// ```
+#[proc_macro]
+pub fn proc_value(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as value_macro::ValueMacroInput);
     input.expand().into()
 }
 

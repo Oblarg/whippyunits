@@ -127,6 +127,14 @@ path = "examples/erasure/scalar_erasure.rs"
 name = "angular_erasure"
 path = "examples/erasure/angular_erasure.rs"
 
+[[example]]
+name = "nonstorage_units"
+path = "examples/foreign_units/nonstorage_units.rs"
+
+[[example]]
+name = "affine_units"
+path = "examples/foreign_units/affine_units.rs"
+
 
 
 
