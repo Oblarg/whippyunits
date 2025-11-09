@@ -176,6 +176,68 @@ pub use whippyunits_proc_macros::local_unit_type as local_unit;
 #[doc(inline)]
 pub use whippyunits_proc_macros::proc_unit as unit;
 
+/// Creates a [Quantity] from a value and unit expression.
+///
+/// This macro supports both storage and nonstorage units. For nonstorage units,
+/// it automatically dispatches to the appropriate declarator trait.
+///
+/// ## Syntax
+///
+/// ```rust,ignore
+/// quantity!(value, unit_expr)
+/// quantity!(value, unit_expr, storage_type)
+/// quantity!(value, unit_expr, storage_type, brand_type)
+/// ```
+///
+/// where:
+/// - `value`: The value of the quantity
+/// - `unit_expr`: A "unit literal expression"
+///     - A "unit literal expression" is either:
+///         - An atomic unit (may include prefix):
+///             - `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `rad`
+///         - An exponentiation of an atomic unit:
+///             - `m2`, `m^2`
+///         - A multiplication of two or more (possibly exponentiated) atomic units:
+///             - `kg.m2`, `kg * m2`
+///         - A division of two such product expressions:
+///             - `kg.m2/s2`, `kg * m2 / s^2`
+///             - There may be at most one division expression in a unit literal expression
+///             - All terms trailing the division symbol are considered to be in the denominator
+/// - `storage_type`: An optional storage type for the quantity. Defaults to `f64`.
+/// - `brand_type`: An optional brand type for the quantity. Defaults to `()`.
+///
+/// ## Examples
+///
+/// ```rust
+/// # fn main() {
+/// # use whippyunits::quantity;
+/// // Basic quantities
+/// let distance = quantity!(5.0, m);
+/// let mass = quantity!(2.5, kg);
+/// let time = quantity!(10.0, s);
+///
+/// // Compound units
+/// let velocity = quantity!(10.0, m/s);
+/// let acceleration = quantity!(9.81, m/s^2);
+/// let force = quantity!(100.0, kg*m/s^2);
+/// let energy = quantity!(50.0, kg.m2/s2);
+///
+/// // With explicit storage type
+/// let distance_f32 = quantity!(5.0, m, f32);
+/// let mass_i32 = quantity!(2, kg, i32);
+///
+/// // Complex expressions
+/// let power = quantity!(1000.0, kg.m^2/s^3);
+/// let pressure = quantity!(101325.0, kg/m.s^2);
+///
+/// // Nonstorage units (e.g., imperial units)
+/// let length = quantity!(12.0, in); // inches
+/// let mass = quantity!(1.0, lb); // pounds
+/// # }
+/// ```
+#[doc(inline)]
+pub use whippyunits_proc_macros::proc_quantity as quantity;
+
 /// Convert an arithmetic expression to associated type syntax (with ::Output).
 ///
 /// This macro simplifies writing complex associated type expressions by allowing

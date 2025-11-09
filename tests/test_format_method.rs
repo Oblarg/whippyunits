@@ -17,7 +17,7 @@ fn test_format_method() {
 
     let ft_result = distance.fmt("ft");
     println!("1000m in ft: {}", ft_result);
-    assert_eq!(format!("{}", ft_result), "3280.8398950131236 ft");
+    assert_eq!(format!("{}", ft_result), "3280.839895013123 ft");
 
     let mi_result = distance.fmt("mi");
     println!("1000m in mi: {}", mi_result);

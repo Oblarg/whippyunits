@@ -44,6 +44,13 @@ impl Parse for UnitMacroInput {
 
 impl UnitMacroInput {
     pub fn expand(self) -> TokenStream {
+        // Validate that no nonstorage units are used (strict mode requirement)
+        if let Some(error_msg) = self.unit_expr.validate_strict() {
+            return quote! {
+                compile_error!(#error_msg);
+            };
+        }
+
         let result = self.unit_expr.evaluate();
         let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = (
             result.dimension_exponents.0[0],

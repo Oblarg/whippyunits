@@ -71,39 +71,46 @@ impl DefaultDeclaratorsInput {
         )
     }
 
-    /// Generate trait name for metric units
+    /// Generate trait name for metric units (storage units only)
     fn generate_metric_trait_name(dimension_name: &str) -> String {
-        let sanitized_name = dimension_name.replace(" ", "");
-        format!(
-            "Metric{}",
-            whippyunits_core::CapitalizedFmt(&sanitized_name).to_string()
+        whippyunits_core::generate_declarator_trait_name(
+            whippyunits_core::System::Metric,
+            dimension_name,
+            1.0, // storage unit
+            0.0, // no affine offset
         )
     }
 
-    /// Generate trait name for system units (Imperial, Astronomical, etc.)
+    /// Generate trait name for system units (Imperial, Astronomical, etc.) - storage units only
     fn generate_system_trait_name(
         system: &whippyunits_core::System,
         dimension_name: &str,
     ) -> String {
-        let system_name = system.as_str();
-        format!(
-            "{}{}",
-            system_name,
-            whippyunits_core::CapitalizedFmt(dimension_name).to_string()
+        whippyunits_core::generate_declarator_trait_name(
+            *system,
+            dimension_name,
+            1.0, // storage unit (though imperial/astronomical are typically nonstorage)
+            0.0, // no affine offset
         )
     }
 
-    /// Generate trait name for affine units
+    /// Generate trait name for affine units (from base trait name)
+    /// Note: This is a convenience wrapper that extracts the dimension from the base name
+    /// For new code, prefer using generate_declarator_trait_name directly
     fn generate_affine_trait_name(base_trait_name: &str) -> String {
         format!("{}Affine", base_trait_name)
     }
 
-    /// Generate trait name for non-storage units
+    /// Generate trait name for non-storage units (from base trait name)
+    /// Note: This is a convenience wrapper that extracts the dimension from the base name
+    /// For new code, prefer using generate_declarator_trait_name directly
     fn generate_nonstorage_trait_name(base_trait_name: &str) -> String {
         format!("{}NonStorage", base_trait_name)
     }
 
-    /// Generate trait name for non-storage affine units
+    /// Generate trait name for non-storage affine units (from base trait name)
+    /// Note: This is a convenience wrapper that extracts the dimension from the base name
+    /// For new code, prefer using generate_declarator_trait_name directly
     fn generate_nonstorage_affine_trait_name(base_trait_name: &str) -> String {
         format!("{}NonStorageAffine", base_trait_name)
     }

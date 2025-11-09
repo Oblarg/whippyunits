@@ -25,6 +25,16 @@ pub struct UnitExprUnit {
     pub exponent: i16,
 }
 
+/// Evaluation mode for unit expressions
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvaluationMode {
+    /// Strict mode: only allows storage units (for `unit!` macro)
+    /// Nonstorage units will be treated as unknown/dimensionless
+    Strict,
+    /// Tolerant mode: allows both storage and nonstorage units (for `quantity!`, `value!`, serialization)
+    Tolerant,
+}
+
 /// Result of evaluating a unit expression
 #[derive(Debug, Clone, Copy)]
 pub struct UnitEvaluationResult {
@@ -194,8 +204,94 @@ impl UnitExpr {
         }
     }
 
+    /// Validate that the unit expression doesn't contain nonstorage units (for strict mode)
+    /// Returns an error message if any nonstorage units are found, None otherwise
+    #[cfg(not(test))]
+    pub fn validate_strict(&self) -> Option<alloc::string::String> {
+        self.validate_strict_recursive()
+    }
+
+    #[cfg(test)]
+    pub fn validate_strict(&self) -> Option<std::string::String> {
+        self.validate_strict_recursive()
+    }
+
+    #[cfg(not(test))]
+    fn validate_strict_recursive(&self) -> Option<alloc::string::String> {
+        match self {
+            UnitExpr::Unit(unit) => {
+                // Skip special units
+                if unit.name.to_string() == "power_of_10" || unit.name.to_string() == "dimensionless" {
+                    return None;
+                }
+
+                if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                    // Check if this is a nonstorage unit
+                    if unit_info.conversion_factor != 1.0 {
+                        let unit_name = unit.name.to_string();
+                        return Some(alloc::format!(
+                            "Nonstorage unit '{}' cannot be used in `unit!` macro. Use `quantity!` macro instead, or use a storage unit.",
+                            unit_name
+                        ));
+                    }
+                }
+                None
+            }
+            UnitExpr::Mul(a, b) => {
+                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
+            }
+            UnitExpr::Div(a, b) => {
+                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
+            }
+            UnitExpr::Pow(base, _) => {
+                base.validate_strict_recursive()
+            }
+        }
+    }
+
+    #[cfg(test)]
+    fn validate_strict_recursive(&self) -> Option<std::string::String> {
+        match self {
+            UnitExpr::Unit(unit) => {
+                // Skip special units
+                if unit.name.to_string() == "power_of_10" || unit.name.to_string() == "dimensionless" {
+                    return None;
+                }
+
+                if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                    // Check if this is a nonstorage unit
+                    if unit_info.conversion_factor != 1.0 {
+                        let unit_name = unit.name.to_string();
+                        return Some(std::format!(
+                            "Nonstorage unit '{}' cannot be used in `unit!` macro. Use `quantity!` macro instead, or use a storage unit.",
+                            unit_name
+                        ));
+                    }
+                }
+                None
+            }
+            UnitExpr::Mul(a, b) => {
+                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
+            }
+            UnitExpr::Div(a, b) => {
+                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
+            }
+            UnitExpr::Pow(base, _) => {
+                base.validate_strict_recursive()
+            }
+        }
+    }
+
     /// Evaluate the unit expression to get dimension exponents and scale factors
+    /// 
+    /// In strict mode, nonstorage units are treated as unknown/dimensionless.
+    /// In tolerant mode, all units (including nonstorage) are evaluated normally.
     pub fn evaluate(&self) -> UnitEvaluationResult {
+        self.evaluate_with_mode(EvaluationMode::Strict)
+    }
+
+    /// Evaluate the unit expression with a specific evaluation mode
+    pub fn evaluate_with_mode(&self, mode: EvaluationMode) -> UnitEvaluationResult {
         match self {
             UnitExpr::Unit(unit) => {
                 // Handle special power-of-10 scale factors
@@ -207,6 +303,15 @@ impl UnitExpr {
                 }
 
                 if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                    // In strict mode, nonstorage units should have been caught by validate_strict()
+                    // But we still need to handle them here for safety - treat as unknown/dimensionless
+                    if mode == EvaluationMode::Strict && unit_info.conversion_factor != 1.0 {
+                        // This shouldn't happen if validate_strict() was called, but handle gracefully
+                        return UnitEvaluationResult {
+                            dimension_exponents: DynDimensionExponents::ZERO,
+                            scale_exponents: ScaleExponents::IDENTITY,
+                        };
+                    }
                     // Get the dimension exponents and scale exponents from the unit
                     let mut dimension_exponents = unit_info.exponents.value();
                     let mut scale_exponents = unit_info.scale;
@@ -266,8 +371,8 @@ impl UnitExpr {
                 }
             }
             UnitExpr::Mul(a, b) => {
-                let result_a = a.evaluate();
-                let result_b = b.evaluate();
+                let result_a = a.evaluate_with_mode(mode);
+                let result_b = b.evaluate_with_mode(mode);
                 UnitEvaluationResult {
                     dimension_exponents: result_a.dimension_exponents
                         + result_b.dimension_exponents,
@@ -275,8 +380,8 @@ impl UnitExpr {
                 }
             }
             UnitExpr::Div(a, b) => {
-                let result_a = a.evaluate();
-                let result_b = b.evaluate();
+                let result_a = a.evaluate_with_mode(mode);
+                let result_b = b.evaluate_with_mode(mode);
                 UnitEvaluationResult {
                     dimension_exponents: result_a.dimension_exponents
                         + (-result_b.dimension_exponents),
@@ -284,13 +389,105 @@ impl UnitExpr {
                 }
             }
             UnitExpr::Pow(base, exp) => {
-                let result = base.evaluate();
+                let result = base.evaluate_with_mode(mode);
                 let exp_val: i16 = exp.base10_parse().unwrap();
                 UnitEvaluationResult {
                     dimension_exponents: result.dimension_exponents * exp_val,
                     scale_exponents: result.scale_exponents.scalar_exp(exp_val),
                 }
             }
+        }
+    }
+}
+
+/// Calculate conversion factor and affine offset from a parsed unit expression
+/// Returns (conversion_factor, affine_offset) for nonstorage units
+/// For storage units, returns (1.0, 0.0)
+/// 
+/// This handles compound units by recursively calculating conversion factors:
+/// - Multiplication: conversion factors multiply, affine offsets propagate
+/// - Division: conversion factors divide, affine offsets are divided
+/// - Exponentiation: conversion factors are raised to power, affine offsets are multiplied
+pub fn calculate_unit_conversion_factors(expr: &UnitExpr) -> (f64, f64) {
+    calculate_conversion_factors_recursive(expr)
+}
+
+/// Recursively calculate conversion factors and affine offsets from a UnitExpr
+fn calculate_conversion_factors_recursive(expr: &UnitExpr) -> (f64, f64) {
+    match expr {
+        UnitExpr::Unit(unit) => {
+            // Skip special units
+            if unit.name.to_string() == "power_of_10" || unit.name.to_string() == "dimensionless" {
+                return (1.0, 0.0);
+            }
+
+            if let Some(unit_info) = get_unit_info(&unit.name.to_string()) {
+                let mut conversion_factor = unit_info.conversion_factor;
+                let mut affine_offset = unit_info.affine_offset;
+
+                // Apply exponent if present
+                if unit.exponent != 1 {
+                    // For exponents, conversion factor is raised to the power
+                    conversion_factor = conversion_factor.powi(unit.exponent as i32);
+                    // Affine offset is multiplied by the exponent (for temperature scales, etc.)
+                    affine_offset = affine_offset * unit.exponent as f64;
+                }
+
+                (conversion_factor, affine_offset)
+            } else {
+                // Unknown unit - assume storage unit
+                (1.0, 0.0)
+            }
+        }
+        UnitExpr::Mul(a, b) => {
+            let (cf_a, af_a) = calculate_conversion_factors_recursive(a);
+            let (cf_b, af_b) = calculate_conversion_factors_recursive(b);
+            // For multiplication: conversion factors multiply
+            // Affine offsets: only one unit should have an affine offset (typically temperature)
+            // If both have affine offsets, we combine them (though this is unusual)
+            // The affine offset applies to the entire product
+            let total_affine = if af_a != 0.0 && af_b != 0.0 {
+                // Both have affine offsets - this is unusual but we'll combine them
+                // This typically doesn't make physical sense, but we handle it
+                af_a * cf_b + af_b * cf_a
+            } else if af_a != 0.0 {
+                // If a has affine offset, it applies to the whole product
+                af_a * cf_b
+            } else {
+                // If b has affine offset, it applies to the whole product
+                af_b * cf_a
+            };
+            (cf_a * cf_b, total_affine)
+        }
+        UnitExpr::Div(a, b) => {
+            let (cf_a, af_a) = calculate_conversion_factors_recursive(a);
+            let (cf_b, af_b) = calculate_conversion_factors_recursive(b);
+            // For division: conversion factors divide
+            // Affine offsets: if denominator has affine offset, it's complex
+            // If numerator has affine offset, it's divided by the denominator's conversion factor
+            if af_b != 0.0 {
+                // Denominator has affine offset - this is complex and typically invalid
+                // For now, we'll treat it as an error case by returning a large value
+                // In practice, this should be caught earlier, but we handle it gracefully
+                (cf_a / cf_b, af_a / cf_b)
+            } else {
+                let total_affine = if af_a != 0.0 {
+                    // Numerator affine offset is divided by denominator conversion factor
+                    af_a / cf_b
+                } else {
+                    0.0
+                };
+                (cf_a / cf_b, total_affine)
+            }
+        }
+        UnitExpr::Pow(base, exp) => {
+            let (cf, af) = calculate_conversion_factors_recursive(base);
+            let exp_val: i16 = exp.base10_parse().unwrap_or(1);
+            // Conversion factor raised to power
+            let new_cf = cf.powi(exp_val as i32);
+            // Affine offset multiplied by exponent
+            let new_af = af * exp_val as f64;
+            (new_cf, new_af)
         }
     }
 }

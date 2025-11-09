@@ -506,9 +506,48 @@ impl<
             };
         }
 
-        // Calculate conversion factor (same logic as deserialization)
-        let conversion_factor = calculate_conversion_factor(&source_dims, &target_dims);
-        let converted_value: f64 = self.unsafe_value.into() * conversion_factor;
+        // Parse the target unit string to get UnitExpr for conversion factor calculation
+        use proc_macro2::TokenStream;
+        use syn::parse_str;
+        use whippyunits_core::{UnitExpr, calculate_unit_conversion_factors};
+
+        // Parse the target unit string into a UnitExpr
+        let target_unit_expr: UnitExpr = match (|| -> Result<UnitExpr, ()> {
+            let token_stream: TokenStream = parse_str(unit).map_err(|_| ())?;
+            syn::parse2(token_stream).map_err(|_| ())
+        })() {
+            Ok(expr) => expr,
+            Err(_) => {
+                // Parse error - fall back to scale-only conversion
+                let conversion_factor = calculate_conversion_factor(&source_dims, &target_dims);
+                let converted_value: f64 = self.unsafe_value.into() * conversion_factor;
+                return QuantityFormatter {
+                    value: converted_value,
+                    unit: unit.to_string(),
+                    is_error: false,
+                };
+            }
+        };
+
+        // Calculate nonstorage unit conversion factors (if any)
+        let (target_unit_cf, target_unit_af) = calculate_unit_conversion_factors(&target_unit_expr);
+        
+        // Calculate scale factor conversion (for storage unit scaling)
+        let scale_conversion_factor = calculate_conversion_factor(&source_dims, &target_dims);
+        
+        // Convert from storage unit to target unit:
+        // 1. Apply scale factor conversion
+        let value_with_scale: f64 = self.unsafe_value.into() * scale_conversion_factor;
+        
+        // 2. Apply inverse of nonstorage conversion (if target is nonstorage)
+        //    Going FROM storage TO nonstorage: divide by conversion_factor, subtract affine_offset
+        let converted_value = if target_unit_cf != 1.0 || target_unit_af != 0.0 {
+            // Target is nonstorage: apply inverse conversion
+            (value_with_scale / target_unit_cf) - target_unit_af
+        } else {
+            // Target is storage unit: no additional conversion needed
+            value_with_scale
+        };
 
         // Return a formatter that displays the converted value with the unit
         QuantityFormatter {

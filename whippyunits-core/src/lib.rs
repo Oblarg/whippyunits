@@ -71,6 +71,64 @@ pub fn make_plural(singular: &str) -> String {
     }
 }
 
+/// Generate the declarator trait name for a unit based on its system, dimension, and properties.
+///
+/// This function generates trait names like:
+/// - `MetricLength` (storage metric unit)
+/// - `MetricLengthNonStorage` (nonstorage metric unit)
+/// - `MetricLengthAffine` (affine metric unit)
+/// - `MetricLengthNonStorageAffine` (nonstorage affine metric unit)
+/// - `ImperialLength` (imperial unit - already nonstorage by nature)
+/// - `ImperialLengthAffine` (imperial affine unit)
+///
+/// Note: Imperial and Astronomical units are already nonstorage by nature, so they don't
+/// get a "NonStorage" suffix. Only Metric units get the suffix.
+///
+/// # Arguments
+///
+/// * `system` - The unit system (Metric, Imperial, Astronomical)
+/// * `dimension_name` - The name of the dimension (e.g., "Length", "Mass")
+/// * `conversion_factor` - The conversion factor (1.0 for storage units)
+/// * `affine_offset` - The affine offset (0.0 for non-affine units)
+///
+/// # Returns
+///
+/// The full trait name as a String
+pub fn generate_declarator_trait_name(
+    system: System,
+    dimension_name: &str,
+    conversion_factor: f64,
+    affine_offset: f64,
+) -> String {
+    let sanitized_dimension = dimension_name.replace(" ", "");
+    let capitalized_dimension = CapitalizedFmt(&sanitized_dimension).to_string();
+    
+    if system == System::Metric {
+        let base_trait_name = format!("Metric{}", capitalized_dimension);
+        
+        // Add suffix based on unit type for metric units
+        if conversion_factor != 1.0 && affine_offset != 0.0 {
+            format!("{}NonStorageAffine", base_trait_name)
+        } else if conversion_factor != 1.0 {
+            format!("{}NonStorage", base_trait_name)
+        } else if affine_offset != 0.0 {
+            format!("{}Affine", base_trait_name)
+        } else {
+            // Pure storage metric unit
+            base_trait_name
+        }
+    } else {
+        // For Imperial/Astronomical: base trait name (they're already nonstorage)
+        // Only add Affine suffix if needed
+        let base_trait_name = format!("{}{}", system.as_str(), capitalized_dimension);
+        if affine_offset != 0.0 {
+            format!("{}Affine", base_trait_name)
+        } else {
+            base_trait_name
+        }
+    }
+}
+
 /// Convert any integer to Unicode superscript notation
 /// Returns empty string for unity exponent (1) unless show_unity is true
 /// Returns "ˀ" for unknown values (i16::MIN)

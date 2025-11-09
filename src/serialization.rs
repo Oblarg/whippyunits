@@ -635,8 +635,8 @@ pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
         UcumError::UnknownDimension(DynDimensionExponents([0, 0, 0, 0, 0, 0, 0, 0]))
     })?;
 
-    // Evaluate the unit expression to get dimensions and scales
-    let result: UnitEvaluationResult = unit_expr.evaluate();
+    // Evaluate the unit expression to get dimensions and scales (use tolerant mode for serialization)
+    let result: UnitEvaluationResult = unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
 
     Ok((result.dimension_exponents, result.scale_exponents))
 }
@@ -658,6 +658,32 @@ pub fn validate_dimensions(
         });
     }
     Ok(())
+}
+
+/// Calculate conversion factor and affine offset from a parsed unit string
+/// Returns (conversion_factor, affine_offset) for nonstorage units
+/// For storage units, returns (1.0, 0.0)
+fn calculate_unit_conversion_factors(unit_str: &str) -> Result<(f64, f64), SerializationError> {
+    use proc_macro2::TokenStream;
+    use syn::parse_str;
+    use whippyunits_core::{UnitExpr, calculate_unit_conversion_factors as calc_cf};
+
+    // Handle dimensionless case
+    if unit_str == "1" {
+        return Ok((1.0, 0.0));
+    }
+
+    // Parse the unit string into a UnitExpr
+    let token_stream: TokenStream = parse_str(unit_str).map_err(|_| {
+        SerializationError::ParseError(format!("Failed to parse unit string: {}", unit_str))
+    })?;
+
+    let unit_expr: UnitExpr = syn::parse2(token_stream).map_err(|_| {
+        SerializationError::ParseError(format!("Failed to parse unit expression: {}", unit_str))
+    })?;
+
+    // Use the shared logic from whippyunits-core
+    Ok(calc_cf(&unit_expr))
 }
 
 /// Calculate conversion factor between two units with matching dimensions
@@ -1058,9 +1084,15 @@ pub fn deserialize_core<
         });
     }
 
-    // Calculate conversion factor if needed
-    let conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
-    Ok(value * conversion_factor)
+    // Calculate nonstorage unit conversion factors (if any)
+    let (unit_cf, unit_af) = calculate_unit_conversion_factors(unit_str)?;
+    
+    // Apply nonstorage unit conversion factor and affine offset
+    let value_with_unit_conversion = (value * unit_cf) + unit_af;
+
+    // Calculate scale factor conversion (for storage unit scaling)
+    let scale_conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
+    Ok(value_with_unit_conversion * scale_conversion_factor)
 }
 
 /// Core deserialization logic that returns a Quantity directly (optimized version)
@@ -1129,9 +1161,15 @@ where
         });
     }
 
-    // Calculate conversion factor if needed
-    let conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
-    let converted_value = value * conversion_factor;
+    // Calculate nonstorage unit conversion factors (if any)
+    let (unit_cf, unit_af) = calculate_unit_conversion_factors(unit_str)?;
+    
+    // Apply nonstorage unit conversion factor and affine offset
+    let value_with_unit_conversion = (value * unit_cf) + unit_af;
+
+    // Calculate scale factor conversion (for storage unit scaling)
+    let scale_conversion_factor = calculate_conversion_factor(&parsed_dims, &target_dims);
+    let converted_value = value_with_unit_conversion * scale_conversion_factor;
 
     // Construct Quantity directly using const parameters - no need for quantity! macro
     Ok(Quantity::<

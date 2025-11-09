@@ -50,11 +50,13 @@ fn main() {
     println!("\n4. Formatting with unit conversions:");
     let length_km = format!("{}", length.fmt("km"));
     let length_cm = format!("{}", length.fmt("cm"));
+    let length_ft = format!("{}", length.fmt("ft"));
     let mass_g = format!("{}", mass.fmt("g"));
     let velocity_kmh = format!("{}", velocity.fmt("km/h"));
 
     println!("   5 m as km: {}", length_km);
     println!("   5 m as cm: {}", length_cm);
+    println!("   5 m as ft: {}", length_ft);
     println!("   2.5 kg as g: {}", mass_g);
     println!("   20 m/s as km/h: {}", velocity_kmh);
 

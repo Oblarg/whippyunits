@@ -9,7 +9,8 @@ use syn::parse;
 pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     let unit_expr: whippyunits_core::UnitExpr = parse(input).expect("Expected unit expression");
 
-    let result = unit_expr.evaluate();
+    // Use tolerant mode to allow nonstorage units (for quantity!, value!, serialization)
+    let result = unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
 
     // Extract individual values for the quote
     let (d0, d1, d2, d3, d4, d5, d6, d7) = (
