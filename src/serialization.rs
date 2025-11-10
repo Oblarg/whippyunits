@@ -873,7 +873,7 @@ macro_rules! from_json {
 /// assert_eq!(value!(length, m), 5.0);
 /// let length: unit!(km) = from_string!("5.0 m", km).unwrap();
 /// assert_eq!(value!(length, km), 0.005);
-/// let acceleration: unit!(m/s2) = from_string!("9.81 m/s2", m/s2).unwrap();
+/// let acceleration: unit!(m/s2) = from_string!("9.81 m/s2",  m/s2).unwrap();
 /// assert_eq!(value!(acceleration, m/s2), 9.81);
 /// let acceleration: unit!(m/s2) = from_string!("9.81m/s2", m/s2).unwrap(); // Space is optional
 /// assert_eq!(value!(acceleration, m/s2), 9.81);

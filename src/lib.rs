@@ -229,7 +229,7 @@ pub use whippyunits_proc_macros::proc_unit as unit;
 /// let pressure = quantity!(101325.0, kg/m.s^2);
 ///
 /// // Nonstorage units (e.g., imperial units)
-/// let length = quantity!(12.0, in); // inches
+/// let length = quantity!(12.0, ft); // feet
 /// let mass = quantity!(1.0, lb); // pounds
 /// # }
 /// ```
@@ -241,33 +241,6 @@ pub use whippyunits_proc_macros::proc_value as value;
 ///
 /// This macro simplifies writing complex associated type expressions by allowing
 /// you to write arithmetic expressions instead of nested trait bound syntax.
-///
-/// ## Examples
-///
-/// ```rust
-/// use whippyunits::output;
-///
-/// // Simple division
-/// type Kp = output!(CO / PV);  // Expands to: <CO as Div<PV>>::Output
-///
-/// // Multiplication
-/// type Area = output!(Length * Width);  // Expands to: <Length as Mul<Width>>::Output
-///
-/// // Complex nested expression
-/// type Ki = output!(CO / (PV * T));  // Expands to: <CO as Div<<PV as Mul<T>>::Output>>::Output
-///
-/// // With parentheses
-/// type Kd = output!((CO * T) / PV);  // Expands to: <<CO as Mul<T>>::Output as Div<PV>>::Output
-/// ```
-///
-/// ## Supported Operations
-///
-/// - `*` (multiplication) → `Mul`
-/// - `/` (division) → `Div`
-/// - `+` (addition) → `Add`
-/// - `-` (subtraction) → `Sub`
-///
-/// Operations are evaluated left-to-right with standard precedence.
 #[doc(inline)]
 pub use whippyunits_proc_macros::output;
 
