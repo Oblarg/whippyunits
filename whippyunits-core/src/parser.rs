@@ -221,7 +221,9 @@ impl UnitExpr {
         match self {
             UnitExpr::Unit(unit) => {
                 // Skip special units
-                if unit.name.to_string() == "power_of_10" || unit.name.to_string() == "dimensionless" {
+                if unit.name.to_string() == "power_of_10"
+                    || unit.name.to_string() == "dimensionless"
+                {
                     return None;
                 }
 
@@ -237,15 +239,13 @@ impl UnitExpr {
                 }
                 None
             }
-            UnitExpr::Mul(a, b) => {
-                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
-            }
-            UnitExpr::Div(a, b) => {
-                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
-            }
-            UnitExpr::Pow(base, _) => {
-                base.validate_strict_recursive()
-            }
+            UnitExpr::Mul(a, b) => a
+                .validate_strict_recursive()
+                .or_else(|| b.validate_strict_recursive()),
+            UnitExpr::Div(a, b) => a
+                .validate_strict_recursive()
+                .or_else(|| b.validate_strict_recursive()),
+            UnitExpr::Pow(base, _) => base.validate_strict_recursive(),
         }
     }
 
@@ -254,7 +254,9 @@ impl UnitExpr {
         match self {
             UnitExpr::Unit(unit) => {
                 // Skip special units
-                if unit.name.to_string() == "power_of_10" || unit.name.to_string() == "dimensionless" {
+                if unit.name.to_string() == "power_of_10"
+                    || unit.name.to_string() == "dimensionless"
+                {
                     return None;
                 }
 
@@ -270,20 +272,18 @@ impl UnitExpr {
                 }
                 None
             }
-            UnitExpr::Mul(a, b) => {
-                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
-            }
-            UnitExpr::Div(a, b) => {
-                a.validate_strict_recursive().or_else(|| b.validate_strict_recursive())
-            }
-            UnitExpr::Pow(base, _) => {
-                base.validate_strict_recursive()
-            }
+            UnitExpr::Mul(a, b) => a
+                .validate_strict_recursive()
+                .or_else(|| b.validate_strict_recursive()),
+            UnitExpr::Div(a, b) => a
+                .validate_strict_recursive()
+                .or_else(|| b.validate_strict_recursive()),
+            UnitExpr::Pow(base, _) => base.validate_strict_recursive(),
         }
     }
 
     /// Evaluate the unit expression to get dimension exponents and scale factors
-    /// 
+    ///
     /// In strict mode, nonstorage units are treated as unknown/dimensionless.
     /// In tolerant mode, all units (including nonstorage) are evaluated normally.
     pub fn evaluate(&self) -> UnitEvaluationResult {
@@ -403,7 +403,7 @@ impl UnitExpr {
 /// Calculate conversion factor and affine offset from a parsed unit expression
 /// Returns (conversion_factor, affine_offset) for nonstorage units
 /// For storage units, returns (1.0, 0.0)
-/// 
+///
 /// This handles compound units by recursively calculating conversion factors:
 /// - Multiplication: conversion factors multiply, affine offsets propagate
 /// - Division: conversion factors divide, affine offsets are divided

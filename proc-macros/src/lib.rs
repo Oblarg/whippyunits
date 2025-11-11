@@ -371,7 +371,6 @@ pub fn output(input: TokenStream) -> TokenStream {
     result.into()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

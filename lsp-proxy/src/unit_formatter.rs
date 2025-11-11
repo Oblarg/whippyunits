@@ -140,27 +140,27 @@ impl UnitFormatter {
                 end: usize,
                 formatted: String,
             }
-            
+
             let mut matches = Vec::new();
             let mut i = 0;
-            
+
             while i < text.len() {
                 // Search for "Quantity<Scale" starting from position i
                 if let Some(relative_start) = text[i..].find("Quantity<Scale") {
                     let start_pos = i + relative_start;
-                    
+
                     // Count brackets to find the matching end of this Quantity type
                     // start_pos points to "Q" in "Quantity<Scale"
                     // start_pos + 8 points to the '<' after "Quantity"
                     let quantity_start = start_pos + 8; // Position of the '<'
-                    // Start bracket_count at 1 because we're already inside Quantity<
-                    // Start j after the '<' so we don't count it again
+                                                        // Start bracket_count at 1 because we're already inside Quantity<
+                                                        // Start j after the '<' so we don't count it again
                     let mut bracket_count = 1;
                     let mut found_end = false;
                     // Use byte indices, not char indices, to match the string slicing
                     let mut byte_pos = quantity_start + 1; // Start after the opening '<'
                     let text_bytes = text.as_bytes();
-                    
+
                     while byte_pos < text_bytes.len() {
                         match text_bytes[byte_pos] {
                             b'<' => bracket_count += 1,
@@ -175,26 +175,26 @@ impl UnitFormatter {
                         }
                         byte_pos += 1;
                     }
-                    
+
                     if found_end {
                         let actual_end = byte_pos + 1; // +1 to include the '>'
-                        // Ensure we don't go past the end of the string
+                                                       // Ensure we don't go past the end of the string
                         let actual_end = actual_end.min(text.len());
                         let quantity_type = &text[start_pos..actual_end];
-                        
+
                         let formatted = self.format_new_quantity_type(
                             quantity_type,
                             verbose,
                             unicode,
                             is_inlay_hint,
                         );
-                        
+
                         matches.push(QuantityMatch {
                             start: start_pos,
                             end: actual_end,
                             formatted,
                         });
-                        
+
                         // Continue searching from after this Quantity type
                         i = actual_end;
                     } else {
@@ -206,19 +206,18 @@ impl UnitFormatter {
                     break;
                 }
             }
-            
+
             // Second pass: replace all matches from end to start to preserve positions
             if matches.is_empty() {
                 return text.to_string();
             }
-            
-            
+
             let mut result = text.to_string();
             // Replace from end to start to preserve positions
             for m in matches.iter().rev() {
                 result.replace_range(m.start..m.end, &m.formatted);
             }
-            
+
             return result;
         }
 
@@ -605,13 +604,13 @@ impl UnitFormatter {
         // Find the first occurrence of ": " followed by something that looks like a type with generics
         if let Some(start) = hover_text.find(": ") {
             let after_colon = &hover_text[start + 2..];
-            
+
             // Find where the type name ends (either at '<' for generics, or at whitespace/newline)
             let type_end = after_colon
                 .char_indices()
                 .find(|(_, ch)| *ch == '<' || *ch == '\n' || *ch == '\r')
                 .map(|(i, _)| i);
-            
+
             if let Some(type_end) = type_end {
                 if after_colon.chars().nth(type_end) == Some('<') {
                     // We found a generic type, extract the full declaration
@@ -621,7 +620,8 @@ impl UnitFormatter {
 
                     // Look backwards to find the start of the declaration
                     while var_start > 0 {
-                        let char_before = hover_text[var_start - 1..var_start].chars().next().unwrap();
+                        let char_before =
+                            hover_text[var_start - 1..var_start].chars().next().unwrap();
                         if char_before.is_whitespace() {
                             // Check if we've found "let" or "let mut"
                             let potential_start = var_start;

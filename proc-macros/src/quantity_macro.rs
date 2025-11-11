@@ -3,7 +3,7 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::Comma;
 use syn::{Expr, Type};
-use whippyunits_core::{Dimension, UnitExpr, get_unit_info, calculate_unit_conversion_factors};
+use whippyunits_core::{calculate_unit_conversion_factors, get_unit_info, Dimension, UnitExpr};
 
 /// Input for the quantity macro
 pub struct QuantityMacroInput {
@@ -53,30 +53,30 @@ impl QuantityMacroInput {
                 // Check if it's nonstorage or affine
                 let is_nonstorage = unit_info.conversion_factor != 1.0;
                 let is_affine = unit_info.affine_offset != 0.0;
-                
+
                 if is_nonstorage || is_affine {
                     // Dispatch to appropriate declarator (handles conversion internally)
                     return self.expand_with_declarator(unit_info);
                 }
             }
         }
-        
+
         // For storage units or compound units (including those with nonstorage),
         // use shared conversion factor calculation
         self.expand_with_conversion_factors()
     }
-    
+
     fn expand_with_declarator(&self, unit_info: &whippyunits_core::Unit) -> TokenStream {
         // Find the dimension for this unit
-        let dimension = Dimension::ALL.iter().find(|dim| {
-            dim.units.iter().any(|u| u.name == unit_info.name)
-        });
-        
+        let dimension = Dimension::ALL
+            .iter()
+            .find(|dim| dim.units.iter().any(|u| u.name == unit_info.name));
+
         let Some(dimension) = dimension else {
             // Fall back to conversion factors approach if dimension not found
             return self.expand_with_conversion_factors();
         };
-        
+
         // Generate trait name using shared logic from whippyunits-core
         let full_trait_name = whippyunits_core::generate_declarator_trait_name(
             unit_info.system,
@@ -84,7 +84,7 @@ impl QuantityMacroInput {
             unit_info.conversion_factor,
             unit_info.affine_offset,
         );
-        
+
         // If this is a pure storage metric unit, we shouldn't reach here for nonstorage dispatch
         if unit_info.system == whippyunits_core::System::Metric
             && unit_info.conversion_factor == 1.0
@@ -92,15 +92,15 @@ impl QuantityMacroInput {
         {
             return self.expand_with_conversion_factors();
         }
-        
+
         // Get the method name (plural form of unit name)
         let method_name = whippyunits_core::make_plural(unit_info.name);
-        
+
         let trait_ident = syn::Ident::new(&full_trait_name, proc_macro2::Span::call_site());
         let method_ident = syn::Ident::new(&method_name, proc_macro2::Span::call_site());
-        
+
         let value_expr = &self.value;
-        
+
         // Generate the declarator call
         // The trait methods are called directly on the value type
         // The trait is generic, but the impls are for specific types (f64, i32)
@@ -111,13 +111,15 @@ impl QuantityMacroInput {
             }
         }
     }
-    
+
     fn expand_with_conversion_factors(&self) -> TokenStream {
         // Use shared logic: evaluate unit expression and calculate conversion factors
         // (same approach as deserialize/fmt methods)
-        let result = self.unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
+        let result = self
+            .unit_expr
+            .evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
         let (conversion_factor, affine_offset) = calculate_unit_conversion_factors(&self.unit_expr);
-        
+
         let (mass_exp, length_exp, time_exp, current_exp, temp_exp, amount_exp, lum_exp, angle_exp) = (
             result.dimension_exponents.0[0],
             result.dimension_exponents.0[1],
@@ -134,27 +136,27 @@ impl QuantityMacroInput {
             result.scale_exponents.0[2],
             result.scale_exponents.0[3],
         );
-        
+
         let storage_type_ty = self
             .storage_type
             .as_ref()
             .map(|t| quote! { #t })
             .unwrap_or_else(|| quote! { f64 });
-        
+
         let brand_type_ty = self
             .brand_type
             .as_ref()
             .map(|t| quote! { #t })
             .unwrap_or_else(|| quote! { () });
-        
+
         let value_expr = &self.value;
         let has_nonstorage = conversion_factor != 1.0 || affine_offset != 0.0;
-        
+
         if has_nonstorage {
             // Apply conversion factor and affine offset (same logic as deserialize)
             let cf = conversion_factor;
             let af = affine_offset;
-            
+
             quote! {
                 {
                     use whippyunits::quantity::{Quantity, Scale, Dimension, _2, _3, _5, _Pi, _M, _L, _T, _I, _Θ, _N, _J, _A};
@@ -174,4 +176,3 @@ impl QuantityMacroInput {
         }
     }
 }
-

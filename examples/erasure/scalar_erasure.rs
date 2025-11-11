@@ -35,12 +35,11 @@ fn main() {
     println!("\n2. Ratios with Different Scales (Residual Scale):");
     println!("   When dividing quantities with different scales, a 'residual scale'");
     println!("   is stored in the type, but erasure rescales to unity:");
-    
+
     let ratio3 = 1.0m / 1.0mm;
-    println!("   {} (unsafe_value = {})", 
-             ratio3, ratio3.unsafe_value);
+    println!("   {} (unsafe_value = {})", ratio3, ratio3.unsafe_value);
     println!("   ⚠️  Direct access gives: {}", ratio3.unsafe_value);
-    
+
     let scalar3: f64 = ratio3.into();
     println!("   ✅ Erasure rescales to unity: {}", scalar3);
     assert_eq!(scalar3, 1000.0);
@@ -70,7 +69,10 @@ fn main() {
     let ratio7 = 3.0m / 2.0m;
     let ratio7_scalar: f64 = ratio7.into();
     let pow_value = f64::powf(ratio7_scalar, 2.5);
-    println!("   ({})^2.5 = {}^2.5 = {}", ratio7, ratio7_scalar, pow_value);
+    println!(
+        "   ({})^2.5 = {}^2.5 = {}",
+        ratio7, ratio7_scalar, pow_value
+    );
     assert!((pow_value - 2.75568).abs() < 1e-4);
 
     // 5. Different numeric types
@@ -104,11 +106,12 @@ fn main() {
     let input_power = 1000.0W;
     let efficiency = output_power / input_power;
     let efficiency_scalar: f64 = efficiency.into();
-    println!("   Efficiency = {} / {} = {}", 
-             output_power, input_power, efficiency);
+    println!(
+        "   Efficiency = {} / {} = {}",
+        output_power, input_power, efficiency
+    );
     println!("   Efficiency as scalar: {:.1}%", efficiency_scalar * 100.0);
     assert!((efficiency_scalar - 0.75).abs() < 1e-10);
 
     println!("\n✅ All scalar erasure examples completed successfully!");
 }
-

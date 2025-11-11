@@ -24,10 +24,12 @@ fn main() {
 
     // ✅ Same brand: can operate together
     let sum = distance1 + distance2;
-    println!("✅ Same brand: {} m + {} m = {} m",
-             value!(distance1, m, f64, LocalBrand),
-             value!(distance2, m, f64, LocalBrand),
-             value!(sum, m, f64, LocalBrand));
+    println!(
+        "✅ Same brand: {} m + {} m = {} m",
+        value!(distance1, m, f64, LocalBrand),
+        value!(distance2, m, f64, LocalBrand),
+        value!(sum, m, f64, LocalBrand)
+    );
 
     // ❌ Different brand: cannot operate together
     // let default_distance = whippyunits::quantity!(5.0, m);  // Brand: ()
@@ -36,4 +38,3 @@ fn main() {
     println!("   // let mixed = local_coords::quantity!(5.0, m) + whippyunits::quantity!(5.0, m);");
     println!("   // Error: cannot add Quantity<m, f64, LocalBrand> and Quantity<m, f64, ()>");
 }
-

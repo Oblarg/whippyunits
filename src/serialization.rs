@@ -148,7 +148,7 @@ impl core::fmt::Display for UcumError {
 fn format_unit_dimensions(dims: &UnitDimensions) -> String {
     use crate::print::name_lookup::generate_systematic_unit_name_with_format;
     use crate::print::prettyprint::UnitFormat;
-    
+
     let exponents: Vec<i16> = dims.0.0.iter().copied().collect();
     generate_systematic_unit_name_with_format(exponents, false, UnitFormat::Ucum)
 }
@@ -636,7 +636,8 @@ pub fn parse_ucum_unit(ucum_string: &str) -> Result<UnitDimensions, UcumError> {
     })?;
 
     // Evaluate the unit expression to get dimensions and scales (use tolerant mode for serialization)
-    let result: UnitEvaluationResult = unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
+    let result: UnitEvaluationResult =
+        unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
 
     Ok((result.dimension_exponents, result.scale_exponents))
 }
@@ -1086,7 +1087,7 @@ pub fn deserialize_core<
 
     // Calculate nonstorage unit conversion factors (if any)
     let (unit_cf, unit_af) = calculate_unit_conversion_factors(unit_str)?;
-    
+
     // Apply nonstorage unit conversion factor and affine offset
     let value_with_unit_conversion = (value * unit_cf) + unit_af;
 
@@ -1163,7 +1164,7 @@ where
 
     // Calculate nonstorage unit conversion factors (if any)
     let (unit_cf, unit_af) = calculate_unit_conversion_factors(unit_str)?;
-    
+
     // Apply nonstorage unit conversion factor and affine offset
     let value_with_unit_conversion = (value * unit_cf) + unit_af;
 

@@ -459,7 +459,7 @@ fn test_pid_controller_nested_quantity_types() {
     // Test complex nested type with multiple Quantity types in PIDController
     // This tests that the algorithm finds and transforms ALL Quantity types, not just the first one
     let input = "let mut controller: PIDController<Quantity<Scale, Dimension<_M, _L<1>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>, Quantity<Scale<_2<-3>, _3, _5<-3>>, Dimension<_M, _L, _T<1>>>, Quantity<Scale, Dimension<_M<1>, _L<1>, _T<-3>, _I<-1>>>, Quantity<Scale<_2<3>, _3, _5<3>>, Dimension<_M<1>, _L<1>, _T<-4>, _I<-1>>>, Quantity<Scale<_2<-3>, _3, _5<-3>>, Dimension<_M<1>, _L<1>, _T<-2>, _I<-1>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>, Quantity<Scale<_2<_>, _3<_>, _5<_>, _Pi<_>>, Dimension<_M<_>, _L<_>, _T<_>, _I<_>, _Θ<_>, _N<_>, _J<_>, _A<_>>>>";
-    
+
     let result = converter.format_types(input, &crate::DisplayConfig::default());
 
     println!("Input: {}", input);
@@ -480,20 +480,40 @@ fn test_pid_controller_nested_quantity_types() {
     }
 
     // Verify that we have formatted Quantity types (should contain "Quantity<" with formatted units)
-    assert!(result.contains("Quantity<"), "Result should contain formatted Quantity types");
-    
+    assert!(
+        result.contains("Quantity<"),
+        "Result should contain formatted Quantity types"
+    );
+
     // Verify that the PIDController structure is preserved
-    assert!(result.contains("PIDController<"), "Result should preserve PIDController structure");
-    
+    assert!(
+        result.contains("PIDController<"),
+        "Result should preserve PIDController structure"
+    );
+
     // Count how many formatted Quantity types appear - should be 8 (one for each parameter)
     let formatted_quantity_count = result.matches("Quantity<").count();
-    assert_eq!(formatted_quantity_count, 8, "Expected 8 formatted Quantity types, found {}", formatted_quantity_count);
-    
+    assert_eq!(
+        formatted_quantity_count, 8,
+        "Expected 8 formatted Quantity types, found {}",
+        formatted_quantity_count
+    );
+
     // Verify that unresolved types are formatted as "Quantity<?"
     let unresolved_count = result.matches("Quantity<?").count();
-    assert_eq!(unresolved_count, 3, "Expected 3 unresolved Quantity types (the ones with _ placeholders), found {}", unresolved_count);
-    
+    assert_eq!(
+        unresolved_count, 3,
+        "Expected 3 unresolved Quantity types (the ones with _ placeholders), found {}",
+        unresolved_count
+    );
+
     // Verify that resolved types are formatted with actual units (not raw Scale/Dimension)
-    assert!(!result.contains("Scale<_2<"), "Result should not contain raw Scale parameters");
-    assert!(!result.contains("Dimension<_M<"), "Result should not contain raw Dimension parameters");
+    assert!(
+        !result.contains("Scale<_2<"),
+        "Result should not contain raw Scale parameters"
+    );
+    assert!(
+        !result.contains("Dimension<_M<"),
+        "Result should not contain raw Dimension parameters"
+    );
 }

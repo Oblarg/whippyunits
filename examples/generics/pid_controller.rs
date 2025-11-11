@@ -12,6 +12,7 @@
 use core::ops::{Add, Div, Mul, Sub};
 use whippyunits::dimension_traits::Time;
 use whippyunits::dimension_traits::define_generic_dimension;
+use whippyunits::op_result;
 use whippyunits::output;
 
 // Define ProcessVariable as a disjunction - can be angular position, angular velocity,
@@ -32,11 +33,11 @@ pub struct PIDController<
     PV: ProcessVariable,
     CO: ControlOutput,
     T: Time,
-    ProportionalGain = output!(CO / PV),
-    IntegralGain = output!(CO / (PV * T)),
-    DerivativeGain = output!(CO / (PV / T)),
-    Integral = output!(PV * T),
-    Derivative = output!(PV / T),
+    ProportionalGain,
+    IntegralGain,
+    DerivativeGain,
+    Integral,
+    Derivative,
 > {
     kp: ProportionalGain,
     ki: IntegralGain,
@@ -47,22 +48,32 @@ pub struct PIDController<
     _phantom: core::marker::PhantomData<(CO, Derivative)>,
 }
 
-impl<PV, CO, T, ProportionalGain, IntegralGain, DerivativeGain, Integral, Derivative>
-    PIDController<PV, CO, T, ProportionalGain, IntegralGain, DerivativeGain, Integral, Derivative>
+#[op_result]
+impl<
+    PV: ProcessVariable,
+    CO: ControlOutput,
+    T: Time,
+    ProportionalGain,
+    IntegralGain,
+    DerivativeGain,
+    Integral,
+    Derivative,
+> PIDController<PV, CO, T, ProportionalGain, IntegralGain, DerivativeGain, Integral, Derivative>
 where
-    PV: ProcessVariable
-        + Mul<T, Output = Integral>
-        + Div<T, Output = Derivative>
-        + Sub<PV, Output = PV>
-        + Copy,
-    CO: ControlOutput
-        + Add<CO, Output = CO>
-        + Copy,
-    T: Time + Copy,
-    Integral: Add<Integral, Output = Integral> + Copy,
-    ProportionalGain: Mul<PV, Output = CO> + Copy,
-    IntegralGain: Mul<Integral, Output = CO> + Copy,
-    DerivativeGain: Mul<Derivative, Output = CO> + Copy,
+    PV: Copy,
+    T: Copy,
+    ProportionalGain: Copy,
+    IntegralGain: Copy,
+    DerivativeGain: Copy,
+    Integral: Copy,
+    [(); PV / T = Derivative]:,
+    [(); PV * T = Integral]:,
+    [(); Integral + Integral = Integral]:,
+    [(); ProportionalGain * PV = CO]:,
+    [(); IntegralGain * Integral = CO]:,
+    [(); DerivativeGain * Derivative = CO]:,
+    [(); PV - PV = PV]:,
+    [(); CO + CO = CO]:,
 {
     /// Create a new PID controller with the given gains and time step
     pub fn new(

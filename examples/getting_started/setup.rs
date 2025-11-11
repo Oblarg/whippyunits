@@ -4,7 +4,7 @@
 //! Run this example to verify your setup is working correctly.
 
 // Step 1: Add whippyunits to your Cargo.toml
-// 
+//
 // [dependencies]
 // whippyunits = "0.1.0"
 //
@@ -24,19 +24,18 @@ use whippyunits::quantity;
 
 fn main() {
     // If you can compile and run this, your setup is correct!
-    
+
     println!("✅ WhippyUnits Setup Verification");
     println!("================================\n");
-    
+
     // Create a simple quantity
     let distance = quantity!(5.0, m);
     println!("Created a quantity: {:?}", distance);
-    
+
     // Try method syntax
     let time = 10.0.seconds();
     println!("Created with method syntax: {:?}", time);
-    
+
     println!("\n🎉 Setup complete!");
     println!("\nNext: cargo run --example hello_world");
 }
-

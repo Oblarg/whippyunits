@@ -5,8 +5,8 @@
 //! - JSON using the serialize_to_json function
 //! - String format using the fmt formatter
 
-use whippyunits::{quantity, serialization::serialize_to_json};
 use serde_json;
+use whippyunits::{quantity, serialization::serialize_to_json};
 
 fn main() {
     println!("Serialization Demo");
@@ -69,4 +69,3 @@ fn main() {
     println!("   The JSON format is: {{\"value\": <number>, \"unit\": \"<UCUM_unit_string>\"}}");
     println!("   Example: {}", length_json);
 }
-

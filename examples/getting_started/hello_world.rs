@@ -27,4 +27,3 @@ fn main() {
 
     println!("Next: Learn about core concepts in concepts.rs");
 }
-

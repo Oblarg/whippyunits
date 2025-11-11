@@ -15,6 +15,7 @@
 use core::ops::{Add, Mul, Sub};
 use whippyunits::default_declarators::*;
 use whippyunits::dimension_traits::{Time, define_generic_dimension};
+use whippyunits::op_result;
 use whippyunits::unit;
 
 /// First-order IIR low-pass filter (exponential moving average)
@@ -36,6 +37,8 @@ pub struct IIRFilter<Q> {
     prev_output: Option<Q>,
 }
 
+// we use the op_result macro to make the arithmetic constraints readable
+#[op_result]
 impl<Q> IIRFilter<Q>
 where
     Q: Copy,
@@ -61,7 +64,9 @@ where
     /// and addition with itself.
     pub fn filter(&mut self, input: Q) -> Q
     where
-        Q: Mul<f64, Output = Q> + Add<Q, Output = Q> + Copy,
+        Q: Copy,
+        [(); Q * f64 = Q]:,
+        [(); Q + Q = Q]:,
     {
         let weighted_input = input * self.alpha;
 
@@ -94,9 +99,9 @@ define_generic_dimension!(Frequency, 1 / T);
 ///
 /// The generator is completely generic - works with any signal dimension and scale.
 pub struct SignalGenerator<Q, T> {
-    noise_stddev: Q,   // Standard deviation of noise (same dimension as signal)
-    sample_period: T,  // Time between samples (time step)
-    time: T,           // Current time
+    noise_stddev: Q,  // Standard deviation of noise (same dimension as signal)
+    sample_period: T, // Time between samples (time step)
+    time: T,          // Current time
 }
 
 impl<Q, T> SignalGenerator<Q, T>
@@ -134,13 +139,13 @@ where
         let u = rand::random(); // [0, 1)
         let z = 2.0 * u - 1.0; // [-1, 1)
         let noise = self.noise_stddev * z;
-        
+
         // Combine: signal = base + noise
         let signal = base + noise;
-        
+
         // Advance time by sample period
         self.time = self.time + self.sample_period;
-        
+
         signal
     }
 
@@ -157,7 +162,7 @@ where
 // Simple PRNG for noise (avoiding external dependencies)
 mod rand {
     static mut STATE: u64 = 123456789;
-    
+
     pub fn random() -> f64 {
         unsafe {
             // Linear congruential generator
@@ -181,7 +186,7 @@ fn main() {
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.3);
     let base = 1.0_f64.meters();
-    
+
     println!("  Raw signal (base + noise):");
     for i in 0..10 {
         let signal: unit!(m) = generator.next_sample(base);
@@ -197,7 +202,7 @@ fn main() {
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.2);
     let base = 10.0_f64.meters() / 1.0_f64.seconds();
-    
+
     println!("  Raw signal (base + noise):");
     for i in 0..10 {
         let signal: unit!(m / s) = generator.next_sample(base);
@@ -213,7 +218,7 @@ fn main() {
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.3);
     let base = 1000.0_f64.millimeters();
-    
+
     println!("  Raw signal (base + noise):");
     for i in 0..10 {
         let signal: unit!(mm) = generator.next_sample(base);
@@ -223,4 +228,3 @@ fn main() {
 
     println!("\n✅ Filter works with any dimension and scale - completely unbounded!");
 }
-

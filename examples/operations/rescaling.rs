@@ -21,8 +21,7 @@ fn main() {
     println!("   {} = {}", distance_m, distance_km);
 
     let distance_cm = rescale!(1.0m, cm);
-    println!("   {} = {} (using rescale! macro)", 
-             distance_m, distance_cm);
+    println!("   {} = {} (using rescale! macro)", distance_m, distance_cm);
 
     println!("\n2. Mass Rescaling:");
     let mass_kg = 1.0kg;
@@ -41,33 +40,27 @@ fn main() {
     println!("\n4. Rescaling for Addition:");
     let distance1 = 1.0m;
     let distance2 = 500.0mm;
-    
+
     let sum_mm = rescale!(distance1, mm) + distance2;
     let sum_m = distance1 + rescale!(distance2, m);
-    
-    println!("   {} + {} = {}", 
-             distance1, distance2, sum_mm);
-    println!("   {} + {} = {}", 
-             distance1, distance2, sum_m);
+
+    println!("   {} + {} = {}", distance1, distance2, sum_mm);
+    println!("   {} + {} = {}", distance1, distance2, sum_m);
 
     println!("\n5. Rescaling with Different Numeric Types:");
     let distance_i32 = quantity!(1, m, i32);
     let distance_mm_i32 = rescale!(distance_i32, mm, i32);
-    println!("   {} (i32) = {} (i32)", 
-             distance_i32, distance_mm_i32);
+    println!("   {} (i32) = {} (i32)", distance_i32, distance_mm_i32);
 
     println!("\n6. Rescaling Compound Units:");
     let velocity = quantity!(100.0, km / h);
     let velocity_ms: unit!(m / s) = rescale(velocity);
-    println!("   {} = {}", 
-             velocity, velocity_ms);
+    println!("   {} = {}", velocity, velocity_ms);
 
     println!("\n7. Bidirectional Rescaling:");
     let original = 5.0m;
     let converted: unit!(mm) = rescale(original);
     let back: unit!(m) = rescale(converted);
-    println!("   {} -> {} -> {}", 
-             original, converted, back);
+    println!("   {} -> {} -> {}", original, converted, back);
     assert!((original.unsafe_value - back.unsafe_value).abs() < 1e-10);
 }
-

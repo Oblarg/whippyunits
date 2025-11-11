@@ -527,11 +527,7 @@ pub fn generate_systematic_composite_unit_name(
     dimension_exponents: DynDimensionExponents,
     long_name: bool,
 ) -> String {
-    generate_systematic_composite_unit_name_with_scale(
-        dimension_exponents,
-        None,
-        long_name,
-    )
+    generate_systematic_composite_unit_name_with_scale(dimension_exponents, None, long_name)
 }
 
 /// Generate systematic unit name for composite dimensions with optional scale factors
@@ -568,19 +564,21 @@ pub fn generate_systematic_composite_unit_name_with_scale(
                 let matched_unit = if let Some(scale) = scale_factors {
                     // For compound units, try to match the aggregate scale factors
                     // This works when the scale factors come from a single dimension (e.g., deg/m where deg has the scale)
-                    dimension.units.iter().find(|unit| {
-                        unit.scale == scale && unit.conversion_factor == 1.0
-                    })
-                    // If no exact match, try identity scale (for cases like deg/m where meter has identity scale)
-                    .or_else(|| {
-                        if scale == ScaleExponents::IDENTITY {
-                            None // Already tried identity above
-                        } else {
-                            dimension.units.iter().find(|unit| {
-                                unit.scale == ScaleExponents::IDENTITY && unit.conversion_factor == 1.0
-                            })
-                        }
-                    })
+                    dimension
+                        .units
+                        .iter()
+                        .find(|unit| unit.scale == scale && unit.conversion_factor == 1.0)
+                        // If no exact match, try identity scale (for cases like deg/m where meter has identity scale)
+                        .or_else(|| {
+                            if scale == ScaleExponents::IDENTITY {
+                                None // Already tried identity above
+                            } else {
+                                dimension.units.iter().find(|unit| {
+                                    unit.scale == ScaleExponents::IDENTITY
+                                        && unit.conversion_factor == 1.0
+                                })
+                            }
+                        })
                 } else {
                     None
                 };

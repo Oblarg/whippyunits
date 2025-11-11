@@ -15,13 +15,13 @@ fn main() {
 
     println!("1. When unit!() is Required:");
     let distance_m = 1.0m;
-    
+
     // let distance_mm = rescale(distance_m);  // ❌ Compile error!
     println!("   // let distance_mm = rescale(distance_m);  // ❌ Compile error!");
-    
+
     let distance_mm: unit!(mm) = rescale(distance_m);
     let distance_km: unit!(km) = rescale(distance_m);
-    
+
     println!("   let distance_mm: unit!(mm) = rescale(distance_m);  // ✅ Required");
     println!("   Result: {}", distance_mm);
     println!("   let distance_km: unit!(km) = rescale(distance_m);  // ✅ Required");
@@ -30,11 +30,11 @@ fn main() {
     println!("\n2. When unit!() is Optional:");
     let distance_m = 1.0m;
     let distance_mm = 500.0mm;
-    
+
     let sum_mm = rescale(distance_m) + distance_mm;
     println!("   let sum_mm = rescale(distance_m) + distance_mm;  // ✅ Works without unit!()");
     println!("   Result: {}", sum_mm);
-    
+
     let sum_mm_explicit: unit!(mm) = rescale(distance_m) + distance_mm;
     println!("   let sum_mm_explicit: unit!(mm) = rescale(distance_m) + distance_mm;");
     println!("   Result: {}", sum_mm_explicit);
@@ -45,4 +45,3 @@ fn main() {
     println!("   let velocity_ms: unit!(m / s) = rescale(velocity_kmh);");
     println!("   Result: {}", velocity_ms);
 }
-

@@ -237,13 +237,8 @@ pub use whippyunits_proc_macros::proc_unit as unit;
 pub use whippyunits_proc_macros::proc_quantity as quantity;
 pub use whippyunits_proc_macros::proc_value as value;
 
-/// Convert an arithmetic expression to associated type syntax (with ::Output).
-///
-/// This macro simplifies writing complex associated type expressions by allowing
-/// you to write arithmetic expressions instead of nested trait bound syntax.
-#[doc(inline)]
-pub use whippyunits_proc_macros::output;
-
+pub use op_result::op_result;
+pub use op_result::output;
 
 // from_json, from_string, from_json_strict, and from_string_strict macros are exported via #[macro_export] in serialization.rs
 // value! macro is exported as a proc macro re-export

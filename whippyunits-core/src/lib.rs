@@ -102,10 +102,10 @@ pub fn generate_declarator_trait_name(
 ) -> String {
     let sanitized_dimension = dimension_name.replace(" ", "");
     let capitalized_dimension = CapitalizedFmt(&sanitized_dimension).to_string();
-    
+
     if system == System::Metric {
         let base_trait_name = format!("Metric{}", capitalized_dimension);
-        
+
         // Add suffix based on unit type for metric units
         if conversion_factor != 1.0 && affine_offset != 0.0 {
             format!("{}NonStorageAffine", base_trait_name)

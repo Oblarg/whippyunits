@@ -19,7 +19,7 @@ fn main() {
     println!("Default Storage Type (f64):");
     let distance = quantity!(5.0, m);
     let time = quantity!(10.0, s);
-    
+
     println!("   distance = {}", distance);
     println!("   time = {}", time);
     println!("   Both use f64 storage by default");
@@ -31,7 +31,7 @@ fn main() {
     let distance_f64 = quantity!(5.0, m, f64);
     let distance_f32 = quantity!(5.0, m, f32);
     let distance_i32 = quantity!(5, m, i32);
-    
+
     println!("   quantity!(5.0, m) = {} (f64, default)", distance_f64);
     println!("   quantity!(5.0, m, f32) = {} (f32)", distance_f32);
     println!("   quantity!(5, m, i32) = {} (i32)", distance_i32);
@@ -43,7 +43,7 @@ fn main() {
     println!("Type Safety - Storage Type Mismatch:");
     let distance_f64 = quantity!(5.0, m, f64);
     let distance_f32 = quantity!(5.0, m, f32);
-    
+
     println!("   distance_f64 = {}", distance_f64);
     println!("   distance_f32 = {}", distance_f32);
     println!("   // distance_f64 + distance_f32 would fail to compile ❌");
@@ -56,7 +56,7 @@ fn main() {
     let distance1 = quantity!(3, m, i32);
     let distance2 = quantity!(2, m, i32);
     let sum: unit!(m, i32) = distance1 + distance2;
-    
+
     println!("   {} + {} = {}", distance1, distance2, sum);
     println!("   Result is also i32");
     println!();
@@ -77,7 +77,7 @@ fn main() {
     println!("Integer Storage Types:");
     let count = quantity!(42, 1, i32);
     let items = quantity!(100, 1, u32);
-    
+
     println!("   count = {} (i32)", count);
     println!("   items = {} (u32)", items);
     println!("   Integer types provide exact values without floating point errors");
@@ -88,11 +88,10 @@ fn main() {
     println!("Floating Point Precision:");
     let large_f64 = quantity!(1e10, m, f64);
     let large_f32 = quantity!(1e10, m, f32);
-    
+
     println!("   large_f64 = {}", large_f64);
     println!("   large_f32 = {}", large_f32);
     println!("   f32 has ~7 decimal digits of precision");
     println!("   f64 has ~15 decimal digits of precision");
     println!();
 }
-

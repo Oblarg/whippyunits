@@ -11,15 +11,14 @@ use whippyunits::value;
 
 // Create rescaling declarators: all quantities stored in mm, kg, s, etc.
 define_unit_declarators!(
-    mm_scale,
-    Kilogram,  // Mass: kg
+    mm_scale, Kilogram,   // Mass: kg
     Millimeter, // Length: mm
-    Second,    // Time: s
-    Ampere,    // Current: A
-    Kelvin,    // Temperature: K
-    Mole,      // Amount: mol
-    Candela,  // Luminosity: cd
-    Radian     // Angle: rad
+    Second,     // Time: s
+    Ampere,     // Current: A
+    Kelvin,     // Temperature: K
+    Mole,       // Amount: mol
+    Candela,    // Luminosity: cd
+    Radian      // Angle: rad
 );
 
 fn main() {
@@ -35,17 +34,30 @@ fn main() {
 
     // All stored as mm internally
     println!("Declared in different units, stored as mm:");
-    println!("   {} km → {} mm", value!(distance_km, km), value!(distance_km, mm));
-    println!("   {} m → {} mm", value!(distance_m, m), value!(distance_m, mm));
-    println!("   {} cm → {} mm\n", value!(distance_cm, cm), value!(distance_cm, mm));
+    println!(
+        "   {} km → {} mm",
+        value!(distance_km, km),
+        value!(distance_km, mm)
+    );
+    println!(
+        "   {} m → {} mm",
+        value!(distance_m, m),
+        value!(distance_m, mm)
+    );
+    println!(
+        "   {} cm → {} mm\n",
+        value!(distance_cm, cm),
+        value!(distance_cm, mm)
+    );
 
     // Can add directly - all same scale internally
     let sum = distance_km + distance_m + distance_cm;
     println!("Can add directly (same internal scale):");
-    println!("   {} km + {} m + {} cm = {} mm",
-             value!(distance_km, km),
-             value!(distance_m, m),
-             value!(distance_cm, cm),
-             value!(sum, mm));
+    println!(
+        "   {} km + {} m + {} cm = {} mm",
+        value!(distance_km, km),
+        value!(distance_m, m),
+        value!(distance_cm, cm),
+        value!(sum, mm)
+    );
 }
-

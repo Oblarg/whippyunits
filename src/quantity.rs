@@ -434,7 +434,7 @@ impl<
     ///     - All terms trailing the division symbol are considered to be in the denominator
     ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// # fn main() {
     /// # use whippyunits::default_declarators::*;
@@ -443,9 +443,9 @@ impl<
     /// println!("{}", value.fmt("km")); // "1.0 km"
     /// # }
     /// ```
-    /// 
+    ///
     /// Dimensionally-incompatible units will print an error message, but will *not* panic:
-    /// 
+    ///
     /// ```rust
     /// # fn main() {
     /// # use whippyunits::default_declarators::*;
@@ -459,7 +459,9 @@ impl<
     where
         T: Copy + Into<f64>,
     {
-        use crate::serialization::{calculate_conversion_factor, dimensions_match, parse_ucum_unit};
+        use crate::serialization::{
+            calculate_conversion_factor, dimensions_match, parse_ucum_unit,
+        };
         use whippyunits_core::{
             dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
         };
@@ -531,14 +533,14 @@ impl<
 
         // Calculate nonstorage unit conversion factors (if any)
         let (target_unit_cf, target_unit_af) = calculate_unit_conversion_factors(&target_unit_expr);
-        
+
         // Calculate scale factor conversion (for storage unit scaling)
         let scale_conversion_factor = calculate_conversion_factor(&source_dims, &target_dims);
-        
+
         // Convert from storage unit to target unit:
         // 1. Apply scale factor conversion
         let value_with_scale: f64 = self.unsafe_value.into() * scale_conversion_factor;
-        
+
         // 2. Apply inverse of nonstorage conversion (if target is nonstorage)
         //    Going FROM storage TO nonstorage: divide by conversion_factor, subtract affine_offset
         let converted_value = if target_unit_cf != 1.0 || target_unit_af != 0.0 {

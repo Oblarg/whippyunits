@@ -30,7 +30,6 @@ fn main() {
     println!("   Example: {:?}", distance);
     println!("   - Unit: meters (m), Storage type: f64, Brand: (default)\n");
 
-
     // The UNIT name (e.g., 'kilometers', 'millimeters') comes from:
     // - DIMENSION: The base physical quantity (Length, Time, Mass, etc.)
     // - SCALE: The scale factor (typically corresponds to a prefix)
@@ -46,14 +45,13 @@ fn main() {
     // - Cannot add, subtract, or compare
 
     println!("2. How Units Are Determined: Dimension + Scale");
-    let length1 = quantity!(1.0, m);    // Unit: meters (Length dimension, scale 1)
+    let length1 = quantity!(1.0, m); // Unit: meters (Length dimension, scale 1)
     let length2 = quantity!(1000.0, mm); // Unit: millimeters (Length dimension, scale 10⁻³)
-    let time = quantity!(1.0, s);        // Unit: seconds (Time dimension, scale 1)
+    let time = quantity!(1.0, s); // Unit: seconds (Time dimension, scale 1)
 
     println!("   length1: {:?} (Length, scale 1)", length1);
     println!("   length2: {:?} (Length, scale 10⁻³)", length2);
     println!("   time: {:?} (Time, scale 1)\n", time);
-
 
     // The Rust type system prevents dimensional errors at compile time.
     //
@@ -64,11 +62,11 @@ fn main() {
     println!("3. Type Safety");
     let sum = quantity!(5.0, m) + quantity!(3.0, m);
     println!("   ✅ Adding 5.0m + 3.0m = {:?}", sum);
-    
+
     // This would fail to compile:
     // let bad = quantity!(5.0, m) + quantity!(3.0, s);
     // Error: cannot add Quantity<m, f64> and Quantity<s, f64>
-    
+
     // This would also fail to compile:
     // let bad = quantity!(5.0, m) + quantity!(3.0, mm);
     // Error: cannot add Quantity<m, f64> and Quantity<mm, f64>
@@ -87,8 +85,15 @@ fn main() {
     let millimeters = quantity!(1000.0, mm);
 
     println!("   meters: {:?} (scale 1, no prefix)", meters);
-    println!("   millimeters: {:?} (scale 10⁻³, milli- prefix)", millimeters);
-    println!("   Same physical quantity: {} m = {} mm", value!(meters, m), value!(millimeters, mm));
+    println!(
+        "   millimeters: {:?} (scale 10⁻³, milli- prefix)",
+        millimeters
+    );
+    println!(
+        "   Same physical quantity: {} m = {} mm",
+        value!(meters, m),
+        value!(millimeters, mm)
+    );
     println!("   But different TYPES with different UNITS!\n");
 
     // When you multiply or divide quantities, you create new dimensions.
@@ -99,7 +104,7 @@ fn main() {
     let width = quantity!(5.0, m);
     let height = quantity!(4.0, m);
     let area = width * height; // Creates Area dimension (Length²)
-    
+
     println!("   width: {:?}", width);
     println!("   height: {:?}", height);
     println!("   area = width * height: {:?} (Length²)\n", area);
@@ -107,9 +112,11 @@ fn main() {
     let distance = quantity!(100.0, m);
     let time = quantity!(10.0, s);
     let velocity = distance / time; // Creates Velocity dimension (Length/Time)
-    
+
     println!("   distance: {:?}", distance);
     println!("   time: {:?}", time);
-    println!("   velocity = distance / time: {:?} (Length/Time)\n", velocity);
+    println!(
+        "   velocity = distance / time: {:?} (Length/Time)\n",
+        velocity
+    );
 }
-

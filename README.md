@@ -12,7 +12,7 @@ A zero-cost, pure rust units-of-measure library for applied computation.
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
 - **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
 - **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; integer types are guaranteed to use pure integer math, and floating point types use no more float math than necessary
-- **Dynamic storage unit preferences**: Use `define_base_units!` to define a set of declarators that auto-convert to a given set of base units, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
+- **Dynamic storage unit preferences**: Use `define_unit_declarators!` to define a set of declarators that auto-convert to a given set of base units, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
 - **Language server integration**: Customized type rendering and text completion for unit types
 
 ## Example
@@ -208,10 +208,10 @@ assert_eq!(value!(centripetal_acceleration, m / s^2), std::f64::consts::PI / 180
 
 ## Scale-preferenced declarators
 
-Use the `define_base_units!` macro to define a local declarator syntax that obeys a given set of base SI scale preferences for storage:
+Use the `define_unit_declarators!` macro to define a local declarator syntax that obeys a given set of base SI scale preferences for storage:
 
 ```rust
-define_base_units!(
+define_unit_declarators!(
     Kilogram,
     // local_scale declarators will use millimeters instead of meters
     Millimeter,
@@ -244,7 +244,7 @@ is lifted in the local scope, along with a thorough trace of the conversion chai
 unit identifier in the expression to its equivalent in the local base units.
 
 ```rust
-define_base_units!(
+define_unit_declarators!(
     Kilogram, Millimeter, Second, Ampere, Kelvin, Mole, Candela, Radian, local_scale
 );
 

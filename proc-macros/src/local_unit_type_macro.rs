@@ -546,7 +546,9 @@ impl LocalQuantityMacroInput {
     /// Shared helper to generate unit expression string with given base units
     fn generate_unit_expression_with_base_units(&self, base_units: &[(&str, &str); 8]) -> String {
         // Evaluate the unit expression to get dimension exponents
-        let result = self.unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
+        let result = self
+            .unit_expr
+            .evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
 
         // Use the provided base units to generate the expression
         dimension_exponents_to_unit_expression_with_base_units(
@@ -658,7 +660,9 @@ impl LocalQuantityMacroInput {
 
     /// Evaluate unit expression dimensions and return the exponents
     fn evaluate_dimensions(&self) -> (DynDimensionExponents, ScaleExponents) {
-        let result = self.unit_expr.evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
+        let result = self
+            .unit_expr
+            .evaluate_with_mode(whippyunits_core::EvaluationMode::Tolerant);
         (result.dimension_exponents, result.scale_exponents)
     }
 

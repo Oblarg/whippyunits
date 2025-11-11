@@ -18,20 +18,20 @@ fn main() {
     let width = 5.0m;
     let height = 4.0m;
     let _time = 10.0s;
-    
+
     let _unchecked_area = width * height;
     println!("   let unchecked_area = width * height;  // ⚠️ Compiles, but unchecked");
     println!("   // let bad_area: unit!(m^2) = width * time;  // ❌ Compile error!");
 
     println!("\n2. The Solution:");
-    let area: unit!(m^2) = width * height;
+    let area: unit!(m ^ 2) = width * height;
     println!("   let area: unit!(m^2) = width * height;  // ✅ Verified");
     println!("   Result: {}", area);
 
     println!("\n3. Verifying Area:");
     let width = 5.0m;
     let height = 4.0m;
-    let area: unit!(m^2) = width * height;
+    let area: unit!(m ^ 2) = width * height;
     println!("   let area: unit!(m^2) = width * height;");
     println!("   Result: {}", area);
 
@@ -39,7 +39,7 @@ fn main() {
     let length = 3.0m;
     let width = 2.0m;
     let height = 1.0m;
-    let volume: unit!(m^3) = length * width * height;
+    let volume: unit!(m ^ 3) = length * width * height;
     println!("   let volume: unit!(m^3) = length * width * height;");
     println!("   Result: {}", volume);
 
@@ -53,13 +53,13 @@ fn main() {
     println!("\n6. Verifying Acceleration:");
     let velocity = quantity!(20.0, m / s);
     let time = 5.0s;
-    let acceleration: unit!(m / s^2) = velocity / time;
+    let acceleration: unit!(m / s ^ 2) = velocity / time;
     println!("   let acceleration: unit!(m / s^2) = velocity / time;");
     println!("   Result: {}", acceleration);
 
     println!("\n7. Verifying Force:");
     let mass = 10.0kg;
-    let acceleration = quantity!(9.81, m / s^2);
+    let acceleration = quantity!(9.81, m / s ^ 2);
     let force: unit!(N) = mass * acceleration;
     println!("   let force: unit!(N) = mass * acceleration;");
     println!("   Result: {}", force);
@@ -71,4 +71,3 @@ fn main() {
     println!("   let energy: unit!(J) = force * distance;");
     println!("   Result: {}", energy);
 }
-

@@ -94,4 +94,3 @@ fn main() {
         Err(e) => println!("   ✓ Correctly caught invalid JSON format: {}", e),
     }
 }
-

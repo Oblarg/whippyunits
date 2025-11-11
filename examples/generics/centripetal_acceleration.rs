@@ -16,10 +16,10 @@
 //! - κ is curvature (A/L) - angle per length
 //! - a is centripetal acceleration (L/T²)
 
-use core::ops::{Mul, Div};
+use core::ops::{Div, Mul};
 use whippyunits::dimension_traits::define_generic_dimension;
+use whippyunits::op_result;
 use whippyunits::quantity;
-use whippyunits::output;
 use whippyunits::unit;
 
 // Define generic dimensions for the calculation
@@ -30,7 +30,7 @@ define_generic_dimension!(Velocity, L / T);
 define_generic_dimension!(Curvature, A / L);
 
 // Acceleration: length per time squared (L/T²)
-define_generic_dimension!(Acceleration, L / T^2);
+define_generic_dimension!(Acceleration, L / T ^ 2);
 
 /// Calculate centripetal acceleration from linear velocity and curvature
 ///
@@ -54,15 +54,15 @@ define_generic_dimension!(Acceleration, L / T^2);
 /// Centripetal acceleration (L/T²) with angle dimension erased.
 /// The angle dimension is erased by dividing by radians, which is mathematically
 /// equivalent to treating radians as dimensionless (since rad = 1).
+#[op_result]
 pub fn centripetal_acceleration<V: Velocity, K: Curvature, A: Acceleration>(
-    velocity: V, 
-    curvature: K) -> A
+    velocity: V,
+    curvature: K,
+) -> A
 where
-    V: Mul<V> + Copy,
-    output!(V * V): Mul<K> + Copy,
-    output!(V * V * K): Div<unit!(rad), Output = A> + Copy,
+    V: Copy,
+    [(); V * V * K / unit!(rad) = A]:,
 {
-
     // in a non-generic context we could use `into` for erasure, but here we have
     // no way to represent the target type generically, so we divide by radians
     (velocity * velocity * curvature) / quantity!(1.0, rad)
@@ -75,18 +75,26 @@ fn main() {
     let velocity = quantity!(10.0, m / s);
     let curvature = quantity!(1.0, rad / m);
     let acceleration = centripetal_acceleration(velocity, curvature);
-    println!("Example 1 (radians): {} at {} → {}", velocity, curvature, acceleration);
+    println!(
+        "Example 1 (radians): {} at {} → {}",
+        velocity, curvature, acceleration
+    );
 
     // Example 2: Using degrees
     let velocity = quantity!(10.0, m / s);
     let curvature = quantity!(10.0, deg / m);
     let acceleration = centripetal_acceleration(velocity, curvature);
-    println!("Example 2 (degrees): {} at {} → {}", velocity, curvature, acceleration);
+    println!(
+        "Example 2 (degrees): {} at {} → {}",
+        velocity, curvature, acceleration
+    );
 
     // Example 3: Using rotations (revolutions)
     let velocity = quantity!(10.0, m / s);
     let curvature = quantity!(0.1, rot / m);
     let acceleration = centripetal_acceleration(velocity, curvature);
-    println!("Example 3 (rotations): {} at {} → {}", velocity, curvature, acceleration);
+    println!(
+        "Example 3 (rotations): {} at {} → {}",
+        velocity, curvature, acceleration
+    );
 }
-

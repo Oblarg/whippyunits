@@ -8,21 +8,21 @@
 //! Nearest-neighbor storage semantics:
 //!
 //! WhippyUnits uses a logarithmic scale encoding system that only supports powers of 2, 3, 5, and π.
-//! This greatly simplifies the type system: arithmetic (as opposed to a syntactic expression tree) 
+//! This greatly simplifies the type system: arithmetic (as opposed to a syntactic expression tree)
 //! naturally normalizes itself, making it much easier to write generic code that reliably arrives
 //! at the same representation of a given derived quantity, regardless of *how* it was derived.
 //!
 //! However, not every unit can be exactly represented in this way; for example,
 //! the conversion factor of 30.48 between feet and centimeters cannot be exactly represented
 //! by powers of 2, 3, 5, and π.
-//! 
+//!
 //! We do not attempt to represent these units in our type system.  Instead
 //! we offer convenient ways to *declare* quantities in non-storage units, and to *access* their
 //! values in the original non-storage units; but the library itself will represent them internally
 //! as their nearest-neighbor power-of-10 multiple of an SI base unit, they retain no "memory"
 //! of their declaration unit, and there is a small loss of precision and runtime cost associated
 //! with every conversion to or from a non-storage unit.
-//! 
+//!
 //! We restrict to powers of 10 as opposed to the fully-general logarithmic scale encoding system
 //! because these typically have better human-readable display properties (SI prefixes are always powers of 10).
 //! If you need a more-faithful representation of the original unit, you may directly define a custom declarator
