@@ -307,7 +307,36 @@ impl Unit<crate::dimension_exponents!([1, 0, 0, 0, 0, 0, 0, 0])> {
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
     };
-    // To add: Earth mass, Jupiter mass, Sol mass
+
+    pub const EARTHMASS: Self = Self {
+        name: "earth_mass",
+        symbols: &["M⊕"],
+        scale: ScaleExponents::_10(25),
+        conversion_factor: 0.59722,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
+    };
+
+    pub const JUPITERMASS: Self = Self {
+        name: "jupiter_mass",
+        symbols: &["M♃"],
+        scale: ScaleExponents::_10(27),
+        conversion_factor: 1.89813,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
+    };
+
+    pub const SOLMASS: Self = Self {
+        name: "sol_mass",
+        symbols: &["M☉"],
+        scale: ScaleExponents::_10(30),
+        conversion_factor: 1.98847,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
+    };
 }
 
 /// Length
@@ -390,6 +419,26 @@ impl Unit<crate::dimension_exponents!([0, 1, 0, 0, 0, 0, 0, 0])> {
         affine_offset: NONE,
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
+    };
+
+    pub const LIGHT_SECOND: Self = Self {
+        name: "light_second",
+        symbols: &["ls"],
+        scale: ScaleExponents::_10(8),
+        conversion_factor: 2.99792458,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
+    };
+
+    pub const LUNAR_DISTANCE: Self = Self {
+        name: "lunar_distance",
+        symbols: &["LD"],
+        scale: ScaleExponents::_10(9),
+        conversion_factor: 0.3844,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
     };
 
     pub const ASTRONOMICAL_UNIT: Self = Self {
@@ -764,6 +813,16 @@ impl Unit<crate::dimension_exponents!([1, 2, -3, 0, 0, 0, 0, 0])> {
         exponents: TypeDimensionExponents::new(),
         system: System::Imperial,
     };
+
+    pub const SUN_LUMINOSITY: Self = Self {
+        name: "sun_luminosity",
+        symbols: &["L☉"],
+        scale: ScaleExponents::_10(27),
+        conversion_factor: 0.3828,
+        affine_offset: NONE,
+        exponents: TypeDimensionExponents::new(),
+        system: System::Astronomical,
+    };
 }
 
 /// Pressure
@@ -858,7 +917,7 @@ impl Unit<crate::dimension_exponents!([-1, -2, 4, 2, 0, 0, 0, 0])> {
     };
 }
 
-// Electric resistance
+/// Electric resistance
 impl Unit<crate::dimension_exponents!([1, 2, -3, -2, 0, 0, 0, 0])> {
     pub const OHM: Self = Self {
         name: "ohm",
@@ -920,7 +979,7 @@ impl Unit<crate::dimension_exponents!([1, 0, -2, -1, 0, 0, 0, 0])> {
     };
 }
 
-/// Magnetic flex
+/// Magnetic flux
 impl Unit<crate::dimension_exponents!([1, 2, -2, -1, 0, 0, 0, 0])> {
     pub const WEBER: Self = Self {
         name: "weber",
@@ -945,7 +1004,7 @@ impl Unit<crate::dimension_exponents!([0, -2, 0, 0, 0, 0, 1, 0])> {
         system: System::Metric,
     };
 
-    pub const LUMEN: Self = Self {
+    pub const LUMEN: Self = Self { /// IIRC a lux is a lumen/m^2 - do we really want this here?
         name: "lumen",
         symbols: &["lm"],
         scale: ScaleExponents::IDENTITY,
