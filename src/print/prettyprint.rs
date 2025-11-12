@@ -468,7 +468,7 @@ fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
     formatted
 }
 
-/// Formatted string in the format: `(value) Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type, brand>`
+/// Formatted string in the format: `value Quantity<systematic_literal, unit_shortname, dimension_name, [exponents and scales], type, brand>`
 pub fn pretty_print_quantity(
     value: Option<f64>,
     dimensions: whippyunits_core::dimension_exponents::DynDimensionExponents,
@@ -480,7 +480,7 @@ pub fn pretty_print_quantity(
 ) -> String {
     let value_prefix = if let Some(val) = value {
         let formatted_val = format_float_with_sig_figs(val, 5);
-        format!("({}) ", formatted_val)
+        format!("{} ", formatted_val)
     } else {
         String::new()
     };

@@ -16,9 +16,9 @@
 //! - κ is curvature (A/L) - angle per length
 //! - a is centripetal acceleration (L/T²)
 
-use core::ops::{Div, Mul};
 use whippyunits::dimension_traits::define_generic_dimension;
 use whippyunits::op_result;
+use whippyunits::output;
 use whippyunits::quantity;
 use whippyunits::unit;
 
@@ -31,6 +31,10 @@ define_generic_dimension!(Curvature, A / L);
 
 // Acceleration: length per time squared (L/T²)
 define_generic_dimension!(Acceleration, L / T ^ 2);
+
+// Inverse radius: inverse length (1/L) - no angular dimension
+// This represents 1/radius, which is curvature without angular units
+define_generic_dimension!(InverseRadius, 1 / L);
 
 /// Calculate centripetal acceleration from linear velocity and curvature
 ///
@@ -51,9 +55,7 @@ define_generic_dimension!(Acceleration, L / T ^ 2);
 /// * `curvature` - Curvature (any angle/length scale, e.g., rad/m, deg/mm)
 ///
 /// # Returns
-/// Centripetal acceleration (L/T²) with angle dimension erased.
-/// The angle dimension is erased by dividing by radians, which is mathematically
-/// equivalent to treating radians as dimensionless (since rad = 1).
+/// Centripetal acceleration (L/T²) with angle dimension erased.  Preserves scale structure.
 #[op_result]
 pub fn centripetal_acceleration<V: Velocity, K: Curvature, A: Acceleration>(
     velocity: V,
@@ -61,40 +63,109 @@ pub fn centripetal_acceleration<V: Velocity, K: Curvature, A: Acceleration>(
 ) -> A
 where
     V: Copy,
-    [(); V * V * K / unit!(rad) = A]:,
+    [(); V * V * K]:,
+    output!(V * V * K): Into<A>,
 {
-    // in a non-generic context we could use `into` for erasure, but here we have
-    // no way to represent the target type generically, so we divide by radians
-    (velocity * velocity * curvature) / quantity!(1.0, rad)
+    (velocity * velocity * curvature).into()
+}
+
+/// Calculate centripetal acceleration from linear velocity and inverse radius
+///
+/// Formula: a = v² × (1/r)
+///
+/// This function accepts inverse radius (1/length) without angular units.
+/// This is useful when working with APIs or formulas that use the definition
+/// where curvature = 1/radius.
+///
+/// At the call site, you can use `.into()` erasure to convert from measured
+/// curvature with angular units (rad/m, deg/m, etc.) to inverse radius (1/m).
+///
+/// This function is scale-generic - it works with any combination of scales:
+/// - m/s and 1/m → m/s²
+/// - mm/s and 1/mm → mm/s²
+/// - km/h and 1/km → km/h²
+/// - etc.
+///
+/// The type system ensures dimensional correctness at compile time:
+/// - (L/T)² × (1/L) = L²/T² × 1/L = L/T²
+///
+/// # Arguments
+/// * `velocity` - Linear velocity (any length/time scale)
+/// * `inverse_radius` - Inverse radius (any 1/length scale, e.g., 1/m, 1/mm)
+///
+/// # Returns
+/// Centripetal acceleration (L/T²)
+#[op_result]
+pub fn centripetal_acceleration_inverse_radius<V: Velocity, K: InverseRadius, A: Acceleration>(
+    velocity: V,
+    inverse_radius: K,
+) -> A
+where
+    V: Copy,
+    [(); V * V * K = A]:,
+{
+    velocity * velocity * inverse_radius
 }
 
 fn main() {
     println!("Centripetal Acceleration Demo\n");
 
-    // Example 1: Using radians
+    // Using radians
     let velocity = quantity!(10.0, m / s);
     let curvature = quantity!(1.0, rad / m);
-    let acceleration = centripetal_acceleration(velocity, curvature);
-    println!(
-        "Example 1 (radians): {} at {} → {}",
-        velocity, curvature, acceleration
-    );
+    let acceleration = centripetal_acceleration::<_, _, unit!(m / s2)>(velocity, curvature);
+    println!("Radians: {} at {} → {}", velocity, curvature, acceleration);
 
-    // Example 2: Using degrees
+    // Using degrees
     let velocity = quantity!(10.0, m / s);
     let curvature = quantity!(10.0, deg / m);
-    let acceleration = centripetal_acceleration(velocity, curvature);
+    let acceleration = centripetal_acceleration::<_, _, unit!(deg.m / rad.s2)>(velocity, curvature);
+    println!("Degrees: {} at {} → {}", velocity, curvature, acceleration);
+
+    // Using rotations (revolutions)
+    let velocity = quantity!(10.0, m / s);
+    let curvature = quantity!(0.1, rot / m);
+    let acceleration = centripetal_acceleration::<_, _, unit!(rot.m / rad.s2)>(velocity, curvature);
     println!(
-        "Example 2 (degrees): {} at {} → {}",
+        "Rotations: {} at {} → {}",
         velocity, curvature, acceleration
     );
 
-    // Example 3: Using rotations (revolutions)
+    println!("\n--- Inverse Radius with Erasure ---\n");
+
+    // Using inverse radius with erasure from rad/m
+    // The function contract expects inverse radius (1/m), but we have
+    // measured curvature with angular units (rad/m). We use `.into()` erasure
+    // directly at the call site to convert rad/m → 1/m.
+    //
+    // Note: Type annotation is still needed because Rust can't infer which concrete
+    // type `.into()` should produce from the trait bound alone. However, erasure
+    // now works for all scales (not just clean scales), preserving scale structure.
     let velocity = quantity!(10.0, m / s);
-    let curvature = quantity!(0.1, rot / m);
-    let acceleration = centripetal_acceleration(velocity, curvature);
+    let measured_curvature = quantity!(1.0, rad / m);
+    let acceleration = centripetal_acceleration_inverse_radius::<_, unit!(1 / m), unit!(m / s2)>(
+        velocity,
+        measured_curvature.into(),
+    );
     println!(
-        "Example 3 (rotations): {} at {} → {}",
-        velocity, curvature, acceleration
+        "rad/m → 1/m via erasure: {} at {} → {}",
+        velocity, measured_curvature, acceleration
+    );
+
+    // Using inverse radius with erasure from deg/m
+    // Same pattern: deg/m → 1/m via `.into()` erasure at the call site
+    // The key difference: deg/m has a Pi component in its scale structure.
+    // We use `unit!(deg/rad.m)` to preserve that scale structure while erasing
+    // the angular dimension. This is now possible thanks to generalized erasure!
+    let velocity = quantity!(10.0, m / s);
+    let measured_curvature = quantity!(57.2958, deg / m); // ≈ 1 rad/m
+    let acceleration = centripetal_acceleration_inverse_radius::<
+        _,
+        unit!(deg / rad.m),
+        unit!(deg.m / rad.s2),
+    >(velocity, measured_curvature.into());
+    println!(
+        "deg/m → 1/m via erasure: {} at {} → {}",
+        velocity, measured_curvature, acceleration
     );
 }

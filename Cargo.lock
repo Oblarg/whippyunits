@@ -377,9 +377,9 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "op_result"
-version = "0.5.4"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "862aeef949d57e19d3fed4082a6b7c861d172deaad5b6474e28da9529334a7ef"
+checksum = "bfdf4800632b220b1567fefdc514a47af0bd348d230368ddb0a42903c96e7ad3"
 dependencies = [
  "proc-macro2",
  "quote",

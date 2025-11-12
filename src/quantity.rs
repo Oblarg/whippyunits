@@ -950,8 +950,8 @@ macro_rules! define_from_for_radians_with_scale {
 macro_rules! define_from_for_radians {
     ($exponent:expr, $($type:ty),+ $(,)?) => {
         $(
-            /// Erases radian components from compound units, retaining other dimensional components.
-            /// Only pure radian powers are erased; residual scales of non-radian units are retained.
+            /// Erases angular components from compound units, preserving scale structure.
+            /// Works for all scales, including non-radian angular units with residual scale structures.
             ///
             /// ## Examples
             /// ```rust
@@ -971,6 +971,10 @@ macro_rules! define_from_for_radians {
             /// # }
             /// ```
             impl<
+                    const SCALE_P2: i16,
+                    const SCALE_P3: i16,
+                    const SCALE_P5: i16,
+                    const SCALE_PI: i16,
                     const MASS_EXPONENT: i16,
                     const LENGTH_EXPONENT: i16,
                     const TIME_EXPONENT: i16,
@@ -981,20 +985,20 @@ macro_rules! define_from_for_radians {
                 >
                 From<
                     Quantity<
-                        Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
                         Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<$exponent>>,
                         $type,
                     >,
                 >
                 for Quantity<
-                    Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                    Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
                     Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<0>>,
                     $type,
                 >
             {
                 fn from(
                     other: Quantity<
-                        Scale<_2<0>, _3<0>, _5<0>, _Pi<0>>,
+                        Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
                         Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<$exponent>>,
                         $type,
                     >,

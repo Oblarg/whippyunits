@@ -9,11 +9,9 @@
 //! derived from the process variable and control output types using the Mul/Div trait
 //! associated types.
 
-use core::ops::{Add, Div, Mul, Sub};
 use whippyunits::dimension_traits::Time;
 use whippyunits::dimension_traits::define_generic_dimension;
 use whippyunits::op_result;
-use whippyunits::output;
 
 // Define ProcessVariable as a disjunction - can be angular position, angular velocity,
 // linear position, or linear velocity
@@ -45,7 +43,7 @@ pub struct PIDController<
     dt: T,
     integral: Integral,
     prev_error: Option<PV>,
-    _phantom: core::marker::PhantomData<(CO, Derivative)>,
+    _phantom: core::marker::PhantomData<(fn() -> CO, Derivative)>,
 }
 
 #[op_result]
@@ -68,12 +66,12 @@ where
     Integral: Copy,
     [(); PV / T = Derivative]:,
     [(); PV * T = Integral]:,
-    [(); Integral + Integral = Integral]:,
     [(); ProportionalGain * PV = CO]:,
     [(); IntegralGain * Integral = CO]:,
     [(); DerivativeGain * Derivative = CO]:,
     [(); PV - PV = PV]:,
     [(); CO + CO = CO]:,
+    [(); Integral + Integral = Integral]:,
 {
     /// Create a new PID controller with the given gains and time step
     pub fn new(

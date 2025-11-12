@@ -25,7 +25,7 @@ whippyunits-proc-macros = { path = "./proc-macros" }
 whippyunits-core = { path = "./whippyunits-core" }
 num-traits = "0.2"
 culit = "0.6.0"
-op_result = "0.5.4"
+op_result = "0.5.8"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 

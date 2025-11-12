@@ -491,20 +491,77 @@ fn generate_si_unit_with_scale(
     if total_scale_p10 == 0 {
         base_si_unit.to_string()
     } else {
-        format!("10^{} {}", total_scale_p10, base_si_unit)
+        format!(
+            "10{} {}",
+            crate::to_unicode_superscript(total_scale_p10, false),
+            base_si_unit
+        )
     }
 }
 
-/// Format scale factors by calculating the actual numeric value using whippyunits-core
+/// Format scale factors by calculating the actual numeric value
+/// Returns a prefix string like "(0.318)" for non-power-of-10 scales
 fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i16) -> String {
     let scale_exponents = ScaleExponents([scale_p2, scale_p3, scale_p5, scale_pi]);
-    let total_scale_p10 = scale_exponents.log10().unwrap_or(0);
 
-    if total_scale_p10 == 0 {
+    // If it's a pure power of 10, we don't need to show scale factors
+    if scale_exponents.log10().is_some() {
+        return String::new();
+    }
+
+    // Calculate the actual numeric value: 2^p2 * 3^p3 * 5^p5 * π^pi
+    let mut value = 1.0;
+
+    if scale_p2 != 0 {
+        value *= 2.0_f64.powi(scale_p2 as i32);
+    }
+    if scale_p3 != 0 {
+        value *= 3.0_f64.powi(scale_p3 as i32);
+    }
+    if scale_p5 != 0 {
+        value *= 5.0_f64.powi(scale_p5 as i32);
+    }
+    if scale_pi != 0 {
+        value *= core::f64::consts::PI.powi(scale_pi as i32);
+    }
+
+    // If the value is 1.0, no scaling needed
+    if value == 1.0 {
         String::new()
     } else {
-        format!("10^{}", total_scale_p10)
+        // Format with 2-3 significant figures for inlay hints (compact display)
+        format!("({})", format_float_with_sig_figs(value, 3))
     }
+}
+
+/// Format a float with specified number of significant figures
+/// Optimized for inlay hints (compact display)
+fn format_float_with_sig_figs(value: f64, sig_figs: usize) -> String {
+    if value == 0.0 {
+        return "0".to_string();
+    }
+
+    let abs_value = value.abs();
+    let magnitude = abs_value.log10().floor() as i32;
+    let scale_factor = 10_f64.powi(sig_figs as i32 - 1 - magnitude as i32);
+
+    let rounded = (value * scale_factor).round() / scale_factor;
+
+    // Format with appropriate precision
+    let formatted = if magnitude >= 0 {
+        // For values >= 1, show up to sig_figs digits total
+        let precision = (sig_figs as i32 - magnitude - 1).max(0) as usize;
+        format!("{:.precision$}", rounded, precision = precision)
+    } else {
+        // For values < 1, show sig_figs significant digits after decimal
+        format!(
+            "{:.precision$}",
+            rounded,
+            precision = (sig_figs as i32 + magnitude.abs()) as usize
+        )
+    };
+
+    formatted
 }
 
 /// Get SI prefix for a given power of 10
@@ -622,7 +679,7 @@ pub fn generate_systematic_composite_unit_name_with_scale(
         let unit_part = if exp == 1 {
             base_name.to_string()
         } else {
-            format!("{}^{}", base_name, exp)
+            format!("{}{}", base_name, crate::to_unicode_superscript(exp, false))
         };
 
         if !first {
