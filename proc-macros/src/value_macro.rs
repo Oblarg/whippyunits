@@ -5,6 +5,8 @@ use syn::token::Comma;
 use syn::{Expr, Ident, Type};
 use whippyunits_core::{get_unit_info, Dimension, EvaluationMode, UnitExpr};
 
+use crate::utils::shared_utils::generate_unit_documentation_for_expr;
+
 /// Input for the value! macro
 /// Syntax: value!(quantity, unit_expr) or value!(quantity, unit_expr, type) or value!(quantity, unit_expr, type, brand)
 pub struct ValueMacroInput {
@@ -45,6 +47,10 @@ impl Parse for ValueMacroInput {
 
 impl ValueMacroInput {
     pub fn expand(self) -> TokenStream {
+        // Generate documentation structs for unit identifiers
+        // For value! macro, use storage type for affine/nonstorage units (like quantity!)
+        let doc_structs = generate_unit_documentation_for_expr(&self.unit_expr, true);
+
         let quantity = &self.quantity;
 
         // Check if this is a simple atomic unit that's affine
@@ -152,6 +158,9 @@ impl ValueMacroInput {
             // Generate: (rescale(quantity) as storage_unit_type).unsafe_value - offset
             quote! {
                 {
+                    const _: () = {
+                        #doc_structs
+                    };
                     let storage_value = (whippyunits::api::#rescale_fn(#quantity) as whippyunits::unit!(#storage_unit_ident, #storage_type_ty, #brand_type_ty)).unsafe_value;
                     (storage_value as f64 - #affine_offset) as #storage_type_ty
                 }
@@ -160,7 +169,12 @@ impl ValueMacroInput {
             // Normal unit (simple or compound): cast to target type and get unsafe_value
             // The rescale function handles nonstorage unit conversions
             quote! {
-                (whippyunits::api::#rescale_fn(#quantity) as #target_unit_type).unsafe_value
+                {
+                    const _: () = {
+                        #doc_structs
+                    };
+                    (whippyunits::api::#rescale_fn(#quantity) as #target_unit_type).unsafe_value
+                }
             }
         }
     }

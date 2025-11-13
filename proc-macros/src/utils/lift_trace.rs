@@ -488,28 +488,64 @@ impl LocalContext {
         unit_name.to_string()
     }
 
-    /// Get time unit conversion information (e.g., "h" -> "h → s, factor: 3600")
+    /// Get unit scale conversion information (e.g., "h" -> "h → s, factor: 3600")
+    /// Shows conversion to the storage unit for units with non-identity scale factors
     pub fn get_time_unit_conversion(&self, unit_name: &str) -> Option<String> {
-        if let Some((unit, _dimension)) = Dimension::find_unit_by_symbol(unit_name) {
-            // Check if this is a time unit with a conversion factor
+        if let Some((unit, dimension)) = Dimension::find_unit_by_symbol(unit_name) {
+            // Check if this unit has a non-identity scale factor
             if unit.scale.0 != [0, 0, 0, 0] {
-                // Calculate the conversion factor from scale factors
-                let (p2, p3, p5, pi) = (
-                    unit.scale.0[0],
-                    unit.scale.0[1],
-                    unit.scale.0[2],
-                    unit.scale.0[3],
-                );
-                let conversion_factor = 2.0_f64.powi(p2 as i32)
-                    * 3.0_f64.powi(p3 as i32)
-                    * 5.0_f64.powi(p5 as i32)
-                    * std::f64::consts::PI.powi(pi as i32);
+                // Find the storage unit for this dimension (identity scale, no offset, conversion_factor == 1.0)
+                let storage_unit = dimension
+                    .units
+                    .iter()
+                    .find(|u| {
+                        u.scale == whippyunits_core::scale_exponents::ScaleExponents::IDENTITY
+                            && u.conversion_factor == 1.0
+                            && u.affine_offset == 0.0
+                    })
+                    .or_else(|| {
+                        // Fallback: find any unit with identity scale and no conversion
+                        dimension.units.iter().find(|u| {
+                            u.scale == whippyunits_core::scale_exponents::ScaleExponents::IDENTITY
+                                && u.conversion_factor == 1.0
+                        })
+                    });
 
-                if conversion_factor != 1.0 {
-                    return Some(format!(
-                        "{} → s, factor: {}",
-                        unit_name, conversion_factor as i32
-                    ));
+                if let Some(storage_unit) = storage_unit {
+                    let storage_symbol = storage_unit.symbols[0];
+
+                    // Calculate the conversion factor from scale factors
+                    let (p2, p3, p5, pi) = (
+                        unit.scale.0[0],
+                        unit.scale.0[1],
+                        unit.scale.0[2],
+                        unit.scale.0[3],
+                    );
+                    let conversion_factor = 2.0_f64.powi(p2 as i32)
+                        * 3.0_f64.powi(p3 as i32)
+                        * 5.0_f64.powi(p5 as i32)
+                        * std::f64::consts::PI.powi(pi as i32);
+
+                    if conversion_factor != 1.0 {
+                        // Format the conversion factor appropriately
+                        // For integer factors (like 3600), show as integer
+                        // For fractional factors (like 5/9), show with precision
+                        let factor_str = if conversion_factor.fract() == 0.0 {
+                            format!("{}", conversion_factor as i64)
+                        } else {
+                            // Format with up to 3 decimal places, but remove trailing zeros
+                            let formatted = format!("{:.3}", conversion_factor);
+                            formatted
+                                .trim_end_matches('0')
+                                .trim_end_matches('.')
+                                .to_string()
+                        };
+
+                        return Some(format!(
+                            "{} → {}, factor: {}",
+                            unit_name, storage_symbol, factor_str
+                        ));
+                    }
                 }
             }
         }
@@ -551,23 +587,47 @@ impl LocalContext {
         unit_name: &str,
     ) -> TransformationDetails {
         // Try to find the unit and dimension
-        let (_unit, dimension) = match self.find_unit_and_dimension(unit_name) {
+        let (unit, dimension) = match self.find_unit_and_dimension(unit_name) {
             Some(result) => result,
             None => return TransformationDetails::unknown_unit(unit_name),
+        };
+
+        // For affine units, use the storage unit for the lift trace instead
+        // The storage unit is the unit with the same scale, conversion_factor == 1.0, and affine_offset == 0.0
+        let effective_unit_name = if unit.affine_offset != 0.0 {
+            // Find the storage unit (same scale, no offset, conversion_factor == 1.0)
+            if let Some(storage_unit) = dimension.units.iter().find(|u| {
+                u.scale == unit.scale && u.conversion_factor == 1.0 && u.affine_offset == 0.0
+            }) {
+                storage_unit.symbols[0]
+            } else {
+                // Fallback: use the first symbol of the first storage unit in the dimension
+                dimension
+                    .units
+                    .iter()
+                    .find(|u| u.conversion_factor == 1.0 && u.affine_offset == 0.0)
+                    .map(|u| u.symbols[0])
+                    .unwrap_or(unit_name)
+            }
+        } else {
+            unit_name
         };
 
         let dimensions = dimension.exponents;
 
         // Check if this unit gets transformed
-        if self.unit_gets_transformed_in_local_context(unit_name) {
+        if self.unit_gets_transformed_in_local_context(effective_unit_name) {
             let scale_factor_diff = self.calculate_scale_factor_difference(dimensions);
-            let details =
-                self.generate_transformation_explanation(unit_name, dimensions, scale_factor_diff);
+            let details = self.generate_transformation_explanation(
+                effective_unit_name,
+                dimensions,
+                scale_factor_diff,
+            );
             TransformationDetails::new(details)
         } else {
             // No transformation, but check for time unit conversions
-            let time_conversion = self.get_time_unit_conversion(unit_name);
-            TransformationDetails::no_transformation(unit_name, time_conversion)
+            let time_conversion = self.get_time_unit_conversion(effective_unit_name);
+            TransformationDetails::no_transformation(effective_unit_name, time_conversion)
         }
     }
 

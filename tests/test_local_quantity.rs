@@ -26,6 +26,9 @@ fn test_local_unit_literals() {
     assert_approx_eq!(value!(power_f32, uW, f32), 1000.0f32);
     assert_eq!(value!(energy_i32, uJ, i32), 1000);
     assert_eq!(value!(energy_i64, uJ, i64), 1000_i64);
+
+    println!("{}", 1.0degF);
+    println!("{}", 1.0degC);
 }
 
 #[test]

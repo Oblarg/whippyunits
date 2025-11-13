@@ -1,4 +1,4 @@
-use crate::alloc::{format, String, ToString, Vec};
+use crate::alloc::{String, ToString, Vec, format};
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::unit_literal_generator::{UnitLiteralConfig, generate_unit_literal};

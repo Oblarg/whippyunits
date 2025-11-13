@@ -5,6 +5,8 @@ use syn::token::Comma;
 use syn::{Expr, Type};
 use whippyunits_core::{calculate_unit_conversion_factors, get_unit_info, Dimension, UnitExpr};
 
+use crate::utils::shared_utils::generate_unit_documentation_for_expr;
+
 /// Input for the quantity macro
 pub struct QuantityMacroInput {
     pub value: Expr,
@@ -46,6 +48,10 @@ impl Parse for QuantityMacroInput {
 
 impl QuantityMacroInput {
     pub fn expand(self) -> TokenStream {
+        // Generate documentation structs for unit identifiers
+        // For quantity! macro, use storage type for affine/nonstorage units
+        let doc_structs = generate_unit_documentation_for_expr(&self.unit_expr, true);
+
         // Check if this is a simple atomic unit that's nonstorage/affine
         // For these, we can dispatch directly to the declarator
         if let UnitExpr::Unit(unit) = &self.unit_expr {
@@ -56,14 +62,30 @@ impl QuantityMacroInput {
 
                 if is_nonstorage || is_affine {
                     // Dispatch to appropriate declarator (handles conversion internally)
-                    return self.expand_with_declarator(unit_info);
+                    let expanded = self.expand_with_declarator(unit_info);
+                    return quote! {
+                        {
+                            const _: () = {
+                                #doc_structs
+                            };
+                            #expanded
+                        }
+                    };
                 }
             }
         }
 
         // For storage units or compound units (including those with nonstorage),
         // use shared conversion factor calculation
-        self.expand_with_conversion_factors()
+        let expanded = self.expand_with_conversion_factors();
+        quote! {
+            {
+                const _: () = {
+                    #doc_structs
+                };
+                #expanded
+            }
+        }
     }
 
     fn expand_with_declarator(&self, unit_info: &whippyunits_core::Unit) -> TokenStream {

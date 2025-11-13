@@ -370,31 +370,31 @@ impl DefineBaseUnitsInput {
                 macro_rules! #prefixed_macro_name {
                     ($value:expr, $unit:expr) => {
                         {
-                            let declared_quantity = <whippyunits::unit!($unit, f64, #brand_type)>::new($value);
+                            let declared_quantity = whippyunits::quantity!($value, $unit, f64, #brand_type);
                             whippyunits::api::rescale_f64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, f64) => {
                         {
-                            let declared_quantity = <whippyunits::unit!($unit, f64, #brand_type)>::new($value);
+                            let declared_quantity = whippyunits::quantity!($value, $unit, f64, #brand_type);
                             whippyunits::api::rescale_f64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, i32) => {
                         {
-                            let declared_quantity = <whippyunits::unit!($unit, i32, #brand_type)>::new($value);
+                            let declared_quantity = whippyunits::quantity!($value, $unit, i32, #brand_type);
                             whippyunits::api::rescale_i32(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i32, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, i64) => {
                         {
-                            let declared_quantity = <whippyunits::unit!($unit, i64, #brand_type)>::new($value);
+                            let declared_quantity = whippyunits::quantity!($value, $unit, i64, #brand_type);
                             whippyunits::api::rescale_i64(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type)
                         }
                     };
                     ($value:expr, $unit:expr, f32) => {
                         {
-                            let declared_quantity = <whippyunits::unit!($unit, f32, #brand_type)>::new($value);
+                            let declared_quantity = whippyunits::quantity!($value, $unit, f32, #brand_type);
                             whippyunits::api::rescale_f32(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f32, #brand_type)
                         }
                     };

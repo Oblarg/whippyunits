@@ -622,7 +622,11 @@ impl<'a> core::fmt::Display for QuantityFormatter<'a> {
         if self.is_error {
             // Write error message directly to formatter (no allocation)
             if let Some(source_unit) = self.error_source_unit {
-                write!(f, "Error: Dimension mismatch: cannot convert from {} to {}", source_unit, self.unit)
+                write!(
+                    f,
+                    "Error: Dimension mismatch: cannot convert from {} to {}",
+                    source_unit, self.unit
+                )
             } else {
                 write!(f, "Error: Failed to parse unit: {}", self.unit)
             }

@@ -53,7 +53,7 @@ pub type UnitDimensions = (
     whippyunits_core::scale_exponents::ScaleExponents,
 );
 
-use crate::alloc::{format, String, ToString, vec, Vec};
+use crate::alloc::{String, ToString, Vec, format, vec};
 use proc_macro2::TokenStream;
 use syn::parse_str;
 
