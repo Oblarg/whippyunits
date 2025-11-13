@@ -1,3 +1,4 @@
+use crate::alloc::{format, String, ToString, Vec};
 use crate::print::name_lookup::generate_systematic_unit_name;
 use crate::print::name_lookup::lookup_dimension_name;
 use crate::print::unit_literal_generator::{UnitLiteralConfig, generate_unit_literal};
@@ -284,7 +285,7 @@ fn format_scale_factors(scale_p2: i16, scale_p3: i16, scale_p5: i16, scale_pi: i
         value *= 5.0_f64.powi(scale_p5 as i32);
     }
     if scale_pi != 0 {
-        value *= std::f64::consts::PI.powi(scale_pi as i32);
+        value *= core::f64::consts::PI.powi(scale_pi as i32);
     }
 
     // If the value is 1.0, no scaling needed

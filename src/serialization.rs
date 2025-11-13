@@ -53,11 +53,7 @@ pub type UnitDimensions = (
     whippyunits_core::scale_exponents::ScaleExponents,
 );
 
-#[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec};
-#[cfg(feature = "std")]
-use std::{string::String, vec::Vec};
-
+use crate::alloc::{format, String, ToString, vec, Vec};
 use proc_macro2::TokenStream;
 use syn::parse_str;
 
@@ -109,10 +105,6 @@ where
     ];
     generate_systematic_unit_name_with_format(exponents, false, UnitFormat::Ucum)
 }
-
-// Note: FromUcum trait removed because whippyunits is a compile-time only library.
-// The dimension exponents are const generic parameters that must be known at compile time.
-// Runtime deserialization from UCUM strings is not possible with this architecture.
 
 /// Errors that can occur during UCUM serialization/deserialization
 #[derive(Debug, Clone, PartialEq)]
@@ -482,10 +474,7 @@ where
             T,
         >(value, &unit_str)
         .map_err(|e| {
-            #[cfg(not(feature = "std"))]
-            use alloc::format;
-            #[cfg(feature = "std")]
-            use std::format;
+            use crate::alloc::format;
             Error::custom(format!("{}", e))
         })?;
 

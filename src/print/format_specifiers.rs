@@ -1,3 +1,4 @@
+use crate::alloc::{format, String, ToString, Vec};
 use whippyunits_core::{Dimension, Unit};
 
 /// Represents a parsed format specifier for unit conversion

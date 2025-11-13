@@ -130,7 +130,7 @@ use crate::define_display_traits;
 use crate::print::prettyprint::*;
 use crate::quantity::*;
 use crate::scale_conversion::*;
-use std::fmt;
+use core::fmt;
 
 define_aggregate_scale_factor_rational!(
     // params

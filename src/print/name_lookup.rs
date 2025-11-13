@@ -1,3 +1,4 @@
+use crate::alloc::{String, ToString, Vec};
 use whippyunits_core::{
     scale_exponents::ScaleExponents,
     storage_unit::{

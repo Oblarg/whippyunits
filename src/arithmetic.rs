@@ -5,7 +5,7 @@ macro_rules! scalar_quantity_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::Mul<$crate::quantity_type!($T)> for $T
+            core::ops::Mul<$crate::quantity_type!($T)> for $T
         {
             type Output = $crate::quantity_type!($T);
 
@@ -18,7 +18,7 @@ macro_rules! scalar_quantity_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::Div<$crate::quantity_type!($T)> for $T
+            core::ops::Div<$crate::quantity_type!($T)> for $T
             where
                 $($inversion_where_clauses)*
         {
@@ -39,7 +39,7 @@ macro_rules! quantity_scalar_mul_div_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::$trait<$T> for $crate::quantity_type!($T)
+            core::ops::$trait<$T> for $crate::quantity_type!($T)
         {
             type Output = Self;
 
@@ -57,7 +57,7 @@ macro_rules! quantity_scalar_mul_div_assign_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::$trait<$T> for $crate::quantity_type!($T)
+            core::ops::$trait<$T> for $crate::quantity_type!($T)
         {
             fn $fn(&mut self, other: $T) {
                 self.unsafe_value $op other;
@@ -77,7 +77,7 @@ macro_rules! quantity_quantity_add_sub_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::$trait<$crate::quantity_type!($T)>
+            core::ops::$trait<$crate::quantity_type!($T)>
             for $crate::quantity_type!($T)
         {
             type Output = Self;
@@ -104,7 +104,7 @@ macro_rules! quantity_quantity_add_sub_assign_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::$trait<
+            core::ops::$trait<
                 $crate::quantity_type!($T),
             > for $crate::quantity_type!($T)
         {
@@ -127,7 +127,7 @@ macro_rules! quantity_quantity_mul_div_interface {
         impl<
             $($multiple_dimension_multiple_scale_params)*
         >
-            std::ops::$trait<
+            core::ops::$trait<
                 $crate::multiplication_input!(RightHand, $T),
             >
             for $crate::multiplication_input!(LeftHand, $T)
@@ -153,9 +153,9 @@ macro_rules! quantity_neg_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::ops::Neg for $crate::quantity_type!($T)
+            core::ops::Neg for $crate::quantity_type!($T)
         where
-            $T: std::ops::Neg<Output = $T>
+            $T: core::ops::Neg<Output = $T>
         {
             type Output = Self;
 
@@ -177,13 +177,13 @@ macro_rules! quantity_quantity_partial_ord_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            std::cmp::PartialOrd<$crate::quantity_type!($T)>
+            core::cmp::PartialOrd<$crate::quantity_type!($T)>
             for $crate::quantity_type!($T)
         where
             $T: PartialOrd,
             Brand: PartialEq,
         {
-            fn partial_cmp(&self, other: &$crate::quantity_type!($T)) -> Option<::std::cmp::Ordering> {
+            fn partial_cmp(&self, other: &$crate::quantity_type!($T)) -> Option<::core::cmp::Ordering> {
                 self.unsafe_value.partial_cmp(&other.unsafe_value)
             }
         }

@@ -1,3 +1,4 @@
+use crate::alloc::String;
 use whippyunits_core::{
     dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
     storage_unit::generate_unit_literal as core_generate_unit_literal,

@@ -263,11 +263,11 @@ impl PiPowLookupInput {
                 if exp == 0 {
                     quote! { 1.0 }
                 } else if exp == 1 {
-                    quote! { std::f64::consts::PI }
+                    quote! { core::f64::consts::PI }
                 } else {
-                    let mut result = quote! { std::f64::consts::PI };
+                    let mut result = quote! { core::f64::consts::PI };
                     for _ in 1..exp {
-                        result = quote! { #result * std::f64::consts::PI };
+                        result = quote! { #result * core::f64::consts::PI };
                     }
                     result
                 }
@@ -275,11 +275,11 @@ impl PiPowLookupInput {
                 // For negative exponents: 1.0 / π^|exp|
                 let abs_exp = -exp;
                 if abs_exp == 1 {
-                    quote! { 1.0 / std::f64::consts::PI }
+                    quote! { 1.0 / core::f64::consts::PI }
                 } else {
-                    let mut result = quote! { std::f64::consts::PI };
+                    let mut result = quote! { core::f64::consts::PI };
                     for _ in 1..abs_exp {
-                        result = quote! { #result * std::f64::consts::PI };
+                        result = quote! { #result * core::f64::consts::PI };
                     }
                     quote! { 1.0 / (#result) }
                 }

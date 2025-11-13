@@ -121,7 +121,7 @@ pub struct _A<const EXP: i16 = 0>;
 #[allow(dead_code)]
 #[derive(PartialEq)]
 pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
-    _phantom: std::marker::PhantomData<(P2, P3, P5, PI)>,
+    _phantom: core::marker::PhantomData<(P2, P3, P5, PI)>,
 }
 
 /// The dimension of a quantity
@@ -158,7 +158,7 @@ pub struct Dimension<
     LUMINOSITY = _J<0>,
     ANGLE = _A<0>,
 > {
-    _phantom: std::marker::PhantomData<(
+    _phantom: core::marker::PhantomData<(
         MASS,
         LENGTH,
         TIME,
@@ -263,7 +263,7 @@ pub struct Quantity<Scale, Dimension, T = f64, Brand = ()> {
     /// # }
     /// ```
     pub unsafe_value: T,
-    _phantom: std::marker::PhantomData<fn() -> (Scale, Dimension, Brand)>,
+    _phantom: core::marker::PhantomData<fn() -> (Scale, Dimension, Brand)>,
 }
 
 impl<Scale, Dimension, T, Brand> Copy for Quantity<Scale, Dimension, T, Brand>
@@ -278,7 +278,7 @@ where
 impl<P2, P3, P5, PI> Clone for Scale<P2, P3, P5, PI> {
     fn clone(&self) -> Self {
         Self {
-            _phantom: std::marker::PhantomData,
+            _phantom: core::marker::PhantomData,
         }
     }
 }
@@ -288,7 +288,7 @@ impl<MASS, LENGTH, TIME, CURRENT, TEMPERATURE, AMOUNT, LUMINOSITY, ANGLE> Clone
 {
     fn clone(&self) -> Self {
         Self {
-            _phantom: std::marker::PhantomData,
+            _phantom: core::marker::PhantomData,
         }
     }
 }
@@ -405,7 +405,7 @@ impl<
     pub const fn new(unsafe_value: T) -> Self {
         Self {
             unsafe_value,
-            _phantom: std::marker::PhantomData,
+            _phantom: core::marker::PhantomData,
         }
     }
 
@@ -455,7 +455,7 @@ impl<
     /// ```
     ///
     /// If a panic is desired, use a type assertion instead.
-    pub fn fmt(&self, unit: &str) -> impl std::fmt::Display + '_
+    pub fn fmt<'a>(&self, unit: &'a str) -> impl core::fmt::Display + 'a
     where
         T: Copy + Into<f64>,
     {
@@ -470,11 +470,12 @@ impl<
         let target_dims = match parse_ucum_unit(unit) {
             Ok(dims) => dims,
             Err(_) => {
-                // Parse error - return error formatter
+                // Parse error - return error formatter (no allocation)
                 return QuantityFormatter {
                     value: 0.0,
-                    unit: format!("Error: Failed to parse unit: {}", unit),
+                    unit,
                     is_error: true,
+                    error_source_unit: None,
                 };
             }
         };
@@ -496,15 +497,14 @@ impl<
 
         // Check if dimensions match
         if !dimensions_match(&source_dims, &target_dims) {
-            // Dimension mismatch - return error formatter
+            // Dimension mismatch - return error formatter (no allocation)
+            // Use static string for source unit symbol lookup
+            let source_unit = self.get_source_unit_symbol_static();
             return QuantityFormatter {
                 value: 0.0,
-                unit: format!(
-                    "Error: Dimension mismatch: cannot convert from {} to {}",
-                    self.get_source_unit_symbol(),
-                    unit
-                ),
+                unit,
                 is_error: true,
+                error_source_unit: Some(source_unit),
             };
         }
 
@@ -525,8 +525,9 @@ impl<
                 let converted_value: f64 = self.unsafe_value.into() * conversion_factor;
                 return QuantityFormatter {
                     value: converted_value,
-                    unit: unit.to_string(),
+                    unit,
                     is_error: false,
+                    error_source_unit: None,
                 };
             }
         };
@@ -551,16 +552,17 @@ impl<
             value_with_scale
         };
 
-        // Return a formatter that displays the converted value with the unit
+        // Return a formatter that displays the converted value with the unit (no allocation)
         QuantityFormatter {
             value: converted_value,
-            unit: unit.to_string(),
+            unit,
             is_error: false,
+            error_source_unit: None,
         }
     }
 
-    /// Get the source unit symbol for error messages
-    fn get_source_unit_symbol(&self) -> String {
+    /// Get the source unit symbol for error messages (returns static string, no allocation)
+    fn get_source_unit_symbol_static(&self) -> &'static str {
         use whippyunits_core::{
             Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
         };
@@ -586,36 +588,44 @@ impl<
                 .iter()
                 .find(|unit| unit.scale == source_scales && unit.conversion_factor == 1.0)
             {
-                return unit.symbols[0].to_string();
+                return unit.symbols[0]; // Return &'static str directly
             }
 
             // If no exact match, try to find any unit in this dimension
             if let Some(unit) = dimension.units.first() {
-                return unit.symbols[0].to_string();
+                return unit.symbols[0]; // Return &'static str directly
             }
         }
 
         // Fallback to dimension symbol if no unit found
         if let Some(dimension) = Dimension::find_dimension_by_exponents(source_dimensions) {
-            return dimension.symbol.to_string();
+            return dimension.symbol; // Return &'static str directly
         }
 
         // Final fallback
-        "unknown unit".to_string()
+        "unknown unit"
     }
 }
 
 /// A formatter for displaying quantities with unit conversion
-struct QuantityFormatter {
+/// This is no-std compatible - uses &str instead of String
+#[doc(hidden)]
+pub struct QuantityFormatter<'a> {
     value: f64,
-    unit: String,
+    unit: &'a str,
     is_error: bool,
+    error_source_unit: Option<&'static str>, // Static strings from unit lookup
 }
 
-impl std::fmt::Display for QuantityFormatter {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<'a> core::fmt::Display for QuantityFormatter<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.is_error {
-            write!(f, "{}", self.unit)
+            // Write error message directly to formatter (no allocation)
+            if let Some(source_unit) = self.error_source_unit {
+                write!(f, "Error: Dimension mismatch: cannot convert from {} to {}", source_unit, self.unit)
+            } else {
+                write!(f, "Error: Failed to parse unit: {}", self.unit)
+            }
         } else {
             // Use the formatter's precision if specified, otherwise use default formatting
             if let Some(precision) = f.precision() {
@@ -1005,7 +1015,7 @@ macro_rules! define_from_for_radians {
                 ) -> Self {
                     Self {
                         unsafe_value: other.unsafe_value,
-                        _phantom: std::marker::PhantomData,
+                        _phantom: core::marker::PhantomData,
                     }
                 }
             }

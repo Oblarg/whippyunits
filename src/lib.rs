@@ -4,7 +4,7 @@
 #![feature(trait_alias)]
 
 #[cfg(not(feature = "std"))]
-extern crate alloc;
+extern crate alloc as alloc_crate;
 
 #[doc(hidden)]
 pub trait IsI16<const S: i16> {}
@@ -21,6 +21,9 @@ pub trait GetSecondGeneric {
 impl<const N: usize, T> GetSecondGeneric for Helper<N, T> {
     type Type = T;
 }
+
+#[doc(hidden)]
+mod alloc;
 
 pub mod api;
 #[doc(hidden)]
