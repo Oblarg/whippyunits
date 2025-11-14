@@ -517,3 +517,163 @@ fn test_pid_controller_nested_quantity_types() {
         "Result should not contain raw Dimension parameters"
     );
 }
+
+#[test]
+fn test_dimensionless_ratio_with_scale_factor() {
+    let converter = UnitFormatter::new();
+
+    // Test dimensionless ratio with scale factor (m/mm) - this should format as k()
+    // The type should be: Quantity<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64>
+    // Note: Dimension has no brackets when all dimensions are zero
+
+    // Test hover format (in markdown code block)
+    let hover_input = r#"```rust
+let ratio: Quantity<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64> = quantity!(1.0, m/mm);
+```"#;
+
+    let hover_result = converter.format_types(hover_input, &crate::DisplayConfig::default());
+    println!("Hover input: {}", hover_input);
+    println!("Hover result: {}", hover_result);
+
+    // Should detect and transform the type
+    assert!(
+        !hover_result.contains("Scale<_2<3>"),
+        "Hover should transform the type"
+    );
+    assert!(
+        hover_result.contains("Quantity<"),
+        "Hover should contain formatted Quantity"
+    );
+
+    // Test resolve format (label array)
+    let resolve_label = vec![
+        json!({"value": ": "}),
+        json!({"value": "Quantity"}),
+        json!({"value": "<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64>"}),
+    ];
+
+    let processor = inlay_hint_processor::InlayHintProcessor::new();
+    let mut label_array = resolve_label.clone();
+
+    println!("Resolve label array: {:?}", label_array);
+
+    if processor.contains_whippyunits_type(&label_array) {
+        processor
+            .convert_whippyunits_hint(&mut label_array)
+            .unwrap();
+        println!("Resolve result: {:?}", label_array);
+
+        // Should have transformed the Quantity part
+        let quantity_value = label_array.iter().find(|part| {
+            part.get("value")
+                .and_then(|v| v.as_str())
+                .map(|s| s.starts_with("Quantity<"))
+                .unwrap_or(false)
+        });
+        assert!(
+            quantity_value.is_some(),
+            "Resolve should transform the type"
+        );
+    } else {
+        panic!("Resolve label array should be detected as containing whippyunits type");
+    }
+
+    // Test direct type string format
+    let direct_type = "Quantity<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64>";
+    let direct_result =
+        converter.format_types_inlay_hint(direct_type, &crate::DisplayConfig::default());
+    println!("Direct type: {}", direct_type);
+    println!("Direct result: {}", direct_result);
+
+    // Should format as k() for dimensionless ratio with scale factor
+    assert!(
+        direct_result.contains("k()"),
+        "Should format as k() for m/mm ratio"
+    );
+    assert!(
+        !direct_result.contains("Scale<_2<3>"),
+        "Should not contain raw Scale"
+    );
+
+    // Test actual LSP hover response format
+    let hover_response = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "contents": {
+                "kind": "markdown",
+                "value": "```rust\nlet ratio: Quantity<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64> = quantity!(1.0, m/mm);\n```"
+            }
+        }
+    });
+
+    let proxy = LspProxy::new();
+    let message = format!(
+        "Content-Length: {}\r\n\r\n{}",
+        serde_json::to_string(&hover_response).unwrap().len(),
+        serde_json::to_string(&hover_response).unwrap()
+    );
+
+    let processed = proxy.process_incoming(&message).unwrap();
+    println!("Hover response message: {}", message);
+    println!("Processed hover response: {}", processed);
+
+    // Check if detection is working first
+    let hover_json_str = serde_json::to_string(&hover_response).unwrap();
+    let detected = quantity_detection::contains_quantity_types_fast(&hover_json_str);
+    println!("Detection result for hover JSON: {}", detected);
+
+    // Should detect and transform
+    if detected {
+        assert!(
+            processed.contains("k()"),
+            "Hover response should be transformed"
+        );
+        assert!(
+            !processed.contains("Scale<_2<3>"),
+            "Hover response should not contain raw Scale"
+        );
+    } else {
+        panic!("Hover JSON should be detected by contains_quantity_types_fast");
+    }
+
+    // Test actual LSP resolve response format
+    let resolve_response = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+            "position": {"line": 30, "character": 8},
+            "label": [
+                {"value": ": "},
+                {"value": "Quantity"},
+                {"value": "<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64>"}
+            ]
+        }
+    });
+
+    let resolve_message = format!(
+        "Content-Length: {}\r\n\r\n{}",
+        serde_json::to_string(&resolve_response).unwrap().len(),
+        serde_json::to_string(&resolve_response).unwrap()
+    );
+
+    let processed_resolve = proxy.process_incoming(&resolve_message).unwrap();
+    println!("Resolve response message: {}", resolve_message);
+    println!("Processed resolve response: {}", processed_resolve);
+
+    // Should detect and transform
+    assert!(
+        processed_resolve.contains("k()"),
+        "Resolve response should be transformed"
+    );
+    assert!(
+        !processed_resolve.contains("Scale<_2<3>"),
+        "Resolve response should not contain raw Scale"
+    );
+
+    // Test detection directly
+    let hover_json = r#"{"id":1,"jsonrpc":"2.0","result":{"contents":{"kind":"markdown","value":"```rust\nlet ratio: Quantity<Scale<_2<3>, _3<0>, _5<3>, _Pi<0>>, Dimension>, f64> = quantity!(1.0, m/mm);\n```"}}}"#;
+    let detected = quantity_detection::contains_quantity_types_fast(hover_json);
+    println!("Detection result for hover JSON: {}", detected);
+    assert!(detected, "Hover JSON should be detected");
+}

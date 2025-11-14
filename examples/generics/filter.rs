@@ -13,9 +13,9 @@
 //! where α is the filter coefficient (0 < α ≤ 1)
 
 use core::ops::{Add, Mul, Sub};
-use whippyunits::default_declarators::*;
 use whippyunits::dimension_traits::{Time, define_generic_dimension};
 use whippyunits::op_result;
+use whippyunits::quantity;
 use whippyunits::unit;
 
 /// First-order IIR low-pass filter (exponential moving average)
@@ -181,11 +181,11 @@ fn main() {
     // Example 1: Filtering position signals (meters) with seconds
     println!("Example 1: Position Signal (meters, sample period: 0.1s)");
     println!("--------------------------------------------------------");
-    let sample_period = 0.1_f64.seconds();
-    let noise_stddev = 0.1_f64.meters();
+    let sample_period = quantity!(0.1, s);
+    let noise_stddev = quantity!(0.1, m);
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.3);
-    let base = 1.0_f64.meters();
+    let base = quantity!(1.0, m);
 
     println!("  Raw signal (base + noise):");
     for i in 0..10 {
@@ -197,11 +197,11 @@ fn main() {
     // Example 2: Filtering velocity signals (m/s) with milliseconds
     println!("\nExample 2: Velocity Signal (m/s, sample period: 100ms)");
     println!("-------------------------------------------------------");
-    let sample_period = 100.0_f64.milliseconds();
-    let noise_stddev = 0.3_f64.meters() / 1.0_f64.seconds();
+    let sample_period = quantity!(100.0, ms);
+    let noise_stddev = quantity!(0.3, m / s);
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.2);
-    let base = 10.0_f64.meters() / 1.0_f64.seconds();
+    let base = quantity!(10.0, m / s);
 
     println!("  Raw signal (base + noise):");
     for i in 0..10 {
@@ -213,11 +213,11 @@ fn main() {
     // Example 3: Different time scale (milliseconds) and position scale (millimeters)
     println!("\nExample 3: Position Signal (mm, sample period: 10ms)");
     println!("-----------------------------------------------------");
-    let sample_period = 10.0_f64.milliseconds();
-    let noise_stddev = 100.0_f64.millimeters();
+    let sample_period = quantity!(10.0, ms);
+    let noise_stddev = quantity!(100.0, mm);
     let mut generator = SignalGenerator::new(noise_stddev, sample_period);
     let mut filter = IIRFilter::new(0.3);
-    let base = 1000.0_f64.millimeters();
+    let base = quantity!(1000.0, mm);
 
     println!("  Raw signal (base + noise):");
     for i in 0..10 {

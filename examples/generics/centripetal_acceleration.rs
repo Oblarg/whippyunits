@@ -112,7 +112,7 @@ fn main() {
 
     // Using radians
     let velocity = quantity!(10.0, m / s);
-    let curvature = quantity!(1.0, rad / m);
+    let curvature = quantity!(10.0, rad / m);
     let acceleration = centripetal_acceleration::<_, _, unit!(m / s2)>(velocity, curvature);
     println!("Radians: {} at {} → {}", velocity, curvature, acceleration);
 
@@ -124,7 +124,7 @@ fn main() {
 
     // Using rotations (revolutions)
     let velocity = quantity!(10.0, m / s);
-    let curvature = quantity!(0.1, rot / m);
+    let curvature = quantity!(10.0, rot / m);
     let acceleration = centripetal_acceleration::<_, _, unit!(rot.m / rad.s2)>(velocity, curvature);
     println!(
         "Rotations: {} at {} → {}",
@@ -137,12 +137,11 @@ fn main() {
     // The function contract expects inverse radius (1/m), but we have
     // measured curvature with angular units (rad/m). We use `.into()` erasure
     // directly at the call site to convert rad/m → 1/m.
-    //
-    // Note: Type annotation is still needed because Rust can't infer which concrete
-    // type `.into()` should produce from the trait bound alone. However, erasure
-    // now works for all scales (not just clean scales), preserving scale structure.
+    // 
+    // Note: Compared to an implementation that uses proper curvature, this requires
+    // an additional type annotation to specify the target type for the erasure.
     let velocity = quantity!(10.0, m / s);
-    let measured_curvature = quantity!(1.0, rad / m);
+    let measured_curvature = quantity!(10.0, rad / m);
     let acceleration = centripetal_acceleration_inverse_radius::<_, unit!(1 / m), unit!(m / s2)>(
         velocity,
         measured_curvature.into(),
@@ -153,12 +152,8 @@ fn main() {
     );
 
     // Using inverse radius with erasure from deg/m
-    // Same pattern: deg/m → 1/m via `.into()` erasure at the call site
-    // The key difference: deg/m has a Pi component in its scale structure.
-    // We use `unit!(deg/rad.m)` to preserve that scale structure while erasing
-    // the angular dimension. This is now possible thanks to generalized erasure!
     let velocity = quantity!(10.0, m / s);
-    let measured_curvature = quantity!(57.2958, deg / m); // ≈ 1 rad/m
+    let measured_curvature = quantity!(10.0, deg / m); // ≈ 1 rad/m
     let acceleration = centripetal_acceleration_inverse_radius::<
         _,
         unit!(deg / rad.m),

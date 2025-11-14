@@ -95,8 +95,6 @@ fn main() {
     // The value! macro can access values in:
     // - The storage unit (e.g., decimeters, kilograms)
     // - Any other compatible unit (e.g., meters, grams)
-    // Note: The value! macro uses unit! internally, which doesn't support nonstorage units.
-    // To access in the original nonstorage unit, use the quantity! macro or convert manually.
 
     println!("\nAccess Examples:");
     // Access in the storage unit (decimeters)
@@ -105,6 +103,9 @@ fn main() {
     // Access in any compatible unit (meters)
     // Returns 0.9144 (3 * 30.48 / 100, rescaled to meters)
     println!("  Rescaled value: {} m", value!(3.0.feet(), m));
+    // Access in the original nonstorage unit (feet)
+    // Returns 3.0 (the original value)
+    println!("  Original value: {} ft", value!(3.0.feet(), ft));
 
     // Access in the storage unit (kilograms)
     // Returns 0.453592 (the stored value)
@@ -112,6 +113,7 @@ fn main() {
     // Access in grams
     // Returns 453.592 (rescaled to grams)
     println!("  Rescaled value: {} g", value!(1.0.pounds(), g));
-    // Note: To access in the original nonstorage unit (pounds), use the quantity! macro
-    // or access via the storage unit and convert manually
+    // Access in the original nonstorage unit (pounds)
+    // Returns 1.0 (the original value)
+    println!("  Original value: {} lb", value!(1.0.pounds(), lb));
 }

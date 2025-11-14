@@ -85,14 +85,6 @@ name = "storage_types"
 path = "examples/getting_started/storage_types.rs"
 
 [[example]]
-name = "setup"
-path = "examples/getting_started/setup.rs"
-
-[[example]]
-name = "hello_world"
-path = "examples/getting_started/hello_world.rs"
-
-[[example]]
 name = "concepts"
 path = "examples/getting_started/concepts.rs"
 

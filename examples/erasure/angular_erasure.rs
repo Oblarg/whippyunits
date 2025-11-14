@@ -119,6 +119,4 @@ fn main() {
 
     assert!((sin_value - 1.0).abs() < 1e-10);
     assert!(cos_value.abs() < 1e-10);
-
-    println!("✅ All angular erasure properties demonstrated successfully!");
 }

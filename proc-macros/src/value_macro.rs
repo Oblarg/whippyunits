@@ -3,7 +3,9 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::token::Comma;
 use syn::{Expr, Ident, Type};
-use whippyunits_core::{get_unit_info, Dimension, EvaluationMode, UnitExpr};
+use whippyunits_core::{
+    calculate_unit_conversion_factors, get_unit_info, Dimension, EvaluationMode, UnitExpr,
+};
 
 use crate::utils::shared_utils::generate_unit_documentation_for_expr;
 
@@ -167,13 +169,32 @@ impl ValueMacroInput {
             }
         } else {
             // Normal unit (simple or compound): cast to target type and get unsafe_value
-            // The rescale function handles nonstorage unit conversions
-            quote! {
-                {
-                    const _: () = {
-                        #doc_structs
-                    };
-                    (whippyunits::api::#rescale_fn(#quantity) as #target_unit_type).unsafe_value
+            // Calculate conversion factors for the target unit (handles nonstorage units)
+            let (conversion_factor, affine_offset) =
+                calculate_unit_conversion_factors(&self.unit_expr);
+            let is_nonstorage = conversion_factor != 1.0 || affine_offset != 0.0;
+
+            if is_nonstorage {
+                // Target is nonstorage: rescale to target scale, then apply inverse conversion
+                // Going FROM storage TO nonstorage: divide by conversion_factor, subtract affine_offset
+                quote! {
+                    {
+                        const _: () = {
+                            #doc_structs
+                        };
+                        let scaled_value = (whippyunits::api::#rescale_fn(#quantity) as #target_unit_type).unsafe_value;
+                        ((scaled_value as f64 / #conversion_factor) - #affine_offset) as #storage_type_ty
+                    }
+                }
+            } else {
+                // Target is storage unit: rescale and get value directly
+                quote! {
+                    {
+                        const _: () = {
+                            #doc_structs
+                        };
+                        (whippyunits::api::#rescale_fn(#quantity) as #target_unit_type).unsafe_value
+                    }
                 }
             }
         }

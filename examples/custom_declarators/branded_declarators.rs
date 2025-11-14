@@ -34,7 +34,4 @@ fn main() {
     // ❌ Different brand: cannot operate together
     // let default_distance = whippyunits::quantity!(5.0, m);  // Brand: ()
     // let mixed = distance1 + default_distance;  // Compile error!
-    println!("\n❌ Cannot mix branded and default quantities");
-    println!("   // let mixed = local_coords::quantity!(5.0, m) + whippyunits::quantity!(5.0, m);");
-    println!("   // Error: cannot add Quantity<m, f64, LocalBrand> and Quantity<m, f64, ()>");
 }

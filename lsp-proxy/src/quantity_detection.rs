@@ -36,15 +36,17 @@ pub fn validate_quantity_format(json_payload: &str) -> bool {
                     let inner_content = &json_payload[pos + 9..pos + 9 + close_pos];
                     // Check for the new format with Scale and Dimension structs
                     // Handle both full format (Scale<...>, Dimension<...>) and truncated format (Scale, Dimension<...>)
-                    // Also handle fully defaulted Dimension (Scale, Dimension, T)
-                    if (inner_content.contains("Scale<") && inner_content.contains("Dimension<"))
-                        || (inner_content.contains("Scale,")
-                            && inner_content.contains("Dimension<"))
-                        || (inner_content.contains("Scale") && inner_content.contains("Dimension<"))
-                        || (inner_content.contains("Scale,")
-                            && inner_content.contains("Dimension,"))
-                        || (inner_content.contains("Scale") && inner_content.contains("Dimension,"))
-                    {
+                    // Also handle fully defaulted Dimension (Scale, Dimension, T) and Dimension> (no brackets)
+                    // Note: Dimension> might appear as ", Dimension>" or " Dimension>" with whitespace
+                    let has_scale = inner_content.contains("Scale<")
+                        || inner_content.contains("Scale,")
+                        || inner_content.contains("Scale");
+                    let has_dimension = inner_content.contains("Dimension<")
+                        || inner_content.contains("Dimension,")
+                        || inner_content.contains("Dimension>")
+                        || inner_content.contains("Dimension"); // Also check for just "Dimension" in case of whitespace
+
+                    if has_scale && has_dimension {
                         return true; // Found a valid Quantity type
                     }
                 }

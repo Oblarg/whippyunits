@@ -62,9 +62,4 @@ fn main() {
     println!("  {}", value!(0.0_f64.celsius(), degC));
     println!("  {}", value!(32.0_f64.fahrenheit(), degR));
     println!("  {}", value!(32.0_f64.fahrenheit(), degF));
-
-    println!("\nTemperature Differences:");
-    let diff = 20.0_f64.celsius() - 10.0_f64.celsius();
-    println!("  {}", diff);
-    println!("  {}", value!(diff, K));
 }

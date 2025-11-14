@@ -133,7 +133,9 @@ impl UnitFormatter {
         is_inlay_hint: bool,
     ) -> String {
         // Handle the new format with Scale and Dimension structs (both full and truncated)
-        if text.contains("Scale") && text.contains("Dimension") {
+        // Check for Quantity<Scale pattern - this is more reliable than checking for Scale and Dimension separately
+        // because Dimension might appear as Dimension>, Dimension, or Dimension<...>
+        if text.contains("Quantity<") && text.contains("Scale") {
             // First pass: find all Quantity<Scale types and their positions
             struct QuantityMatch {
                 start: usize,

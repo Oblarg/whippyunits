@@ -27,26 +27,20 @@ fn main() {
     // ============================================================
     // Requires: use whippyunits::default_declarators::*;
     // Pros: Familiar Rust syntax, good IDE support
-    // Cons: More verbose, requires trait import
-    // Best for: Beginners (most familiar), explicit method calls, IDE autocomplete
+    // Cons: More verbose, requires trait import, limited compound units, non-const
 
     println!("1. Method Syntax (.meters(), .seconds(), etc.)");
-    let distance = 5.0.meters();
-    let mass = 2.5.kilograms();
-    let time = 30.0.seconds();
-
-    println!("   let distance = 5.0.meters();   // {:?}", distance);
-    println!("   let mass = 2.5.kilograms();   // {:?}", mass);
-    println!("   let time = 30.0.seconds();     // {:?}\n", time);
+    let _distance = 5.0.meters();
+    let _mass = 2.5.kilograms();
+    let _time = 30.0.seconds();
+    println!();
 
     // ============================================================
     // OPTION 2: Macro Syntax (quantity! macro)
     // ============================================================
     // Requires: use whippyunits::quantity;
-    // Pros: Flexible, works everywhere, supports expressions
+    // Pros: Flexible, works everywhere, arbitrary compound units, const
     // Cons: Macro syntax, less familiar
-    // Best for: Complex unit expressions, calculations in macro,
-    //           when method syntax isn't available, compound units
 
     println!("2. Macro Syntax (quantity! macro)");
     let _distance = quantity!(5.0, m);
@@ -57,24 +51,21 @@ fn main() {
     let _area = quantity!(5.0 * 4.0, m ^ 2);
     let _velocity = quantity!(100.0 / 10.0, m / s);
 
-    println!("   let distance = quantity!(5.0, m);");
-    println!("   let area = quantity!(5.0 * 4.0, m^2);");
-    println!("   let velocity = quantity!(100.0 / 10.0, m / s);\n");
+    // Best Practice: For compound units, use compound unit literal expressions
+    // ✅ Preferred: quantity!(10.0, m / s)
+    // ❌ Avoid: quantity!(10.0, m) / quantity!(1.0, s)
+    // This provides better rust-analyzer interaction and more reliable constant folding
 
     // ============================================================
     // OPTION 3: Literal Syntax (5.0m, 10s, etc.)
     // ============================================================
     // Requires: #[culit::culit(whippyunits::default_declarators::literals)] attribute on function/module
-    // Pros: Most concise, natural reading
-    // Cons: Requires attribute, only works in annotated scopes
-    // Best for: Mathematical formulas, quick prototyping, most readable code
+    // Pros: Most concise, natural reading, const
+    // Cons: Requires attribute, no compound units
     println!("3. Literal Syntax (5.0m, 10s, etc.)");
 
-    let distance = 100.0m; // f64 meters
-    let mass = 5kg; // i32 kilograms
-    let time = 10.0s; // f64 seconds
-
-    println!("   let distance = 100.0m;  // {:?}", distance);
-    println!("   let mass = 5kg;         // {:?}", mass);
-    println!("   let time = 10.0s;       // {:?}\n", time);
+    let _distance = 100.0m; // f64 meters
+    let _mass = 5kg; // i32 kilograms
+    let _time = 10.0s; // f64 seconds
+    println!();
 }

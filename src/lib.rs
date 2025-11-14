@@ -236,6 +236,28 @@ pub use whippyunits_proc_macros::proc_unit as unit;
 /// let mass = quantity!(1.0, lb); // pounds
 /// # }
 /// ```
+///
+/// ## Best Practice: Use Compound Unit Literal Expressions
+///
+/// For compound units, prefer using a compound unit literal expression in the macro
+/// rather than performing arithmetic in source code:
+///
+/// ```rust
+/// # fn main() {
+/// # use whippyunits::quantity;
+/// // ✅ Preferred: compound unit literal expression
+/// let velocity = quantity!(10.0, m / s);
+///
+/// // ❌ Avoid: arithmetic in source code
+/// // let velocity = quantity!(10.0, m) / quantity!(1.0, s);
+/// # }
+/// ```
+///
+/// Using compound unit literal expressions provides:
+/// - **Better rust-analyzer interaction**: The proc macro always knows the result type,
+///   enabling better IDE support and type inference
+/// - **More reliable constant folding**: The math is frontloaded at compile time,
+///   with no reliance on optimization to realize that values can be interned
 #[doc(inline)]
 pub use whippyunits_proc_macros::proc_quantity as quantity;
 pub use whippyunits_proc_macros::proc_value as value;
