@@ -10,11 +10,21 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+authors = ["Oblarg"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Oblarg/whippyunits"
 
 [package]
 name = "whippyunits"
 version = "0.1.0"
 edition = "2024"
+authors = ["Oblarg"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Oblarg/whippyunits"
+description = "A zero-cost, pure rust units-of-measure library for applied computation"
+keywords = ["units", "measurement", "dimensional", "type-safety", "physics", "scientific-computing"]
+categories = ["science", "no-std", "development-tools"]
+readme = "README.md"
 
 [dependencies]
 quote = "1.0"

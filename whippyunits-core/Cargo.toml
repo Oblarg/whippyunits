@@ -2,6 +2,12 @@
 name = "whippyunits-core"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core types and utilities for whippyunits"
+keywords = ["units", "measurement", "dimensional", "type-safety"]
+categories = ["science", "no-std"]
 
 [dependencies]
 syn = { version = "2.0", features = ["full"] }

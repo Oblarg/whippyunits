@@ -2,6 +2,12 @@
 name = "whippyunits-pretty"
 version = "0.1.0"
 edition = "2021"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CLI tool for pretty-printing whippyunits types in compiler output"
+keywords = ["units", "pretty-print", "compiler", "error-messages", "cli"]
+categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }

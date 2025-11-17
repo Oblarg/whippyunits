@@ -793,13 +793,23 @@ dependencies = [
  "serde_json",
  "syn",
  "trybuild",
- "whippyunits-core",
+ "whippyunits-core 0.1.0",
  "whippyunits-proc-macros",
 ]
 
 [[package]]
 name = "whippyunits-core"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "syn",
+]
+
+[[package]]
+name = "whippyunits-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9d3417419f7cde21c895bb9fea358fe89c9aeb445871eefb75fd32afcc6f8de"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -821,7 +831,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "whippyunits",
- "whippyunits-core",
+ "whippyunits-core 0.1.0",
 ]
 
 [[package]]
@@ -844,8 +854,7 @@ dependencies = [
  "quote",
  "strsim",
  "syn",
- "whippyunits",
- "whippyunits-core",
+ "whippyunits-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

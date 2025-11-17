@@ -2,6 +2,12 @@
 name = "whippyunits-proc-macros"
 version = "0.1.0"
 edition = "2021"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Procedural macros for whippyunits unit definitions and declarators"
+keywords = ["units", "measurement", "dimensional", "type-safety", "proc-macro"]
+categories = ["science", "no-std", "development-tools"]
 
 [lib]
 proc-macro = true
@@ -12,7 +18,4 @@ proc-macro2 = "1.0"
 quote = "1.0"
 strsim = "0.11"
 syn = { version = "2.0", features = ["full"] }
-whippyunits-core = { path = "../whippyunits-core" }
-
-[dev-dependencies]
-whippyunits = { path = ".." }
+whippyunits-core = "0.1.0"

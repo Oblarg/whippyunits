@@ -2,6 +2,13 @@
 name = "whippyunits-lsp-proxy"
 version = "0.1.0"
 edition = "2021"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LSP proxy for enhanced whippyunits type display in IDEs"
+keywords = ["units", "lsp", "language-server", "ide", "rust-analyzer"]
+categories = ["development-tools"]
+readme = "README.md"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
