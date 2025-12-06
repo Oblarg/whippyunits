@@ -15,7 +15,7 @@ anyhow = "1.0"
 log = "0.4"
 env_logger = "0.10"
 tokio = { version = "1.0", features = ["full"] }
-whippyunits-lsp-proxy = { path = "../lsp-proxy" }
+whippyunits-lsp-proxy = "0.1.0"
 
 [[bin]]
 name = "whippyunits-pretty"

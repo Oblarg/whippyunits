@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "LSP proxy for enhanced whippyunits type display in IDEs"
-keywords = ["units", "lsp", "language-server", "ide", "rust-analyzer"]
+keywords = ["whippyunits", "lsp", "language-server", "ide", "rust-analyzer"]
 categories = ["development-tools"]
 readme = "README.md"
 
@@ -20,8 +20,8 @@ env_logger = "0.10"
 tempfile = "3.0"
 shellexpand = "3.0"
 clap = { version = "4.0", features = ["derive"] }
-whippyunits = { path = ".." }
-whippyunits-core = { path = "../whippyunits-core" }
+whippyunits = "0.1.0"
+whippyunits-core = "0.1.0"
 syn = { version = "2.0", features = ["full", "parsing", "printing"] }
 quote = "1.0"
 

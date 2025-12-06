@@ -44,10 +44,8 @@ fn main() {
     // Same as method and macro syntax: 0°C stored as 273.15 K
 
     println!("Declaration Examples:");
-    println!("  Method syntax:   {}", 0.0_f64.celsius());
-    println!("  Macro syntax:    {}", quantity!(0.0_f64, degC));
-    println!("  Literal syntax:  {}", 0.0degC);
-    println!("  {}", 32.0_f64.fahrenheit());
+    println!("{}", 0.0degC);
+    println!("{}", 0.0degF);
 
     // ========================================================================
     // ACCESS: Retrieving Values in Affine Units

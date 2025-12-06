@@ -8,21 +8,21 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 authors = ["Oblarg"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/Oblarg/whippyunits"
+repository = "https://github.com/WhippyUnits/whippyunits-rs"
 
 [package]
 name = "whippyunits"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 authors = ["Oblarg"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/Oblarg/whippyunits"
+repository = "https://github.com/WhippyUnits/whippyunits-rs"
 description = "A zero-cost, pure rust units-of-measure library for applied computation"
-keywords = ["units", "measurement", "dimensional", "type-safety", "physics", "scientific-computing"]
+keywords = ["units", "measurement", "dimensional", "SI", "whippyunits"]
 categories = ["science", "no-std", "development-tools"]
 readme = "README.md"
 
@@ -31,8 +31,8 @@ quote = "1.0"
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
-whippyunits-proc-macros = { path = "./proc-macros" }
-whippyunits-core = { path = "./whippyunits-core" }
+whippyunits-proc-macros = "0.1.0"
+whippyunits-core = "0.1.0"
 num-traits = "0.2"
 culit = "0.6.0"
 op_result = "0.5.8"
