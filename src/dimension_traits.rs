@@ -1,13 +1,15 @@
 //! Constrain [Quantity] types dimensionally while leaving the scale unspecified.
 //!
 //! ```rust
-//! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
 //! # use whippyunits::dimension_traits::Length;
-//! let length: impl Length = 1.0m;
-//! let length: impl Length = 1.0mm;
-//! // let length: impl Length = 1.0s; // 🚫 Compile error (dimension mismatch)
+//! fn assert_length<L: Length>(value: L) -> L {
+//!     value
+//! }
+//! let length = assert_length(1.0m);
+//! let length = assert_length(1.0mm);
+//! // let length = assert_length(1.0s); // 🚫 Compile error (dimension mismatch)
 //! # }
 //! ```
 //!
@@ -22,7 +24,6 @@
 //! is generic:
 //!
 //! ```rust
-//! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
 //! # use whippyunits::dimension_traits::Length;
@@ -34,12 +35,15 @@
 //! {
 //!     d1 + d2
 //! }
+//! fn assert_length<L: Length>(value: L) -> L {
+//!     value
+//! }
 //!
-//! let length: impl Length = add_lengths(1.0m, 1.0m); // ✅ 2.0 Quantity<m, f64>
-//! let length: impl Length = add_lengths(1.0mm, 1.0mm); // ✅ 2.0 Quantity<mm, f64>
-//! let length: impl Length = add_lengths(1.0m, rescale(1.0mm)); // ✅ 1.001 Quantity<m, f64>
-//! // let length: impl Length = add_lengths(1.0m, 1.0mm); // 🚫 Compile error (scale mismatch)
-//! // let length: impl Length = add_lengths(1.0m, 1.0s); // 🚫 Compile error (dimension mismatch)
+//! let length = assert_length(add_lengths(1.0m, 1.0m)); // ✅ 2.0 Quantity<m, f64>
+//! let length = assert_length(add_lengths(1.0mm, 1.0mm)); // ✅ 2.0 Quantity<mm, f64>
+//! let length = assert_length(add_lengths(1.0m, rescale(1.0mm))); // ✅ 1.001 Quantity<m, f64>
+//! // let length = assert_length(add_lengths(1.0m, 1.0mm)); // 🚫 Compile error (scale mismatch)
+//! // let length = assert_length(add_lengths(1.0m, 1.0s)); // 🚫 Compile error (dimension mismatch)
 //! # }
 //! ```
 //!
@@ -140,7 +144,6 @@ define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 0, 1, Angle);
 /// ## Examples
 ///
 /// ```rust
-/// # #![feature(impl_trait_in_bindings)]
 /// # #[culit::culit(whippyunits::default_declarators::literals)]
 /// # fn main() {
 /// # use whippyunits::value;
@@ -160,17 +163,20 @@ define_atomic_dimension_trait!(0, 0, 0, 0, 0, 0, 0, 1, Angle);
 /// {
 ///     d1 * d2
 /// }
+/// fn assert_area<A: Area>(value: A) -> A {
+///     value
+/// }
 ///
-/// let area: impl Area = calculate_area(1.0m, 2.0m);
+/// let area = assert_area(calculate_area(1.0m, 2.0m));
 /// assert_eq!(value!(area, m^2), 2.0);
 /// assert_eq!(area.unsafe_value, 2.0); // resulting type is meters^2
-/// let area: impl Area = calculate_area(100.0mm, 200.0mm);
+/// let area = assert_area(calculate_area(100.0mm, 200.0mm));
 /// assert_eq!(value!(area, mm^2), 20000.0);
 /// assert_eq!(area.unsafe_value, 20000.0); // resulting type is millimeters^2
-/// let area: impl Area = calculate_area(1.0m, 200.0mm);
+/// let area = assert_area(calculate_area(1.0m, 200.0mm));
 /// assert_eq!(value!(area, m^2), 0.2);
 /// assert_eq!(area.unsafe_value, 200.0); // resulting type is milli(meters^2)
-/// // let _area: impl Area = calculate_area(1.0m, 200.0ms); // 🚫 Compile error (dimension mismatch)
+/// // let _area = assert_area(calculate_area(1.0m, 200.0ms)); // 🚫 Compile error (dimension mismatch)
 /// # }
 /// ```
 #[doc(inline)]

@@ -5,8 +5,8 @@
 //! **Important**: Comparison operators are **scale-strict** - both operands must have the same scale.
 //! To compare quantities with different scales, use `rescale()` to convert one to match the other.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::api::rescale;
 

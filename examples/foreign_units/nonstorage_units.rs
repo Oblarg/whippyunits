@@ -28,8 +28,8 @@
 //! If you need a more-faithful representation of the original unit, you may directly define a custom declarator
 //! method that explicitly sets the scale exponents.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 // For method syntax (.inches(), .pounds(), etc.)
 use whippyunits::default_declarators::*;

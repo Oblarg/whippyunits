@@ -1,4 +1,3 @@
-#![feature(trait_alias)]
 #![allow(mixed_script_confusables)]
 
 use proc_macro::TokenStream;

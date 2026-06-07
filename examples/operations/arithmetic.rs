@@ -2,8 +2,8 @@
 //!
 //! This example demonstrates basic arithmetic operations with whippyunits quantities.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::unit;
 

@@ -31,8 +31,8 @@ quote = "1.0"
 proc-macro2 = "1.0"
 syn = { version = "2.0", features = ["full"] }
 libm = "0.2"
-whippyunits-proc-macros = "0.1.0"
-whippyunits-core = "0.1.0"
+whippyunits-proc-macros = { path = "proc-macros" }
+whippyunits-core = { path = "whippyunits-core" }
 num-traits = "0.2"
 culit = "0.6.0"
 op_result = "0.5.8"
@@ -46,9 +46,7 @@ trybuild = "1.0"
 [features]
 default = ["std", "strict"]
 std = []
-strict = []
-smaller_wins = []
-left_hand_wins = []
+cge = ["whippyunits-core/cge"]
 
 [lib]
 name = "whippyunits"

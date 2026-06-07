@@ -520,6 +520,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "seq-macro"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
+
+[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -753,6 +759,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "typenum"
+version = "1.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -812,8 +824,8 @@ dependencies = [
  "serde_json",
  "syn",
  "trybuild",
- "whippyunits-core 0.1.0",
- "whippyunits-proc-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "whippyunits-core 0.1.2",
+ "whippyunits-proc-macros 0.1.0",
 ]
 
 [[package]]
@@ -831,7 +843,9 @@ name = "whippyunits-core"
 version = "0.1.2"
 dependencies = [
  "proc-macro2",
+ "seq-macro",
  "syn",
+ "typenum",
 ]
 
 [[package]]
@@ -849,8 +863,8 @@ dependencies = [
  "syn",
  "tempfile",
  "tokio",
- "whippyunits 0.1.0",
- "whippyunits-core 0.1.0",
+ "whippyunits 0.1.2",
+ "whippyunits-core 0.1.2",
 ]
 
 [[package]]
@@ -894,7 +908,7 @@ dependencies = [
  "quote",
  "strsim",
  "syn",
- "whippyunits-core 0.1.0",
+ "whippyunits-core 0.1.2",
 ]
 
 [[package]]

@@ -1,7 +1,47 @@
+//! WhippyUnits is a zero-cost units-of-measure library for Rust that provides:
+//! - Dimensional safety (`m + s` is a compile error)
+//! - Scale safety (`m + mm` requires explicit `rescale`)
+//! - Ergonomic syntax: macros (`quantity!(1, m)`), methods (`5.0.meters()`), and even literals (`5.0m`)
+//! 
+//! ## Why WhippyUnits?
+//! 
+//! Unlike other Rust units-of-measure libraries, WhippyUnits is:
+//! 
+//! - Language-server integrated: pretty-prints complex type signatures in hover info and inlay hints
+//! - Log-scale-encoded: supports lossless rescaling at the type level, effectively acting as a dimensionally-aware compile-time precision extension
+//! - Scale-explicit: arithmetic operations are always explicit about the scale of the result
+//! - Angle-aware: angular units (radians, degrees, etc.) are safely handled as first-class dimensions, but with a special erasure behavior via `.into()` to allow ease-of-use in standard trigonometric functions
+//! - UCUM compliant: supports UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
+//! - Fixed-point friendly: integer types are guaranteed to use pure integer math for all operations
+//! 
+//! ## Quick Start
+//!
+//! ```rust
+//! use whippyunits::{quantity, unit, value};
+//! use whippyunits::api::rescale;
+//!
+//! let d1 = quantity!(1.0, m);
+//! let d2 = quantity!(500.0, mm);
+//!
+//! let sum_m: unit!(m) = d1 + rescale(d2);
+//! assert_eq!(value!(sum_m, m), 1.5);
+//! ```
+//!
+//! ## Examples
+//!
+//! The crate includes a full example suite under `examples/`.
+//! Run any example with:
+//!
+//! ```bash
+//! cargo run --example concepts
+//! ```
+//!
+//! For the full categorized example index, see
+//! [README in crate source](https://docs.rs/crate/whippyunits/latest/source/README.md).
+//!
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(incomplete_features)]
-#![feature(generic_const_exprs)]
-#![feature(trait_alias)]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc as alloc_crate;

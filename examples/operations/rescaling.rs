@@ -3,8 +3,8 @@
 //! This example demonstrates how to rescale quantities to different units
 //! of the same dimension using the rescale function.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::{api::rescale, quantity, rescale, unit};
 

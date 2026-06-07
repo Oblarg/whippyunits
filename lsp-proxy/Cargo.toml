@@ -20,8 +20,8 @@ env_logger = "0.10"
 tempfile = "3.0"
 shellexpand = "3.0"
 clap = { version = "4.0", features = ["derive"] }
-whippyunits = "0.1.0"
-whippyunits-core = "0.1.0"
+whippyunits = { path = ".." }
+whippyunits-core = { path = "../whippyunits-core" }
 syn = { version = "2.0", features = ["full", "parsing", "printing"] }
 quote = "1.0"
 

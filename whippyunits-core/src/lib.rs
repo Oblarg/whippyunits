@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
-#![cfg_attr(feature = "nightly", feature(generic_const_exprs))]
-#![cfg_attr(feature = "nightly", allow(incomplete_features))]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 //! Default dimension data for whippyunits
 //!

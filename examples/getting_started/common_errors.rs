@@ -3,8 +3,8 @@
 //! This example shows the most common compile errors you'll encounter
 //! and how to resolve them.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::api::rescale;
 use whippyunits::define_unit_declarators;

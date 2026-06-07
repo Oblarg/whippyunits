@@ -79,16 +79,18 @@
 //! [`define_generic_dimension!`](crate::dimension_traits::define_generic_dimension) to create a dimension trait:
 //!
 //! ```rust
-//! # #![feature(impl_trait_in_bindings)]
 //! # #[culit::culit(whippyunits::default_declarators::literals)]
 //! # fn main() {
 //! # use whippyunits::dimension_traits::define_generic_dimension;
 //! define_generic_dimension!(Area, L2);
+//! fn assert_area<A: Area>(value: A) -> A {
+//!     value
+//! }
 //!
 //! // Works with any scale - meters, millimeters, etc.
-//! let area1: impl Area = 5.0m * 5.0m; // ✅
-//! let area2: impl Area = 5.0mm * 5.0mm; // ✅
-//! // let _area: impl Area = 5.0m * 5.0s; // 🚫 Compile error (wrong dimension)
+//! let area1 = assert_area(5.0m * 5.0m); // ✅
+//! let area2 = assert_area(5.0mm * 5.0mm); // ✅
+//! // let _area = assert_area(5.0m * 5.0s); // 🚫 Compile error (wrong dimension)
 //! # }
 //! ```
 //!
@@ -123,7 +125,6 @@
 //! The [`Display`](std::fmt::Display) and [`Debug`](std::fmt::Debug) traits are implemented for
 //! all quantity types, providing human-readable output with proper unit formatting.
 
-use crate::IsI16;
 use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
 use crate::define_display_traits;
@@ -131,6 +132,10 @@ use crate::print::prettyprint::*;
 use crate::quantity::*;
 use crate::scale_conversion::*;
 use core::fmt;
+#[cfg(has_generic_const_exprs)]
+use crate::IsI16;
+#[cfg(not(has_generic_const_exprs))]
+use whippyunits_core::num::N;
 
 define_aggregate_scale_factor_rational!(
     // params
@@ -290,6 +295,7 @@ define_int_rescale!(rescale_u128, u128);
 
 #[macro_export]
 #[doc(hidden)]
+#[cfg(has_generic_const_exprs)]
 macro_rules! define_arithmetic_signed {
     ($T:ty, $rescale_fn:ident) => {
         $crate::_define_arithmetic_signed!(
@@ -323,6 +329,8 @@ macro_rules! define_arithmetic_signed {
             const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
             Brand,
         ),
+        // inversion parameters
+        (),
         // inversion where clauses
         (
             (): IsI16<{ -MASS_EXPONENT }>,
@@ -376,6 +384,121 @@ macro_rules! define_arithmetic_signed {
 
 #[macro_export]
 #[doc(hidden)]
+#[cfg(not(has_generic_const_exprs))]
+macro_rules! define_arithmetic_signed {
+    ($T:ty, $rescale_fn:ident) => {
+        $crate::_define_arithmetic_signed!(
+        // single dimension, single scale
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_PI: i16,
+            Brand,
+        ),
+        // multiple dimension, multiple scales
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_PI: i16,
+            const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
+            const LENGTH_EXPONENT_1: i16, const LENGTH_EXPONENT_2: i16,
+            const TIME_EXPONENT_1: i16, const TIME_EXPONENT_2: i16,
+            const CURRENT_EXPONENT_1: i16, const CURRENT_EXPONENT_2: i16,
+            const TEMPERATURE_EXPONENT_1: i16, const TEMPERATURE_EXPONENT_2: i16,
+            const AMOUNT_EXPONENT_1: i16, const AMOUNT_EXPONENT_2: i16,
+            const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
+            const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
+        ),
+        // inversion parameters
+        (
+            const INVERSE_MASS_EXPONENT: i16,
+            const INVERSE_LENGTH_EXPONENT: i16,
+            const INVERSE_TIME_EXPONENT: i16,
+            const INVERSE_CURRENT_EXPONENT: i16,
+            const INVERSE_TEMPERATURE_EXPONENT: i16,
+            const INVERSE_AMOUNT_EXPONENT: i16,
+            const INVERSE_LUMINOSITY_EXPONENT: i16,
+            const INVERSE_ANGLE_EXPONENT: i16,
+            const INVERSE_SCALE_P2: i16,
+            const INVERSE_SCALE_P3: i16,
+            const INVERSE_SCALE_P5: i16,
+            const INVERSE_SCALE_PI: i16,
+        ),
+        // inversion where clauses
+        (
+            N<MASS_EXPONENT>: core::ops::Neg<Output = N<INVERSE_MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_ANGLE_EXPONENT>>,
+            N<SCALE_P2>: core::ops::Neg<Output = N<INVERSE_SCALE_P2>>,
+            N<SCALE_P3>: core::ops::Neg<Output = N<INVERSE_SCALE_P3>>,
+            N<SCALE_P5>: core::ops::Neg<Output = N<INVERSE_SCALE_P5>>,
+            N<SCALE_PI>: core::ops::Neg<Output = N<INVERSE_SCALE_PI>>
+        ),
+        // mul output dimension where clauses
+        (
+            N<MASS_EXPONENT_1>: core::ops::Add<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT_1>: core::ops::Add<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT_1>: core::ops::Add<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT_1>: core::ops::Add<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT_1>: core::ops::Add<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT_1>: core::ops::Add<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT_1>: core::ops::Add<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT_1>: core::ops::Add<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
+            N<SCALE_P2_1>: core::ops::Add<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
+            N<SCALE_P3_1>: core::ops::Add<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
+            N<SCALE_P5_1>: core::ops::Add<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
+            N<SCALE_PI_1>: core::ops::Add<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+        ),
+        // div output dimension where clauses
+        (
+            N<MASS_EXPONENT_1>: core::ops::Sub<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT_1>: core::ops::Sub<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT_1>: core::ops::Sub<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT_1>: core::ops::Sub<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT_1>: core::ops::Sub<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT_1>: core::ops::Sub<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT_1>: core::ops::Sub<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT_1>: core::ops::Sub<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
+            N<SCALE_P2_1>: core::ops::Sub<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
+            N<SCALE_P3_1>: core::ops::Sub<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
+            N<SCALE_P5_1>: core::ops::Sub<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
+            N<SCALE_PI_1>: core::ops::Sub<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+        ),
+            // other parameters
+            $T, rescale_fn
+        );
+    }
+}
+
+#[macro_export]
+#[doc(hidden)]
+#[cfg(has_generic_const_exprs)]
 macro_rules! define_arithmetic {
     ($T:ty, $rescale_fn:ident) => {
         $crate::_define_arithmetic!(
@@ -409,6 +532,8 @@ macro_rules! define_arithmetic {
             const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
             Brand,
         ),
+        // inversion parameters
+        (),
         // inversion where clauses
         (
             (): IsI16<{ -MASS_EXPONENT }>,
@@ -453,6 +578,120 @@ macro_rules! define_arithmetic {
             (): IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
             (): IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
             (): IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
+        ),
+            // other parameters
+            $T, rescale_fn
+        );
+    }
+}
+
+#[macro_export]
+#[doc(hidden)]
+#[cfg(not(has_generic_const_exprs))]
+macro_rules! define_arithmetic {
+    ($T:ty, $rescale_fn:ident) => {
+        $crate::_define_arithmetic!(
+        // single dimension, single scale
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_PI: i16,
+            Brand,
+        ),
+        // multiple dimension, multiple scales
+        (
+            const MASS_EXPONENT: i16,
+            const LENGTH_EXPONENT: i16,
+            const TIME_EXPONENT: i16,
+            const CURRENT_EXPONENT: i16,
+            const TEMPERATURE_EXPONENT: i16,
+            const AMOUNT_EXPONENT: i16,
+            const LUMINOSITY_EXPONENT: i16,
+            const ANGLE_EXPONENT: i16,
+            const SCALE_P2: i16,
+            const SCALE_P3: i16,
+            const SCALE_P5: i16,
+            const SCALE_PI: i16,
+            const MASS_EXPONENT_1: i16, const MASS_EXPONENT_2: i16,
+            const LENGTH_EXPONENT_1: i16, const LENGTH_EXPONENT_2: i16,
+            const TIME_EXPONENT_1: i16, const TIME_EXPONENT_2: i16,
+            const CURRENT_EXPONENT_1: i16, const CURRENT_EXPONENT_2: i16,
+            const TEMPERATURE_EXPONENT_1: i16, const TEMPERATURE_EXPONENT_2: i16,
+            const AMOUNT_EXPONENT_1: i16, const AMOUNT_EXPONENT_2: i16,
+            const LUMINOSITY_EXPONENT_1: i16, const LUMINOSITY_EXPONENT_2: i16,
+            const ANGLE_EXPONENT_1: i16, const ANGLE_EXPONENT_2: i16,
+            const SCALE_P2_1: i16, const SCALE_P3_1: i16, const SCALE_P5_1: i16, const SCALE_PI_1: i16,
+            const SCALE_P2_2: i16, const SCALE_P3_2: i16, const SCALE_P5_2: i16, const SCALE_PI_2: i16,
+            Brand,
+        ),
+        // inversion parameters
+        (
+            const INVERSE_MASS_EXPONENT: i16,
+            const INVERSE_LENGTH_EXPONENT: i16,
+            const INVERSE_TIME_EXPONENT: i16,
+            const INVERSE_CURRENT_EXPONENT: i16,
+            const INVERSE_TEMPERATURE_EXPONENT: i16,
+            const INVERSE_AMOUNT_EXPONENT: i16,
+            const INVERSE_LUMINOSITY_EXPONENT: i16,
+            const INVERSE_ANGLE_EXPONENT: i16,
+            const INVERSE_SCALE_P2: i16,
+            const INVERSE_SCALE_P3: i16,
+            const INVERSE_SCALE_P5: i16,
+            const INVERSE_SCALE_PI: i16,
+        ),
+        // inversion where clauses
+        (
+            N<MASS_EXPONENT>: core::ops::Neg<Output = N<INVERSE_MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_ANGLE_EXPONENT>>,
+            N<SCALE_P2>: core::ops::Neg<Output = N<INVERSE_SCALE_P2>>,
+            N<SCALE_P3>: core::ops::Neg<Output = N<INVERSE_SCALE_P3>>,
+            N<SCALE_P5>: core::ops::Neg<Output = N<INVERSE_SCALE_P5>>,
+            N<SCALE_PI>: core::ops::Neg<Output = N<INVERSE_SCALE_PI>>
+        ),
+        // mul output dimension where clauses
+        (
+            N<MASS_EXPONENT_1>: core::ops::Add<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT_1>: core::ops::Add<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT_1>: core::ops::Add<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT_1>: core::ops::Add<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT_1>: core::ops::Add<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT_1>: core::ops::Add<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT_1>: core::ops::Add<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT_1>: core::ops::Add<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
+            N<SCALE_P2_1>: core::ops::Add<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
+            N<SCALE_P3_1>: core::ops::Add<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
+            N<SCALE_P5_1>: core::ops::Add<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
+            N<SCALE_PI_1>: core::ops::Add<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+        ),
+        // div output dimension where clauses
+        (
+            N<MASS_EXPONENT_1>: core::ops::Sub<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
+            N<LENGTH_EXPONENT_1>: core::ops::Sub<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
+            N<TIME_EXPONENT_1>: core::ops::Sub<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
+            N<CURRENT_EXPONENT_1>: core::ops::Sub<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
+            N<TEMPERATURE_EXPONENT_1>: core::ops::Sub<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
+            N<AMOUNT_EXPONENT_1>: core::ops::Sub<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
+            N<LUMINOSITY_EXPONENT_1>: core::ops::Sub<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
+            N<ANGLE_EXPONENT_1>: core::ops::Sub<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
+            N<SCALE_P2_1>: core::ops::Sub<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
+            N<SCALE_P3_1>: core::ops::Sub<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
+            N<SCALE_P5_1>: core::ops::Sub<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
+            N<SCALE_PI_1>: core::ops::Sub<N<SCALE_PI_2>, Output = N<SCALE_PI>>
         ),
             // other parameters
             $T, rescale_fn

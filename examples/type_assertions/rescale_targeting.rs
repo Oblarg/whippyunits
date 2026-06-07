@@ -3,8 +3,8 @@
 //! This example shows how to use unit!() to specify target types
 //! for rescale operations, ensuring type safety and clarity.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::{rescale, unit};
 

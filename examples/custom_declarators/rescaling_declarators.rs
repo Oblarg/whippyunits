@@ -3,8 +3,8 @@
 //! Rescaling declarators automatically convert all quantities to specified
 //! base unit scales for storage, while allowing declaration in any unit.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::define_unit_declarators;
 use whippyunits::value;
