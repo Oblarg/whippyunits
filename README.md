@@ -450,6 +450,43 @@ To use nightly `generic_const_exprs` instead, enable the `cge` feature:
 whippyunits = { version = "0.1", features = ["cge"] }
 ```
 
+## Feature Flags
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `std`   | Yes     | Enables standard library support (implies `alloc`) |
+| `alloc` | Yes     | Enables `Display`/`Debug` impls on `Quantity` (requires a global allocator) |
+| `serde` | Yes     | Enables serde `Serialize`/`Deserialize` impls, `from_json!`/`from_string!` macros, and the `.fmt()` display method (implies `alloc`) |
+| `cge`   | No      | Enables nightly `generic_const_exprs` (requires nightly toolchain) |
+
+## `no_std` and `no_alloc` Support
+
+WhippyUnits is fully `no_std` and `no_alloc` compatible. All core functionality — quantity declaration, dimensional/scale safety, arithmetic, rescaling, erasure, and generic dimensions — works without the standard library or a heap allocator.
+
+```toml
+# no_std + no_alloc (stack-only, no Display/Debug)
+[dependencies]
+whippyunits = { version = "0.1", default-features = false }
+
+# no_std + alloc (adds Display/Debug impls)
+[dependencies]
+whippyunits = { version = "0.1", default-features = false, features = ["alloc"] }
+
+# no_std + alloc + serde
+[dependencies]
+whippyunits = { version = "0.1", default-features = false, features = ["serde"] }
+```
+
+**What you lose without `alloc`:**
+
+- No `Display` or `Debug` trait impls on `Quantity` (cannot `println!` quantities)
+
+**What you additionally lose without `serde`:**
+
+- No `Serialize`/`Deserialize` trait impls on `Quantity`
+- No `from_json!` / `from_string!` macros
+- No `.fmt("unit")` display method for runtime unit conversion formatting
+
 ### Usage
 
 ```bash

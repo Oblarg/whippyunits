@@ -127,10 +127,13 @@
 
 use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
+#[cfg(feature = "alloc")]
 use crate::define_display_traits;
+#[cfg(feature = "alloc")]
 use crate::print::prettyprint::*;
 use crate::quantity::*;
 use crate::scale_conversion::*;
+#[cfg(feature = "alloc")]
 use core::fmt;
 #[cfg(has_generic_const_exprs)]
 use crate::IsI16;
@@ -718,6 +721,7 @@ define_arithmetic!(u64, rescale_u64);
 define_arithmetic!(u128, rescale_u128);
 
 // Display traits for all supported types
+#[cfg(feature = "alloc")]
 define_display_traits!(
     (
         const MASS_EXPONENT: i16,

@@ -89,7 +89,7 @@ fn test_radian_erasure_with_scale() {
 
     let radians_scaled = 180.0.degrees();
     let scalar_rescaled: f64 = radians_scaled.into();
-    assert!((scalar_rescaled - std::f64::consts::PI).abs() < 1e-10);
+    assert!((scalar_rescaled - core::f64::consts::PI).abs() < 1e-10);
 
     // Test with different numeric types - use a simpler case
     let radians_simple = quantity!(1, rad, i32);

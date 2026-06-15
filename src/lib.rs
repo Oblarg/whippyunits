@@ -27,6 +27,33 @@
 //! assert_eq!(value!(sum_m, m), 1.5);
 //! ```
 //!
+//! ## Feature Flags
+//!
+//! | Feature | Default | Description |
+//! |---------|---------|-------------|
+//! | `std`   | Yes     | Enables standard library support (implies `alloc`) |
+//! | `alloc` | Yes     | Enables `Display`/`Debug` impls on `Quantity` (requires a global allocator) |
+//! | `serde` | Yes     | Enables `Serialize`/`Deserialize` impls, `from_json!`/`from_string!` macros, and `.fmt()` (implies `alloc`) |
+//! | `cge`   | No      | Enables nightly `generic_const_exprs` (requires nightly toolchain) |
+//!
+//! ## `no_std` and `no_alloc` Support
+//!
+//! WhippyUnits is fully `no_std` and `no_alloc` compatible. All core functionality — quantity
+//! declaration, dimensional/scale safety, arithmetic, rescaling, erasure, and generic
+//! dimensions — works without the standard library or a heap allocator.
+//!
+//! ```toml
+//! # no_std + no_alloc (stack-only, no Display/Debug)
+//! whippyunits = { version = "0.1", default-features = false }
+//!
+//! # no_std + alloc (adds Display/Debug impls)
+//! whippyunits = { version = "0.1", default-features = false, features = ["alloc"] }
+//! ```
+//!
+//! Without `alloc`, `Quantity` does not implement `Display` or `Debug`.
+//! Without `serde`, the `Serialize`/`Deserialize` impls, `from_json!`/`from_string!`
+//! macros, and `.fmt("unit")` display method are unavailable.
+//!
 //! ## Examples
 //!
 //! The crate includes a full example suite under `examples/`.
@@ -43,7 +70,7 @@
 #![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 #![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
 extern crate alloc as alloc_crate;
 
 #[doc(hidden)]
@@ -62,6 +89,7 @@ impl<const N: usize, T> GetSecondGeneric for Helper<N, T> {
     type Type = T;
 }
 
+#[cfg(feature = "alloc")]
 #[doc(hidden)]
 mod alloc;
 
@@ -72,6 +100,7 @@ pub mod arithmetic;
 pub mod arithmetic_quantity_types;
 pub mod default_declarators;
 pub mod dimension_traits;
+#[cfg(feature = "alloc")]
 #[doc(hidden)]
 pub mod print;
 pub mod quantity;
@@ -79,6 +108,7 @@ pub mod quantity;
 pub mod rescale_macro;
 #[doc(hidden)]
 pub mod scale_conversion;
+#[cfg(feature = "serde")]
 pub mod serialization;
 
 pub use quantity::Quantity;

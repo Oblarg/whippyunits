@@ -4,6 +4,8 @@
 //! `std` and `alloc` environments, allowing the rest of the codebase to use
 //! `crate::alloc::*` without feature flag duplication.
 
+#![allow(unused_imports)]
+
 #[cfg(not(feature = "std"))]
 pub use alloc_crate::{
     format,

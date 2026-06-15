@@ -455,6 +455,7 @@ impl<
     /// ```
     ///
     /// If a panic is desired, use a type assertion instead.
+    #[cfg(feature = "serde")]
     pub fn fmt<'a>(&self, unit: &'a str) -> impl core::fmt::Display + 'a
     where
         T: Copy + Into<f64>,
@@ -562,6 +563,7 @@ impl<
     }
 
     /// Get the source unit symbol for error messages (returns static string, no allocation)
+    #[cfg(feature = "serde")]
     fn get_source_unit_symbol_static(&self) -> &'static str {
         use whippyunits_core::{
             Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
@@ -609,6 +611,7 @@ impl<
 
 /// A formatter for displaying quantities with unit conversion
 /// This is no-std compatible - uses &str instead of String
+#[cfg(feature = "serde")]
 #[doc(hidden)]
 pub struct QuantityFormatter<'a> {
     value: f64,
@@ -617,6 +620,7 @@ pub struct QuantityFormatter<'a> {
     error_source_unit: Option<&'static str>, // Static strings from unit lookup
 }
 
+#[cfg(feature = "serde")]
 impl<'a> core::fmt::Display for QuantityFormatter<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.is_error {
