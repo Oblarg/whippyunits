@@ -1,6 +1,6 @@
 [package]
 name = "whippyunits-pretty"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors.workspace = true
 license.workspace = true
@@ -15,7 +15,7 @@ anyhow = "1.0"
 log = "0.4"
 env_logger = "0.10"
 tokio = { version = "1.0", features = ["full"] }
-whippyunits-lsp-proxy = "0.1.0"
+whippyunits-lsp-proxy = { path = "../lsp-proxy", version = "0.2.0" }
 
 [[bin]]
 name = "whippyunits-pretty"

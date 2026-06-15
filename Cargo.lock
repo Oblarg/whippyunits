@@ -793,26 +793,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceb43eac6a0350b6b5d5a893a6074e49297de157bcc0e724d6667d00537aa76c"
-dependencies = [
- "culit",
- "libm",
- "num-traits",
- "op_result",
- "proc-macro2",
- "quote",
- "serde",
- "serde_json",
- "syn",
- "whippyunits-core 0.1.0",
- "whippyunits-proc-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "whippyunits"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "culit",
  "libm",
@@ -824,23 +805,13 @@ dependencies = [
  "serde_json",
  "syn",
  "trybuild",
- "whippyunits-core 0.1.2",
- "whippyunits-proc-macros 0.1.0",
+ "whippyunits-core",
+ "whippyunits-proc-macros",
 ]
 
 [[package]]
 name = "whippyunits-core"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9d3417419f7cde21c895bb9fea358fe89c9aeb445871eefb75fd32afcc6f8de"
-dependencies = [
- "proc-macro2",
- "syn",
-]
-
-[[package]]
-name = "whippyunits-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "seq-macro",
@@ -850,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits-lsp-proxy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -863,65 +834,31 @@ dependencies = [
  "syn",
  "tempfile",
  "tokio",
- "whippyunits 0.1.2",
- "whippyunits-core 0.1.2",
-]
-
-[[package]]
-name = "whippyunits-lsp-proxy"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91589967b8be703bb5d4aceea06e087f8c1a59d4231e1f0b6a19bd130d440b4f"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "log",
- "quote",
- "serde",
- "serde_json",
- "shellexpand",
- "syn",
- "tempfile",
- "tokio",
- "whippyunits 0.1.0",
- "whippyunits-core 0.1.0",
+ "whippyunits",
+ "whippyunits-core",
 ]
 
 [[package]]
 name = "whippyunits-pretty"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
  "env_logger",
  "log",
  "tokio",
- "whippyunits-lsp-proxy 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "whippyunits-lsp-proxy",
 ]
 
 [[package]]
 name = "whippyunits-proc-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
  "syn",
- "whippyunits-core 0.1.2",
-]
-
-[[package]]
-name = "whippyunits-proc-macros"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "639928addc0adbdbd22978e8cb404784b0aeaa1478cea36c00a2a62fc7aca20b"
-dependencies = [
- "proc-macro2",
- "quote",
- "strsim",
- "syn",
- "whippyunits-core 0.1.0",
+ "whippyunits-core",
 ]
 
 [[package]]
