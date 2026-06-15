@@ -124,4 +124,16 @@ macro_rules! rescale {
         let result: TargetQuantity = $crate::api::rescale_u128($quantity);
         result as $crate::unit!($unit, u128)
     }};
+    // isize
+    ($quantity:expr, $unit:expr, isize) => {{
+        type TargetQuantity = $crate::unit!($unit, isize);
+        let result: TargetQuantity = $crate::api::rescale_isize($quantity);
+        result as $crate::unit!($unit, isize)
+    }};
+    // usize
+    ($quantity:expr, $unit:expr, usize) => {{
+        type TargetQuantity = $crate::unit!($unit, usize);
+        let result: TargetQuantity = $crate::api::rescale_usize($quantity);
+        result as $crate::unit!($unit, usize)
+    }};
 }

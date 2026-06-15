@@ -282,19 +282,21 @@ define_float_rescale!(rescale, f64);
 define_float_rescale!(rescale_f64, f64);
 define_float_rescale!(rescale_f32, f32);
 
-// Signed integer rescale functions - support i8, i16, i32, i64, i128
+// Signed integer rescale functions - support i8, i16, i32, i64, i128, isize
 define_int_rescale!(rescale_i8, i8);
 define_int_rescale!(rescale_i16, i16);
 define_int_rescale!(rescale_i32, i32);
 define_int_rescale!(rescale_i64, i64);
 define_int_rescale!(rescale_i128, i128);
+define_int_rescale!(rescale_isize, isize);
 
-// Unsigned integer rescale functions - support u8, u16, u32, u64, u128
+// Unsigned integer rescale functions - support u8, u16, u32, u64, u128, usize
 define_int_rescale!(rescale_u8, u8);
 define_int_rescale!(rescale_u16, u16);
 define_int_rescale!(rescale_u32, u32);
 define_int_rescale!(rescale_u64, u64);
 define_int_rescale!(rescale_u128, u128);
+define_int_rescale!(rescale_usize, usize);
 
 #[macro_export]
 #[doc(hidden)]
@@ -712,6 +714,7 @@ define_arithmetic_signed!(i16, rescale_i16);
 define_arithmetic_signed!(i32, rescale_i32);
 define_arithmetic_signed!(i64, rescale_i64);
 define_arithmetic_signed!(i128, rescale_i128);
+define_arithmetic_signed!(isize, rescale_isize);
 
 // Unsigned integer arithmetic implementations (no negation)
 define_arithmetic!(u8, rescale_u8);
@@ -719,6 +722,7 @@ define_arithmetic!(u16, rescale_u16);
 define_arithmetic!(u32, rescale_u32);
 define_arithmetic!(u64, rescale_u64);
 define_arithmetic!(u128, rescale_u128);
+define_arithmetic!(usize, rescale_usize);
 
 // Display traits for all supported types
 #[cfg(feature = "alloc")]

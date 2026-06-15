@@ -8,6 +8,7 @@ mod define_generic_dimension_macro;
 mod define_literals_macro;
 mod define_local_quantity_macro;
 mod define_unit_declarators_macro;
+mod generate_all_dimensionless_cross_type_macro;
 mod generate_all_radian_erasures_macro;
 mod generate_default_declarators_macro;
 mod generate_literals_module_macro;
@@ -241,6 +242,17 @@ pub fn pow_lookup(input: TokenStream) -> TokenStream {
 #[doc(hidden)]
 pub fn pow_pi_lookup(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as pow_lookup_macro::PiPowLookupInput);
+    input.expand().into()
+}
+
+/// Generate all cross-type `From` impls for dimensionless quantities.
+/// Usage: generate_all_dimensionless_cross_type!()
+#[proc_macro]
+#[doc(hidden)]
+pub fn generate_all_dimensionless_cross_type(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(
+        input as generate_all_dimensionless_cross_type_macro::AllDimensionlessCrossTypeInput
+    );
     input.expand().into()
 }
 

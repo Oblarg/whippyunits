@@ -131,7 +131,7 @@ uom supports storage types that WhippyUnits currently does not:
 |---|---|---|
 | `f32`, `f64` | yes | yes |
 | `i8`..`i128`, `u8`..`u128` | yes | yes |
-| `isize`, `usize` | yes | no |
+| `isize`, `usize` | yes | yes |
 | `bigint`, `biguint` | yes | no |
 | `rational`, `rational32`, `rational64`, `bigrational` | yes | no |
 | `complex32`, `complex64` | yes | no |

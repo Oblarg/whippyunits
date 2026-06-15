@@ -798,19 +798,23 @@ macro_rules! define_from_dimensionless {
     };
 }
 
-define_from_dimensionless!(i32, rescale_i32);
+define_from_dimensionless!(f32, rescale_f32);
 define_from_dimensionless!(f64, rescale_f64);
+define_from_dimensionless!(i8, rescale_i8);
 define_from_dimensionless!(i16, rescale_i16);
+define_from_dimensionless!(i32, rescale_i32);
+define_from_dimensionless!(i64, rescale_i64);
+define_from_dimensionless!(i128, rescale_i128);
+define_from_dimensionless!(isize, rescale_isize);
+define_from_dimensionless!(u8, rescale_u8);
+define_from_dimensionless!(u16, rescale_u16);
+define_from_dimensionless!(u32, rescale_u32);
+define_from_dimensionless!(u64, rescale_u64);
+define_from_dimensionless!(u128, rescale_u128);
+define_from_dimensionless!(usize, rescale_usize);
 
-// Cross-type conversions for dimensionless quantities
-define_from_dimensionless_cross_type!(i32, f64);
-define_from_dimensionless_cross_type!(i32, f32);
-define_from_dimensionless_cross_type!(i32, i64);
-define_from_dimensionless_cross_type!(f64, i16);
-define_from_dimensionless_cross_type!(f64, i32);
-define_from_dimensionless_cross_type!(f64, f32);
-define_from_dimensionless_cross_type!(i64, f64);
-define_from_dimensionless_cross_type!(i64, f32);
+// Cross-type conversions for dimensionless quantities (all N×(N-1) pairs)
+whippyunits_proc_macros::generate_all_dimensionless_cross_type!();
 
 // Cross-type conversion for radian quantities
 #[doc(hidden)]
