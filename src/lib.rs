@@ -1,9 +1,107 @@
+//! WhippyUnits is a zero-cost units-of-measure library for Rust that provides:
+//! 
+//! - Dimensional safety (`m + s` is a compile error)
+//! - Scale safety (`m + mm` requires explicit `rescale`)
+//! - Ergonomic syntax: macros (`quantity!(1, m)`), methods (`5.0.meters()`), and even literals (`5.0m`)
+//! - `no-std` and `no-alloc` compatibility
+//! 
+//! Works on stable Rust by default, with optional support for nightly `generic_const_exprs` via the `cge` feature flag.
+//! 
+//! ## Why WhippyUnits?
+//! 
+//! Unlike other Rust units-of-measure libraries, WhippyUnits is:
+//! 
+//! - Language-server integrated: pretty-prints complex type signatures in hover info and inlay hints
+//! - Log-scale-encoded: supports lossless rescaling at the type level, effectively acting as a dimensionally-aware compile-time precision extension
+//! - Scale-explicit: arithmetic operations are always explicit about the scale of the result
+//! - Angle-aware: angular units (radians, degrees, etc.) are safely handled as first-class dimensions, but with a special erasure behavior via `.into()` to allow ease-of-use in standard trigonometric functions
+//! - Scale-generic: write functions constrained by dimension - or a disjunctive set of dimensions - that work with any scale, *without* imposing arbitrary rescaling at API boundaries
+//! - UCUM compliant: supports UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
+//! - Fixed-point friendly: integer types are guaranteed to use pure integer math for all operations
+//! 
+//! ## Quick Start
+//!
+//! ```rust
+//! use whippyunits::{quantity, unit, value};
+//! use whippyunits::api::rescale;
+//!
+//! let d1 = quantity!(1.0, m);
+//! let d2 = quantity!(500.0, mm);
+//!
+//! let sum_m: unit!(m) = d1 + rescale(d2);
+//! assert_eq!(value!(sum_m, m), 1.5);
+//! ```
+//!
+//! ## Feature Flags
+//!
+//! | Feature | Default | Description |
+//! |---------|---------|-------------|
+//! | `std`   | Yes     | Enables standard library support (implies `alloc`) |
+//! | `alloc` | Yes     | Enables `Display`/`Debug` impls on `Quantity` (requires a global allocator) |
+//! | `serde` | Yes     | Enables `Serialize`/`Deserialize` impls, `from_json!`/`from_string!` macros, and `.fmt()` (implies `alloc`) |
+//! | `cge`   | No      | Enables nightly `generic_const_exprs` (requires nightly toolchain) |
+//!
+//! ## `no_std` and `no_alloc` Support
+//!
+//! WhippyUnits is fully `no_std` and `no_alloc` compatible. All core functionality — quantity
+//! declaration, dimensional/scale safety, arithmetic, rescaling, erasure, and generic
+//! dimensions — works without the standard library or a heap allocator.
+//!
+//! ```toml
+//! # no_std + no_alloc (stack-only, no Display/Debug)
+//! whippyunits = { version = "0.1", default-features = false }
+//!
+//! # no_std + alloc (adds Display/Debug impls)
+//! whippyunits = { version = "0.1", default-features = false, features = ["alloc"] }
+//! ```
+//!
+//! Without `alloc`, `Quantity` does not implement `Display` or `Debug`.
+//! Without `serde`, the `Serialize`/`Deserialize` impls, `from_json!`/`from_string!`
+//! macros, and `.fmt("unit")` display method are unavailable.
+//!
+//! ## Examples
+//!
+//! The crate includes a full example suite under `examples/`.
+//! Run any example with:
+//!
+//! ```bash
+//! cargo run --example concepts
+//! ```
+//!
+//! For the full categorized example index, see
+//! [README in crate source](https://docs.rs/crate/whippyunits/latest/source/README.md).
+//! 
+//! ## Developer Tooling
+//!
+//! The companion [`whippyunits-lsp-proxy`](https://github.com/WhippyUnits/whippyunits-rs/tree/main/lsp-proxy)
+//! crate provides an LSP proxy that intercepts rust-analyzer responses to render
+//! `Quantity` types as human-readable unit expressions in hover info and inlay hints.
+//!
+//! The [`whippyunits-pretty`](https://github.com/WhippyUnits/whippyunits-rs/tree/main/whippyunits-pretty)
+//! CLI tool pipes compiler output through the same rewriting logic, turning raw
+//! `Quantity<Scale<_2<3>, ...>, Dimension<_M<0>, _L<1>, ...>, f64>` signatures
+//! into readable `Quantity<m, f64>` in error messages.
+//!
+//! See the respective READMEs for setup instructions.
+//!
+//! ## Experimental Features
+//! 
+//! By default, WhippyUnits uses a typenum-based polyfill for compile-time dimensional arithmetic.
+//! This polyfill is fully functional, but is limited to working with integer exponents in the range -200 to 200.
+//! To use `generic_const_exprs` (requires nightly toolchain) instead, enable the `cge` feature flag:
+//! 
+//! ```toml
+//! [dependencies]
+//! whippyunits = { version = "0.1", features = ["cge"] }
+//! ```
+//! 
+//! With the `cge` flag, exponents can span the full range of i16 integers.
+//!
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(incomplete_features)]
-#![feature(generic_const_exprs)]
-#![feature(trait_alias)]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
 extern crate alloc as alloc_crate;
 
 #[doc(hidden)]
@@ -22,6 +120,7 @@ impl<const N: usize, T> GetSecondGeneric for Helper<N, T> {
     type Type = T;
 }
 
+#[cfg(feature = "alloc")]
 #[doc(hidden)]
 mod alloc;
 
@@ -32,6 +131,7 @@ pub mod arithmetic;
 pub mod arithmetic_quantity_types;
 pub mod default_declarators;
 pub mod dimension_traits;
+#[cfg(feature = "alloc")]
 #[doc(hidden)]
 pub mod print;
 pub mod quantity;
@@ -39,6 +139,7 @@ pub mod quantity;
 pub mod rescale_macro;
 #[doc(hidden)]
 pub mod scale_conversion;
+#[cfg(feature = "serde")]
 pub mod serialization;
 
 pub use quantity::Quantity;

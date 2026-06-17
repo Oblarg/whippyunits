@@ -12,9 +12,11 @@ categories = ["science", "no-std"]
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 proc-macro2 = "1.0"
+typenum = "1"
+seq-macro = "0.3"
 
 [features]
-nightly = []
+cge = []
 
 [[bin]]
 name = "symbol_linter"

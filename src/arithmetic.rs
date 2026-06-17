@@ -1,7 +1,12 @@
 #[macro_export]
 #[doc(hidden)]
 macro_rules! scalar_quantity_mul_div_interface {
-    (($($single_dimension_single_scale_params:tt)*), ($($inversion_where_clauses:tt)*), $T:ty) => {
+    (
+        ($($single_dimension_single_scale_params:tt)*),
+        ($($inversion_params:tt)*),
+        ($($inversion_where_clauses:tt)*),
+        $T:ty
+    ) => {
         impl<
             $($single_dimension_single_scale_params)*
         >
@@ -17,10 +22,11 @@ macro_rules! scalar_quantity_mul_div_interface {
 
         impl<
             $($single_dimension_single_scale_params)*
+            $($inversion_params)*
         >
             core::ops::Div<$crate::quantity_type!($T)> for $T
-            where
-                $($inversion_where_clauses)*
+        where
+            $($inversion_where_clauses)*
         {
             type Output = $crate::inverse_quantity_type!($T);
 
@@ -195,12 +201,18 @@ macro_rules! quantity_quantity_partial_ord_interface {
 macro_rules! _define_arithmetic_signed {
     (($($single_dimension_single_scale_params:tt)*),
      ($($multiple_dimension_multiple_scale_params:tt)*),
+     ($($inversion_params:tt)*),
      ($($inversion_where_clauses:tt)*),
      ($($mul_output_dimension_where_clauses:tt)*),
      ($($div_output_dimension_where_clauses:tt)*),
      $T:ty, $rescale_fn:ident) => {
         // scalar-quantity arithmetic operations
-        $crate::scalar_quantity_mul_div_interface!(($($single_dimension_single_scale_params)*), ($($inversion_where_clauses)*), $T);
+        $crate::scalar_quantity_mul_div_interface!(
+            ($($single_dimension_single_scale_params)*),
+            ($($inversion_params)*),
+            ($($inversion_where_clauses)*),
+            $T
+        );
 
         $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), *, mul, Mul, $T);
         $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), /, div, Div, $T);
@@ -230,6 +242,20 @@ macro_rules! _define_arithmetic_signed {
             -=, sub_assign, SubAssign, $T, $rescale_fn
         );
 
+        // quantity-quantity remainder (scale-strict, same as add/sub)
+        $crate::quantity_quantity_add_sub_interface!(
+            ($($single_dimension_single_scale_params)*),
+            %, rem, Rem, $T, $rescale_fn
+        );
+        $crate::quantity_quantity_add_sub_assign_interface!(
+            ($($single_dimension_single_scale_params)*),
+            %=, rem_assign, RemAssign, $T, $rescale_fn
+        );
+
+        // quantity-scalar remainder
+        $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), %, rem, Rem, $T);
+        $crate::quantity_scalar_mul_div_assign_interface!(($($single_dimension_single_scale_params)*), %=, rem_assign, RemAssign, $T);
+
         $crate::quantity_quantity_mul_div_interface!(
             ($($multiple_dimension_multiple_scale_params)*),
             ($($mul_output_dimension_where_clauses)*),
@@ -254,12 +280,18 @@ macro_rules! _define_arithmetic_signed {
 macro_rules! _define_arithmetic {
     (($($single_dimension_single_scale_params:tt)*),
      ($($multiple_dimension_multiple_scale_params:tt)*),
+     ($($inversion_params:tt)*),
      ($($inversion_where_clauses:tt)*),
      ($($mul_output_dimension_where_clauses:tt)*),
      ($($div_output_dimension_where_clauses:tt)*),
      $T:ty, $rescale_fn:ident) => {
         // scalar-quantity arithmetic operations
-        $crate::scalar_quantity_mul_div_interface!(($($single_dimension_single_scale_params)*), ($($inversion_where_clauses)*), $T);
+        $crate::scalar_quantity_mul_div_interface!(
+            ($($single_dimension_single_scale_params)*),
+            ($($inversion_params)*),
+            ($($inversion_where_clauses)*),
+            $T
+        );
 
         $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), *, mul, Mul, $T);
         $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), /, div, Div, $T);
@@ -285,6 +317,20 @@ macro_rules! _define_arithmetic {
             ($($single_dimension_single_scale_params)*),
             -=, sub_assign, SubAssign, $T, $rescale_fn
         );
+
+        // quantity-quantity remainder (scale-strict, same as add/sub)
+        $crate::quantity_quantity_add_sub_interface!(
+            ($($single_dimension_single_scale_params)*),
+            %, rem, Rem, $T, $rescale_fn
+        );
+        $crate::quantity_quantity_add_sub_assign_interface!(
+            ($($single_dimension_single_scale_params)*),
+            %=, rem_assign, RemAssign, $T, $rescale_fn
+        );
+
+        // quantity-scalar remainder
+        $crate::quantity_scalar_mul_div_interface!(($($single_dimension_single_scale_params)*), %, rem, Rem, $T);
+        $crate::quantity_scalar_mul_div_assign_interface!(($($single_dimension_single_scale_params)*), %=, rem_assign, RemAssign, $T);
 
         $crate::quantity_quantity_mul_div_interface!(
             ($($multiple_dimension_multiple_scale_params)*),

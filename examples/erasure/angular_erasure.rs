@@ -11,8 +11,8 @@
 //! 3. Compound units can erase radian component while retaining other dimensions
 //! 4. Works with any numeric type
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::quantity;
 use whippyunits::unit;

@@ -3,8 +3,8 @@
 //! WhippyUnits provides three ways to create quantities. This example
 //! shows when to use each approach.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 // For method syntax (.meters(), .seconds(), etc.)
 use whippyunits::default_declarators::*;

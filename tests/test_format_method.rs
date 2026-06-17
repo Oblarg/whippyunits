@@ -2,9 +2,7 @@
 
 use whippyunits::*;
 
-whippyunits_proc_macros::define_literals!();
-
-#[culit::culit]
+#[culit::culit(whippyunits::default_declarators::literals)]
 #[test]
 fn test_format_method() {
     // Test various unit conversions

@@ -1,19 +1,52 @@
 # WhippyUnits
 
-A zero-cost, pure rust units-of-measure library for applied computation.
+A zero-cost, pure rust units-of-measure library for applied computation.  Works on stable Rust by default, with optional support for nightly `generic_const_exprs` via the `cge` feature flag.
 
-## Features
+## Quick Start
 
-- **Compile-time dimensional safety**: Catch dimensional and scale coherence errors at compile-time
+```toml
+[dependencies]
+whippyunits = "0.1"
+```
+
+```rust
+use whippyunits::{quantity, unit, value};
+use whippyunits::api::rescale;
+
+let d1 = quantity!(1.0, m);
+let d2 = quantity!(500.0, mm);
+
+let sum: unit!(m) = d1 + rescale(d2);
+assert_eq!(value!(sum, m), 1.5);
+```
+
+WhippyUnits supports `no_std` (disable the default `std` feature) and Serde serialization with UCUM-compliant unit strings out of the box.
+
+## Why WhippyUnits?
+
+Most units-of-measure libraries normalize values to a base unit at construction time — `1 km` is stored as `1000.0 meters`.  WhippyUnits takes a different approach: **scale is encoded in the type, not baked into the stored value**.  `1 km` is stored as `1.0` with kilometer-scale encoded in the type system.  As a result, WhippyUnits features:
+
+- **Scale-explicit arithmetic**: Cross-scale operations like `m + mm` are compile errors, not silent conversions.  You write `rescale()` at every conversion point, making the cost and intent visible in code review — libraries that silently auto-convert hide both the conversion cost and the question of which scale wins
+- **Scale-generic arithmetic**: Easily write functions that are constrained by dimensionality but work with any scale, *without* imposing arbitrary rescaling at API boundaries - no numerical flexibility cost compared to raw numeric type contracts
+- **No homotypes**: Prime-factorized scale encoding guarantees that if two quantities represent the same physical thing, they are the same Rust type — there are no equivalent-but-distinct type aliases to trip over
+- **First-class fixed-point support**: Integer storage types work naturally at any scale — `1_i32.centimeters()` stores `1`, not `0` (in a normalize-to-base-unit library, it becomes `0`, truncated from `0.01 meters`).  Integer rescaling uses pure rational arithmetic with no hidden floating-point
+- **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; floating point types use no more float math than necessary, and normalizing to a base unit cannot introduce floating-point error because values stay at the magnitude you declared
+
+WhippyUnits also features:
+
+- **First-class angular units**: Most libraries treat angles as dimensionless, which means angular velocity (`rad/s`) and frequency (`Hz` = `1/s`) are the same type.  WhippyUnits gives angle its own dimension, catching this class of bugs at compile time, while still providing ergonomic `.into()` erasure for standard trig function interop
 - **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
 - **Algebraic unit expressions**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V*s^2/m)`, complete with "smart" documentation via hover info on the passed-in unit identifiers
-- **Algebraic dimension expressions**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V*T^2/L)`, also with "smart" documentation via hover info on the passed-in dimension identifiers
-- **UCUM compliant**: Unit expressions, dimensions expressions, and quantity (de)serialization all support UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
+- **Algebraic dimension expressions**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V*T^2/L)`, also with "smart" documentation via hover info on the passed-in dimension identifiers.  Generic dimensions can be disjunctive, e.g. for control algorithms that work with a variety of process variables and control outputs.
+- **UCUM support**: Unit expressions, dimensions expressions, and quantity (de)serialization all support UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
-- **No homotypes**: Prime-factorized scale encoding guarantees unique type representation - if two quantities represent the exact same thing, they are *guaranteed* to be the same type
-- **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; integer types are guaranteed to use pure integer math, and floating point types use no more float math than necessary
+- **Branded quantities**: Use `define_unit_declarators!` to create branded declarator sets that prevent accidental mixing across semantic contexts (e.g. different coordinate frames)
 - **Dynamic storage unit preferences**: Use `define_unit_declarators!` to define a set of declarators that auto-convert to a given set of base units, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
-- **Language server integration**: Customized type rendering and text completion for unit types
+- **Serde support**: Serialize and deserialize quantities to JSON and string formats with UCUM-compliant unit strings (e.g. `{"value": 5.0, "unit": "m"}`)
+- **`no_std` and `no_alloc` compatible**: Disable the default `std` feature for embedded and `no_std` environments
+- **Language server integration**: WhippyUnits ships an LSP proxy and a CLI pretty-printer that render `Quantity` types as human-readable unit expressions in hover info, inlay hints, and compiler errors
+
+For a detailed comparison with [uom](https://crates.io/crates/uom) and guidance on choosing between them, see [Choosing a Rust Units Library](docs/comparison.md).
 
 ## Example
 
@@ -50,6 +83,50 @@ let sum_in_meters = 1.0m + rescale(1.0mm);
 let sum_in_millimeters = rescale(1.0m) + 1.0mm;
 // result: ❌ compilation error (scale incoherence)
 let illegal_sum = 1.0m + 1.0mm;
+```
+
+## Examples
+
+The full runnable example set lives in `examples/`, grouped by topic:
+
+- `getting_started`
+  - [`concepts.rs`](examples/getting_started/concepts.rs): Introduces the core model (quantity = unit + storage type + brand), dimensional/scale safety, and derived-dimension operations.
+  - [`declarators.rs`](examples/getting_started/declarators.rs): Compares declarator method syntax, `quantity!` macro syntax, and literal syntax, and when to use each.
+  - [`storage_types.rs`](examples/getting_started/storage_types.rs): Demonstrates default vs explicit numeric storage types and storage-type type safety.
+  - [`common_errors.rs`](examples/getting_started/common_errors.rs): Shows common compile errors (dimension, scale, storage, brand mismatch) and practical fixes.
+- `operations`
+  - [`arithmetic.rs`](examples/operations/arithmetic.rs): Demonstrates arithmetic operators, scalar operations, compound expressions, and in-place updates.
+  - [`comparison.rs`](examples/operations/comparison.rs): Covers comparisons and scale-strict behavior, including cross-scale comparisons with `rescale()`.
+  - [`rescaling.rs`](examples/operations/rescaling.rs): Demonstrates `rescale`/`rescale!` across units, numeric types, and compound units.
+  - [`value_access.rs`](examples/operations/value_access.rs): Shows safe value extraction with `value!` and pitfalls of direct `.unsafe_value` access.
+- `type_assertions`
+  - [`rescale_targeting.rs`](examples/type_assertions/rescale_targeting.rs): Uses `unit!` annotations to explicitly target and verify rescale result types.
+  - [`safe_mult_div.rs`](examples/type_assertions/safe_mult_div.rs): Uses `unit!` assertions to enforce expected multiplication and division output dimensions.
+- `erasure`
+  - [`scalar_erasure.rs`](examples/erasure/scalar_erasure.rs): Demonstrates safe scalar erasure of dimensionless quantities via `.into()`, including residual scales.
+  - [`angular_erasure.rs`](examples/erasure/angular_erasure.rs): Demonstrates angular erasure to radians, trig interoperability, and compound-unit erasure behavior.
+- `custom_declarators`
+  - [`branded_declarators.rs`](examples/custom_declarators/branded_declarators.rs): Shows branded declarators for preventing accidental mixing across semantic contexts.
+  - [`rescaling_declarators.rs`](examples/custom_declarators/rescaling_declarators.rs): Shows declarators that normalize storage to chosen base scales.
+- `foreign_units`
+  - [`affine_units.rs`](examples/foreign_units/affine_units.rs): Demonstrates affine units with zero-point offsets (for example, Celsius/Fahrenheit).
+  - [`nonstorage_units.rs`](examples/foreign_units/nonstorage_units.rs): Explains declaration/access for non-storage units and nearest-neighbor SI storage semantics.
+- `generics`
+  - [`centripetal_acceleration.rs`](examples/generics/centripetal_acceleration.rs): Implements scale-generic centripetal acceleration with generic-dimension contracts.
+  - [`filter.rs`](examples/generics/filter.rs): Builds a generic IIR filter and signal generator over arbitrary dimensions and scales.
+  - [`pid_controller.rs`](examples/generics/pid_controller.rs): Implements a dimensionally-safe PID controller with disjunctive generic dimensions.
+- `serialization`
+  - [`serialization.rs`](examples/serialization/serialization.rs): Demonstrates serialization to JSON/string formats and display formatting with unit conversion.
+  - [`deserialization.rs`](examples/serialization/deserialization.rs): Demonstrates deserialization from string/JSON, conversion on load, and error handling.
+
+Run an example with:
+
+```bash
+cargo run --example <example_name>
+```
+For example:
+```bash
+cargo run --example concepts
 ```
 
 ## Scale-Generic Calculations
@@ -363,15 +440,62 @@ See `lsp-proxy/README.md` for setup instructions.
 
 ## Requirements
 
-```rust
-#![feature(generic_const_exprs)] // compile-time dimensional arithmetic
+WhippyUnits works on **stable Rust** by default, using a typenum-based polyfill for compile-time dimensional arithmetic.
+
+To use nightly `generic_const_exprs` instead, enable the `cge` feature:
+
+```toml
+[dependencies]
+whippyunits = { version = "0.1", features = ["cge"] }
 ```
+
+With the `cge` flag, exponents can span the full range of i16 integers.  Without it, exponents are limited to the range -200 to 200.
+
+## Feature Flags
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `std`   | Yes     | Enables standard library support (implies `alloc`) |
+| `alloc` | Yes     | Enables `Display`/`Debug` impls on `Quantity` (requires a global allocator) |
+| `serde` | Yes     | Enables serde `Serialize`/`Deserialize` impls, `from_json!`/`from_string!` macros, and the `.fmt()` display method (implies `alloc`) |
+| `cge`   | No      | Enables nightly `generic_const_exprs` (requires nightly toolchain) |
+
+## `no_std` and `no_alloc` Support
+
+WhippyUnits is fully `no_std` and `no_alloc` compatible. All core functionality — quantity declaration, dimensional/scale safety, arithmetic, rescaling, erasure, and generic dimensions — works without the standard library or a heap allocator.
+
+```toml
+# no_std + no_alloc (stack-only, no Display/Debug)
+[dependencies]
+whippyunits = { version = "0.1", default-features = false }
+
+# no_std + alloc (adds Display/Debug impls)
+[dependencies]
+whippyunits = { version = "0.1", default-features = false, features = ["alloc"] }
+
+# no_std + alloc + serde
+[dependencies]
+whippyunits = { version = "0.1", default-features = false, features = ["serde"] }
+```
+
+**What you lose without `alloc`:**
+
+- No `Display` or `Debug` trait impls on `Quantity` (cannot `println!` quantities)
+
+**What you additionally lose without `serde`:**
+
+- No `Serialize`/`Deserialize` trait impls on `Quantity`
+- No `from_json!` / `from_string!` macros
+- No `.fmt("unit")` display method for runtime unit conversion formatting
 
 ### Usage
 
 ```bash
-# Standard cargo commands (will use nightly automatically)
+# Standard cargo commands (uses stable by default)
 cargo check
 cargo build
 cargo test
+
+# With nightly generic_const_exprs support
+cargo check --features cge
 ```

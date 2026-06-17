@@ -1,5 +1,3 @@
-#![feature(impl_trait_in_bindings)]
-
 use whippyunits::api::rescale;
 use whippyunits::default_declarators::*;
 use whippyunits::quantity;

@@ -5,9 +5,9 @@
 //! allow a small subset of those operations on stable.
 //!
 //! Because dimensional analysis usually has small dimension exponents we constrain
-//! this polyfill to working with input integers in the range -7 to 7. If the `nightly`
-//! feature is enable then `generic_const_exprs` is used to provide implementations for
-//! all `i16` integers.
+//! this polyfill to working with input integers in the range -200 to 200. If the compiler
+//! supports `generic_const_exprs` (nightly), it is automatically detected and used to
+//! provide implementations for all `i16` integers.
 
 /// Const generic with type level math operations.
 ///
@@ -16,7 +16,7 @@
 /// - Subtraction: `<A as Sub<B>>::Output`
 /// - Negation: `<X as Neg>::Output`
 ///
-/// Without the `nightly` feature the operations are limited to inputs in the range -7 to 7.
+/// On stable Rust, the operations are limited to inputs in the range -200 to 200.
 ///
 /// The [`Num`] trait can be used to constrain a generic to only this type.
 pub struct N<const X: i16>;
@@ -39,8 +39,22 @@ mod num_seal {
     impl<const X: i16> Sealed for super::N<X> {}
 }
 
-#[cfg(feature = "nightly")]
-mod nightly {
+#[cfg(not(has_generic_const_exprs))]
+#[doc(hidden)]
+pub trait __AsTypenum {
+    type Repr: typenum::Integer;
+}
+
+#[cfg(not(has_generic_const_exprs))]
+#[doc(hidden)]
+pub trait __IntoNum {
+    type Num;
+
+    fn into_num() -> Self::Num;
+}
+
+#[cfg(has_generic_const_exprs)]
+mod cge {
     use super::N;
 
     impl<const A: i16, const B: i16> core::ops::Add<N<B>> for N<A>
@@ -77,88 +91,95 @@ mod nightly {
     }
 }
 
-// Here is our polyfill which manually implements every case.
-// It isnt "nice" but it works well enough.
-#[cfg(not(feature = "nightly"))]
+// Stable polyfill backed by typenum.
+#[cfg(not(has_generic_const_exprs))]
 mod stable {
-    use super::N;
+    use super::{__AsTypenum, __IntoNum, N};
+    use core::ops::{Add, Neg, Sub};
+    use seq_macro::seq;
 
-    __cartesian_impls!(-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7);
+    impl __IntoNum for typenum::Z0 {
+        type Num = N<0>;
 
-    macro_rules! __pair_impls {
-        ($a:literal, $b:literal) => {
-            impl core::ops::Add<N<$b>> for N<$a> {
-                type Output = N<{ $a + $b }>;
-
-                fn add(self, _: N<$b>) -> Self::Output {
-                    N
-                }
-            }
-
-            impl core::ops::Sub<N<$b>> for N<$a> {
-                type Output = N<{ $a - $b }>;
-
-                fn sub(self, _: N<$b>) -> Self::Output {
-                    N
-                }
-            }
-        };
+        fn into_num() -> Self::Num {
+            N
+        }
     }
-    use __pair_impls;
 
-    macro_rules! __single_impls {
-        ($n:literal) => {
-            impl core::ops::Neg for N<$n> {
-                type Output = N<{ -$n }>;
-
-                fn neg(self) -> Self::Output {
-                    N
-                }
-            }
-        };
+    impl __AsTypenum for N<0> {
+        type Repr = typenum::Z0;
     }
-    use __single_impls;
 
-    macro_rules! __cartesian_impls {
-        (@inner $a:literal []) => {
-            // Base case, we do nothing here.
-        };
-        (@double [] $t:tt) => {
-            // Base case, we do nothing here.
-        };
-        (@inner $a:literal [$b:literal $(, $b_:literal)*]) => {
-            __pair_impls! { $a, $b }
+    seq!(I in 1..=400 {
+        impl __IntoNum for typenum::P~I {
+            type Num = N<I>;
 
-            __cartesian_impls! {
-                @inner
-                $a
-                [$($b_),*]
+            fn into_num() -> Self::Num {
+                N
             }
-        };
-        (@double [$a:literal $(, $a_:tt)*] [$($b:literal),*]) => {
-            __single_impls! { $a }
+        }
 
-            __cartesian_impls! {
-                @inner
-                $a
-                [$($b),*]
-            }
+        impl __IntoNum for typenum::N~I {
+            type Num = N<{ -I }>;
 
-            __cartesian_impls! {
-                @double
-                [$($a_),*]
-                [$($b),*]
+            fn into_num() -> Self::Num {
+                N
             }
-        };
-        ($($x:literal),*) => {
-            __cartesian_impls! {
-                @double
-                [$($x),*]
-                [$($x),*]
-            }
-        };
+        }
+    });
+
+    seq!(I in 1..=200 {
+        impl __AsTypenum for N<I> {
+            type Repr = typenum::P~I;
+        }
+
+        impl __AsTypenum for N<{ -I }> {
+            type Repr = typenum::N~I;
+        }
+    });
+
+    impl<const A: i16, const B: i16> Add<N<B>> for N<A>
+    where
+        N<A>: __AsTypenum,
+        N<B>: __AsTypenum,
+        <N<A> as __AsTypenum>::Repr: Add<<N<B> as __AsTypenum>::Repr>,
+        <<N<A> as __AsTypenum>::Repr as Add<<N<B> as __AsTypenum>::Repr>>::Output: __IntoNum,
+    {
+        type Output =
+            <<<N<A> as __AsTypenum>::Repr as Add<<N<B> as __AsTypenum>::Repr>>::Output as __IntoNum>::Num;
+
+        fn add(self, _: N<B>) -> Self::Output {
+            <<N<A> as __AsTypenum>::Repr as Add<<N<B> as __AsTypenum>::Repr>>::Output::into_num()
+        }
     }
-    use __cartesian_impls;
+
+    impl<const A: i16, const B: i16> Sub<N<B>> for N<A>
+    where
+        N<A>: __AsTypenum,
+        N<B>: __AsTypenum,
+        <N<A> as __AsTypenum>::Repr: Sub<<N<B> as __AsTypenum>::Repr>,
+        <<N<A> as __AsTypenum>::Repr as Sub<<N<B> as __AsTypenum>::Repr>>::Output: __IntoNum,
+    {
+        type Output =
+            <<<N<A> as __AsTypenum>::Repr as Sub<<N<B> as __AsTypenum>::Repr>>::Output as __IntoNum>::Num;
+
+        fn sub(self, _: N<B>) -> Self::Output {
+            <<N<A> as __AsTypenum>::Repr as Sub<<N<B> as __AsTypenum>::Repr>>::Output::into_num()
+        }
+    }
+
+    impl<const X: i16> Neg for N<X>
+    where
+        N<X>: __AsTypenum,
+        <N<X> as __AsTypenum>::Repr: Neg,
+        <<N<X> as __AsTypenum>::Repr as Neg>::Output: __IntoNum,
+    {
+        type Output = <<<N<X> as __AsTypenum>::Repr as Neg>::Output as __IntoNum>::Num;
+
+        fn neg(self) -> Self::Output {
+            <<N<X> as __AsTypenum>::Repr as Neg>::Output::into_num()
+        }
+    }
 }
 
 #[cfg(test)]
@@ -184,6 +205,10 @@ mod tests {
 
         assert::<N<1>, N<-2>, N<-1>>();
         assert::<N<2>, N<-1>, N<1>>();
+
+        // Stable range boundary checks
+        assert::<N<200>, N<200>, N<400>>();
+        assert::<N<-200>, N<-200>, N<-400>>();
     }
 
     #[test]
@@ -203,6 +228,10 @@ mod tests {
 
         assert::<N<1>, N<-2>, N<3>>();
         assert::<N<2>, N<-1>, N<3>>();
+
+        // Stable range boundary checks
+        assert::<N<200>, N<-200>, N<400>>();
+        assert::<N<-200>, N<200>, N<-400>>();
     }
 
     #[test]
@@ -212,5 +241,7 @@ mod tests {
         assert::<N<-1>, N<1>>();
         assert::<N<0>, N<0>>();
         assert::<N<1>, N<-1>>();
+        assert::<N<200>, N<-200>>();
+        assert::<N<-200>, N<200>>();
     }
 }

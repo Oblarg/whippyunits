@@ -3,8 +3,8 @@
 //! This example demonstrates the storage type parameter, which controls the
 //! underlying numeric type used to store quantity values.
 
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![cfg_attr(has_generic_const_exprs, feature(generic_const_exprs))]
+#![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]
 
 use whippyunits::quantity;
 use whippyunits::unit;

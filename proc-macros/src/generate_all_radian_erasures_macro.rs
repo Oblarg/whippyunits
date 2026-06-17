@@ -28,6 +28,7 @@ impl AllRadianErasuresInput {
             ("i32", "rescale_i32"),
             ("i64", "rescale_i64"),
             ("i128", "rescale_i128"),
+            ("isize", "rescale_isize"),
         ];
 
         // Generate exponents for radian to scalar (limited range)
@@ -85,7 +86,7 @@ impl AllRadianErasuresInput {
         }
 
         // Generate radian to dimensionless quantity conversions
-        let types = ["f32", "f64", "i16", "i32", "i64", "i128"];
+        let types = ["f32", "f64", "i16", "i32", "i64", "i128", "isize"];
 
         // Generate exponents for radian to dimensionless (full range)
         let dimensionless_exponents: Vec<i32> =

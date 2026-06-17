@@ -1,4 +1,3 @@
-#![feature(impl_trait_in_bindings)]
 #![allow(non_snake_case)]
 #![allow(unused_variables)]
 
@@ -90,7 +89,7 @@ fn test_radian_erasure_with_scale() {
 
     let radians_scaled = 180.0.degrees();
     let scalar_rescaled: f64 = radians_scaled.into();
-    assert!((scalar_rescaled - std::f64::consts::PI).abs() < 1e-10);
+    assert!((scalar_rescaled - core::f64::consts::PI).abs() < 1e-10);
 
     // Test with different numeric types - use a simpler case
     let radians_simple = quantity!(1, rad, i32);
@@ -219,10 +218,10 @@ fn test_chain_operations() {
 fn test_generic_dimension() {
     define_generic_dimension!(Velocity, Length / Time);
 
-    let meter_per_second: impl Velocity = quantity!(1.0, m / s);
-    println!("{:?}", meter_per_second);
-    let kilometer_per_second: impl Velocity = quantity!(1.0, km / s);
-    println!("{:?}", kilometer_per_second);
+    fn assert_velocity<Q: Velocity>(_: Q) {}
+
+    assert_velocity(quantity!(1.0, m / s));
+    assert_velocity(quantity!(1.0, km / s));
 }
 
 #[test]
@@ -235,12 +234,19 @@ fn test_generic_dimension_expressions() {
     define_generic_dimension!(ElectricField, M.L / T ^ 3 / I);
     define_generic_dimension!(Capacitance, T ^ 4.I ^ 2 / M / L ^ 2);
 
-    let force: impl Force = quantity!(1.0, N);
-    let energy: impl Energy = quantity!(1.0, J);
-    let pressure: impl Pressure = quantity!(1.0, Pa);
-    let power: impl Power = quantity!(1.0, W);
-    let electric_field: impl ElectricField = quantity!(1.0, V / m);
-    let capacitance: impl Capacitance = quantity!(1.0, F);
+    fn assert_force<Q: Force>(_: Q) {}
+    fn assert_energy<Q: Energy>(_: Q) {}
+    fn assert_pressure<Q: Pressure>(_: Q) {}
+    fn assert_power<Q: Power>(_: Q) {}
+    fn assert_electric_field<Q: ElectricField>(_: Q) {}
+    fn assert_capacitance<Q: Capacitance>(_: Q) {}
+
+    assert_force(quantity!(1.0, N));
+    assert_energy(quantity!(1.0, J));
+    assert_pressure(quantity!(1.0, Pa));
+    assert_power(quantity!(1.0, W));
+    assert_electric_field(quantity!(1.0, V / m));
+    assert_capacitance(quantity!(1.0, F));
 }
 
 #[test]
@@ -248,22 +254,26 @@ fn test_dimension_symbols_in_dsl() {
     // Using UCUM syntax: implicit exponents and dot multiplication
     define_generic_dimension!(SymbolTest, L, M, T, L2, M.L2 / T2);
 
-    let length: impl SymbolTest = quantity!(1.0, m);
-    let mass: impl SymbolTest = quantity!(1.0, kg);
-    let time: impl SymbolTest = quantity!(1.0, s);
-    let area: impl SymbolTest = quantity!(1.0, m ^ 2);
-    let energy: impl SymbolTest = quantity!(1.0, J);
+    fn assert_symbol_test<Q: SymbolTest>(_: Q) {}
+
+    assert_symbol_test(quantity!(1.0, m));
+    assert_symbol_test(quantity!(1.0, kg));
+    assert_symbol_test(quantity!(1.0, s));
+    assert_symbol_test(quantity!(1.0, m ^ 2));
+    assert_symbol_test(quantity!(1.0, J));
 }
 
 #[test]
 fn test_mixed_dimension_names_and_symbols() {
     // Mix of full names and UCUM symbols with implicit exponents
     define_generic_dimension!(MixedTest, Length, M, Time, L2, Mass.L2 / T2);
-    let length: impl MixedTest = quantity!(1.0, m);
-    let mass: impl MixedTest = quantity!(1.0, kg);
-    let time: impl MixedTest = quantity!(1.0, s);
-    let area: impl MixedTest = quantity!(1.0, m ^ 2);
-    let energy: impl MixedTest = quantity!(1.0, J);
+    fn assert_mixed_test<Q: MixedTest>(_: Q) {}
+
+    assert_mixed_test(quantity!(1.0, m));
+    assert_mixed_test(quantity!(1.0, kg));
+    assert_mixed_test(quantity!(1.0, s));
+    assert_mixed_test(quantity!(1.0, m ^ 2));
+    assert_mixed_test(quantity!(1.0, J));
 }
 
 #[test]
@@ -543,6 +553,41 @@ fn test_all_types_with_quantity_macro() {
     assert!((value!(force_f64, N) - 19.62f64).abs() < 0.01f64);
     assert_eq!(value!(force_i32, N, i32), 18i32); // 2 * 9 = 18
     assert_eq!(value!(force_u32, N, u32), 18u32); // 2 * 9 = 18
+}
+
+#[test]
+fn test_remainder_quantity_quantity() {
+    let result = 7.0.meters() % 3.0.meters();
+    assert_eq!(value!(result, m), 1.0);
+
+    let result = 10.0.seconds() % 3.0.seconds();
+    assert_eq!(value!(result, s), 1.0);
+}
+
+#[test]
+fn test_remainder_quantity_scalar() {
+    let result = 7.0.meters() % 3.0;
+    assert_eq!(value!(result, m), 1.0);
+}
+
+#[test]
+fn test_remainder_assign() {
+    let mut m1 = 7.0.meters();
+    m1 %= 3.0.meters();
+    assert_eq!(value!(m1, m), 1.0);
+
+    let mut m2 = 7.0.meters();
+    m2 %= 3.0;
+    assert_eq!(value!(m2, m), 1.0);
+}
+
+#[test]
+fn test_remainder_integer_types() {
+    let result = 7.meters() % 3.meters();
+    assert_eq!(value!(result, m, i32), 1);
+
+    let result: unit!(m, u32) = quantity!(7, m, u32) % quantity!(3, m, u32);
+    assert_eq!(value!(result, m, u32), 1);
 }
 
 #[test]

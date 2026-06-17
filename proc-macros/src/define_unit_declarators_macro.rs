@@ -398,6 +398,18 @@ impl DefineBaseUnitsInput {
                             whippyunits::api::rescale_f32(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, f32, #brand_type)
                         }
                     };
+                    ($value:expr, $unit:expr, isize) => {
+                        {
+                            let declared_quantity = whippyunits::quantity!($value, $unit, isize, #brand_type);
+                            whippyunits::api::rescale_isize(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, isize, #brand_type)
+                        }
+                    };
+                    ($value:expr, $unit:expr, usize) => {
+                        {
+                            let declared_quantity = whippyunits::quantity!($value, $unit, usize, #brand_type);
+                            whippyunits::api::rescale_usize(declared_quantity) as whippyunits::local_unit!($unit, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, usize, #brand_type)
+                        }
+                    };
                 }
 
                 // Re-export the prefixed macro as quantity! for convenience
@@ -588,14 +600,12 @@ impl DefineBaseUnitsInput {
                             0
                         }, whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)> as whippyunits::GetSecondGeneric>::Type {
                             let q = whippyunits::default_declarators::#scale_name_ident::new(self);
-                            // Use type annotation to let rescale_i64 infer the target scale parameters (local_unit uses base unit scales)
-                            // Note: rescale_i64 returns a quantity with brand (), so we need to convert the brand
                             type TargetQuantityUnbranded = whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64);
                             let rescaled: TargetQuantityUnbranded = whippyunits::api::rescale_i64(q);
-                            // Convert brand from () to #brand_type_tokens by reconstructing with new brand
                             <whippyunits::local_unit!(#unit_symbol_ident, #mass_scale, #length_scale, #time_scale, #current_scale, #temperature_scale, #amount_scale, #luminosity_scale, #angle_scale, i64, #brand_type_tokens)>::new(rescaled.unsafe_value)
                         }
                     });
+
                 }
             }
 
@@ -1073,6 +1083,7 @@ impl DefineBaseUnitsInput {
                         <whippyunits::unit!(#unit_symbol_ident, i64, #brand_type_tokens)>::new(q.unsafe_value)
                     }
                 });
+
             }
 
             // Generate trait with all methods

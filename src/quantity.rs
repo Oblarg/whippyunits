@@ -455,6 +455,7 @@ impl<
     /// ```
     ///
     /// If a panic is desired, use a type assertion instead.
+    #[cfg(feature = "serde")]
     pub fn fmt<'a>(&self, unit: &'a str) -> impl core::fmt::Display + 'a
     where
         T: Copy + Into<f64>,
@@ -562,6 +563,7 @@ impl<
     }
 
     /// Get the source unit symbol for error messages (returns static string, no allocation)
+    #[cfg(feature = "serde")]
     fn get_source_unit_symbol_static(&self) -> &'static str {
         use whippyunits_core::{
             Dimension, dimension_exponents::DynDimensionExponents, scale_exponents::ScaleExponents,
@@ -609,6 +611,7 @@ impl<
 
 /// A formatter for displaying quantities with unit conversion
 /// This is no-std compatible - uses &str instead of String
+#[cfg(feature = "serde")]
 #[doc(hidden)]
 pub struct QuantityFormatter<'a> {
     value: f64,
@@ -617,6 +620,7 @@ pub struct QuantityFormatter<'a> {
     error_source_unit: Option<&'static str>, // Static strings from unit lookup
 }
 
+#[cfg(feature = "serde")]
 impl<'a> core::fmt::Display for QuantityFormatter<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.is_error {
@@ -794,19 +798,23 @@ macro_rules! define_from_dimensionless {
     };
 }
 
-define_from_dimensionless!(i32, rescale_i32);
+define_from_dimensionless!(f32, rescale_f32);
 define_from_dimensionless!(f64, rescale_f64);
+define_from_dimensionless!(i8, rescale_i8);
 define_from_dimensionless!(i16, rescale_i16);
+define_from_dimensionless!(i32, rescale_i32);
+define_from_dimensionless!(i64, rescale_i64);
+define_from_dimensionless!(i128, rescale_i128);
+define_from_dimensionless!(isize, rescale_isize);
+define_from_dimensionless!(u8, rescale_u8);
+define_from_dimensionless!(u16, rescale_u16);
+define_from_dimensionless!(u32, rescale_u32);
+define_from_dimensionless!(u64, rescale_u64);
+define_from_dimensionless!(u128, rescale_u128);
+define_from_dimensionless!(usize, rescale_usize);
 
-// Cross-type conversions for dimensionless quantities
-define_from_dimensionless_cross_type!(i32, f64);
-define_from_dimensionless_cross_type!(i32, f32);
-define_from_dimensionless_cross_type!(i32, i64);
-define_from_dimensionless_cross_type!(f64, i16);
-define_from_dimensionless_cross_type!(f64, i32);
-define_from_dimensionless_cross_type!(f64, f32);
-define_from_dimensionless_cross_type!(i64, f64);
-define_from_dimensionless_cross_type!(i64, f32);
+// Cross-type conversions for dimensionless quantities (all N×(N-1) pairs)
+whippyunits_proc_macros::generate_all_dimensionless_cross_type!();
 
 // Cross-type conversion for radian quantities
 #[doc(hidden)]

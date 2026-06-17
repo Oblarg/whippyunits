@@ -101,6 +101,8 @@ impl ValueMacroInput {
                 "u32" => (quote!(u32), quote!(rescale_u32)),
                 "u64" => (quote!(u64), quote!(rescale_u64)),
                 "u128" => (quote!(u128), quote!(rescale_u128)),
+                "isize" => (quote!(isize), quote!(rescale_isize)),
+                "usize" => (quote!(usize), quote!(rescale_usize)),
                 _ => (quote!(#ty), quote!(rescale)),
             }
         } else {

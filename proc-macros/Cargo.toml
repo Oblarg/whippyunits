@@ -1,6 +1,6 @@
 [package]
 name = "whippyunits-proc-macros"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors.workspace = true
 license.workspace = true
@@ -18,4 +18,4 @@ proc-macro2 = "1.0"
 quote = "1.0"
 strsim = "0.11"
 syn = { version = "2.0", features = ["full"] }
-whippyunits-core = "0.1.0"
+whippyunits-core = { path = "../whippyunits-core", version = "0.2.0" }

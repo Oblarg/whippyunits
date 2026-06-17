@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 authors = ["Oblarg"]
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ repository = "https://github.com/WhippyUnits/whippyunits-rs"
 
 [package]
 name = "whippyunits"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 authors = ["Oblarg"]
 license = "MIT OR Apache-2.0"
@@ -27,28 +27,28 @@ categories = ["science", "no-std", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-quote = "1.0"
-proc-macro2 = "1.0"
-syn = { version = "2.0", features = ["full"] }
+quote = { version = "1.0", optional = true }
+proc-macro2 = { version = "1.0", optional = true }
+syn = { version = "2.0", features = ["full"], optional = true }
 libm = "0.2"
-whippyunits-proc-macros = "0.1.0"
-whippyunits-core = "0.1.0"
+whippyunits-proc-macros = { path = "proc-macros", version = "0.2.0" }
+whippyunits-core = { path = "whippyunits-core", version = "0.2.0" }
 num-traits = "0.2"
 culit = "0.6.0"
 op_result = "0.5.8"
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"], optional = true }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
 trybuild = "1.0"
 
 
 [features]
-default = ["std", "strict"]
-std = []
-strict = []
-smaller_wins = []
-left_hand_wins = []
+default = ["std", "serde"]
+std = ["alloc"]
+alloc = []
+serde = ["alloc", "dep:serde", "dep:serde_json", "dep:syn", "dep:proc-macro2", "dep:quote"]
+cge = ["whippyunits-core/cge"]
 
 [lib]
 name = "whippyunits"

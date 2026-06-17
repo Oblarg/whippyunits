@@ -939,6 +939,7 @@ impl DefaultDeclaratorsInput {
                     crate::quantity::Quantity::<crate::quantity::Scale<crate::quantity::_2<#p2>, crate::quantity::_3<#p3>, crate::quantity::_5<#p5>, crate::quantity::_Pi<#pi>>, crate::quantity::Dimension<crate::quantity::_M<#mass_exp>, crate::quantity::_L<#length_exp>, crate::quantity::_T<#time_exp>, crate::quantity::_I<#current_exp>, crate::quantity::_Θ<#temperature_exp>, crate::quantity::_N<#amount_exp>, crate::quantity::_J<#luminosity_exp>, crate::quantity::_A<#angle_exp>>, i64>::new((self as f64 * #conversion_factor) as i64)
                 }
             });
+
         }
 
         quote! {
