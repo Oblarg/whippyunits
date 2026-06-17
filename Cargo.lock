@@ -787,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "culit",
  "libm",

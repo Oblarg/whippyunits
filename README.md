@@ -63,7 +63,6 @@ let area = quantity!(5.0 * 5.0, m^2);
 let energy = quantity!(5.0, kg.m2/s2);
 let energy = quantity!(5.0, kg*m2/s2);
 let energy = quantity!(5.0, kg*m^2/s^2);
-let energy = quantity!(5.0, kg*m^2/s^2);
 
 // ✅ dimensionally coherent operations permitted
 let legal = area + area;

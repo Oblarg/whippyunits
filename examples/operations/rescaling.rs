@@ -41,8 +41,8 @@ fn main() {
     let distance1 = 1.0m;
     let distance2 = 500.0mm;
 
-    let sum_mm = rescale!(distance1, mm) + distance2;
-    let sum_m = distance1 + rescale!(distance2, m);
+    let sum_mm = rescale(distance1) + distance2;
+    let sum_m = distance1 + rescale(distance2);
 
     println!("   {} + {} = {}", distance1, distance2, sum_mm);
     println!("   {} + {} = {}", distance1, distance2, sum_m);
