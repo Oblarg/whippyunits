@@ -1,7 +1,11 @@
 //! WhippyUnits is a zero-cost units-of-measure library for Rust that provides:
+//! 
 //! - Dimensional safety (`m + s` is a compile error)
 //! - Scale safety (`m + mm` requires explicit `rescale`)
 //! - Ergonomic syntax: macros (`quantity!(1, m)`), methods (`5.0.meters()`), and even literals (`5.0m`)
+//! - `no-std` and `no-alloc` compatibility
+//! 
+//! Works on stable Rust by default, with optional support for nightly `generic_const_exprs` via the `cge` feature flag.
 //! 
 //! ## Why WhippyUnits?
 //! 
@@ -11,6 +15,7 @@
 //! - Log-scale-encoded: supports lossless rescaling at the type level, effectively acting as a dimensionally-aware compile-time precision extension
 //! - Scale-explicit: arithmetic operations are always explicit about the scale of the result
 //! - Angle-aware: angular units (radians, degrees, etc.) are safely handled as first-class dimensions, but with a special erasure behavior via `.into()` to allow ease-of-use in standard trigonometric functions
+//! - Scale-generic: write functions constrained by dimension - or a disjunctive set of dimensions - that work with any scale, *without* imposing arbitrary rescaling at API boundaries
 //! - UCUM compliant: supports UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
 //! - Fixed-point friendly: integer types are guaranteed to use pure integer math for all operations
 //! 
@@ -65,6 +70,32 @@
 //!
 //! For the full categorized example index, see
 //! [README in crate source](https://docs.rs/crate/whippyunits/latest/source/README.md).
+//! 
+//! ## Developer Tooling
+//!
+//! The companion [`whippyunits-lsp-proxy`](https://github.com/WhippyUnits/whippyunits-rs/tree/main/lsp-proxy)
+//! crate provides an LSP proxy that intercepts rust-analyzer responses to render
+//! `Quantity` types as human-readable unit expressions in hover info and inlay hints.
+//!
+//! The [`whippyunits-pretty`](https://github.com/WhippyUnits/whippyunits-rs/tree/main/whippyunits-pretty)
+//! CLI tool pipes compiler output through the same rewriting logic, turning raw
+//! `Quantity<Scale<_2<3>, ...>, Dimension<_M<0>, _L<1>, ...>, f64>` signatures
+//! into readable `Quantity<m, f64>` in error messages.
+//!
+//! See the respective READMEs for setup instructions.
+//!
+//! ## Experimental Features
+//! 
+//! By default, WhippyUnits uses a typenum-based polyfill for compile-time dimensional arithmetic.
+//! This polyfill is fully functional, but is limited to working with integer exponents in the range -200 to 200.
+//! To use `generic_const_exprs` (requires nightly toolchain) instead, enable the `cge` feature flag:
+//! 
+//! ```toml
+//! [dependencies]
+//! whippyunits = { version = "0.1", features = ["cge"] }
+//! ```
+//! 
+//! With the `cge` flag, exponents can span the full range of i16 integers.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(has_generic_const_exprs, allow(incomplete_features))]

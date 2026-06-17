@@ -1,6 +1,6 @@
 # WhippyUnits
 
-A zero-cost, pure rust units-of-measure library for applied computation.
+A zero-cost, pure rust units-of-measure library for applied computation.  Works on stable Rust by default, with optional support for nightly `generic_const_exprs` via the `cge` feature flag.
 
 ## Quick Start
 
@@ -26,10 +26,10 @@ WhippyUnits supports `no_std` (disable the default `std` feature) and Serde seri
 
 Most units-of-measure libraries normalize values to a base unit at construction time — `1 km` is stored as `1000.0 meters`.  WhippyUnits takes a different approach: **scale is encoded in the type, not baked into the stored value**.  `1 km` is stored as `1.0` with kilometer-scale encoded in the type system.  As a result, WhippyUnits features:
 
-- **Compile-time dimensional safety**: Catch dimensional and scale coherence errors at compile-time
 - **Scale-explicit arithmetic**: Cross-scale operations like `m + mm` are compile errors, not silent conversions.  You write `rescale()` at every conversion point, making the cost and intent visible in code review — libraries that silently auto-convert hide both the conversion cost and the question of which scale wins
+- **Scale-generic arithmetic**: Easily write functions that are constrained by dimensionality but work with any scale, *without* imposing arbitrary rescaling at API boundaries - no numerical flexibility cost compared to raw numeric type contracts
 - **No homotypes**: Prime-factorized scale encoding guarantees that if two quantities represent the same physical thing, they are the same Rust type — there are no equivalent-but-distinct type aliases to trip over
-- **Fixed-point friendly**: Integer storage types work naturally at any scale — `1_i32.centimeters()` stores `1`, not `0` (in a normalize-to-base-unit library, it becomes `0`, truncated from `0.01 meters`).  Integer rescaling uses pure rational arithmetic with no hidden floating-point
+- **First-class fixed-point support**: Integer storage types work naturally at any scale — `1_i32.centimeters()` stores `1`, not `0` (in a normalize-to-base-unit library, it becomes `0`, truncated from `0.01 meters`).  Integer rescaling uses pure rational arithmetic with no hidden floating-point
 - **No hidden flops**: Rescaling uses lossless log-scale arithmetic at all steps, and exponentiates by lookup table; floating point types use no more float math than necessary, and normalizing to a base unit cannot introduce floating-point error because values stay at the magnitude you declared
 
 WhippyUnits also features:
@@ -37,15 +37,14 @@ WhippyUnits also features:
 - **First-class angular units**: Most libraries treat angles as dimensionless, which means angular velocity (`rad/s`) and frequency (`Hz` = `1/s`) are the same type.  WhippyUnits gives angle its own dimension, catching this class of bugs at compile time, while still providing ergonomic `.into()` erasure for standard trig function interop
 - **Simple declarator syntaxes**: Supports declarator methods (`5.0.meters()`), macros (`quantity!(5.0, m)`), and even literals (`5.0m`)
 - **Algebraic unit expressions**: Easily define quantities in complex/bespoke dimensionalities, e.g. `quantity!(1, V*s^2/m)`, complete with "smart" documentation via hover info on the passed-in unit identifiers
-- **Algebraic dimension expressions**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V*T^2/L)`, also with "smart" documentation via hover info on the passed-in dimension identifiers
-- **UCUM compliant**: Unit expressions, dimensions expressions, and quantity (de)serialization all support UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
+- **Algebraic dimension expressions**: Define scale-generic dimension traits for bespoke dimensions as easily as you can define quantities, e.g. `define_generic_dimension!(BespokeQuantity, V*T^2/L)`, also with "smart" documentation via hover info on the passed-in dimension identifiers.  Generic dimensions can be disjunctive, e.g. for control algorithms that work with a variety of process variables and control outputs.
+- **UCUM support**: Unit expressions, dimensions expressions, and quantity (de)serialization all support UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
 - **Automatic unit conversion**: Type-driven generic rescaling using compile-time-computed conversion factors
 - **Branded quantities**: Use `define_unit_declarators!` to create branded declarator sets that prevent accidental mixing across semantic contexts (e.g. different coordinate frames)
 - **Dynamic storage unit preferences**: Use `define_unit_declarators!` to define a set of declarators that auto-convert to a given set of base units, fully decoupling storage scale (which can be chosen to satisfy numerical or software architecture constraints) from declarator syntax (which can match the natural units of the problem-space)
 - **Serde support**: Serialize and deserialize quantities to JSON and string formats with UCUM-compliant unit strings (e.g. `{"value": 5.0, "unit": "m"}`)
-- **`no_std` compatible**: Disable the default `std` feature for embedded and `no_std` environments
+- **`no_std` and `no_alloc` compatible**: Disable the default `std` feature for embedded and `no_std` environments
 - **Language server integration**: WhippyUnits ships an LSP proxy and a CLI pretty-printer that render `Quantity` types as human-readable unit expressions in hover info, inlay hints, and compiler errors
-- **Works on stable Rust**: Defaults to stable toolchain with a typenum polyfill; enable the `cge` feature on nightly for native `generic_const_exprs` support
 
 For a detailed comparison with [uom](https://crates.io/crates/uom) and guidance on choosing between them, see [Choosing a Rust Units Library](docs/comparison.md).
 
@@ -449,6 +448,8 @@ To use nightly `generic_const_exprs` instead, enable the `cge` feature:
 [dependencies]
 whippyunits = { version = "0.1", features = ["cge"] }
 ```
+
+With the `cge` flag, exponents can span the full range of i16 integers.  Without it, exponents are limited to the range -200 to 200.
 
 ## Feature Flags
 
