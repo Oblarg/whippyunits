@@ -4,11 +4,6 @@ A zero-cost, pure rust units-of-measure library for applied computation.  Works 
 
 ## Quick Start
 
-```toml
-[dependencies]
-whippyunits = "0.1"
-```
-
 ```rust
 use whippyunits::{quantity, unit, value};
 use whippyunits::api::rescale;

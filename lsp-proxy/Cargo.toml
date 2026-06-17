@@ -1,6 +1,6 @@
 [package]
 name = "whippyunits-lsp-proxy"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors.workspace = true
 license.workspace = true
@@ -20,8 +20,8 @@ env_logger = "0.10"
 tempfile = "3.0"
 shellexpand = "3.0"
 clap = { version = "4.0", features = ["derive"] }
-whippyunits = { path = "..", version = "0.2.0" }
-whippyunits-core = { path = "../whippyunits-core", version = "0.2.0" }
+whippyunits = { path = "..", version = "0.2.1" }
+whippyunits-core = { path = "../whippyunits-core", version = "0.2.1" }
 syn = { version = "2.0", features = ["full", "parsing", "printing"] }
 quote = "1.0"
 

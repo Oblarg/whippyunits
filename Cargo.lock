@@ -520,12 +520,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "seq-macro"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
-
-[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -793,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "culit",
  "libm",
@@ -811,17 +805,16 @@ dependencies = [
 
 [[package]]
 name = "whippyunits-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
- "seq-macro",
  "syn",
  "typenum",
 ]
 
 [[package]]
 name = "whippyunits-lsp-proxy"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -840,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits-pretty"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -852,7 +845,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits-proc-macros"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "quote",
