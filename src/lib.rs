@@ -1,16 +1,16 @@
 //! WhippyUnits is a zero-cost units-of-measure library for Rust that provides:
-//! 
+//!
 //! - Dimensional safety (`m + s` is a compile error)
 //! - Scale safety (`m + mm` requires explicit `rescale`)
 //! - Ergonomic syntax: macros (`quantity!(1, m)`), methods (`5.0.meters()`), and even literals (`5.0m`)
 //! - `no-std` and `no-alloc` compatibility
-//! 
+//!
 //! Works on stable Rust by default, with optional support for nightly `generic_const_exprs` via the `cge` feature flag.
-//! 
+//!
 //! ## Why WhippyUnits?
-//! 
+//!
 //! Unlike other Rust units-of-measure libraries, WhippyUnits is:
-//! 
+//!
 //! - Language-server integrated: pretty-prints complex type signatures in hover info and inlay hints
 //! - Log-scale-encoded: supports lossless rescaling at the type level, effectively acting as a dimensionally-aware compile-time precision extension
 //! - Scale-explicit: arithmetic operations are always explicit about the scale of the result
@@ -18,7 +18,7 @@
 //! - Scale-generic: write functions constrained by dimension - or a disjunctive set of dimensions - that work with any scale, *without* imposing arbitrary rescaling at API boundaries
 //! - UCUM compliant: supports UCUM-format unit strings (e.g. `"kg.m2/s2"`) for easy interoperability and code generation
 //! - Fixed-point friendly: integer types are guaranteed to use pure integer math for all operations
-//! 
+//!
 //! ## Quick Start
 //!
 //! ```rust
@@ -70,7 +70,7 @@
 //!
 //! For the full categorized example index, see
 //! [README in crate source](https://docs.rs/crate/whippyunits/latest/source/README.md).
-//! 
+//!
 //! ## Developer Tooling
 //!
 //! The companion [`whippyunits-lsp-proxy`](https://github.com/WhippyUnits/whippyunits-rs/tree/main/lsp-proxy)
@@ -85,16 +85,16 @@
 //! See the respective READMEs for setup instructions.
 //!
 //! ## Experimental Features
-//! 
+//!
 //! By default, WhippyUnits uses a typenum-based polyfill for compile-time dimensional arithmetic.
 //! This polyfill is fully functional, but is limited to working with integer exponents in the range -200 to 200.
 //! To use `generic_const_exprs` (requires nightly toolchain) instead, enable the `cge` feature flag:
-//! 
+//!
 //! ```toml
 //! [dependencies]
 //! whippyunits = { version = "0.1", features = ["cge"] }
 //! ```
-//! 
+//!
 //! With the `cge` flag, exponents can span the full range of i16 integers.
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -123,6 +123,13 @@ impl<const N: usize, T> GetSecondGeneric for Helper<N, T> {
 #[cfg(feature = "alloc")]
 #[doc(hidden)]
 mod alloc;
+
+#[doc(hidden)]
+pub use num_traits as __private_num_traits;
+#[doc(hidden)]
+pub use whippyunits_core as __private_whippyunits_core;
+#[doc(hidden)]
+pub use whippyunits_proc_macros as __private_whippyunits_proc_macros;
 
 pub mod api;
 #[doc(hidden)]

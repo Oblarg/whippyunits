@@ -208,21 +208,21 @@ macro_rules! define_generate_verbose_dimension_names {
     (($($dimension_names:tt)*)) => {
         /// Generate verbose dimension names for unresolved types (Length, Time, Mass)
         pub fn generate_verbose_dimension_names(
-            exponents: Vec<i16>
-        ) -> String {
-            let parts: Vec<String> = [
+            exponents: $crate::alloc::Vec<i16>
+        ) -> $crate::alloc::String {
+            let parts: $crate::alloc::Vec<$crate::alloc::String> = [
                 $($dimension_names)*
             ].iter()
             .filter(|(idx, _)| exponents[*idx] != 0)
             .map(|(idx, name)| if exponents[*idx] == 1 {
-                name.to_string()
+                $crate::alloc::ToString::to_string(name)
             } else {
-                let superscript = to_unicode_superscript(exponents[*idx], false);
-                format!("{}{}", name, superscript)
+                let superscript = $crate::print::utils::to_unicode_superscript(exponents[*idx], false);
+                $crate::alloc::format!("{}{}", name, superscript)
             })
             .collect();
 
-            if parts.is_empty() { "?".to_string() } else { parts.join("·") }
+            if parts.is_empty() { $crate::alloc::ToString::to_string("?") } else { parts.join("·") }
         }
     };
 }

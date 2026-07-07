@@ -183,13 +183,13 @@ macro_rules! quantity_quantity_partial_ord_interface {
         impl<
             $($single_dimension_single_scale_params)*
         >
-            core::cmp::PartialOrd<$crate::quantity_type!($T)>
+            ::core::cmp::PartialOrd<$crate::quantity_type!($T)>
             for $crate::quantity_type!($T)
         where
-            $T: PartialOrd,
-            Brand: PartialEq,
+            $T: ::core::cmp::PartialOrd,
+            Brand: ::core::cmp::PartialEq,
         {
-            fn partial_cmp(&self, other: &$crate::quantity_type!($T)) -> Option<::core::cmp::Ordering> {
+            fn partial_cmp(&self, other: &$crate::quantity_type!($T)) -> ::core::option::Option<::core::cmp::Ordering> {
                 self.unsafe_value.partial_cmp(&other.unsafe_value)
             }
         }

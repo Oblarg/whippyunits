@@ -157,12 +157,26 @@ macro_rules! _define_float_rescale {
         > (
             quantity: $($float_rescale_input_type)*,
         ) -> $($float_rescale_output_type)* {
-            let rescale_factor = aggregate_scale_factor_float(
+            let rescale_factor = $crate::api::aggregate_scale_factor_float(
                 $($float_rescale_aggregate_args)*
             ) as $T;
-            Quantity::<
-                Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>,
-                Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
+            $crate::quantity::Quantity::<
+                $crate::quantity::Scale<
+                    $crate::quantity::_2<SCALE_P2_TO>,
+                    $crate::quantity::_3<SCALE_P3_TO>,
+                    $crate::quantity::_5<SCALE_P5_TO>,
+                    $crate::quantity::_Pi<SCALE_PI_TO>,
+                >,
+                $crate::quantity::Dimension<
+                    $crate::quantity::_M<MASS_EXPONENT>,
+                    $crate::quantity::_L<LENGTH_EXPONENT>,
+                    $crate::quantity::_T<TIME_EXPONENT>,
+                    $crate::quantity::_I<CURRENT_EXPONENT>,
+                    $crate::quantity::_Θ<TEMPERATURE_EXPONENT>,
+                    $crate::quantity::_N<AMOUNT_EXPONENT>,
+                    $crate::quantity::_J<LUMINOSITY_EXPONENT>,
+                    $crate::quantity::_A<ANGLE_EXPONENT>,
+                >,
                 $T,
                 Brand,
             >::new(
@@ -229,7 +243,7 @@ macro_rules! _define_int_rescale {
         > (
             quantity: $($int_rescale_input_type)*,
         ) -> $($int_rescale_output_type)* {
-            let (num, den) = aggregate_scale_factor(
+            let (num, den) = $crate::api::aggregate_scale_factor(
                 $($int_rescale_aggregate_args)*
             );
             let num = num as $T;
@@ -245,9 +259,23 @@ macro_rules! _define_int_rescale {
                 (quantity.unsafe_value * num) / den
             };
 
-            Quantity::<
-                Scale<_2<SCALE_P2_TO>, _3<SCALE_P3_TO>, _5<SCALE_P5_TO>, _Pi<SCALE_PI_TO>>,
-                Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
+            $crate::quantity::Quantity::<
+                $crate::quantity::Scale<
+                    $crate::quantity::_2<SCALE_P2_TO>,
+                    $crate::quantity::_3<SCALE_P3_TO>,
+                    $crate::quantity::_5<SCALE_P5_TO>,
+                    $crate::quantity::_Pi<SCALE_PI_TO>,
+                >,
+                $crate::quantity::Dimension<
+                    $crate::quantity::_M<MASS_EXPONENT>,
+                    $crate::quantity::_L<LENGTH_EXPONENT>,
+                    $crate::quantity::_T<TIME_EXPONENT>,
+                    $crate::quantity::_I<CURRENT_EXPONENT>,
+                    $crate::quantity::_Θ<TEMPERATURE_EXPONENT>,
+                    $crate::quantity::_N<AMOUNT_EXPONENT>,
+                    $crate::quantity::_J<LUMINOSITY_EXPONENT>,
+                    $crate::quantity::_A<ANGLE_EXPONENT>,
+                >,
                 $T,
                 Brand,
             >::new(result)
