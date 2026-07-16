@@ -4,5 +4,5 @@ error[E0308]: mismatched types
 11 |     let _result = meters > millimeters;
    |                            ^^^^^^^^^^^ expected `0`, found `-3`
    |
-   = note: expected struct `Quantity<Scale<_2<0>, _3, _5<0>, _Pi>, Dimension<_M, _L<1>, _T, _I, _Θ, _N, _J, _A>>`
-              found struct `Quantity<Scale<_2<-3>, _3, _5<-3>, _Pi>, Dimension<_M, _L<1>, _T, _I, _Θ, _N, _J, _A>>`
+   = note: expected struct `Quantity<Scale, whippyunits::quantity::Dimension<whippyunits::quantity::_M, whippyunits::quantity::_L<1>>>`
+              found struct `Quantity<Scale<_2<-3>, _3, _5<-3>>, whippyunits::quantity::Dimension<whippyunits::quantity::_M, whippyunits::quantity::_L<1>>>`

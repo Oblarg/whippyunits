@@ -288,7 +288,7 @@ pub struct Scale<P2 = _2<0>, P3 = _3<0>, P5 = _5<0>, PI = _Pi<0>> {
 ///  - angle: `_A<1>`
 ///
 /// Derived dimensions have a mixture of dimension exponents:
-///  - velocity: `_L<1>, _T<-1>`    
+///  - velocity: `_L<1>, _T<-1>`
 ///  - acceleration: `_L<1>, _T<-2>`
 ///  - force: `_M<1>, _L<1>, _T<-2>`
 ///  - energy: `_M<1>, _L<2>, _T<-2>`
@@ -1285,17 +1285,45 @@ whippyunits_proc_macros::generate_all_radian_erasures!(9);
 #[doc(hidden)]
 macro_rules! quantity_type {
     () => {
-        Quantity<
-            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
-            Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
+        $crate::quantity::Quantity<
+            $crate::quantity::Scale<
+                $crate::quantity::_2<SCALE_P2>,
+                $crate::quantity::_3<SCALE_P3>,
+                $crate::quantity::_5<SCALE_P5>,
+                $crate::quantity::_Pi<SCALE_PI>
+            >,
+            $crate::quantity::Dimension<
+                $crate::quantity::_M<MASS_EXPONENT>,
+                $crate::quantity::_L<LENGTH_EXPONENT>,
+                $crate::quantity::_T<TIME_EXPONENT>,
+                $crate::quantity::_I<CURRENT_EXPONENT>,
+                $crate::quantity::_Θ<TEMPERATURE_EXPONENT>,
+                $crate::quantity::_N<AMOUNT_EXPONENT>,
+                $crate::quantity::_J<LUMINOSITY_EXPONENT>,
+                $crate::quantity::_A<ANGLE_EXPONENT>,
+            >,
             T,
             Brand
         >
     };
     ($T:ty) => {
-        Quantity<
-            Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
-            Dimension<_M<MASS_EXPONENT>, _L<LENGTH_EXPONENT>, _T<TIME_EXPONENT>, _I<CURRENT_EXPONENT>, _Θ<TEMPERATURE_EXPONENT>, _N<AMOUNT_EXPONENT>, _J<LUMINOSITY_EXPONENT>, _A<ANGLE_EXPONENT>>,
+        $crate::quantity::Quantity<
+            $crate::quantity::Scale<
+                $crate::quantity::_2<SCALE_P2>,
+                $crate::quantity::_3<SCALE_P3>,
+                $crate::quantity::_5<SCALE_P5>,
+                $crate::quantity::_Pi<SCALE_PI>,
+            >,
+            $crate::quantity::Dimension<
+                $crate::quantity::_M<MASS_EXPONENT>,
+                $crate::quantity::_L<LENGTH_EXPONENT>,
+                $crate::quantity::_T<TIME_EXPONENT>,
+                $crate::quantity::_I<CURRENT_EXPONENT>,
+                $crate::quantity::_Θ<TEMPERATURE_EXPONENT>,
+                $crate::quantity::_N<AMOUNT_EXPONENT>,
+                $crate::quantity::_J<LUMINOSITY_EXPONENT>,
+                $crate::quantity::_A<ANGLE_EXPONENT>,
+            >,
             $T,
             Brand
         >

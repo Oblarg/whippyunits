@@ -52,9 +52,6 @@
 //! (`D1` and `D2`), and so must be done in the function. There is no way to assert on the trait itself
 //! that "this type can be added to any other type that also represents a length".
 
-use crate::quantity::Quantity;
-use crate::quantity::{_2, _3, _5, _A, _I, _J, _L, _M, _N, _Pi, _T, _Θ, Dimension, Scale};
-
 /// Expands to a trait and its implementation for a specific atomic dimension.
 /// It follows the same pattern as the default declarators but focuses only on the
 /// trait definition and implementation for scale-generic quantities.
@@ -73,17 +70,22 @@ macro_rules! define_atomic_dimension_trait {
 
         impl<const SCALE_P2: i16, const SCALE_P3: i16, const SCALE_P5: i16, const SCALE_PI: i16, T>
             $trait_name
-            for Quantity<
-                Scale<_2<SCALE_P2>, _3<SCALE_P3>, _5<SCALE_P5>, _Pi<SCALE_PI>>,
-                Dimension<
-                    _M<$mass_exp>,
-                    _L<$length_exp>,
-                    _T<$time_exp>,
-                    _I<$current_exp>,
-                    _Θ<$temperature_exp>,
-                    _N<$amount_exp>,
-                    _J<$luminosity_exp>,
-                    _A<$angle_exp>,
+            for $crate::quantity::Quantity<
+                $crate::quantity::Scale<
+                    $crate::quantity::_2<SCALE_P2>,
+                    $crate::quantity::_3<SCALE_P3>,
+                    $crate::quantity::_5<SCALE_P5>,
+                    $crate::quantity::_Pi<SCALE_PI>,
+                >,
+                $crate::quantity::Dimension<
+                    $crate::quantity::_M<$mass_exp>,
+                    $crate::quantity::_L<$length_exp>,
+                    $crate::quantity::_T<$time_exp>,
+                    $crate::quantity::_I<$current_exp>,
+                    $crate::quantity::_Θ<$temperature_exp>,
+                    $crate::quantity::_N<$amount_exp>,
+                    $crate::quantity::_J<$luminosity_exp>,
+                    $crate::quantity::_A<$angle_exp>,
                 >,
                 T,
             >

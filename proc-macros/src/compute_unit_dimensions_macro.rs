@@ -31,10 +31,7 @@ pub fn compute_unit_dimensions(input: TokenStream) -> TokenStream {
     );
 
     quote! {
-        (
-            whippyunits_core::dimension_exponents::DynDimensionExponents([#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7]),
-            whippyunits_core::scale_exponents::ScaleExponents([#d8, #d9, #d10, #d11])
-        )
+        (#d0, #d1, #d2, #d3, #d4, #d5, #d6, #d7, #d8, #d9, #d10, #d11)
     }
     .into()
 }

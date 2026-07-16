@@ -129,16 +129,8 @@ use crate::define_aggregate_scale_factor_float;
 use crate::define_aggregate_scale_factor_rational;
 #[cfg(feature = "alloc")]
 use crate::define_display_traits;
-#[cfg(feature = "alloc")]
-use crate::print::prettyprint::*;
 use crate::quantity::*;
 use crate::scale_conversion::*;
-#[cfg(feature = "alloc")]
-use core::fmt;
-#[cfg(has_generic_const_exprs)]
-use crate::IsI16;
-#[cfg(not(has_generic_const_exprs))]
-use whippyunits_core::num::N;
 
 define_aggregate_scale_factor_rational!(
     // params
@@ -338,48 +330,48 @@ macro_rules! define_arithmetic_signed {
         (),
         // inversion where clauses
         (
-            (): IsI16<{ -MASS_EXPONENT }>,
-            (): IsI16<{ -LENGTH_EXPONENT }>,
-            (): IsI16<{ -TIME_EXPONENT }>,
-            (): IsI16<{ -CURRENT_EXPONENT }>,
-            (): IsI16<{ -TEMPERATURE_EXPONENT }>,
-            (): IsI16<{ -AMOUNT_EXPONENT }>,
-            (): IsI16<{ -LUMINOSITY_EXPONENT }>,
-            (): IsI16<{ -ANGLE_EXPONENT }>,
-            (): IsI16<{ -SCALE_P2 }>,
-            (): IsI16<{ -SCALE_P3 }>,
-            (): IsI16<{ -SCALE_P5 }>,
-            (): IsI16<{ -SCALE_PI }>
+            (): $crate::IsI16<{ -MASS_EXPONENT }>,
+            (): $crate::IsI16<{ -LENGTH_EXPONENT }>,
+            (): $crate::IsI16<{ -TIME_EXPONENT }>,
+            (): $crate::IsI16<{ -CURRENT_EXPONENT }>,
+            (): $crate::IsI16<{ -TEMPERATURE_EXPONENT }>,
+            (): $crate::IsI16<{ -AMOUNT_EXPONENT }>,
+            (): $crate::IsI16<{ -LUMINOSITY_EXPONENT }>,
+            (): $crate::IsI16<{ -ANGLE_EXPONENT }>,
+            (): $crate::IsI16<{ -SCALE_P2 }>,
+            (): $crate::IsI16<{ -SCALE_P3 }>,
+            (): $crate::IsI16<{ -SCALE_P5 }>,
+            (): $crate::IsI16<{ -SCALE_PI }>
         ),
         // mul output dimension where clauses
         (
-            (): IsI16<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
-            (): IsI16<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
-            (): IsI16<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>,
-            (): IsI16<{ CURRENT_EXPONENT_1 + CURRENT_EXPONENT_2 }>,
-            (): IsI16<{ TEMPERATURE_EXPONENT_1 + TEMPERATURE_EXPONENT_2 }>,
-            (): IsI16<{ AMOUNT_EXPONENT_1 + AMOUNT_EXPONENT_2 }>,
-            (): IsI16<{ LUMINOSITY_EXPONENT_1 + LUMINOSITY_EXPONENT_2 }>,
-            (): IsI16<{ ANGLE_EXPONENT_1 + ANGLE_EXPONENT_2 }>,
-            (): IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
-            (): IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
-            (): IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
+            (): $crate::IsI16<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>,
+            (): $crate::IsI16<{ CURRENT_EXPONENT_1 + CURRENT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TEMPERATURE_EXPONENT_1 + TEMPERATURE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ AMOUNT_EXPONENT_1 + AMOUNT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LUMINOSITY_EXPONENT_1 + LUMINOSITY_EXPONENT_2 }>,
+            (): $crate::IsI16<{ ANGLE_EXPONENT_1 + ANGLE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
+            (): $crate::IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
+            (): $crate::IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
+            (): $crate::IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
         ),
         // div output dimension where clauses
         (
-            (): IsI16<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
-            (): IsI16<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
-            (): IsI16<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>,
-            (): IsI16<{ CURRENT_EXPONENT_1 - CURRENT_EXPONENT_2 }>,
-            (): IsI16<{ TEMPERATURE_EXPONENT_1 - TEMPERATURE_EXPONENT_2 }>,
-            (): IsI16<{ AMOUNT_EXPONENT_1 - AMOUNT_EXPONENT_2 }>,
-            (): IsI16<{ LUMINOSITY_EXPONENT_1 - LUMINOSITY_EXPONENT_2 }>,
-            (): IsI16<{ ANGLE_EXPONENT_1 - ANGLE_EXPONENT_2 }>,
-            (): IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
-            (): IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
-            (): IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
+            (): $crate::IsI16<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>,
+            (): $crate::IsI16<{ CURRENT_EXPONENT_1 - CURRENT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TEMPERATURE_EXPONENT_1 - TEMPERATURE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ AMOUNT_EXPONENT_1 - AMOUNT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LUMINOSITY_EXPONENT_1 - LUMINOSITY_EXPONENT_2 }>,
+            (): $crate::IsI16<{ ANGLE_EXPONENT_1 - ANGLE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
+            (): $crate::IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
+            (): $crate::IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
+            (): $crate::IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
         ),
             // other parameters
             $T, rescale_fn
@@ -452,48 +444,48 @@ macro_rules! define_arithmetic_signed {
         ),
         // inversion where clauses
         (
-            N<MASS_EXPONENT>: core::ops::Neg<Output = N<INVERSE_MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_ANGLE_EXPONENT>>,
-            N<SCALE_P2>: core::ops::Neg<Output = N<INVERSE_SCALE_P2>>,
-            N<SCALE_P3>: core::ops::Neg<Output = N<INVERSE_SCALE_P3>>,
-            N<SCALE_P5>: core::ops::Neg<Output = N<INVERSE_SCALE_P5>>,
-            N<SCALE_PI>: core::ops::Neg<Output = N<INVERSE_SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_PI>>
         ),
         // mul output dimension where clauses
         (
-            N<MASS_EXPONENT_1>: core::ops::Add<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT_1>: core::ops::Add<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT_1>: core::ops::Add<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT_1>: core::ops::Add<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT_1>: core::ops::Add<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT_1>: core::ops::Add<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT_1>: core::ops::Add<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT_1>: core::ops::Add<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
-            N<SCALE_P2_1>: core::ops::Add<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
-            N<SCALE_P3_1>: core::ops::Add<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
-            N<SCALE_P5_1>: core::ops::Add<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
-            N<SCALE_PI_1>: core::ops::Add<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<MASS_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<TIME_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P2_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P3_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P5_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_PI_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_PI>>
         ),
         // div output dimension where clauses
         (
-            N<MASS_EXPONENT_1>: core::ops::Sub<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT_1>: core::ops::Sub<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT_1>: core::ops::Sub<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT_1>: core::ops::Sub<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT_1>: core::ops::Sub<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT_1>: core::ops::Sub<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT_1>: core::ops::Sub<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT_1>: core::ops::Sub<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
-            N<SCALE_P2_1>: core::ops::Sub<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
-            N<SCALE_P3_1>: core::ops::Sub<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
-            N<SCALE_P5_1>: core::ops::Sub<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
-            N<SCALE_PI_1>: core::ops::Sub<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<MASS_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<TIME_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P2_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P3_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P5_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_PI_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_PI>>
         ),
             // other parameters
             $T, rescale_fn
@@ -541,48 +533,48 @@ macro_rules! define_arithmetic {
         (),
         // inversion where clauses
         (
-            (): IsI16<{ -MASS_EXPONENT }>,
-            (): IsI16<{ -LENGTH_EXPONENT }>,
-            (): IsI16<{ -TIME_EXPONENT }>,
-            (): IsI16<{ -CURRENT_EXPONENT }>,
-            (): IsI16<{ -TEMPERATURE_EXPONENT }>,
-            (): IsI16<{ -AMOUNT_EXPONENT }>,
-            (): IsI16<{ -LUMINOSITY_EXPONENT }>,
-            (): IsI16<{ -ANGLE_EXPONENT }>,
-            (): IsI16<{ -SCALE_P2 }>,
-            (): IsI16<{ -SCALE_P3 }>,
-            (): IsI16<{ -SCALE_P5 }>,
-            (): IsI16<{ -SCALE_PI }>
+            (): $crate::IsI16<{ -MASS_EXPONENT }>,
+            (): $crate::IsI16<{ -LENGTH_EXPONENT }>,
+            (): $crate::IsI16<{ -TIME_EXPONENT }>,
+            (): $crate::IsI16<{ -CURRENT_EXPONENT }>,
+            (): $crate::IsI16<{ -TEMPERATURE_EXPONENT }>,
+            (): $crate::IsI16<{ -AMOUNT_EXPONENT }>,
+            (): $crate::IsI16<{ -LUMINOSITY_EXPONENT }>,
+            (): $crate::IsI16<{ -ANGLE_EXPONENT }>,
+            (): $crate::IsI16<{ -SCALE_P2 }>,
+            (): $crate::IsI16<{ -SCALE_P3 }>,
+            (): $crate::IsI16<{ -SCALE_P5 }>,
+            (): $crate::IsI16<{ -SCALE_PI }>
         ),
         // mul output dimension where clauses
         (
-            (): IsI16<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
-            (): IsI16<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
-            (): IsI16<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>,
-            (): IsI16<{ CURRENT_EXPONENT_1 + CURRENT_EXPONENT_2 }>,
-            (): IsI16<{ TEMPERATURE_EXPONENT_1 + TEMPERATURE_EXPONENT_2 }>,
-            (): IsI16<{ AMOUNT_EXPONENT_1 + AMOUNT_EXPONENT_2 }>,
-            (): IsI16<{ LUMINOSITY_EXPONENT_1 + LUMINOSITY_EXPONENT_2 }>,
-            (): IsI16<{ ANGLE_EXPONENT_1 + ANGLE_EXPONENT_2 }>,
-            (): IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
-            (): IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
-            (): IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
+            (): $crate::IsI16<{ MASS_EXPONENT_1 + MASS_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LENGTH_EXPONENT_1 + LENGTH_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TIME_EXPONENT_1 + TIME_EXPONENT_2 }>,
+            (): $crate::IsI16<{ CURRENT_EXPONENT_1 + CURRENT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TEMPERATURE_EXPONENT_1 + TEMPERATURE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ AMOUNT_EXPONENT_1 + AMOUNT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LUMINOSITY_EXPONENT_1 + LUMINOSITY_EXPONENT_2 }>,
+            (): $crate::IsI16<{ ANGLE_EXPONENT_1 + ANGLE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ SCALE_P2_1 + SCALE_P2_2 }>,
+            (): $crate::IsI16<{ SCALE_P3_1 + SCALE_P3_2 }>,
+            (): $crate::IsI16<{ SCALE_P5_1 + SCALE_P5_2 }>,
+            (): $crate::IsI16<{ SCALE_PI_1 + SCALE_PI_2 }>
         ),
         // div output dimension where clauses
         (
-            (): IsI16<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
-            (): IsI16<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
-            (): IsI16<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>,
-            (): IsI16<{ CURRENT_EXPONENT_1 - CURRENT_EXPONENT_2 }>,
-            (): IsI16<{ TEMPERATURE_EXPONENT_1 - TEMPERATURE_EXPONENT_2 }>,
-            (): IsI16<{ AMOUNT_EXPONENT_1 - AMOUNT_EXPONENT_2 }>,
-            (): IsI16<{ LUMINOSITY_EXPONENT_1 - LUMINOSITY_EXPONENT_2 }>,
-            (): IsI16<{ ANGLE_EXPONENT_1 - ANGLE_EXPONENT_2 }>,
-            (): IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
-            (): IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
-            (): IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
-            (): IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
+            (): $crate::IsI16<{ MASS_EXPONENT_1 - MASS_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LENGTH_EXPONENT_1 - LENGTH_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TIME_EXPONENT_1 - TIME_EXPONENT_2 }>,
+            (): $crate::IsI16<{ CURRENT_EXPONENT_1 - CURRENT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ TEMPERATURE_EXPONENT_1 - TEMPERATURE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ AMOUNT_EXPONENT_1 - AMOUNT_EXPONENT_2 }>,
+            (): $crate::IsI16<{ LUMINOSITY_EXPONENT_1 - LUMINOSITY_EXPONENT_2 }>,
+            (): $crate::IsI16<{ ANGLE_EXPONENT_1 - ANGLE_EXPONENT_2 }>,
+            (): $crate::IsI16<{ SCALE_P2_1 - SCALE_P2_2 }>,
+            (): $crate::IsI16<{ SCALE_P3_1 - SCALE_P3_2 }>,
+            (): $crate::IsI16<{ SCALE_P5_1 - SCALE_P5_2 }>,
+            (): $crate::IsI16<{ SCALE_PI_1 - SCALE_PI_2 }>
         ),
             // other parameters
             $T, rescale_fn
@@ -655,48 +647,48 @@ macro_rules! define_arithmetic {
         ),
         // inversion where clauses
         (
-            N<MASS_EXPONENT>: core::ops::Neg<Output = N<INVERSE_MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT>: core::ops::Neg<Output = N<INVERSE_AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT>: core::ops::Neg<Output = N<INVERSE_LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT>: core::ops::Neg<Output = N<INVERSE_ANGLE_EXPONENT>>,
-            N<SCALE_P2>: core::ops::Neg<Output = N<INVERSE_SCALE_P2>>,
-            N<SCALE_P3>: core::ops::Neg<Output = N<INVERSE_SCALE_P3>>,
-            N<SCALE_P5>: core::ops::Neg<Output = N<INVERSE_SCALE_P5>>,
-            N<SCALE_PI>: core::ops::Neg<Output = N<INVERSE_SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI>: ::core::ops::Neg<Output = $crate::__private_whippyunits_core::num::N<INVERSE_SCALE_PI>>
         ),
         // mul output dimension where clauses
         (
-            N<MASS_EXPONENT_1>: core::ops::Add<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT_1>: core::ops::Add<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT_1>: core::ops::Add<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT_1>: core::ops::Add<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT_1>: core::ops::Add<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT_1>: core::ops::Add<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT_1>: core::ops::Add<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT_1>: core::ops::Add<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
-            N<SCALE_P2_1>: core::ops::Add<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
-            N<SCALE_P3_1>: core::ops::Add<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
-            N<SCALE_P5_1>: core::ops::Add<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
-            N<SCALE_PI_1>: core::ops::Add<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<MASS_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<TIME_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P2_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P3_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_P5_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI_1>: ::core::ops::Add<$crate::__private_whippyunits_core::num::N<SCALE_PI_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_PI>>
         ),
         // div output dimension where clauses
         (
-            N<MASS_EXPONENT_1>: core::ops::Sub<N<MASS_EXPONENT_2>, Output = N<MASS_EXPONENT>>,
-            N<LENGTH_EXPONENT_1>: core::ops::Sub<N<LENGTH_EXPONENT_2>, Output = N<LENGTH_EXPONENT>>,
-            N<TIME_EXPONENT_1>: core::ops::Sub<N<TIME_EXPONENT_2>, Output = N<TIME_EXPONENT>>,
-            N<CURRENT_EXPONENT_1>: core::ops::Sub<N<CURRENT_EXPONENT_2>, Output = N<CURRENT_EXPONENT>>,
-            N<TEMPERATURE_EXPONENT_1>: core::ops::Sub<N<TEMPERATURE_EXPONENT_2>, Output = N<TEMPERATURE_EXPONENT>>,
-            N<AMOUNT_EXPONENT_1>: core::ops::Sub<N<AMOUNT_EXPONENT_2>, Output = N<AMOUNT_EXPONENT>>,
-            N<LUMINOSITY_EXPONENT_1>: core::ops::Sub<N<LUMINOSITY_EXPONENT_2>, Output = N<LUMINOSITY_EXPONENT>>,
-            N<ANGLE_EXPONENT_1>: core::ops::Sub<N<ANGLE_EXPONENT_2>, Output = N<ANGLE_EXPONENT>>,
-            N<SCALE_P2_1>: core::ops::Sub<N<SCALE_P2_2>, Output = N<SCALE_P2>>,
-            N<SCALE_P3_1>: core::ops::Sub<N<SCALE_P3_2>, Output = N<SCALE_P3>>,
-            N<SCALE_P5_1>: core::ops::Sub<N<SCALE_P5_2>, Output = N<SCALE_P5>>,
-            N<SCALE_PI_1>: core::ops::Sub<N<SCALE_PI_2>, Output = N<SCALE_PI>>
+            $crate::__private_whippyunits_core::num::N<MASS_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<MASS_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<MASS_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LENGTH_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TIME_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<TIME_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TIME_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<CURRENT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<TEMPERATURE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<AMOUNT_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<LUMINOSITY_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT_2>, Output = $crate::__private_whippyunits_core::num::N<ANGLE_EXPONENT>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P2_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P2_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P2>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P3_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P3_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P3>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_P5_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_P5_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_P5>>,
+            $crate::__private_whippyunits_core::num::N<SCALE_PI_1>: ::core::ops::Sub<$crate::__private_whippyunits_core::num::N<SCALE_PI_2>, Output = $crate::__private_whippyunits_core::num::N<SCALE_PI>>
         ),
             // other parameters
             $T, rescale_fn
