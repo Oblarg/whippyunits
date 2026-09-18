@@ -964,7 +964,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "bytemuck",
  "culit",
@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "whippyunits-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "num-traits",
  "proc-macro2",
